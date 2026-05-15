@@ -1177,24 +1177,19 @@ async function deleteNote(noteId, pageId) {
 // =============================================================================
 
 async function getStats() {
-    if (!pool) {
-        return { totalConversations: 0, totalMessages: 0 };
-    }
-
-    try {
-    if (!pool) return {};
+    if (!pool) return { totalConversations: 0, totalMessages: 0, users: 0 };
     try {
         const [msgCount] = await pool.query('SELECT COUNT(*) as total FROM messages');
         const [convCount] = await pool.query('SELECT COUNT(*) as total FROM conversations');
-        const [userCount] = await pool.query('SELECT COUNT(*) as total FROM users');
+        const [userCount] = await pool.query('SELECT COUNT(*) as total FROM users').catch(() => [{ total: 0 }]);
         return {
-            messages: msgCount[0].total,
-            conversations: convCount[0].total,
-            users: userCount[0].total
+            totalMessages: msgCount[0]?.total || 0,
+            totalConversations: convCount[0]?.total || 0,
+            users: userCount[0]?.total || 0
         };
     } catch (err) {
         addDbError(`getStats: ${err.message}`);
-        return {};
+        return { totalConversations: 0, totalMessages: 0, users: 0 };
     }
 }
 
