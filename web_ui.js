@@ -1016,9 +1016,10 @@ async function loadMessengerConversations() {
   const pageSelect = document.getElementById('pageSelect');
   let pageId = pageSelect?.value || window.current_page_id || window.currentPageId || '';
 
-  // Delegate to the Pro Messenger system
+  // Delegate to the Messenger system
   if (typeof window.msngInit === 'function') {
-    window.msngInit(pageId);
+    if (pageId) window.currentPageId = pageId;
+    window.msngInit(0); // 0 = first attempt (retries param)
     return;
   }
 
