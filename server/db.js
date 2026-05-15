@@ -67,68 +67,89 @@ async function initDatabase() {
 
         // Create tables using query() instead of execute() for DDL
         await connection.query(`
-            CREATE TABLE IF NOT EXISTS messenger_pages (
-                id VARCHAR(255) PRIMARY KEY,
-                name VARCHAR(500) NOT NULL,
-                picture TEXT,
-                access_token TEXT,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-        `);
-
+        // ── 1. Pages Table ────────────────────────────────────────────────
         await connection.query(`
-            CREATE TABLE IF NOT EXISTS messenger_conversations (
-                id VARCHAR(255) PRIMARY KEY,
-                page_id VARCHAR(255) NOT NULL,
-                participant_id VARCHAR(255) NOT NULL,
-                participant_name VARCHAR(500),
-                participant_picture TEXT,
-                snippet TEXT,
-                updated_time DATETIME,
-                is_read BOOLEAN DEFAULT TRUE,
-                unread_count INT DEFAULT 0,
+            CREATE TABLE IF NOT EXISTS messenger_pages (
+                id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                fb_page_id VARCHAR(64) NOT NULL,
+                access_token TEXT NOT NULL,
+                name VARCHAR(255) DEFAULT NULL,
+                avatar_url TEXT DEFAULT NULL,
+                is_active TINYINT(1) NOT NULL DEFAULT 1,
+                last_synced_at DATETIME NULL,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-                INDEX idx_page_id (page_id),
-                INDEX idx_updated_time (updated_time),
-                INDEX idx_participant (participant_id)
+                UNIQUE KEY uq_fb_page_id (fb_page_id)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
         `);
-        
-        // Ensure is_read column exists
-        try {
-            const [columns] = await connection.query('SHOW COLUMNS FROM messenger_conversations LIKE "is_read"');
-            if (columns.length === 0) {
-                await connection.query('ALTER TABLE messenger_conversations ADD COLUMN is_read BOOLEAN DEFAULT TRUE AFTER updated_time');
-            }
-        } catch (e) { console.warn('DB: Column check warning:', e.message); }
 
-        // Ensure unread_count column exists
-        try {
-            const [ucols] = await connection.query('SHOW COLUMNS FROM messenger_conversations LIKE "unread_count"');
-            if (ucols.length === 0) {
-                await connection.query('ALTER TABLE messenger_conversations ADD COLUMN unread_count INT DEFAULT 0 AFTER is_read');
-            }
-        } catch (e) { console.warn('DB: unread_count column check warning:', e.message); }
+        // ── 2. Conversations Table ────────────────────────────────────────
+        await connection.query(`
+            CREATE TABLE IF NOT EXISTS messenger_conversations (
+                id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                page_id VARCHAR(64) NOT NULL,
+                fb_user_id VARCHAR(64) NOT NULL,
+                fb_conv_id VARCHAR(128) DEFAULT NULL,
+                user_name VARCHAR(255) NOT NULL DEFAULT 'User',
+                user_picture TEXT DEFAULT NULL,
+                snippet TEXT DEFAULT NULL,
+                last_from_me TINYINT(1) DEFAULT NULL,
+                is_unread SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+                updated_at DATETIME DEFAULT NULL,
+                created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE KEY uq_page_user (page_id, fb_user_id),
+                KEY idx_inbox (page_id, updated_at DESC)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        `);
 
-        // Ensure last_message_from_page column exists
-        try {
-            const [lcols] = await connection.query('SHOW COLUMNS FROM messenger_conversations LIKE "last_message_from_page"');
-            if (lcols.length === 0) {
-                await connection.query('ALTER TABLE messenger_conversations ADD COLUMN last_message_from_page BOOLEAN DEFAULT FALSE AFTER unread_count');
-            }
-        } catch (e) { console.warn('DB: last_message_from_page column check warning:', e.message); }
+        // ── 3. Messages Table ─────────────────────────────────────────────
+        await connection.query(`
+            CREATE TABLE IF NOT EXISTS messenger_messages (
+                id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                conversation_id INT UNSIGNED NOT NULL,
+                page_id VARCHAR(64) NOT NULL,
+                user_id VARCHAR(64) DEFAULT NULL,
+                message_id VARCHAR(128) DEFAULT NULL,
+                message TEXT DEFAULT NULL,
+                from_me TINYINT(1) NOT NULL DEFAULT 0,
+                attachment_url TEXT DEFAULT NULL,
+                attachment_type VARCHAR(100) DEFAULT NULL,
+                metadata JSON DEFAULT NULL,
+                is_read TINYINT(1) NOT NULL DEFAULT 0,
+                is_archived TINYINT(1) NOT NULL DEFAULT 0,
+                delivered_at DATETIME DEFAULT NULL,
+                created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE KEY uq_message_id (message_id),
+                KEY idx_conv_time (conversation_id, created_at DESC)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        `);
 
-        // Ensure messenger_pages.last_synced_at column exists (tracks per-page sync state)
-        try {
-            const [scols] = await connection.query('SHOW COLUMNS FROM messenger_pages LIKE "last_synced_at"');
-            if (scols.length === 0) {
-                await connection.query('ALTER TABLE messenger_pages ADD COLUMN last_synced_at DATETIME NULL AFTER access_token');
-            }
-        } catch (e) { console.warn('DB: last_synced_at column check warning:', e.message); }
+        // ── 4. Migration Helpers (Safe column additions) ──────────────────
+        const migrations = [
+            // Conversations
+            "ALTER TABLE messenger_conversations ADD COLUMN fb_conv_id VARCHAR(128) DEFAULT NULL",
+            "ALTER TABLE messenger_conversations ADD COLUMN last_from_me TINYINT(1) DEFAULT NULL",
+            "ALTER TABLE messenger_conversations ADD COLUMN is_unread SMALLINT UNSIGNED NOT NULL DEFAULT 0",
+            "ALTER TABLE messenger_conversations ADD COLUMN updated_at DATETIME DEFAULT NULL",
+            "ALTER TABLE messenger_conversations ADD COLUMN user_name VARCHAR(255) NOT NULL DEFAULT 'User'",
+            "ALTER TABLE messenger_conversations ADD COLUMN user_picture TEXT DEFAULT NULL",
+            "ALTER TABLE messenger_conversations ADD COLUMN fb_user_id VARCHAR(64) NOT NULL",
+            // Messages
+            "ALTER TABLE messenger_messages ADD COLUMN conversation_id INT UNSIGNED",
+            "ALTER TABLE messenger_messages ADD COLUMN message TEXT",
+            "ALTER TABLE messenger_messages ADD COLUMN from_me TINYINT(1) DEFAULT 0",
+            "ALTER TABLE messenger_messages ADD COLUMN metadata JSON",
+            "ALTER TABLE messenger_messages ADD COLUMN is_read TINYINT(1) DEFAULT 0",
+            "ALTER TABLE messenger_messages ADD COLUMN delivered_at DATETIME",
+            // Pages
+            "ALTER TABLE messenger_pages ADD COLUMN fb_page_id VARCHAR(64)",
+            "ALTER TABLE messenger_pages ADD COLUMN last_synced_at DATETIME NULL"
+        ];
 
-        // ── Users Table ───────────────────────────────────────────────────
+        for (const sql of migrations) {
+            try { await connection.query(sql); } catch (e) { /* ignore duplicate column */ }
+        }
+
         await connection.query(`
             CREATE TABLE IF NOT EXISTS users (
                 fb_user_id VARCHAR(50) PRIMARY KEY,
@@ -144,7 +165,6 @@ async function initDatabase() {
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
         `);
 
-        // ── Activity Log ──────────────────────────────────────────────────
         await connection.query(`
             CREATE TABLE IF NOT EXISTS activity_log (
                 id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
@@ -156,31 +176,6 @@ async function initDatabase() {
                 INDEX idx_act_created (created_at)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
         `);
-
-        await connection.query(`
-            CREATE TABLE IF NOT EXISTS messenger_messages (
-                id VARCHAR(255) PRIMARY KEY,
-                thread_id VARCHAR(255) NOT NULL,
-                page_id VARCHAR(255) NOT NULL,
-                sender_id VARCHAR(255) NOT NULL,
-                sender_type VARCHAR(50) NOT NULL,
-                text TEXT,
-                attachments TEXT,
-                is_from_page BOOLEAN DEFAULT FALSE,
-                created_time DATETIME NOT NULL,
-                synced_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                INDEX idx_thread_id (thread_id),
-                INDEX idx_created_time (created_time)
-            ) ENGINE=InnoDB ROW_FORMAT=COMPRESSED KEY_BLOCK_SIZE=8 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-        `);
-
-        // Add attachments column if missing (for existing databases)
-        try {
-            const [attCols] = await connection.query('SHOW COLUMNS FROM messenger_messages LIKE "attachments"');
-            if (attCols.length === 0) {
-                await connection.query('ALTER TABLE messenger_messages ADD COLUMN attachments TEXT AFTER text');
-            }
-        } catch (e) { console.warn('DB: attachments column check warning:', e.message); }
 
         await connection.query(`
             CREATE TABLE IF NOT EXISTS canned_replies (
@@ -206,19 +201,10 @@ async function initDatabase() {
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
         `);
 
-        // archived column — soft-delete messenger_conversations without losing messenger_messages
-        try {
-            const [archCols] = await connection.query('SHOW COLUMNS FROM messenger_conversations LIKE "archived"');
-            if (archCols.length === 0) {
-                await connection.query('ALTER TABLE messenger_conversations ADD COLUMN archived TINYINT(1) NOT NULL DEFAULT 0 AFTER unread_count, ADD INDEX idx_archived (archived)');
-            }
-        } catch (e) { console.warn('DB: archived column check warning:', e.message); }
-
         connection.release();
         console.log('Database tables verified');
         pool.lastError = null;
         return pool;
-
     } catch (err) {
         console.error('MySQL connection failed:', err.message);
         addDbError(`Connection failed: ${err.message}`);
@@ -226,6 +212,7 @@ async function initDatabase() {
         else initDatabase.lastError = err.message;
         pool = null;
         return null;
+    }
     }
 }
 
@@ -246,11 +233,11 @@ async function savePage(page) {
     const { id, name, picture, accessToken } = page;
     try {
         await pool.query(`
-            INSERT INTO messenger_pages (id, name, picture, access_token)
+            INSERT INTO messenger_pages (fb_page_id, name, avatar_url, access_token)
             VALUES (?, ?, ?, ?)
             ON DUPLICATE KEY UPDATE
                 name = VALUES(name),
-                picture = VALUES(picture),
+                avatar_url = VALUES(avatar_url),
                 access_token = VALUES(access_token),
                 updated_at = CURRENT_TIMESTAMP
         `, [id, name, picture, accessToken]);
@@ -269,17 +256,11 @@ async function getPages() {
     if (!pool) return [];
     try {
         const [rows] = await pool.query(`
-            SELECT id, name, picture, access_token, last_synced_at, created_at, updated_at
+            SELECT fb_page_id as id, name, avatar_url as picture, access_token, last_synced_at, created_at, updated_at
             FROM messenger_pages
             ORDER BY name ASC
         `);
-        return rows.map(row => ({
-            id: row.id,
-            name: row.name,
-            picture: row.picture,
-            access_token: row.access_token,
-            last_synced_at: row.last_synced_at
-        }));
+        return rows;
     } catch (err) {
         addDbError(`getPages: ${err.message}`);
         return [];
@@ -290,7 +271,7 @@ async function getPageToken(pageId) {
     if (!pool) return null;
     try {
         const [rows] = await pool.query(
-            'SELECT access_token FROM messenger_pages WHERE id = ?',
+            'SELECT access_token FROM messenger_pages WHERE fb_page_id = ?',
             [pageId]
         );
         return rows[0]?.access_token || null;
@@ -307,34 +288,18 @@ async function getPageToken(pageId) {
 async function saveConversation(conversation) {
     if (!pool) return;
     const { id, pageId, participantId, participantName, snippet, updatedTime, isRead, unreadCount } = conversation;
-    const fbUnreadCount = unreadCount != null ? unreadCount : 0;
+    const fbUnreadCount = unreadCount != null ? unreadCount : (isRead ? 0 : 1);
 
     try {
-        if (isRead !== undefined) {
-            // ON DUPLICATE KEY never touches is_read or unread_count.
-            // unread_count is managed exclusively by the webhook (+1 per message)
-            // and markAsRead (reset to 0). FB sync must not overwrite these —
-            // FB's unread_count is a historical total and can be in the hundreds.
-            await pool.query(`
-                INSERT INTO messenger_conversations (id, page_id, participant_id, participant_name, snippet, updated_time, is_read, unread_count)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                ON DUPLICATE KEY UPDATE
-                    participant_name = VALUES(participant_name),
-                    snippet = VALUES(snippet),
-                    updated_time = VALUES(updated_time),
-                    updated_at = CURRENT_TIMESTAMP
-            `, [id, pageId, participantId, participantName, snippet, updatedTime ? new Date(updatedTime) : null, isRead ? 1 : 0, fbUnreadCount]);
-        } else {
-            await pool.query(`
-                INSERT INTO messenger_conversations (id, page_id, participant_id, participant_name, snippet, updated_time)
-                VALUES (?, ?, ?, ?, ?, ?)
-                ON DUPLICATE KEY UPDATE
-                    participant_name = VALUES(participant_name),
-                    snippet = VALUES(snippet),
-                    updated_time = VALUES(updated_time),
-                    updated_at = CURRENT_TIMESTAMP
-            `, [id, pageId, participantId, participantName, snippet, updatedTime ? new Date(updatedTime) : null]);
-        }
+        await pool.query(`
+            INSERT INTO messenger_conversations (page_id, fb_user_id, fb_conv_id, user_name, snippet, updated_at, is_unread)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+            ON DUPLICATE KEY UPDATE
+                user_name = VALUES(user_name),
+                snippet = VALUES(snippet),
+                updated_at = VALUES(updated_at),
+                is_unread = VALUES(is_unread)
+        `, [pageId, participantId, id, participantName, snippet, updatedTime ? new Date(updatedTime) : null, fbUnreadCount]);
     } catch (err) {
         addDbError(`saveConversation: ${err.message}`);
     }
@@ -342,45 +307,21 @@ async function saveConversation(conversation) {
 
 async function saveConversations(messenger_conversations) {
     if (!pool || messenger_conversations.length === 0) return;
-    // Batch INSERT — single round-trip instead of N queries
-    try {
-        const values = messenger_conversations.map(c => [
-            c.id, c.pageId, c.participantId || '', c.participantName || '',
-            (c.snippet || '').substring(0, 200),
-            c.updatedTime ? new Date(c.updatedTime) : null,
-            c.isRead ? 1 : 0,
-            c.unreadCount || 0
-        ]);
-        await pool.query(`
-            INSERT INTO messenger_conversations
-                (id, page_id, participant_id, participant_name, snippet, updated_time, is_read, unread_count)
-            VALUES ?
-            ON DUPLICATE KEY UPDATE
-                participant_name = VALUES(participant_name),
-                snippet          = VALUES(snippet),
-                updated_time     = VALUES(updated_time),
-                updated_at       = CURRENT_TIMESTAMP
-        `, [values]);
-    } catch (err) {
-        addDbError(`saveConversations batch: ${err.message}`);
-        // Fallback: individual saves
-        for (const c of messenger_conversations) await saveConversation(c).catch(() => {});
-    }
+    for (const c of messenger_conversations) await saveConversation(c).catch(() => {});
 }
 
 async function getConversations(pageId, limit = 100, offset = 0, archived = false) {
     if (!pool) return [];
     try {
         const [rows] = await pool.query(`
-            SELECT c.id, c.page_id, c.participant_id, c.participant_name, c.participant_picture, c.snippet, c.updated_time, c.is_read, c.unread_count, c.last_message_from_page,
-                   COALESCE(c.archived, 0) as archived,
-                   p.name as page_name, p.picture as page_picture
+            SELECT c.id, c.page_id, c.fb_user_id as participant_id, c.user_name as participant_name, c.user_picture as participant_picture, c.snippet, c.updated_at as updated_time, c.is_unread,
+                   p.name as page_name, p.avatar_url as page_picture
             FROM messenger_conversations c
-            LEFT JOIN messenger_pages p ON c.page_id = p.id
-            WHERE c.page_id = ? AND COALESCE(c.archived, 0) = ?
-            ORDER BY c.updated_time DESC
+            LEFT JOIN messenger_pages p ON c.page_id = p.fb_page_id
+            WHERE c.page_id = ?
+            ORDER BY c.updated_at DESC
             LIMIT ? OFFSET ?
-        `, [pageId, archived ? 1 : 0, limit, offset]);
+        `, [pageId, limit, offset]);
         return rows.map(row => ({
             id: row.id,
             pageId: row.page_id,
@@ -389,12 +330,10 @@ async function getConversations(pageId, limit = 100, offset = 0, archived = fals
             participantPicture: row.participant_picture,
             snippet: row.snippet,
             updatedTime: row.updated_time,
-            isRead: row.is_read === 1 || row.is_read === true,
-            unreadCount: row.unread_count || 0,
+            isRead: row.is_unread === 0,
+            unreadCount: row.is_unread || 0,
             pageName: row.page_name,
-            pagePicture: row.page_picture,
-            lastMessageFromPage: row.last_message_from_page === 1 || row.last_message_from_page === true,
-            archived: row.archived === 1 || row.archived === true
+            pagePicture: row.page_picture
         }));
     } catch (err) {
         addDbError(`getConversations: ${err.message}`);
@@ -560,20 +499,18 @@ async function getAllConversations() {
 
 async function saveMessage(message) {
     if (!pool) return false;
-    const { id, threadId, pageId, senderId, senderType, text, attachments, isFromPage, createdTime } = message;
-    // Store attachments as compact JSON: [{t:"image",u:"url"},{t:"file",u:"url",n:"name"}]
+    const { id, threadId, pageId, senderId, text, attachments, isFromPage, createdTime } = message;
     const attachmentsJson = attachments && attachments.length > 0 ? JSON.stringify(attachments) : null;
 
     try {
         await pool.query(`
-            INSERT INTO messenger_messages (id, thread_id, page_id, sender_id, sender_type, text, attachments, is_from_page, created_time)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO messenger_messages (conversation_id, page_id, user_id, message_id, message, from_me, created_at, attachment_url)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             ON DUPLICATE KEY UPDATE
-                thread_id = VALUES(thread_id),
-                text = VALUES(text),
-                attachments = VALUES(attachments),
-                created_time = VALUES(created_time)
-        `, [id, threadId, pageId, senderId, senderType, text, attachmentsJson, isFromPage ? 1 : 0, createdTime ? new Date(createdTime) : null]);
+                message = VALUES(message),
+                attachment_url = VALUES(attachment_url),
+                created_at = VALUES(created_at)
+        `, [threadId, pageId, senderId, id, text, isFromPage ? 1 : 0, createdTime ? new Date(createdTime) : new Date(), attachmentsJson]);
         return true;
     } catch (err) {
         addDbError(`saveMessage: ${err.message}`);
@@ -583,56 +520,28 @@ async function saveMessage(message) {
 
 async function saveMessages(messenger_messages) {
     if (!pool || messenger_messages.length === 0) return;
-    // Batch INSERT — single round-trip
-    try {
-        const values = messenger_messages.map(m => [
-            m.id, m.threadId, m.pageId, m.senderId || '', m.senderType || 'customer',
-            m.text || '',
-            m.attachments && m.attachments.length > 0 ? JSON.stringify(m.attachments) : null,
-            m.isFromPage ? 1 : 0,
-            m.createdTime ? new Date(m.createdTime) : null
-        ]);
-        await pool.query(`
-            INSERT INTO messenger_messages
-                (id, thread_id, page_id, sender_id, sender_type, text, attachments, is_from_page, created_time)
-            VALUES ?
-            ON DUPLICATE KEY UPDATE
-                text         = VALUES(text),
-                attachments  = VALUES(attachments),
-                created_time = VALUES(created_time)
-        `, [values]);
-    } catch (err) {
-        addDbError(`saveMessages batch: ${err.message}`);
-        for (const m of messenger_messages) await saveMessage(m).catch(() => {});
-    }
+    for (const m of messenger_messages) await saveMessage(m).catch(() => {});
 }
 
-async function getMessages(threadId, limit = 20) {
+async function getMessages(threadId, limit = 100) {
     if (!pool) return [];
 
     try {
         const [rows] = await pool.query(`
-            SELECT id, thread_id, page_id, sender_id, sender_type, text, attachments, is_from_page, created_time
-            FROM (
-                SELECT id, thread_id, page_id, sender_id, sender_type, text, attachments, is_from_page, created_time
-                FROM messenger_messages
-                WHERE thread_id = ?
-                ORDER BY created_time DESC
-                LIMIT ?
-            ) sub
-            ORDER BY created_time ASC
+            SELECT id, message_id as mid, message as text, from_me as is_from_page, created_at as created_time, attachment_url as attachments
+            FROM messenger_messages
+            WHERE conversation_id = ?
+            ORDER BY created_at ASC
+            LIMIT ?
         `, [threadId, limit]);
 
         return rows.map(row => ({
             id: row.id,
-            threadId: row.thread_id,
-            pageId: row.page_id,
-            senderId: row.sender_id,
-            senderType: row.sender_type,
+            mid: row.mid,
             text: row.text,
-            attachments: row.attachments ? JSON.parse(row.attachments) : [],
             isFromPage: row.is_from_page === 1 || row.is_from_page === true,
-            createdTime: row.created_time
+            createdTime: row.created_time,
+            attachments: row.attachments ? (typeof row.attachments === 'string' ? JSON.parse(row.attachments) : row.attachments) : []
         }));
     } catch (err) {
         addDbError(`getMessages: ${err.message}`);
