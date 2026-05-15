@@ -87,8 +87,7 @@ app.use('/api', require('./routes/facebook'));
 app.use('/api', require('./routes/messenger'));
 app.use('/api', require('./routes/api'));
 
-// Legacy PHP rewrites
-app.post('/api/exchange_token.php', (req, res) => res.redirect(307, '/api/auth/fb-token'));
+// Legacy PHP rewrites handled in routers
 
 // ── Healthcheck ───────────────────────────────────────────────────────────────
 app.get('/api/health', (req, res) => res.json({ status: 'ok', time: new Date().toISOString(), db: db.getPool() ? 'connected' : 'disconnected' }));

@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { generateCsrf } = require('../middleware/security');
-const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
+const fetch = global.fetch || require('node-fetch');
 
 router.get('/csrf-token', (req, res) => {
     const token = generateCsrf(req);
@@ -10,7 +10,7 @@ router.get('/csrf-token', (req, res) => {
     });
 });
 
-router.post('/fb-token', async (req, res) => {
+router.post(['/fb-token', '/exchange_token.php'], async (req, res) => {
     const { user_token } = req.body;
     if (!user_token) return res.status(400).json({ error: 'user_token required' });
     try {
