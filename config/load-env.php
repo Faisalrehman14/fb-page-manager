@@ -11,7 +11,7 @@ function env_value($key, $default = '') {
     $value = getenv($key);
     if ($value === false && isset($_ENV[$key])) $value = $_ENV[$key];
     if ($value === false && isset($_SERVER[$key])) $value = $_SERVER[$key];
-    return $value === false ? $default : $value;
+    return $value === false ? $default : trim($value);
 }
 
 function env_bool($key, $default = false) {
