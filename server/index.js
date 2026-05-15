@@ -1073,10 +1073,9 @@ function renderIndexHtml(req) {
 
     // Inject config
     html = html.replace(
-        /window\.APP_CONFIG=\{[\s\S]*?\};/,
+        /\/\* CONFIG_INJECT \*\//,
         `window.APP_CONFIG=${JSON.stringify(config)};`
     );
-    html = html.replace(/window\.FB_CONFIG=\{[\s\S]*?\};/, `window.FB_CONFIG={appId:window.APP_CONFIG.fbAppId,csrfToken:window.APP_CONFIG.csrfToken};`);
 
     // Replace placeholders
     html = html.replace(/{{SITE_URL}}/g, siteUrl);

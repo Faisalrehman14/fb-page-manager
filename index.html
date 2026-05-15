@@ -40,16 +40,10 @@
 </head>
 <body>
 <a class="skip-link" href="#appPage">Skip To Dashboard</a>
+<script id="app-config-loader">
+/* CONFIG_INJECT */
+</script>
 <script>
-window.APP_CONFIG={
-  stripePublishableKey:'',
-  fbAppId:'',
-  fbRedirectUri:'',
-  contactEmail:'{{CONTACT_EMAIL}}',
-  siteUrl:'',
-  csrfToken:'',
-  appEnv:''
-};
 window.FB_CONFIG={appId:window.APP_CONFIG.fbAppId,csrfToken:window.APP_CONFIG.csrfToken};
 window.getCsrfToken = async (forceRefresh = false) => {
   if (!forceRefresh && window.APP_CONFIG.csrfToken) return window.APP_CONFIG.csrfToken;
