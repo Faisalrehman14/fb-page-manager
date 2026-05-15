@@ -24,17 +24,37 @@ const sessionMiddleware = session({
     resave: false,
     saveUninitialized: true,
     store: (function() {
-        const MySQLStore = require('express-mysql-session')(session);
-        return new MySQLStore({
-            clearExpired: true,
-            checkExpirationInterval: 900000,
-            expiration: 86400000,
-            createDatabaseTable: true,
-            schema: {
-                tableName: 'sessions',
-                columnNames: { session_id: 'session_id', expires: 'expires', data: 'data' }
+        try {
+            const MySQLStore = require('express-mysql-session')(session);
+            const options = {
+                host: process.env.MYSQLHOST,
+                port: process.env.MYSQLPORT || 3306,
+                user: process.env.MYSQLUSER || 'root',
+                password: process.env.MYSQLPASSWORD || process.env.MYSQL_ROOT_PASSWORD,
+                database: process.env.MYSQL_DATABASE || process.env.MYSQLDATABASE,
+                clearExpired: true,
+                checkExpirationInterval: 900000,
+                expiration: 86400000,
+                createDatabaseTable: true
+            };
+            const durl = process.env.DATABASE_URL || process.env.MYSQL_URL;
+            if (durl) {
+                // Simplified URL parsing for MySQLStore
+                try {
+                    const u = new URL(durl);
+                    options.host = u.hostname;
+                    options.port = u.port || 3306;
+                    options.user = u.username;
+                    options.password = decodeURIComponent(u.password);
+                    options.database = u.pathname.substring(1);
+                } catch(err) {}
             }
-        }, db.getPool());
+            if (!options.host) return undefined;
+            return new MySQLStore(options);
+        } catch (e) {
+            console.error('Session store init failed:', e.message);
+            return undefined;
+        }
     })(),
     cookie: {
         secure: false, // Railway handles SSL at proxy
