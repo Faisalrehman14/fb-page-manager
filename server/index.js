@@ -341,7 +341,8 @@ app.use((req, res, next) => {
             'oauth_start.php': '/api/auth/start',
             'oauth_callback.php': '/api/auth/callback',
             'create_checkout.php': '/api/billing/checkout',
-            'fb_webhook.php': '/api/webhook'
+            'fb_webhook.php': '/api/webhook',
+            'admin.php': '/api/admin'
         };
         if (legacyMap[filename]) {
             req.url = legacyMap[filename];
@@ -351,6 +352,11 @@ app.use((req, res, next) => {
         return res.status(404).json({ error: 'Not found', hint: 'Use /api/* routes', path: req.path });
     }
     next();
+});
+
+// Admin stub
+app.get('/api/admin', (req, res) => {
+    res.json({ error: 'Maintenance', message: 'Admin panel is currently being migrated to Node.js. Please use the main dashboard.' });
 });
 
 // Root route handler
