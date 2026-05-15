@@ -1273,15 +1273,15 @@ const Inbox = {
         this.soundEnabled = localStorage.getItem('sound') !== 'false';
         const theme = localStorage.getItem('theme') || 'dark';
         document.documentElement.setAttribute('data-theme', theme);
-        if (!this.soundEnabled) document.getElementById('sound-btn').classList.remove('active');
+        if (!this.soundEnabled) document.getElementById('sound-btn')?.classList.remove('active');
 
         await initCsrfToken();
         const auth = await checkAuthStatus();
         if (!auth?.authenticated) { if (window.location.pathname.includes('inbox.html')) window.location.href = '/'; return; }
 
-        document.getElementById('logout-btn').addEventListener('click', handleLogout);
+        document.getElementById('logout-btn')?.addEventListener('click', handleLogout);
 
-        document.getElementById('conv-search').addEventListener('input', e => {
+        document.getElementById('conv-search')?.addEventListener('input', e => {
             const q = e.target.value.trim();
             this.searchQuery = q.toLowerCase();
             clearTimeout(this._searchTimer);
@@ -2448,7 +2448,7 @@ const Inbox = {
     toggleSound() {
         this.soundEnabled = !this.soundEnabled;
         localStorage.setItem('sound', this.soundEnabled);
-        document.getElementById('sound-btn').classList.toggle('active', this.soundEnabled);
+        document.getElementById('sound-btn')?.classList.toggle('active', this.soundEnabled);
         showInboxToast(this.soundEnabled ? 'Sound on' : 'Sound off');
     },
 

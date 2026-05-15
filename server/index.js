@@ -65,6 +65,73 @@ app.use((req, res, next) => {
 app.use(express.json({ verify: (req, res, buf) => { req.rawBody = buf; } }));
 app.use(express.urlencoded({ extended: true }));
 
+// ── Facebook Webhook (must be before express.static so fb_webhook.php isn't served as raw PHP) ──
+app.get(['/webhook', '/fb_webhook.php'], (req, res) => {
+    const { 'hub.mode': mode, 'hub.verify_token': token, 'hub.challenge': challenge } = req.query;
+    if (mode === 'subscribe' && token === WEBHOOK_VERIFY_TOKEN) return res.send(challenge);
+    res.sendStatus(403);
+});
+
+app.post(['/webhook', '/fb_webhook.php'], async (req, res) => {
+    if (FB_APP_SECRET) {
+        const sig      = req.headers['x-hub-signature-256'] || '';
+        const expected = 'sha256=' + crypto.createHmac('sha256', FB_APP_SECRET).update(req.rawBody || Buffer.alloc(0)).digest('hex');
+        if (sig && sig !== expected) { logError('webhook_sig', new Error('Invalid signature')); return res.sendStatus(403); }
+    }
+
+    res.sendStatus(200);
+
+    const { object, entry } = req.body;
+    if (object !== 'page' || !entry) return;
+
+    webhookLogs.unshift({ time: new Date().toISOString(), entries: entry.length });
+    if (webhookLogs.length > MAX_LOGS) webhookLogs.pop();
+
+    for (const pageEntry of entry) {
+        const pageId = pageEntry.id;
+        for (const event of (pageEntry.messaging || [])) {
+            try {
+                if (!event.message) continue;
+                const isEcho        = !!event.message.is_echo;
+                const participantId = isEcho ? event.recipient?.id : event.sender?.id;
+                if (!participantId) continue;
+
+                const mid  = event.message.mid;
+                const text = event.message.text || '';
+                const ts   = event.timestamp ? new Date(event.timestamp).toISOString() : new Date().toISOString();
+
+                let attachments = [];
+                if (event.message.attachments?.length) {
+                    attachments = event.message.attachments.map(a => ({ t: a.type || 'file', u: a.payload?.url || '' }));
+                }
+
+                const threadId = await db.ensureConversation(pageId, participantId);
+                if (!threadId) continue;
+
+                const saved = await db.saveMessage({
+                    id: mid, threadId, pageId, senderId: participantId,
+                    senderType: isEcho ? 'page' : 'user',
+                    text, isFromPage: isEcho, createdTime: ts,
+                    attachments: attachments.length ? attachments : null
+                });
+
+                if (saved && !isEcho) {
+                    await db.onIncomingMessage(threadId, pageId, participantId, text);
+                    const snippet = text || (attachments[0] ? `[${attachments[0].t}]` : '');
+                    io.to(`page_${pageId}`).emit('new_message',          { id: mid, threadId, pageId, participantId, text, isFromPage: false, createdTime: ts, attachments });
+                    io.to(`page_${pageId}`).emit('conversation_updated', { id: threadId, pageId, participantId, snippet, updatedTime: new Date(), isRead: false, unreadCount: 1, lastMessageFromPage: false });
+                }
+            } catch (err) { logError('webhook_event', err, { pageId }); }
+        }
+    }
+});
+
+// Block raw PHP files — they can't run in Node.js (return JSON error so JS callers don't get raw PHP source)
+app.use((req, res, next) => {
+    if (req.path.endsWith('.php')) return res.status(404).json({ error: 'Not found', hint: 'Use /api/* routes' });
+    next();
+});
+
 // Serve static assets from project root
 app.use(express.static(path.join(__dirname, '..'), { maxAge: '1h', etag: true, index: false }));
 
@@ -126,66 +193,6 @@ io.on('connection', socket => {
     socket.on('disconnect', () => connectedSockets.delete(socket.id));
 });
 
-// ── Facebook Webhook ──────────────────────────────────────────────────────────
-app.get(['/webhook', '/fb_webhook.php'], (req, res) => {
-    const { 'hub.mode': mode, 'hub.verify_token': token, 'hub.challenge': challenge } = req.query;
-    if (mode === 'subscribe' && token === WEBHOOK_VERIFY_TOKEN) return res.send(challenge);
-    res.sendStatus(403);
-});
-
-app.post(['/webhook', '/fb_webhook.php'], async (req, res) => {
-    if (FB_APP_SECRET) {
-        const sig      = req.headers['x-hub-signature-256'] || '';
-        const expected = 'sha256=' + crypto.createHmac('sha256', FB_APP_SECRET).update(req.rawBody || Buffer.alloc(0)).digest('hex');
-        if (sig && sig !== expected) { logError('webhook_sig', new Error('Invalid signature')); return res.sendStatus(403); }
-    }
-
-    res.sendStatus(200);
-
-    const { object, entry } = req.body;
-    if (object !== 'page' || !entry) return;
-
-    webhookLogs.unshift({ time: new Date().toISOString(), entries: entry.length });
-    if (webhookLogs.length > MAX_LOGS) webhookLogs.pop();
-
-    for (const pageEntry of entry) {
-        const pageId = pageEntry.id;
-        for (const event of (pageEntry.messaging || [])) {
-            try {
-                if (!event.message) continue;
-                const isEcho       = !!event.message.is_echo;
-                const participantId = isEcho ? event.recipient?.id : event.sender?.id;
-                if (!participantId) continue;
-
-                const mid  = event.message.mid;
-                const text = event.message.text || '';
-                const ts   = event.timestamp ? new Date(event.timestamp).toISOString() : new Date().toISOString();
-
-                let attachments = [];
-                if (event.message.attachments?.length) {
-                    attachments = event.message.attachments.map(a => ({ t: a.type || 'file', u: a.payload?.url || '' }));
-                }
-
-                const threadId = await db.ensureConversation(pageId, participantId);
-                if (!threadId) continue;
-
-                const saved = await db.saveMessage({
-                    id: mid, threadId, pageId, senderId: participantId,
-                    senderType: isEcho ? 'page' : 'user',
-                    text, isFromPage: isEcho, createdTime: ts,
-                    attachments: attachments.length ? attachments : null
-                });
-
-                if (saved && !isEcho) {
-                    await db.onIncomingMessage(threadId, pageId, participantId, text);
-                    const snippet = text || (attachments[0] ? `[${attachments[0].t}]` : '');
-                    io.to(`page_${pageId}`).emit('new_message',        { id: mid, threadId, pageId, participantId, text, isFromPage: false, createdTime: ts, attachments });
-                    io.to(`page_${pageId}`).emit('conversation_updated', { id: threadId, pageId, participantId, snippet, updatedTime: new Date(), isRead: false, unreadCount: 1, lastMessageFromPage: false });
-                }
-            } catch (err) { logError('webhook_event', err, { pageId }); }
-        }
-    }
-});
 
 // ── Auth ──────────────────────────────────────────────────────────────────────
 app.get('/api/csrf-token', (req, res) => res.json({ csrfToken: generateCsrf(req) }));
