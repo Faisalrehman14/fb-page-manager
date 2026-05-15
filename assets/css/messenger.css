@@ -1,11 +1,10 @@
 /* ═══════════════════════════════════════════════════════════
    messenger.css — ULTIMATE PRO CLASS Meta-style UI
-   Refined for perfect alignment and premium aesthetics
+   Strict Layout Fix: Forces correct 3-column pinning
    ═══════════════════════════════════════════════════════════ */
 
 :root {
   --msng-primary: #0084FF;
-  --msng-primary-hover: #0073e6;
   --msng-bg: #0b0e14;
   --msng-sidebar: #121620;
   --msng-chat-bg: #090c11;
@@ -15,21 +14,19 @@
   --msng-text-muted: #8e94a3;
   --msng-border: rgba(255, 255, 255, 0.06);
   --msng-header-height: 72px;
-  --msng-input-height: 80px;
 }
 
 /* ── Root Layout ─────────────────────────────────────────── */
 .msng-root {
   display: flex;
-  height: 100%;
+  height: 100% !important;
   width: 100%;
   overflow: hidden;
   background: var(--msng-bg);
-  font-family: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: 'Inter', -apple-system, sans-serif;
   color: var(--msng-text);
+  position: relative;
 }
-
-.msng-pages { display: none !important; }
 
 /* ── Column 2: Conversations ────────────────────────────── */
 .msng-convs {
@@ -39,159 +36,13 @@
   border-right: 1px solid var(--msng-border);
   display: flex;
   flex-direction: column;
-  z-index: 5;
-}
-
-.msng-convs-hdr {
-  padding: 24px 20px 16px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.msng-convs-hdr h3 {
-  font-size: 22px;
-  font-weight: 800;
-  margin: 0;
-  letter-spacing: -0.5px;
-  color: #fff;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.msng-convs-hdr h3 i {
-  color: var(--msng-primary);
-  font-size: 20px;
-}
-
-.msng-search {
-  padding: 0 16px 16px;
-}
-
-.msng-search-inner {
-  position: relative;
-}
-
-.msng-search-inner i {
-  position: absolute;
-  left: 14px;
-  top: 50%;
-  transform: translateY(-50%);
-  color: var(--msng-text-muted);
-  font-size: 14px;
-}
-
-.msng-search input {
-  width: 100%;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid transparent;
-  border-radius: 20px;
-  padding: 10px 16px 10px 40px;
-  color: #fff;
-  font-size: 14px;
-  outline: none;
-  transition: all 0.2s ease;
-}
-
-.msng-search input:focus {
-  background: rgba(255, 255, 255, 0.07);
-  border-color: var(--msng-primary);
+  height: 100%;
 }
 
 .msng-conv-list {
   flex: 1;
   overflow-y: auto;
-  padding: 0 8px;
-}
-
-.msng-conv-item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 10px 12px;
-  border-radius: 12px;
-  cursor: pointer;
-  transition: all 0.1s ease;
-  margin: 2px 4px;
-}
-
-.msng-conv-item:hover {
-  background: rgba(255, 255, 255, 0.05);
-}
-
-.msng-conv-item.active {
-  background: rgba(0, 132, 255, 0.15);
-}
-
-.msng-ci-avatar {
-  position: relative;
-  flex-shrink: 0;
-}
-
-.msng-ci-avatar img,
-.msng-ci-avatar .msng-ci-initial {
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
-  object-fit: cover;
-}
-
-
-.msng-ci-initial {
-  background: linear-gradient(135deg, #1d4ed8, #6366f1);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 700;
-  color: #fff;
-}
-
-.msng-ci-body {
-  flex: 1;
-  min-width: 0;
-}
-
-.msng-ci-row1 {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  margin-bottom: 4px;
-}
-
-.msng-ci-name {
-  font-size: 15px;
-  font-weight: 700;
-  color: #fff;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.msng-ci-time {
-  font-size: 12px;
-  color: var(--msng-text-muted);
-}
-
-.msng-ci-last {
-  font-size: 13px;
-  color: var(--msng-text-muted);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.msng-conv-item.unread .msng-ci-last {
-  color: #fff;
-  font-weight: 600;
-}
-
-.msng-ci-badge {
-  background: var(--msng-primary);
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  margin-left: 8px;
+  padding: 8px;
 }
 
 /* ── Column 3: Chat Window ──────────────────────────────── */
@@ -200,19 +51,28 @@
   display: flex;
   flex-direction: column;
   background: var(--msng-chat-bg);
+  height: 100%;
   position: relative;
   overflow: hidden;
 }
 
+.msng-chat-window {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+  position: relative;
+}
+
 .msng-chat-hdr {
   height: var(--msng-header-height);
+  min-height: var(--msng-header-height);
   padding: 0 24px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   border-bottom: 1px solid var(--msng-border);
-  background: rgba(9, 12, 17, 0.85);
-  backdrop-filter: blur(20px);
+  background: rgba(9, 12, 17, 0.95);
   z-index: 10;
 }
 
@@ -222,39 +82,21 @@
   gap: 12px;
 }
 
-.msng-chat-hdr-avatar img,
-.msng-chat-hdr-avatar .msng-hdr-initial {
-  width: 42px;
-  height: 42px;
-  border-radius: 50%;
-}
-
-.msng-chat-hdr-name {
-  font-size: 16px;
-  font-weight: 700;
-  color: #fff;
-}
-
-.msng-chat-hdr-sub {
-  font-size: 12px;
-  color: #10b981;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
+/* The Messages Area must grow to fill space */
 .msng-msgs {
   flex: 1;
   overflow-y: auto;
   padding: 24px;
   display: flex;
   flex-direction: column;
+  gap: 8px;
+  background: var(--msng-chat-bg);
 }
 
 .msng-msg {
   display: flex;
   margin-bottom: 4px;
-  max-width: 70%;
+  max-width: 75%;
 }
 
 .msng-msg.from-me {
@@ -266,7 +108,7 @@
   padding: 10px 16px;
   font-size: 15px;
   line-height: 1.4;
-  border-radius: 20px;
+  border-radius: 18px;
   word-break: break-word;
 }
 
@@ -282,22 +124,15 @@
   border-bottom-right-radius: 4px;
 }
 
-.msng-msg-time {
-  font-size: 11px;
-  color: var(--msng-text-muted);
-  margin-top: 4px;
-  display: none; /* Only show on hover or last message */
-}
-
-.msng-msg:hover .msng-msg-time { display: block; }
-
+/* Input Bar must be at the very bottom */
 .msng-input-bar {
-  padding: 12px 24px 24px;
+  padding: 16px 24px;
   background: var(--msng-chat-bg);
   border-top: 1px solid var(--msng-border);
   display: flex;
   align-items: flex-end;
   gap: 12px;
+  min-height: 80px;
 }
 
 .msng-input-wrap {
@@ -306,7 +141,13 @@
   border-radius: 24px;
   padding: 10px 18px;
   display: flex;
-  align-items: flex-end;
+  align-items: center;
+  border: 1px solid transparent;
+  transition: border-color 0.2s;
+}
+
+.msng-input-wrap:focus-within {
+  border-color: var(--msng-primary);
 }
 
 .msng-textarea {
@@ -318,75 +159,42 @@
   font-size: 15px;
   resize: none;
   max-height: 120px;
-  padding: 2px 0;
+  padding: 0;
+  line-height: 1.4;
 }
 
 .msng-send-btn {
   width: 44px;
   height: 44px;
-  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--msng-primary);
+  font-size: 20px;
   background: transparent;
   border: none;
-  color: var(--msng-primary);
-  font-size: 22px;
   cursor: pointer;
-  transition: transform 0.15s;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  transition: transform 0.1s;
 }
 
-.msng-send-btn:hover { transform: scale(1.1); color: var(--msng-primary-hover); }
-.msng-send-btn:disabled { color: var(--msng-text-muted); opacity: 0.5; }
+.msng-send-btn:hover { transform: scale(1.1); }
 
-/* ── Empty State ────────────────────────────────────────── */
-.msng-chat-empty {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  padding: 40px;
+/* Avatar styling */
+.msng-ci-avatar img, .msng-chat-hdr-avatar img {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  object-fit: cover;
 }
 
-.msng-chat-empty-icon {
-  width: 100px;
-  height: 100px;
-  background: rgba(0, 132, 255, 0.05);
+.msng-hdr-initial, .msng-ci-initial {
+  width: 44px;
+  height: 44px;
+  background: linear-gradient(135deg, #0084FF, #00c6ff);
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 20px;
-}
-
-.msng-chat-empty-icon i {
-  font-size: 40px;
-  color: var(--msng-primary);
-  opacity: 0.5;
-}
-
-.msng-chat-empty h4 {
-  font-size: 20px;
-  font-weight: 800;
-  margin-bottom: 8px;
-}
-
-.msng-chat-empty p {
-  color: var(--msng-text-muted);
-  max-width: 300px;
-  font-size: 14px;
-  line-height: 1.6;
-}
-
-/* ── Custom Scrollbar ───────────────────────────────────── */
-.msng-msgs::-webkit-scrollbar,
-.msng-conv-list::-webkit-scrollbar {
-  width: 6px;
-}
-.msng-msgs::-webkit-scrollbar-thumb,
-.msng-conv-list::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 10px;
+  font-weight: 700;
+  color: #fff;
 }
