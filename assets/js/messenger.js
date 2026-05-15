@@ -45,16 +45,24 @@
   async function get(action, params = {}) {
     const qs  = new URLSearchParams(params).toString();
     const url = '/api/messenger?action=' + encodeURIComponent(action) + (qs ? '&' + qs : '');
-    const r   = await fetch(url, { credentials: 'same-origin' });
-    if (!r.headers.get('content-type')?.includes('application/json')) {
-      const txt = await r.text();
-      console.error('[Messenger] Non-JSON:', txt.slice(0, 200));
-      throw new Error('Server returned non-JSON');
+    if (typeof window.requestJson === 'function') {
+      return window.requestJson(url, { method: 'GET' });
     }
+    const r   = await fetch(url, { credentials: 'same-origin' });
     return r.json();
   }
 
   async function post(payload) {
+    if (typeof window.requestJson === 'function') {
+      return window.requestJson('/api/messenger', {
+        method:  'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'X-CSRF-Token': await window.getCsrfToken?.() || ''
+        },
+        body:    JSON.stringify(payload)
+      });
+    }
     const r = await fetch('/api/messenger', {
       method:      'POST',
       headers:     { 'Content-Type': 'application/json' },
