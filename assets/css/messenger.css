@@ -190,3 +190,31 @@
   background: var(--msng-bubble-them);
   color: #fff;
 }
+
+/* ── Search ──────────────────────────────────────────────── */
+.msng-search-match {
+  display: block;
+  font-size: 12px;
+  color: rgba(255,255,255,.5);
+  line-height: 1.4;
+  margin-top: 2px;
+}
+.msng-search-match mark {
+  background: rgba(0,132,255,.35);
+  color: #7ec8ff;
+  border-radius: 3px;
+  padding: 0 2px;
+}
+
+/* Sync banner */
+.msng-sync-banner {
+  display: none;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: rgba(0,132,255,.1);
+  border-bottom: 1px solid rgba(0,132,255,.2);
+  font-size: 12px;
+  color: #6ba3f5;
+  flex-shrink: 0;
+}

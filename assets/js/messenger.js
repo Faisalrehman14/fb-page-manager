@@ -443,7 +443,9 @@
       const isActive = c.psid === M.activePsid;
       const isUnread = c.unread > 0;
       const time     = fmtTime(c.lastMsgAt);
-      const preview  = c.lastMsg ? (c.lastMsg.length > 38 ? c.lastMsg.slice(0, 38) + '…' : c.lastMsg) : '';
+      const preview  = c.lastFromMe
+        ? 'You: ' + (c.lastMsg || '')
+        : (c.lastMsg || 'No messages yet');
 
       return `<div class="msng-conv-item ${isActive ? 'active' : ''} ${isUnread ? 'unread' : ''}"
                    onclick="msngOpenConv('${esc(c.psid)}','${esc(c.name)}','${esc(c.picture||'')}','${esc(c.page_id||M.activePageId)}')">
@@ -458,10 +460,7 @@
             <span class="msng-ci-name">${esc(c.name)}</span>
             <span class="msng-ci-time">${esc(time)}</span>
           </div>
-          <div class="msng-ci-last">
-            ${c.lastFromMe ? '<span class="from-me">You: </span>' : ''}
-            ${esc(preview || 'No messages yet')}
-          </div>
+          <div class="msng-ci-last">${esc(preview.length > 42 ? preview.slice(0,42)+'…' : preview)}</div>
         </div>
         ${isUnread ? `<span class="msng-ci-badge">${c.unread > 9 ? '9+' : c.unread}</span>` : ''}
       </div>`;
@@ -877,10 +876,118 @@
   }
 
   // ── Search ───────────────────────────────────────────────────
+  let _searchTimer = null;
+
   window.msngSearch = function (input) {
-    M.searchQuery = input.value;
-    renderConvs();
+    const q = input.value.trim();
+    M.searchQuery = q;
+
+    clearTimeout(_searchTimer);
+
+    if (!q) {
+      renderConvs(); // restore normal list instantly
+      return;
+    }
+
+    // Debounce 300ms then hit DB
+    _searchTimer = setTimeout(() => doSearch(q), 300);
   };
+
+  async function doSearch(q) {
+    if (!M.activePageId) return;
+    const listEl = el('msngConvList');
+    if (!listEl) return;
+
+    listEl.innerHTML = `<div class="msng-empty"><i class="fa-solid fa-magnifying-glass fa-spin"></i><p>Searching…</p></div>`;
+
+    try {
+      const data = await api('search', { page_id: M.activePageId, q });
+
+      if (data.error) { renderConvs(); return; }
+
+      const convMatches  = data.conversations || [];
+      const msgMatches   = data.messages      || [];
+
+      if (!convMatches.length && !msgMatches.length) {
+        listEl.innerHTML = `<div class="msng-empty">
+          <i class="fa-solid fa-magnifying-glass"></i>
+          <p>No results for "<strong>${esc(q)}</strong>"</p>
+        </div>`;
+        return;
+      }
+
+      // Build a unified PSID set from conv matches
+      const convPsids = new Set(convMatches.map(c => c.fb_user_id));
+
+      // Message matches grouped by conversation
+      const msgByPsid = {};
+      msgMatches.forEach(m => {
+        const psid = m.psid || m.user_id;
+        if (!psid) return;
+        if (!msgByPsid[psid]) msgByPsid[psid] = { name: m.user_name, pic: m.user_picture, msgs: [] };
+        msgByPsid[psid].msgs.push(m);
+        convPsids.add(psid);
+      });
+
+      // Render conv matches first, then message-only matches
+      let html = '';
+
+      // Conversations matching by name/snippet
+      convMatches.forEach(c => {
+        const psid    = c.fb_user_id;
+        const name    = c.user_name || 'User';
+        const pic     = c.user_picture || '';
+        const initial = name.charAt(0).toUpperCase();
+        const preview = c.snippet || c.last_msg || '';
+        const time    = fmtTime(c.last_msg_at || c.updated_at);
+        html += convRow(psid, name, pic, initial, preview, time, c.page_id || M.activePageId, false, 0);
+      });
+
+      // Message matches not already shown
+      Object.entries(msgByPsid).forEach(([psid, info]) => {
+        if (convMatches.find(c => c.fb_user_id === psid)) return; // already shown
+        const initial = (info.name || 'U').charAt(0).toUpperCase();
+        // Show matched message snippets
+        const preview = info.msgs.map(m => {
+          const hi = highlightMatch(m.message || '', q);
+          return `<span class="msng-search-match">${m.from_me == 1 ? 'You: ' : ''}${hi}</span>`;
+        }).join('<br>');
+        html += convRow(psid, info.name, info.pic, initial, '', fmtTime(info.msgs[0]?.created_at), M.activePageId, false, 0, preview);
+      });
+
+      listEl.innerHTML = html ||
+        `<div class="msng-empty"><i class="fa-solid fa-magnifying-glass"></i><p>No results</p></div>`;
+
+    } catch (e) {
+      console.error('[Messenger] search error:', e);
+      renderConvs();
+    }
+  }
+
+  function highlightMatch(text, q) {
+    const safe = esc(text);
+    const safeQ = q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    return safe.replace(new RegExp('(' + safeQ + ')', 'gi'), '<mark>$1</mark>');
+  }
+
+  function convRow(psid, name, pic, initial, preview, time, pageId, isUnread, unreadCount, customPreview) {
+    return `<div class="msng-conv-item ${isUnread ? 'unread' : ''}"
+                 onclick="msngOpenConv('${esc(psid)}','${esc(name)}','${esc(pic)}','${esc(pageId)}')">
+      <div class="msng-ci-avatar">
+        ${pic
+          ? `<img src="${esc(pic)}" alt="" onerror="this.parentNode.innerHTML='<div class=\'msng-ci-initial\'>${esc(initial)}</div>'">`
+          : `<div class="msng-ci-initial">${esc(initial)}</div>`}
+      </div>
+      <div class="msng-ci-body">
+        <div class="msng-ci-row1">
+          <span class="msng-ci-name">${esc(name)}</span>
+          <span class="msng-ci-time">${esc(time)}</span>
+        </div>
+        <div class="msng-ci-last">${customPreview || esc(preview ? (preview.length > 40 ? preview.slice(0,40)+'…' : preview) : '')}</div>
+      </div>
+      ${unreadCount > 0 ? `<span class="msng-ci-badge">${unreadCount > 9 ? '9+' : unreadCount}</span>` : ''}
+    </div>`;
+  }
 
   // ── Refresh button ───────────────────────────────────────────
   window.msngRefresh = function () {

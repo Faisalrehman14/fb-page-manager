@@ -209,6 +209,49 @@ if ($method === 'GET') {
         api_json(['unread' => (int)$stmt->fetchColumn()]);
     }
 
+    // ── SEARCH ──────────────────────────────────────────────────
+    if ($action === 'search') {
+        $pageId = trim($_GET['page_id'] ?? '');
+        $q      = trim($_GET['q']       ?? '');
+
+        if (!$pageId || strlen($q) < 1) api_json(['conversations' => [], 'messages' => []]);
+
+        $like = '%' . $q . '%';
+
+        // Search conversations by name or last snippet
+        $cStmt = $db->prepare("
+            SELECT c.*,
+                   (SELECT m.message FROM messenger_messages m
+                    WHERE m.conversation_id = c.id
+                    ORDER BY m.created_at DESC LIMIT 1) AS last_msg,
+                   (SELECT m.created_at FROM messenger_messages m
+                    WHERE m.conversation_id = c.id
+                    ORDER BY m.created_at DESC LIMIT 1) AS last_msg_at
+            FROM messenger_conversations c
+            WHERE c.page_id = ?
+              AND (c.user_name LIKE ? OR c.snippet LIKE ?)
+            ORDER BY COALESCE(c.updated_at, c.id) DESC
+            LIMIT 50
+        ");
+        $cStmt->execute([$pageId, $like, $like]);
+        $convResults = $cStmt->fetchAll();
+
+        // Search message content → return matching messages with conversation info
+        $mStmt = $db->prepare("
+            SELECT m.*, c.user_name, c.user_picture, c.fb_user_id AS psid
+            FROM messenger_messages m
+            JOIN messenger_conversations c ON m.conversation_id = c.id
+            WHERE m.page_id = ?
+              AND m.message LIKE ?
+            ORDER BY m.created_at DESC
+            LIMIT 50
+        ");
+        $mStmt->execute([$pageId, $like]);
+        $msgResults = $mStmt->fetchAll();
+
+        api_json(['conversations' => $convResults, 'messages' => $msgResults]);
+    }
+
     api_json(['error' => 'Unknown GET action: ' . $action], 400);
 }
 
