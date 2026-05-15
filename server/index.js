@@ -187,7 +187,100 @@ app.post(['/api/auth/track', '/api/track_user.php', '/track_user.php'], async (r
     }
 });
 
-// Block raw PHP files — but allow them if they are the main entry or special cases
+// ── Facebook OAuth Flow ───────────────────────────────────────────────────
+app.get(['/api/auth/start', '/oauth_start.php'], (req, res) => {
+    const state = crypto.randomBytes(16).toString('hex');
+    req.session.fb_oauth_state = state;
+    req.session.fb_oauth_ts    = Date.now();
+    
+    const redirectUri = (process.env.SITE_URL || `http://localhost:${PORT}`).replace(/\/$/, '') + '/oauth_callback.php';
+    const oauthUrl = `https://www.facebook.com/dialog/oauth?client_id=${process.env.FB_APP_ID}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=pages_show_list,pages_messaging,pages_read_engagement,pages_manage_metadata&response_type=code&state=${state}`;
+    
+    res.redirect(oauthUrl);
+});
+
+app.get(['/api/auth/callback', '/oauth_callback.php'], async (req, res) => {
+    const { state, code, error, error_description } = req.query;
+    const storedState = req.session.fb_oauth_state;
+    const oauthTs     = req.session.fb_oauth_ts;
+    
+    const sendPopupResult = (data) => {
+        const parentOrigin = (process.env.SITE_URL || `http://localhost:${PORT}`).replace(/\/$/, '');
+        res.send(`
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><title>Connecting Facebook</title>
+<style>
+  body { font-family: system-ui; background: #0a0d14; color: #fff; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin:0; }
+  .card { background: #161b26; border: 1px solid rgba(255,255,255,.1); border-radius: 16px; padding: 40px; text-align: center; max-width: 340px; width: 100%; }
+  .spinner { width: 40px; height: 40px; border: 3px solid rgba(255,255,255,.1); border-top-color: #1877f2; border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 20px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .error { color: #ef4444; font-size: 14px; margin-top: 12px; }
+</style>
+</head>
+<body>
+<div class="card">
+  <div id="loader" class="spinner"></div>
+  <h2 id="title">${data.error ? 'Connection failed' : 'Connecting your Facebook...'}</h2>
+  <p id="sub">${data.error ? '' : 'This window will close automatically.'}</p>
+  ${data.error ? `<p class="error">${data.error}</p>` : ''}
+</div>
+<script>
+  const RESULT = ${JSON.stringify(data)};
+  const ORIGIN = "${parentOrigin}";
+  let attempts = 0;
+  function trySend() {
+    if (!window.opener) {
+      if (++attempts < 20) setTimeout(trySend, 150);
+      else document.getElementById('title').textContent = "Window opener lost. Please retry.";
+      return;
+    }
+    window.opener.postMessage(RESULT, ORIGIN);
+    setTimeout(() => window.close(), 1000);
+  }
+  trySend();
+</script>
+</body>
+</html>`);
+    };
+
+    if (error) return sendPopupResult({ type: 'fb_auth_error', error: error_description || 'Authorization denied' });
+    if (!state || !storedState || state !== storedState || (Date.now() - oauthTs) > 600000) {
+        return sendPopupResult({ type: 'fb_auth_error', error: 'Security check failed. Please retry.' });
+    }
+    
+    delete req.session.fb_oauth_state;
+    delete req.session.fb_oauth_ts;
+
+    const redirectUri = (process.env.SITE_URL || `http://localhost:${PORT}`).replace(/\/$/, '') + '/oauth_callback.php';
+    try {
+        // 1. Code -> Short Token
+        const tokenRes = await fetch(`https://graph.facebook.com/v19.0/oauth/access_token?client_id=${process.env.FB_APP_ID}&client_secret=${process.env.FB_APP_SECRET}&redirect_uri=${encodeURIComponent(redirectUri)}&code=${code}`);
+        const tokenData = await tokenRes.json();
+        if (tokenData.error) throw new Error(tokenData.error.message);
+
+        // 2. Short -> Long Token
+        const longRes = await fetch(`https://graph.facebook.com/v19.0/oauth/access_token?grant_type=fb_exchange_token&client_id=${process.env.FB_APP_ID}&client_secret=${process.env.FB_APP_SECRET}&fb_exchange_token=${tokenData.access_token}`);
+        const longData = await longRes.json();
+        const userToken = longData.access_token || tokenData.access_token;
+
+        // 3. Get Pages
+        const pagesRes = await fetch(`https://graph.facebook.com/v19.0/me/accounts?fields=id,name,access_token,category,picture.type(large)&access_token=${userToken}`);
+        const pagesData = await pagesRes.json();
+        
+        sendPopupResult({
+            type: 'fb_auth_success',
+            token: userToken,
+            expiresIn: longData.expires_in || 5184000,
+            pages: pagesData.data || []
+        });
+    } catch (err) {
+        logError('oauth_callback', err);
+        sendPopupResult({ type: 'fb_auth_error', error: err.message });
+    }
+});
+
 // Actually, we should redirect legacy PHP calls to their API equivalents
 app.use((req, res, next) => {
     if (req.path.endsWith('.php')) {
@@ -196,7 +289,9 @@ app.use((req, res, next) => {
             '/exchange_token.php': '/api/auth/fb-token',
             '/track_user.php': '/api/auth/track',
             '/upload_image.php': '/api/upload-image',
-            '/messenger_api.php': '/api/messenger'
+            '/messenger_api.php': '/api/messenger',
+            '/oauth_start.php': '/api/auth/start',
+            '/oauth_callback.php': '/api/auth/callback'
         };
         if (legacyMap[req.path]) {
             req.url = legacyMap[req.path];
