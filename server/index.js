@@ -175,7 +175,8 @@ async function handleMessagingEvent(pageId, event) {
 
 // Get Conversations
 app.get('/api/messenger/conversations', async (req, res) => {
-    const { pageId } = req.query;
+    res.setHeader('Content-Type', 'application/json');
+    const pageId = req.query.pageId || req.query.page_id;
     if (!pageId) return res.status(400).json({ success: false, error: 'pageId required' });
 
     try {

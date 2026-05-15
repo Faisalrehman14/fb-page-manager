@@ -158,8 +158,20 @@
   async function api(endpoint, params = {}) {
     const qs = Object.entries(params).map(([k,v]) => k + '=' + encodeURIComponent(v)).join('&');
     const url = `${API_BASE}/${endpoint}${qs ? '?' + qs : ''}`;
-    const r = await fetch(url);
-    return r.json();
+    
+    try {
+      const r = await fetch(url);
+      const contentType = r.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        const text = await r.text();
+        console.error('[Messenger] API returned non-JSON:', text.substring(0, 100));
+        throw new Error('Server returned HTML instead of JSON. Check backend routing.');
+      }
+      return await r.json();
+    } catch (e) {
+      console.error('[Messenger] API Fetch Error:', e);
+      throw e;
+    }
   }
 
   async function apiPost(endpoint, payload) {
