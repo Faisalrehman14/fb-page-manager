@@ -19,7 +19,7 @@ header('Cross-Origin-Resource-Policy: same-site');
 header('Referrer-Policy: strict-origin-when-cross-origin');
 header('Permissions-Policy: geolocation=(), microphone=(), camera=(), payment=(self)');
 header('Strict-Transport-Security: max-age=31536000; includeSubDomains; preload');
-header("Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' https://js.stripe.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.googleapis.com https://connect.facebook.net; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com data:; img-src 'self' data: https:; connect-src 'self' https://api.stripe.com https://graph.facebook.com https://www.facebook.com https://connect.facebook.net; frame-src https://js.stripe.com https://www.facebook.com https://drive.google.com https://staticxx.facebook.com; object-src 'none'; base-uri 'self'");
+header("Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' https://js.stripe.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.googleapis.com https://connect.facebook.net https://cdn.socket.io; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com data:; img-src 'self' data: https:; connect-src 'self' https://api.stripe.com https://graph.facebook.com https://www.facebook.com https://connect.facebook.net wss: ws: https://*.railway.app; frame-src https://js.stripe.com https://www.facebook.com https://staticxx.facebook.com; object-src 'none'; base-uri 'self'");
 
 // Disable caching for page (user auth-sensitive)
 header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0, private');
@@ -98,6 +98,7 @@ if (file_exists($config_file)) {
 <link rel="stylesheet" href="assets/css/index.css?v=<?php echo filemtime(__DIR__.'/assets/css/index.css'); ?>">
 <link rel="stylesheet" href="assets/css/ui-components.css?v=<?php echo filemtime(__DIR__.'/assets/css/ui-components.css'); ?>">
 <link rel="stylesheet" href="assets/css/messenger.css?v=<?php echo filemtime(__DIR__.'/assets/css/messenger.css'); ?>">
+<script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
 </head>
 <body>
 <a class="skip-link" href="#appPage">Skip To Dashboard</a>
@@ -1982,8 +1983,6 @@ window.FB_CONFIG={appId:window.APP_CONFIG.fbAppId,csrfToken:window.APP_CONFIG.cs
 <script src="assets/js/ui-components.js?v=<?php echo filemtime(__DIR__.'/assets/js/ui-components.js'); ?>" defer></script>
 <script src="fb_api.js?v=<?php echo filemtime(__DIR__.'/fb_api.js'); ?>" defer></script>
 <script src="web_ui.js?v=<?php echo filemtime(__DIR__.'/web_ui.js'); ?>" defer></script>
-    <!-- PRO CLASS Real-Time Messaging -->
-    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
     <script src="assets/js/messenger.js?v=<?php echo time(); ?>"></script>
 
 <script>

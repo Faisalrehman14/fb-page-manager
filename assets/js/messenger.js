@@ -26,8 +26,15 @@
   };
 
   // ── Socket.io Initialization ────────────────────────────────
-  function initSocket() {
+  async function initSocket() {
     if (M.socket) return;
+    
+    // Safety: Wait for Socket.io library if not yet loaded
+    if (typeof io === 'undefined') {
+      console.warn('[Messenger] Socket.io not ready, retrying in 200ms...');
+      setTimeout(initSocket, 200);
+      return;
+    }
     
     const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
     const socketUrl = isLocal 
