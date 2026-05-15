@@ -41,7 +41,8 @@
 <body>
 <a class="skip-link" href="#appPage">Skip To Dashboard</a>
 <script id="app-config-loader">
-/* CONFIG_INJECT */
+// __APP_CONFIG_INJECT__
+window.APP_CONFIG = window.APP_CONFIG || { fbAppId: '', csrfToken: '', appEnv: 'production' };
 </script>
 <script>
 window.FB_CONFIG={appId:window.APP_CONFIG.fbAppId,csrfToken:window.APP_CONFIG.csrfToken};

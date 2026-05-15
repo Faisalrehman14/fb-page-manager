@@ -1073,7 +1073,7 @@ function renderIndexHtml(req) {
 
     // Inject config
     html = html.replace(
-        /\/\* CONFIG_INJECT \*\//,
+        /\/\/ __APP_CONFIG_INJECT__/,
         `window.APP_CONFIG=${JSON.stringify(config)};`
     );
 
