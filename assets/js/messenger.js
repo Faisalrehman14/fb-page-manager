@@ -29,7 +29,11 @@
   function initSocket() {
     if (M.socket) return;
     
-    const socketUrl = window.location.protocol + '//' + window.location.hostname + ':3000';
+    const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    const socketUrl = isLocal 
+      ? window.location.protocol + '//' + window.location.hostname + ':3000'
+      : window.location.protocol + '//' + window.location.hostname;
+      
     console.log('[Messenger] Connecting to Socket:', socketUrl);
     
     M.socket = io(socketUrl);
@@ -136,7 +140,13 @@
     return d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
   }
 
-  const API_BASE = window.location.protocol + '//' + window.location.hostname + ':3000/api/messenger';
+  // Smart API Base: Use :3000 for local dev, but use standard port for Production (Railway)
+  const API_BASE = (function() {
+    const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    const protocol = window.location.protocol;
+    const host = window.location.hostname;
+    return isLocal ? `${protocol}//${host}:3000/api/messenger` : `${protocol}//${host}/api/messenger`;
+  })();
 
   async function api(endpoint, params = {}) {
     const qs = Object.entries(params).map(([k,v]) => k + '=' + encodeURIComponent(v)).join('&');
