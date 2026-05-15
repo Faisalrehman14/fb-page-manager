@@ -29,23 +29,24 @@ const sessionMiddleware = session({
         maxAge: 7 * 24 * 60 * 60 * 1000
     }
 });
-const cookieParser = require('cookie-parser');
 app.use(cookieParser(SESSION_SECRET));
 app.use(sessionMiddleware);
 
-// Enhanced CSRF: Use signed cookies + session fallback
+// Industry Standard: Double Submit Cookie CSRF
 app.use((req, res, next) => {
-    let token = req.signedCookies?._csrf;
+    let token = req.cookies?.CSRF_TOKEN || req.signedCookies?._csrf || req.session?.csrfToken;
     if (!token) {
-        token = req.session?.csrfToken || crypto.randomBytes(32).toString('hex');
-        res.cookie('_csrf', token, { signed: true, httpOnly: true, sameSite: 'lax', secure: false });
+        token = crypto.randomBytes(32).toString('hex');
+    }
+    // Set a plain cookie that frontend can read if needed, and a session token
+    if (!req.cookies?.CSRF_TOKEN) {
+        res.cookie('CSRF_TOKEN', token, { httpOnly: false, sameSite: 'lax', secure: false });
     }
     if (req.session && !req.session.csrfToken) {
         req.session.csrfToken = token;
-        req.session.save(() => next());
-    } else {
-        next();
     }
+    req.generatedCsrf = token;
+    next();
 });
 const io         = new Server(httpServer, {
     cors: { origin: '*', methods: ['GET', 'POST'] },
@@ -397,9 +398,12 @@ function generateCsrf(req) {
 function verifyCsrf(req, res, next) {
     if (req.method === 'GET') return next();
     const h = req.headers['x-csrf-token'];
-    const c = req.signedCookies?._csrf || req.session?.csrfToken;
+    const c = req.cookies?.CSRF_TOKEN || req.signedCookies?._csrf || req.session?.csrfToken;
+    
     if (!h || h !== c) {
-        console.warn(`[CSRF] Rejecting ${req.method} ${req.url}: header=${h}, cookie=${req.signedCookies?._csrf}, session=${req.session?.csrfToken}`);
+        // As a last resort for Senior Dev debugging: if we have NO token in session/cookie, but we have a header, 
+        // maybe it's a first-request race condition. But let's stay secure.
+        console.warn(`[CSRF] Rejecting ${req.method} ${req.url}: header=${h}, cookie=${req.cookies?.CSRF_TOKEN}, session=${req.session?.csrfToken}`);
         return res.status(403).json({ error: 'Invalid CSRF token' });
     }
     next();
