@@ -43,9 +43,16 @@ const pool = mysql.createPool({
 // MIDDLEWARE & SOCKETS
 // =============================================================================
 
-app.use(helmet({ contentSecurityPolicy: false }));
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(helmet({
+    contentSecurityPolicy: false,
+    crossOriginResourcePolicy: { policy: "cross-origin" }
+}));
+
+const cors = require('cors');
+app.use(cors({
+    origin: "*",
+    credentials: true
+}));
 
 const io = new Server(server, {
     cors: { origin: "*", methods: ["GET", "POST"] }
