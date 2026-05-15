@@ -92,19 +92,26 @@
   }
 
   // ── Init ────────────────────────────────────────────────────
-  window.msngInit = function () {
+  window.msngInit = function (retries) {
+    retries = retries || 0;
     M.pages = (window.loadedPages || []).filter(p => p && p.id && p.access_token);
 
     if (!M.pages.length) {
+      if (retries < 10) {
+        // Pages not loaded yet — retry up to 10 times (5 seconds total)
+        setTimeout(() => window.msngInit(retries + 1), 500);
+        return;
+      }
       renderNoPages();
       return;
     }
 
-    renderPagesList();
+    // Prefer currentPageId (set by outer app when user picks a page)
+    const preferredId = window.currentPageId || (M.pages[0] && M.pages[0].id);
 
-    // Select first page if none active
+    // Select page
     if (!M.activePageId || !M.pages.find(p => p.id === M.activePageId)) {
-      msngSelectPage(M.pages[0].id);
+      msngSelectPage(preferredId);
     } else {
       renderConvs();
     }
@@ -114,7 +121,7 @@
 
   // Called by web_ui.js when switching to messenger view
   window.loadMessengerConversations = function () {
-    window.msngInit();
+    window.msngInit(0);
   };
 
   // ── Pages ────────────────────────────────────────────────────
@@ -778,5 +785,25 @@
       origSwitch(view);
     };
   }
+
+  // ── Sync with outer page selector ────────────────────────────
+  // When the user picks a different page in the outer sidebar while
+  // the messenger view is open, switch the active messenger page too.
+  document.addEventListener('DOMContentLoaded', function () {
+    const pageSelect = document.getElementById('pageSelect');
+    if (pageSelect) {
+      pageSelect.addEventListener('change', function () {
+        const view = document.getElementById('view-messenger');
+        if (view && view.style.display !== 'none' && this.value) {
+          window.currentPageId = this.value;
+          const page = (window.loadedPages || []).find(p => p.id === this.value);
+          if (page) {
+            M.pages = (window.loadedPages || []).filter(p => p && p.id && p.access_token);
+            msngSelectPage(this.value);
+          }
+        }
+      });
+    }
+  });
 
 })();

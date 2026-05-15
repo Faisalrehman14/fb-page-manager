@@ -1124,17 +1124,11 @@ window.FB_CONFIG={appId:window.APP_CONFIG.fbAppId,csrfToken:window.APP_CONFIG.cs
 
     </div><!-- /view-home -->
 
-    <!-- MESSENGER VIEW — Pro 3-column -->
+    <!-- MESSENGER VIEW — 2-column (pages handled by outer sidebar) -->
     <div id="view-messenger" style="display:none;height:100%;overflow:hidden">
       <div class="msng-root">
 
-        <!-- COL 1: Pages -->
-        <div class="msng-pages">
-          <div class="msng-pages-lbl">Pages</div>
-          <div id="msngPagesList"></div>
-        </div>
-
-        <!-- COL 2: Conversations -->
+        <!-- COL 1: Conversations -->
         <div class="msng-convs" id="msngConvsCol">
           <div class="msng-convs-hdr">
             <h3>
@@ -1160,7 +1154,7 @@ window.FB_CONFIG={appId:window.APP_CONFIG.fbAppId,csrfToken:window.APP_CONFIG.cs
           <div class="msng-conv-list" id="msngConvList">
             <div class="msng-empty">
               <i class="fa-brands fa-facebook-messenger"></i>
-              <p>Select a page to load conversations.</p>
+              <p>Loading conversations…</p>
             </div>
           </div>
         </div>

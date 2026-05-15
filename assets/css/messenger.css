@@ -1,6 +1,6 @@
 /* ═══════════════════════════════════════════════════════════
-   messenger.css — Pro 3-column Messenger UI
-   Meta Business Suite style
+   messenger.css — Pro 2-column Messenger UI
+   Meta Business Suite style (pages handled by outer sidebar)
    ═══════════════════════════════════════════════════════════ */
 
 /* ── Root Layout ─────────────────────────────────────────── */
@@ -13,22 +13,8 @@
   font-family: inherit;
 }
 
-/* ══════════════════════════════════════════════════════════
-   COLUMN 1 — Pages
-   ══════════════════════════════════════════════════════════ */
-.msng-pages {
-  width: 72px;
-  min-width: 72px;
-  background: #0d1117;
-  border-right: 1px solid rgba(255,255,255,.06);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 12px 0;
-  gap: 4px;
-  overflow-y: auto;
-  overflow-x: hidden;
-}
+/* Pages column — hidden (outer app sidebar handles page selection) */
+.msng-pages { display: none !important; }
 
 .msng-pages-lbl {
   font-size: 9px;
