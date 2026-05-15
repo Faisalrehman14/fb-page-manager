@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Connecting to Facebook — FBCast Pro</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    
+    :root {
+      --blue: #1877f2;
+      --bg: #0a0d14;
+      --surface: #161b26;
+      --text: #f1f5f9;
+    }
+    
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      color: var(--text);
+    }
+    
+    .callback-card {
+      background: var(--surface);
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: 16px;
+      padding: 40px;
+      text-align: center;
+      max-width: 300px;
+    }
+    
+    .spinner {
+      width: 50px;
+      height: 50px;
+      border: 3px solid rgba(255,255,255,.1);
+      border-top-color: var(--blue);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 20px;
+    }
+    
+    h2 {
+      font-size: 16px;
+      margin-bottom: 8px;
+      font-weight: 700;
+    }
+    
+    p {
+      font-size: 13px;
+      color: rgba(255,255,255,.6);
+      line-height: 1.5;
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    
+    .error {
+      color: #ef4444;
+      display: none;
+      margin-top: 16px;
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+  <div class="callback-card">
+    <div class="spinner"></div>
+    <h2>Connecting Facebook</h2>
+    <p>Please wait while we verify your Facebook account...</p>
+    <div class="error" id="errorMsg"></div>
+  </div>
+
+  <script>
+    (function() {
+      const timeout = setTimeout(() => {
+        showError('Connection timed out. Please try again.');
+      }, 10000);
+
+      try {
+        // Verify we have a hash from Facebook
+        if (!window.location.hash) {
+          throw new Error('No authentication data received from Facebook');
+        }
+
+        // Get parent window reference
+        const opener = window.opener || window.parent;
+        if (!opener) {
+          throw new Error('No parent window found');
+        }
+
+        // Check same-origin
+        try {
+          if (opener.location.origin !== window.location.origin) {
+            throw new Error('Cross-origin verification failed');
+          }
+        } catch (e) {
+          throw new Error('Cross-origin access denied');
+        }
+
+        // Send token to parent window
+        opener.postMessage(
+          { 
+            type: 'fb_oauth',
+            hash: window.location.hash,
+            timestamp: Date.now()
+          },
+          window.location.origin
+        );
+
+        // Wait for confirmation from parent
+        const messageHandler = (event) => {
+          if (event.origin !== window.location.origin) return;
+          
+          if (event.data?.type === 'fb_oauth_received') {
+            clearTimeout(timeout);
+            window.removeEventListener('message', messageHandler);
+            
+            // Close after brief delay to let parent process
+            setTimeout(() => {
+              window.close();
+            }, 500);
+          }
+        };
+
+        window.addEventListener('message', messageHandler);
+
+        // Fallback: close after 2 seconds
+        setTimeout(() => {
+          window.removeEventListener('message', messageHandler);
+          window.close();
+        }, 2000);
+
+      } catch (err) {
+        clearTimeout(timeout);
+        showError(err.message || 'Connection failed');
+        console.error('OAuth callback error:', err);
+      }
+
+      function showError(msg) {
+        const errorEl = document.getElementById('errorMsg');
+        errorEl.textContent = '❌ ' + msg;
+        errorEl.style.display = 'block';
+        document.querySelector('.spinner').style.display = 'none';
+        document.querySelector('h2').textContent = 'Connection Failed';
+        document.querySelector('p').style.display = 'none';
+      }
+    })();
+  </script>
+</body>
+</html>
