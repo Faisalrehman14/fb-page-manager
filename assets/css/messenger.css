@@ -16,6 +16,20 @@
   --msng-header-height: 72px;
 }
 
+/* view-messenger must flex-grow to fill remaining space after the outer nav + pages sidebar */
+#view-messenger {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* Hide the outer Pages sidebar when messenger is active — it has its own conversation list */
+body.in-messenger .sidebar {
+  display: none !important;
+}
+
 .msng-root {
   display: flex;
   height: 100% !important;

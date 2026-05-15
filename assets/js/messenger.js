@@ -933,9 +933,12 @@
   });
 
   // ── Stop polling when messenger view is not active ───────────────────────────
+  // Also toggle body.in-messenger so CSS can hide the outer pages sidebar
+  // (the messenger has its own conversation list — no need for a second pages panel)
   const _origSwitch = window.switchDashboardView;
   if (_origSwitch) {
     window.switchDashboardView = function (view) {
+      document.body.classList.toggle('in-messenger', view === 'messenger');
       view === 'messenger' ? startPolling() : stopPolling();
       _origSwitch(view);
     };
