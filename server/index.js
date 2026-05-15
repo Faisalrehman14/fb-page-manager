@@ -80,6 +80,17 @@ app.use((req, res, next) => {
 app.use(express.json({ verify: (req, res, buf) => { req.rawBody = buf; } }));
 app.use(express.urlencoded({ extended: true }));
 
+// ── Critical Healthcheck (Must be at the top) ─────────────────────────────────
+app.get('/api/health', async (req, res) => {
+    // Return 200 OK immediately for healthchecks, even if DB is still connecting
+    res.json({ 
+        status: 'ok', 
+        db: dbConnected ? 'connected' : 'initializing',
+        uptime: Math.floor(process.uptime()),
+        memory: Math.round(process.memoryUsage().heapUsed / 1024 / 1024) + 'MB'
+    });
+});
+
 // ── Facebook Webhook (must be before express.static so fb_webhook.php isn't served as raw PHP) ──
 app.get(['/webhook', '/fb_webhook.php'], (req, res) => {
     const { 'hub.mode': mode, 'hub.verify_token': token, 'hub.challenge': challenge } = req.query;
@@ -964,10 +975,6 @@ app.post('/api/sync/all', requireAuth, verifyCsrf, async (req, res) => {
 });
 
 // ── Health & Debug ────────────────────────────────────────────────────────────
-app.get('/api/health', async (req, res) => {
-    const stats = dbConnected ? await db.getStats().catch(() => null) : null;
-    res.json({ status: 'ok', db: dbConnected ? 'connected' : 'disconnected', conversations: stats?.totalConversations ?? null, messages: stats?.totalMessages ?? null, sockets: connectedSockets.size, uptime: Math.floor(process.uptime()), memory: Math.round(process.memoryUsage().heapUsed / 1024 / 1024) + 'MB' });
-});
 
 app.get('/api/debug/errors', requireAuth, (req, res) => {
     res.json({ errorLogs, webhookLogs, requestLogs: requestLogs.slice(0, 20), dbErrors: db.getDbErrorLogs(), dbConnected, sockets: connectedSockets.size });
