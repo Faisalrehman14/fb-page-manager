@@ -140,10 +140,12 @@ define('DB_PASS', env_value('MYSQLPASSWORD', env_value('MYSQL_PASSWORD', env_val
 // ═════════════════════════════════════════════════════════════
 // FACEBOOK APP CONFIGURATION
 // ═════════════════════════════════════════════════════════════
-define('FB_APP_ID',        env_value('FB_APP_ID', ''));
-define('FB_APP_SECRET',    env_value('FB_APP_SECRET', ''));
-define('FB_REDIRECT_URI',  env_value('FB_REDIRECT_URI', ''));
-define('FB_API_VER',       'v21.0');
+define('FB_APP_ID',             env_value('FB_APP_ID', ''));
+define('FB_APP_SECRET',         env_value('FB_APP_SECRET', ''));
+define('FB_REDIRECT_URI',       env_value('FB_REDIRECT_URI', ''));
+define('FB_API_VER',            'v21.0');
+// Handles both WEBHOOK_VERIFY_TOKEN (Railway) and FB_WEBHOOK_VERIFY_TOKEN
+define('FB_WEBHOOK_VERIFY_TOKEN', env_value('FB_WEBHOOK_VERIFY_TOKEN', env_value('WEBHOOK_VERIFY_TOKEN', '')));
 
 // ═════════════════════════════════════════════════════════════
 // STRIPE PAYMENT CONFIGURATION

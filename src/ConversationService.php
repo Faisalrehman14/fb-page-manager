@@ -126,19 +126,26 @@ class ConversationService
 
     /**
      * Returns conversation id, creating the row if it doesn't exist.
-     * Used before saving a message to guarantee the foreign key exists.
+     *
+     * We always INSERT IGNORE first, then SELECT — never the other way round.
+     * Reason: two Facebook webhook requests can arrive simultaneously for the
+     * same sender. If both do findByPsid → not found → INSERT, one INSERT is
+     * silently ignored. The thread whose INSERT was ignored gets lastInsertId()=0,
+     * then passes 0 as conversation_id to MessageService::save(), and the message
+     * is stored with the wrong ID and is never returned by the poll query.
+     *
+     * INSERT IGNORE + SELECT is atomic-safe: the SELECT always finds the row
+     * regardless of which thread won the INSERT race.
      */
     public function ensureExists(string $pageId, string $psid): int
     {
-        $conv = $this->findByPsid($pageId, $psid);
-        if ($conv) return (int) $conv['id'];
-
         $this->db->prepare(
             "INSERT IGNORE INTO messenger_conversations (page_id, fb_user_id, user_name, snippet, updated_at)
              VALUES (?, ?, 'User', '', NOW())"
         )->execute([$pageId, $psid]);
 
-        return (int) $this->db->lastInsertId();
+        $conv = $this->findByPsid($pageId, $psid);
+        return $conv ? (int) $conv['id'] : 0;
     }
 
     public function markRead(string $pageId, string $psid): void
