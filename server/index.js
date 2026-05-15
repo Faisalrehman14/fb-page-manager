@@ -126,6 +126,56 @@ app.post(['/webhook', '/fb_webhook.php'], async (req, res) => {
     }
 });
 
+// ── PHP-endpoint shims (Node.js replacements for legacy PHP calls) ────────────
+
+// exchange_token.php — short-lived user token → long-lived token + page tokens
+app.post('/exchange_token.php', async (req, res) => {
+    const userToken = (req.body?.user_token || '').trim();
+    if (!userToken) return res.status(400).json({ error: 'user_token is required' });
+    if (!FB_APP_ID || !FB_APP_SECRET) return res.status(500).json({ error: 'App credentials not configured' });
+
+    try {
+        // Step 1: Exchange short-lived → long-lived user token
+        const exUrl  = `https://graph.facebook.com/v19.0/oauth/access_token?grant_type=fb_exchange_token&client_id=${FB_APP_ID}&client_secret=${FB_APP_SECRET}&fb_exchange_token=${encodeURIComponent(userToken)}`;
+        const exRes  = await fetch(exUrl);
+        const exData = await exRes.json();
+        if (!exData.access_token) {
+            const msg = exData.error?.message || 'Token exchange failed';
+            return res.status(400).json({ error: msg });
+        }
+        const longToken = exData.access_token;
+
+        // Step 2: Fetch pages with the long-lived token (~60-day page tokens)
+        const pgUrl  = `https://graph.facebook.com/v19.0/me/accounts?fields=id,name,access_token,category,picture.type(large)&access_token=${encodeURIComponent(longToken)}`;
+        const pgRes  = await fetch(pgUrl);
+        const pgData = await pgRes.json();
+        if (pgData.error) return res.status(400).json({ error: pgData.error.message || 'Failed to fetch pages' });
+
+        res.json({ success: true, pages: pgData.data || [], long_lived_token: longToken });
+    } catch (err) {
+        logError('exchange_token', err);
+        res.status(500).json({ error: 'Token exchange failed' });
+    }
+});
+
+// track_user.php — verify token + return quota info
+app.post('/track_user.php', async (req, res) => {
+    const userToken = (req.body?.user_token || '').trim();
+    if (!userToken) return res.status(400).json({ error: 'user_token is required' });
+
+    try {
+        const meRes  = await fetch(`https://graph.facebook.com/v19.0/me?fields=id,name&access_token=${encodeURIComponent(userToken)}`);
+        const meData = await meRes.json();
+        if (meData.error) return res.status(401).json({ error: meData.error.message });
+
+        // Basic quota stub — extend with real DB quota logic when ready
+        res.json({ success: true, user_id: meData.id, user_name: meData.name, quota: { used: 0, limit: 10000, plan: 'pro' } });
+    } catch (err) {
+        logError('track_user', err);
+        res.status(500).json({ error: 'Tracking failed' });
+    }
+});
+
 // Block raw PHP files — they can't run in Node.js (return JSON error so JS callers don't get raw PHP source)
 app.use((req, res, next) => {
     if (req.path.endsWith('.php')) return res.status(404).json({ error: 'Not found', hint: 'Use /api/* routes' });
@@ -602,13 +652,13 @@ function renderIndexHtml(req) {
     );
     html = html.replace(/window\.FB_CONFIG=\{[\s\S]*?\};/, `window.FB_CONFIG={appId:window.APP_CONFIG.fbAppId,csrfToken:''};`);
 
-    // Replace PHP expressions
-    html = html.replace(/\?php\s*echo\s*\$canonical_url;\s*\?>/g, siteUrl);
-    html = html.replace(/\?php\s*echo\s*rtrim\(\$canonical_url,\s*'\/'\);\s*\?>/g, siteUrl.replace(/\/$/, ''));
-    html = html.replace(/\?php\s*echo\s*\$js_contact_email;\s*\?>/g, process.env.CONTACT_EMAIL || '');
-    html = html.replace(/\?php\s*echo\s*date\('Y'\);\s*\?>/g, new Date().getFullYear());
-    html = html.replace(/\?php\s*echo\s*filemtime\([^)]+\);\s*\?>/g, ver);
-    html = html.replace(/\?php\s*echo\s*time\(\);\s*\?>/g, ver);
+    // Replace PHP expressions (patterns include the leading < so the whole <?php...?> is replaced)
+    html = html.replace(/<\?php\s*echo\s*\$canonical_url;\s*\?>/g, siteUrl);
+    html = html.replace(/<\?php\s*echo\s*rtrim\(\$canonical_url,\s*'\/'\);\s*\?>/g, siteUrl.replace(/\/$/, ''));
+    html = html.replace(/<\?php\s*echo\s*\$js_contact_email;\s*\?>/g, process.env.CONTACT_EMAIL || '');
+    html = html.replace(/<\?php\s*echo\s*date\('Y'\);\s*\?>/g, new Date().getFullYear());
+    html = html.replace(/<\?php\s*echo\s*filemtime\([^)]+\);\s*\?>/g, ver);
+    html = html.replace(/<\?php\s*echo\s*time\(\);\s*\?>/g, ver);
 
     // Remove any leftover PHP tags
     html = html.replace(/<\?php[\s\S]*?\?>/g, '');
