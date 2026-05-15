@@ -464,36 +464,59 @@
         }
       });
 
-      // Updated conversations (unread counts, snippets, new convs)
+      // Updated conversations (unread counts, snippets, new convs from other senders)
+      let convListDirty = false;
       if (data.updated_convs?.length) {
         data.updated_convs.forEach(uc => {
           const existing = M.convs.find(c => c.psid === uc.fb_user_id);
           if (existing) {
             if (uc.fb_user_id !== M.activePsid) existing.unread = parseInt(uc.is_unread) || 0;
-            if (uc.snippet) existing.lastMsg = uc.snippet;
-            existing.lastMsgAt = uc.updated_at;
+            if (uc.snippet)      existing.lastMsg     = uc.snippet;
+            if (uc.last_from_me != null) existing.lastFromMe = uc.last_from_me == 1;
+            existing.lastMsgAt = uc.updated_at || uc.last_msg_at;
           } else {
             M.convs.unshift({
               id: uc.id, psid: uc.fb_user_id,
               name: uc.user_name || 'User', picture: uc.user_picture || null,
-              lastMsg: uc.snippet || '', lastFromMe: false,
-              lastMsgAt: uc.updated_at, unread: parseInt(uc.is_unread) || 0,
+              lastMsg: uc.snippet || uc.last_msg || '',
+              lastFromMe: uc.last_from_me == 1,
+              lastMsgAt: uc.updated_at || uc.last_msg_at,
+              unread: parseInt(uc.is_unread) || 0,
               page_id: uc.page_id,
             });
           }
+          convListDirty = true;
         });
-        M.convs.sort((a, b) => new Date(b.lastMsgAt || 0) - new Date(a.lastMsgAt || 0));
-        renderConvs();
 
-        const fromOthers = data.updated_convs.filter(c => c.fb_user_id !== M.activePsid && parseInt(c.is_unread) > 0);
-        if (fromOthers.length) showToast('New message from ' + (fromOthers[0].user_name || 'a customer'));
+        // If the OPEN conversation received a new message but no psid was
+        // in this poll tick, fetch just the new messages directly.
+        const activeUpdated = data.updated_convs.find(uc => uc.fb_user_id === M.activePsid);
+        if (activeUpdated && !data.new_messages?.length && M.activePsid) {
+          get('poll', { page_id: M.activePageId, since: M.poll.since, psid: M.activePsid })
+            .then(d => (d.new_messages || []).forEach(msg => {
+              if (!isDuplicate(msg)) { M.msgs.push(msg); appendBubble(msg); }
+            }))
+            .catch(() => {});
+        }
+
+        M.convs.sort((a, b) => new Date(b.lastMsgAt || 0) - new Date(a.lastMsgAt || 0));
+
+        const newFromOthers = data.updated_convs.filter(c =>
+          c.fb_user_id !== M.activePsid && parseInt(c.is_unread) > 0
+        );
+        if (newFromOthers.length) {
+          showToast('New message from ' + (newFromOthers[0].user_name || 'a customer'));
+        }
       }
+
+      if (convListDirty || data.new_messages?.length) renderConvs();
 
       if (typeof data.total_unread === 'number') updatePageBadge(M.activePageId, data.total_unread);
 
       schedulePoll(3000);
 
     } catch (e) {
+      console.error('[Messenger] poll error:', e);
       M.poll.failures++;
       schedulePoll(Math.min(3000 * (2 ** M.poll.failures), 30_000));
     }
