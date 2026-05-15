@@ -10,6 +10,7 @@ const multer     = require('multer');
 const compression = require('compression');
 const rateLimit  = require('express-rate-limit');
 const db         = require('./db');
+const cookieParser = require('cookie-parser');
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
 
