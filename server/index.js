@@ -218,8 +218,10 @@ app.get(['/api/auth/start', '/oauth_start.php'], (req, res) => {
     req.session.fb_oauth_state = state;
     req.session.fb_oauth_ts    = Date.now();
     
-    const redirectUri = (process.env.SITE_URL || `http://localhost:${PORT}`).replace(/\/$/, '') + '/oauth_callback.php';
-    const oauthUrl = `https://www.facebook.com/dialog/oauth?client_id=${process.env.FB_APP_ID}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=pages_show_list,pages_messaging,pages_read_engagement,pages_manage_metadata&response_type=code&state=${state}`;
+    const siteUrl = (process.env.SITE_URL || '').trim() || `http://localhost:${PORT}`;
+    const redirectUri = siteUrl.replace(/\/$/, '') + '/oauth_callback.php';
+    const appId = (process.env.FB_APP_ID || '').trim();
+    const oauthUrl = `https://www.facebook.com/dialog/oauth?client_id=${appId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=pages_show_list,pages_messaging,pages_read_engagement,pages_manage_metadata&response_type=code&state=${state}`;
     
     res.redirect(oauthUrl);
 });
@@ -278,10 +280,13 @@ app.get(['/api/auth/callback', '/oauth_callback.php'], async (req, res) => {
     delete req.session.fb_oauth_state;
     delete req.session.fb_oauth_ts;
 
-    const redirectUri = (process.env.SITE_URL || `http://localhost:${PORT}`).replace(/\/$/, '') + '/oauth_callback.php';
+    const siteUrl = (process.env.SITE_URL || '').trim() || `http://localhost:${PORT}`;
+    const redirectUri = siteUrl.replace(/\/$/, '') + '/oauth_callback.php';
     try {
         // 1. Code -> Short Token
-        const tokenRes = await fetch(`https://graph.facebook.com/v19.0/oauth/access_token?client_id=${process.env.FB_APP_ID}&client_secret=${process.env.FB_APP_SECRET}&redirect_uri=${encodeURIComponent(redirectUri)}&code=${code}`);
+        const appId = (process.env.FB_APP_ID || '').trim();
+        const appSecret = (process.env.FB_APP_SECRET || '').trim();
+        const tokenRes = await fetch(`https://graph.facebook.com/v19.0/oauth/access_token?client_id=${appId}&client_secret=${appSecret}&redirect_uri=${encodeURIComponent(redirectUri)}&code=${code}`);
         const tokenData = await tokenRes.json();
         if (tokenData.error) throw new Error(tokenData.error.message);
 
