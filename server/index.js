@@ -3,6 +3,7 @@ const express    = require('express');
 const session    = require('express-session');
 const crypto     = require('crypto');
 const path       = require('path');
+const fs         = require('fs');
 const { createServer } = require('http');
 const { Server } = require('socket.io');
 const multer     = require('multer');
@@ -554,6 +555,69 @@ app.get('/api/health', async (req, res) => {
 
 app.get('/api/debug/errors', requireAuth, (req, res) => {
     res.json({ errorLogs, webhookLogs, requestLogs: requestLogs.slice(0, 20), dbErrors: db.getDbErrorLogs(), dbConnected, sockets: connectedSockets.size });
+});
+
+// ── /api/config — public config for frontend ──────────────────────────────────
+app.get('/api/config', (req, res) => {
+    res.json({
+        fbAppId:            process.env.FB_APP_ID            || '',
+        stripePublishableKey: process.env.STRIPE_PUBLISHABLE_KEY || '',
+        contactEmail:       process.env.CONTACT_EMAIL        || '',
+        siteUrl:            process.env.SITE_URL             || BASE_URL || '',
+        appEnv:             process.env.APP_ENV              || 'production'
+    });
+});
+
+// ── Main HTML — serve index.php as template ───────────────────────────────────
+function renderIndexHtml(req) {
+    const root  = path.join(__dirname, '..');
+    let html    = fs.readFileSync(path.join(root, 'index.php'), 'utf8');
+    const proto = req.headers['x-forwarded-proto'] || 'https';
+    const host  = req.headers['x-forwarded-host'] || req.headers.host || '';
+    const siteUrl = process.env.SITE_URL || BASE_URL || (host ? `${proto}://${host}` : '');
+    const ver   = Date.now();
+
+    // Strip PHP opening block (everything before <!DOCTYPE html>)
+    html = html.replace(/^[\s\S]*?(?=<!DOCTYPE html>)/i, '');
+
+    // Replace PHP config block with real values
+    html = html.replace(
+        /window\.APP_CONFIG=\{[\s\S]*?\};/,
+        `window.APP_CONFIG={
+  stripePublishableKey:'${(process.env.STRIPE_PUBLISHABLE_KEY||'').replace(/'/g,"\\'")}',
+  fbAppId:'${(process.env.FB_APP_ID||'').replace(/'/g,"\\'")}',
+  fbRedirectUri:'${(process.env.FB_REDIRECT_URI||`${siteUrl}/api/auth/callback`).replace(/'/g,"\\'")}',
+  contactEmail:'${(process.env.CONTACT_EMAIL||'').replace(/'/g,"\\'")}',
+  siteUrl:'${siteUrl.replace(/'/g,"\\'")}',
+  csrfToken:'',
+  appEnv:'${(process.env.APP_ENV||'production').replace(/'/g,"\\'")}'
+};`
+    );
+    html = html.replace(/window\.FB_CONFIG=\{[\s\S]*?\};/, `window.FB_CONFIG={appId:window.APP_CONFIG.fbAppId,csrfToken:''};`);
+
+    // Replace PHP expressions
+    html = html.replace(/\?php\s*echo\s*\$canonical_url;\s*\?>/g, siteUrl);
+    html = html.replace(/\?php\s*echo\s*rtrim\(\$canonical_url,\s*'\/'\);\s*\?>/g, siteUrl.replace(/\/$/, ''));
+    html = html.replace(/\?php\s*echo\s*\$js_contact_email;\s*\?>/g, process.env.CONTACT_EMAIL || '');
+    html = html.replace(/\?php\s*echo\s*date\('Y'\);\s*\?>/g, new Date().getFullYear());
+    html = html.replace(/\?php\s*echo\s*filemtime\([^)]+\);\s*\?>/g, ver);
+    html = html.replace(/\?php\s*echo\s*time\(\);\s*\?>/g, ver);
+
+    // Remove any leftover PHP tags
+    html = html.replace(/<\?php[\s\S]*?\?>/g, '');
+
+    return html;
+}
+
+app.get('/', (req, res) => {
+    try {
+        res.setHeader('Content-Type', 'text/html; charset=utf-8');
+        res.setHeader('Cache-Control', 'no-store');
+        res.send(renderIndexHtml(req));
+    } catch (err) {
+        logError('render_index', err);
+        res.status(500).send('<h1>Server Error</h1><p>Could not load application.</p>');
+    }
 });
 
 // ── Global Error Handler ──────────────────────────────────────────────────────
