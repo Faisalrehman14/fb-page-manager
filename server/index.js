@@ -29,20 +29,23 @@ const sessionMiddleware = session({
         maxAge: 7 * 24 * 60 * 60 * 1000
     }
 });
+const cookieParser = require('cookie-parser');
+app.use(cookieParser(SESSION_SECRET));
 app.use(sessionMiddleware);
 
-// Ensure CSRF token exists and is persisted
+// Enhanced CSRF: Use signed cookies + session fallback
 app.use((req, res, next) => {
-    if (req.session) {
-        if (!req.session.csrfToken) {
-            req.session.csrfToken = crypto.randomBytes(32).toString('hex');
-            return req.session.save(err => {
-                if (err) console.error('Session save error:', err);
-                next();
-            });
-        }
+    let token = req.signedCookies?._csrf;
+    if (!token) {
+        token = req.session?.csrfToken || crypto.randomBytes(32).toString('hex');
+        res.cookie('_csrf', token, { signed: true, httpOnly: true, sameSite: 'lax', secure: false });
     }
-    next();
+    if (req.session && !req.session.csrfToken) {
+        req.session.csrfToken = token;
+        req.session.save(() => next());
+    } else {
+        next();
+    }
 });
 const io         = new Server(httpServer, {
     cors: { origin: '*', methods: ['GET', 'POST'] },
@@ -390,9 +393,10 @@ function generateCsrf(req) {
 }
 function verifyCsrf(req, res, next) {
     if (req.method === 'GET') return next();
-    const t = req.headers['x-csrf-token'];
-    if (!t || t !== req.session.csrfToken) {
-        console.warn(`[CSRF] Rejecting ${req.method} ${req.url}: header=${t}, session=${req.session?.csrfToken}`);
+    const h = req.headers['x-csrf-token'];
+    const c = req.signedCookies?._csrf || req.session?.csrfToken;
+    if (!h || h !== c) {
+        console.warn(`[CSRF] Rejecting ${req.method} ${req.url}: header=${h}, cookie=${req.signedCookies?._csrf}, session=${req.session?.csrfToken}`);
         return res.status(403).json({ error: 'Invalid CSRF token' });
     }
     next();
