@@ -1022,9 +1022,6 @@ async function loadMessengerConversations() {
     return;
   }
 
-  const pageSelect = document.getElementById('pageSelect');
-  let pageId = pageSelect?.value || window.currentPageId || '';
-
   // If no page selected, try to get first loaded page
   if (!pageId && window.loadedPages && window.loadedPages.length > 0) {
     pageId = window.loadedPages[0].id;
