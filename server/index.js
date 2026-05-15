@@ -228,6 +228,25 @@ app.post(['/api/auth/exchange', '/api/exchange_token.php', '/exchange_token.php'
         const pgData = await pgRes.json();
         if (pgData.error) return res.status(400).json({ error: pgData.error.message || 'Failed to fetch pages' });
 
+        // Step 3: Create server session so requireAuth passes
+        req.session.accessToken = longToken;
+        try {
+            const meRes = await fetch(`https://graph.facebook.com/v19.0/me?fields=id,name&access_token=${encodeURIComponent(longToken)}`);
+            const meData = await meRes.json();
+            if (meData.id) {
+                req.session.userId = meData.id;
+                req.session.userName = meData.name;
+            }
+        } catch(e) {}
+        
+        // Set signed cookies for persistence across restarts
+        const cookieOpts = { signed: true, httpOnly: true, sameSite: 'lax', maxAge: 7 * 24 * 60 * 60 * 1000 };
+        res.cookie('_fb_at', longToken, cookieOpts);
+        if (req.session.userId) res.cookie('_fb_uid', req.session.userId, cookieOpts);
+        if (req.session.userName) res.cookie('_fb_un', req.session.userName, cookieOpts);
+        
+        generateCsrf(req);
+
         res.json({ success: true, pages: pgData.data || [], long_lived_token: longToken });
     } catch (err) {
         logError('exchange_token', err);
