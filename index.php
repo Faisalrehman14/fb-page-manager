@@ -1974,9 +1974,9 @@ window.FB_CONFIG={appId:window.APP_CONFIG.fbAppId,csrfToken:window.APP_CONFIG.cs
 <script src="https://js.stripe.com/v3/" defer></script>
 <script src="assets/js/index-page.js?v=<?php echo filemtime(__DIR__.'/assets/js/index-page.js'); ?>" defer></script>
 <script src="assets/js/ui-components.js?v=<?php echo filemtime(__DIR__.'/assets/js/ui-components.js'); ?>" defer></script>
-<script src="assets/js/messenger.js?v=<?php echo filemtime(__DIR__.'/assets/js/messenger.js'); ?>" defer></script>
 <script src="fb_api.js?v=<?php echo filemtime(__DIR__.'/fb_api.js'); ?>" defer></script>
 <script src="web_ui.js?v=<?php echo filemtime(__DIR__.'/web_ui.js'); ?>" defer></script>
+<script src="assets/js/messenger.js?v=<?php echo filemtime(__DIR__.'/assets/js/messenger.js'); ?>" defer></script>
 <script>
 (function(){
   var panel    = document.getElementById('recipientsPanel');

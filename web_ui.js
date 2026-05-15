@@ -1013,6 +1013,12 @@ function cleanPsid(psid) {
 }
 
 async function loadMessengerConversations() {
+  // Delegate to the Pro Messenger system (messenger.js loaded after this file)
+  if (typeof window.msngInit === 'function') {
+    window.msngInit(0);
+    return;
+  }
+
   const pageSelect = document.getElementById('pageSelect');
   let pageId = pageSelect?.value || window.currentPageId || '';
 
