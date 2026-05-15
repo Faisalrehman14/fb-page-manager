@@ -331,6 +331,7 @@ app.use((req, res, next) => {
     if (req.path.endsWith('.php')) {
         const legacyMap = {
             '/index.php': '/',
+            '/get_csrf.php': '/api/csrf-token',
             '/fb_proxy.php': '/api/fb-proxy',
             '/exchange_token.php': '/api/auth/fb-token',
             '/track_user.php': '/api/auth/track',
