@@ -232,7 +232,6 @@ app.get(['/api/auth/callback', '/oauth_callback.php'], async (req, res) => {
     const oauthTs     = req.session.fb_oauth_ts;
     
     const sendPopupResult = (data) => {
-        const parentOrigin = (process.env.SITE_URL || `http://localhost:${PORT}`).replace(/\/$/, '');
         res.send(`
 <!DOCTYPE html>
 <html lang="en">
@@ -244,6 +243,7 @@ app.get(['/api/auth/callback', '/oauth_callback.php'], async (req, res) => {
   .spinner { width: 40px; height: 40px; border: 3px solid rgba(255,255,255,.1); border-top-color: #1877f2; border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 20px; }
   @keyframes spin { to { transform: rotate(360deg); } }
   .error { color: #ef4444; font-size: 14px; margin-top: 12px; }
+  .btn { background:#1877f2; color:white; border:none; padding:10px 20px; border-radius:8px; cursor:pointer; margin-top:20px; font-weight:600; display:none; }
 </style>
 </head>
 <body>
@@ -252,18 +252,25 @@ app.get(['/api/auth/callback', '/oauth_callback.php'], async (req, res) => {
   <h2 id="title">${data.error ? 'Connection failed' : 'Connecting your Facebook...'}</h2>
   <p id="sub">${data.error ? '' : 'This window will close automatically.'}</p>
   ${data.error ? `<p class="error">${data.error}</p>` : ''}
+  <button id="closeBtn" class="btn" onclick="window.close()">Close Window</button>
 </div>
 <script>
   const RESULT = ${JSON.stringify(data)};
-  const ORIGIN = "${parentOrigin}";
   let attempts = 0;
   function trySend() {
     if (!window.opener) {
-      if (++attempts < 20) setTimeout(trySend, 150);
-      else document.getElementById('title').textContent = "Window opener lost. Please retry.";
+      if (++attempts < 20) {
+        setTimeout(trySend, 150);
+      } else {
+        document.getElementById('loader').style.display = 'none';
+        document.getElementById('title').textContent = "Connection complete!";
+        document.getElementById('sub').textContent = "Please go back to the main window.";
+        document.getElementById('closeBtn').style.display = 'inline-block';
+      }
       return;
     }
-    window.opener.postMessage(RESULT, ORIGIN);
+    // Use '*' to avoid origin mismatch issues between https/http/domain
+    window.opener.postMessage(RESULT, "*");
     setTimeout(() => window.close(), 1000);
   }
   trySend();
