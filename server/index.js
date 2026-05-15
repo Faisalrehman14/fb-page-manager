@@ -1039,7 +1039,14 @@ app.use((err, req, res, next) => {
 
 // ── Startup ───────────────────────────────────────────────────────────────────
 (async () => {
+    // Start listening immediately so healthchecks pass while DB is initializing
+    httpServer.listen(PORT, () => {
+        console.log(`🚀 FBCast Pro on port ${PORT}`);
+        console.log(`   Healthcheck: GET /api/health`);
+    });
+
     try {
+        console.log('DB: Initializing...');
         await db.initDatabase();
         dbConnected = db.isConnected();
         if (dbConnected) {
@@ -1051,11 +1058,6 @@ app.use((err, req, res, next) => {
     } catch (err) {
         console.error('DB init failed:', err.message);
     }
-
-    httpServer.listen(PORT, () => {
-        console.log(`🚀 FBCast Pro on port ${PORT}`);
-        console.log(`   Webhook: POST /webhook  (verify: ${WEBHOOK_VERIFY_TOKEN})`);
-    });
 
     // Background incremental sync every 5 min
     setInterval(async () => {
