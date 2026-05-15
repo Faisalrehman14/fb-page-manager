@@ -16,7 +16,7 @@ const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 
 const app        = express();
 const httpServer = createServer(app);
 
-const SESSION_SECRET = process.env.SESSION_SECRET || 'fbcast_secret_8822';
+const SESSION_SECRET = process.env.SESSION_SECRET || crypto.randomBytes(32).toString('hex');
 
 const sessionMiddleware = session({
     secret: SESSION_SECRET,
@@ -40,7 +40,6 @@ const PORT                 = process.env.PORT || 3000;
 const FB_APP_ID            = (process.env.FB_APP_ID            || '').trim();
 const FB_APP_SECRET        = (process.env.FB_APP_SECRET        || '').trim();
 const BASE_URL             = (process.env.BASE_URL             || '').trim();
-const SESSION_SECRET       = process.env.SESSION_SECRET || crypto.randomBytes(32).toString('hex');
 const WEBHOOK_VERIFY_TOKEN = (process.env.WEBHOOK_VERIFY_TOKEN || process.env.FB_WEBHOOK_VERIFY_TOKEN || 'ADMIN12345').trim();
 
 let dbConnected = false;
