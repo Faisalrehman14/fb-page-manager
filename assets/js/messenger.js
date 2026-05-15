@@ -23,9 +23,14 @@
 
   // --- CORE INITIALIZATION ---
   window.msngInit = function (pageId) {
-    if (!pageId) return;
+    if (!pageId) {
+      // Fallback: Try to get pageId from URL or global state if missing
+      pageId = State.activePageId || window.current_page_id;
+    }
+    if (!pageId) return console.warn('[Messenger] msngInit called without Page ID');
+    
     State.activePageId = pageId;
-    console.log('[Messenger] Initializing Elite UI for Page:', pageId);
+    console.log('[Messenger] Initializing for Page:', pageId);
 
     initSocket();
     loadConversations();

@@ -1013,9 +1013,12 @@ function cleanPsid(psid) {
 }
 
 async function loadMessengerConversations() {
-  // Delegate to the Pro Messenger system (messenger.js loaded after this file)
+  const pageSelect = document.getElementById('pageSelect');
+  let pageId = pageSelect?.value || window.current_page_id || window.currentPageId || '';
+
+  // Delegate to the Pro Messenger system
   if (typeof window.msngInit === 'function') {
-    window.msngInit(0);
+    window.msngInit(pageId);
     return;
   }
 
