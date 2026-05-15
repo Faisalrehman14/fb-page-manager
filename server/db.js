@@ -1193,6 +1193,72 @@ async function getStats() {
     }
 }
 
+async function getNewMessagesSince(convId, since) {
+    if (!pool) return [];
+    try {
+        const [rows] = await pool.query(
+            'SELECT * FROM messages WHERE thread_id = ? AND created_time > ? ORDER BY created_time ASC',
+            [convId, since]
+        );
+        return rows;
+    } catch (err) {
+        addDbError(`getNewMessagesSince: ${err.message}`);
+        return [];
+    }
+}
+
+async function getUpdatedConvsSince(pageId, since) {
+    if (!pool) return [];
+    try {
+        const [rows] = await pool.query(
+            'SELECT * FROM conversations WHERE page_id = ? AND updated_time > ? ORDER BY updated_time DESC',
+            [pageId, since]
+        );
+        return rows.map(r => ({
+            ...r,
+            fb_user_id: r.participant_id,
+            user_name: r.participant_name,
+            user_picture: r.participant_picture,
+            is_unread: r.is_read ? 0 : 1
+        }));
+    } catch (err) {
+        addDbError(`getUpdatedConvsSince: ${err.message}`);
+        return [];
+    }
+}
+
+async function getTotalUnread(pageId) {
+    if (!pool) return 0;
+    try {
+        const [rows] = await pool.query(
+            'SELECT SUM(unread_count) as total FROM conversations WHERE page_id = ?',
+            [pageId]
+        );
+        return rows[0]?.total || 0;
+    } catch (err) {
+        addDbError(`getTotalUnread: ${err.message}`);
+        return 0;
+    }
+}
+
+async function searchMessages(pageId, query) {
+    if (!pool) return [];
+    try {
+        const [rows] = await pool.query(
+            `SELECT m.*, c.participant_name as user_name, c.participant_picture as user_picture 
+             FROM messages m
+             JOIN conversations c ON m.thread_id = c.id
+             WHERE m.page_id = ? AND m.text LIKE ? 
+             ORDER BY m.created_time DESC LIMIT 50`,
+            [pageId, `%${query}%`]
+        );
+        return rows;
+    } catch (err) {
+        addDbError(`searchMessages: ${err.message}`);
+        return [];
+    }
+}
+
 async function updateUserQuota(fbUserId, count) {
     if (!pool) return null;
     try {
@@ -1288,6 +1354,10 @@ const dbModule = {
     markAsRead,
     markAsUnread,
     markAllAsRead,
+    getNewMessagesSince,
+    getUpdatedConvsSince,
+    getTotalUnread,
+    searchMessages,
     archiveConversation,
     unarchiveConversation,
     getNotes,

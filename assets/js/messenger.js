@@ -44,7 +44,7 @@
   // ══════════════════════════════════════════════════════════
   async function get(action, params = {}) {
     const qs  = new URLSearchParams(params).toString();
-    const url = 'messenger_api.php?action=' + encodeURIComponent(action) + (qs ? '&' + qs : '');
+    const url = '/api/messenger?action=' + encodeURIComponent(action) + (qs ? '&' + qs : '');
     const r   = await fetch(url, { credentials: 'same-origin' });
     if (!r.headers.get('content-type')?.includes('application/json')) {
       const txt = await r.text();
@@ -55,7 +55,7 @@
   }
 
   async function post(payload) {
-    const r = await fetch('messenger_api.php', {
+    const r = await fetch('/api/messenger', {
       method:      'POST',
       headers:     { 'Content-Type': 'application/json' },
       credentials: 'same-origin',

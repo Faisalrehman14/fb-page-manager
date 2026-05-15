@@ -182,9 +182,10 @@ app.use((req, res, next) => {
     if (req.path.endsWith('.php')) {
         const legacyMap = {
             '/fb_proxy.php': '/api/fb-proxy',
-            '/exchange_token.php': '/api/auth/fb-token', // or /exchange_token.php if we want to keep it
+            '/exchange_token.php': '/api/auth/fb-token',
             '/track_user.php': '/api/auth/track',
-            '/upload_image.php': '/api/upload-image'
+            '/upload_image.php': '/api/upload-image',
+            '/messenger_api.php': '/api/messenger'
         };
         if (legacyMap[req.path]) {
             req.url = legacyMap[req.path];
@@ -678,6 +679,134 @@ app.post('/api/upload-image', verifyCsrf, uploadDisk.single('image'), (req, res)
 });
 
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+
+// ── Messenger API ────────────────────────────────────────────────────────────
+app.all(['/api/messenger', '/messenger_api.php'], requireAuth, async (req, res) => {
+    const method = req.method;
+    const action = req.query.action || req.body.action;
+    const pageId = req.query.page_id || req.body.page_id;
+
+    if (!action) return res.status(400).json({ error: 'Action required' });
+
+    try {
+        if (method === 'GET') {
+            if (action === 'load_conversations') {
+                if (!pageId) return res.status(400).json({ error: 'page_id required' });
+                const convs = await db.getConversations(pageId);
+                return res.json({ 
+                    conversations: convs.map(c => ({
+                        ...c,
+                        fb_user_id: c.participant_id,
+                        user_name: c.participant_name,
+                        user_picture: c.participant_picture,
+                        last_msg: c.snippet,
+                        last_msg_at: c.updated_time,
+                        is_unread: c.is_read ? 0 : 1
+                    }))
+                });
+            }
+
+            if (action === 'load_messages') {
+                const psid = req.query.psid;
+                if (!pageId || !psid) return res.status(400).json({ error: 'page_id and psid required' });
+                const convId = `${pageId}_${psid}`;
+                const messages = await db.getMessages(convId);
+                return res.json({ messages, conv_id: convId });
+            }
+
+            if (action === 'poll') {
+                const psid = req.query.psid;
+                const since = req.query.since || new Date(Date.now() - 30000).toISOString();
+                if (!pageId) return res.status(400).json({ error: 'page_id required' });
+
+                let newMessages = [];
+                if (psid) {
+                    const realConvId = await db.getConversationIdByParticipant(pageId, psid) || `${pageId}_${psid}`;
+                    newMessages = await db.getNewMessagesSince(realConvId, since);
+                }
+
+                const updatedConvs = await db.getUpdatedConvsSince(pageId, since);
+                const totalUnread = await db.getTotalUnread(pageId);
+
+                return res.json({
+                    new_messages: newMessages,
+                    updated_convs: updatedConvs,
+                    total_unread: totalUnread,
+                    server_time: new Date().toISOString()
+                });
+            }
+
+            if (action === 'search') {
+                const q = req.query.q;
+                if (!pageId || !q) return res.json({ conversations: [], messages: [] });
+                const conversations = await db.searchConversations(pageId, q);
+                const messages = await db.searchMessages(pageId, q);
+                return res.json({ 
+                    conversations: conversations.map(c => ({
+                        ...c,
+                        fb_user_id: c.participant_id,
+                        user_name: c.participant_name,
+                        user_picture: c.participant_picture
+                    })), 
+                    messages: messages.map(m => ({
+                        ...m,
+                        psid: m.sender_id
+                    }))
+                });
+            }
+        }
+
+        if (method === 'POST') {
+            if (action === 'send_message') {
+                const { psid, message, page_token, image_url } = req.body;
+                if (!pageId || !psid || (!message && !image_url)) return res.status(400).json({ error: 'Missing fields' });
+
+                const token = page_token || await db.getPageToken(pageId);
+                if (!token) return res.status(400).json({ error: 'Page token not found' });
+
+                // Call Facebook API
+                const fbUrl = `https://graph.facebook.com/v19.0/me/messages?access_token=${token}`;
+                const payload = {
+                    recipient: { id: psid },
+                    message: image_url ? { attachment: { type: 'image', payload: { url: image_url } } } : { text: message }
+                };
+
+                const fbRes = await fetch(fbUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const fbData = await fbRes.json();
+
+                if (fbData.error) throw new Error(fbData.error.message);
+
+                const mid = fbData.message_id;
+                const convId = await db.getConversationIdByParticipant(pageId, psid) || `${pageId}_${psid}`;
+                
+                await db.saveMessage({
+                    mid, thread_id: convId, page_id: pageId,
+                    sender_id: pageId, sender_type: 'page',
+                    text: message || '[Image]', is_from_page: 1,
+                    created_time: new Date()
+                }, io);
+
+                return res.json({ success: true, message_id: mid });
+            }
+
+            if (action === 'mark_read') {
+                const { psid } = req.body;
+                if (!pageId || !psid) return res.status(400).json({ error: 'Missing fields' });
+                await db.markAsRead(`${pageId}_${psid}`);
+                return res.json({ success: true });
+            }
+        }
+
+        res.status(405).json({ error: 'Method or action not allowed' });
+    } catch (err) {
+        logError('messenger_api', err, { action, pageId });
+        res.status(500).json({ error: err.message });
+    }
+});
 
 // ── Sync History Stub ────────────────────────────────────────────────────────
 app.post('/api/sync-history', requireAuth, async (req, res) => {
