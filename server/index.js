@@ -129,7 +129,7 @@ app.post(['/webhook', '/fb_webhook.php'], async (req, res) => {
 // ── PHP-endpoint shims (Node.js replacements for legacy PHP calls) ────────────
 
 // exchange_token.php — short-lived user token → long-lived token + page tokens
-app.post('/exchange_token.php', async (req, res) => {
+app.post(['/api/auth/exchange', '/api/exchange_token.php', '/exchange_token.php'], async (req, res) => {
     const userToken = (req.body?.user_token || '').trim();
     if (!userToken) return res.status(400).json({ error: 'user_token is required' });
     if (!FB_APP_ID || !FB_APP_SECRET) return res.status(500).json({ error: 'App credentials not configured' });
@@ -159,7 +159,7 @@ app.post('/exchange_token.php', async (req, res) => {
 });
 
 // track_user.php — verify token + return quota info
-app.post('/track_user.php', async (req, res) => {
+app.post(['/api/auth/track', '/api/track_user.php', '/track_user.php'], async (req, res) => {
     const userToken = (req.body?.user_token || '').trim();
     if (!userToken) return res.status(400).json({ error: 'user_token is required' });
 
@@ -176,9 +176,23 @@ app.post('/track_user.php', async (req, res) => {
     }
 });
 
-// Block raw PHP files — they can't run in Node.js (return JSON error so JS callers don't get raw PHP source)
+// Block raw PHP files — but allow them if they are the main entry or special cases
+// Actually, we should redirect legacy PHP calls to their API equivalents
 app.use((req, res, next) => {
-    if (req.path.endsWith('.php')) return res.status(404).json({ error: 'Not found', hint: 'Use /api/* routes' });
+    if (req.path.endsWith('.php')) {
+        const legacyMap = {
+            '/fb_proxy.php': '/api/fb-proxy',
+            '/exchange_token.php': '/api/auth/fb-token', // or /exchange_token.php if we want to keep it
+            '/track_user.php': '/api/auth/track',
+            '/upload_image.php': '/api/upload-image'
+        };
+        if (legacyMap[req.path]) {
+            req.url = legacyMap[req.path];
+            return next();
+        }
+        // If it's not a mapped route, still block raw PHP
+        return res.status(404).json({ error: 'Not found', hint: 'Use /api/* routes' });
+    }
     next();
 });
 
@@ -587,6 +601,111 @@ app.post('/api/threads/:threadId/attach', requireAuth, verifyCsrf, upload.single
     }
 });
 
+// ── FB Proxy ──────────────────────────────────────────────────────────────────
+app.post('/api/fb-proxy', verifyCsrf, async (req, res) => {
+    const { method = 'GET', path: fbPath, token, params = {}, body = {}, url: fullUrl } = req.body;
+    
+    let url;
+    if (fullUrl) {
+        if (!fullUrl.startsWith('https://graph.facebook.com')) {
+            return res.status(400).json({ error: 'Invalid URL host' });
+        }
+        url = fullUrl;
+    } else if (fbPath) {
+        if (!token) return res.status(400).json({ error: 'token is required' });
+        const cleanPath = fbPath.replace(/^\/+/, '');
+        const queryParams = new URLSearchParams(params);
+        queryParams.set('access_token', token);
+        url = `https://graph.facebook.com/v19.0/${cleanPath}?${queryParams.toString()}`;
+    } else {
+        return res.status(400).json({ error: 'path or url is required' });
+    }
+
+    try {
+        const fetchOptions = {
+            method: method === 'UPLOAD_IMAGE' ? 'POST' : method,
+            headers: {}
+        };
+
+        if (method === 'POST') {
+            fetchOptions.headers['Content-Type'] = 'application/x-www-form-urlencoded';
+            const formBody = new URLSearchParams();
+            for (const [k, v] of Object.entries(body)) {
+                formBody.append(k, typeof v === 'object' ? JSON.stringify(v) : String(v));
+            }
+            fetchOptions.body = formBody.toString();
+        }
+
+        const fbRes = await fetch(url, fetchOptions);
+        const data = await fbRes.json();
+        res.status(fbRes.status).json(data);
+    } catch (err) {
+        logError('fb_proxy', err);
+        res.status(502).json({ error: 'Proxy connection error' });
+    }
+});
+
+// ── Upload Image ─────────────────────────────────────────────────────────────
+const diskStorage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        const dir = path.join(__dirname, '../uploads');
+        if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+        cb(null, dir);
+    },
+    filename: (req, file, cb) => {
+        const ext = path.extname(file.originalname) || '.jpg';
+        cb(null, crypto.randomBytes(16).toString('hex') + ext);
+    }
+});
+const uploadDisk = multer({ 
+    storage: diskStorage, 
+    limits: { fileSize: 5 * 1024 * 1024 },
+    fileFilter: (req, file, cb) => {
+        if (file.mimetype.startsWith('image/')) cb(null, true);
+        else cb(new Error('Only images allowed'));
+    }
+});
+
+app.post('/api/upload-image', verifyCsrf, uploadDisk.single('image'), (req, res) => {
+    if (!req.file) return res.status(400).json({ success: false, error: 'No file uploaded' });
+    
+    const proto = req.headers['x-forwarded-proto'] || 'https';
+    const host = req.headers['x-forwarded-host'] || req.headers.host || '';
+    const siteUrl = process.env.SITE_URL || BASE_URL || (host ? `${proto}://${host}` : '');
+    const url = `${siteUrl.replace(/\/$/, '')}/uploads/${req.file.filename}`;
+    
+    res.json({ success: true, url, filename: req.file.filename });
+});
+
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+
+// ── Sync History Stub ────────────────────────────────────────────────────────
+app.post('/api/sync-history', requireAuth, async (req, res) => {
+    const { page_id, page_token } = req.body;
+    if (!page_id || !page_token) return res.status(400).json({ error: 'page_id and page_token required' });
+    
+    // Non-blocking sync start
+    db.syncPageInitial(page_id, page_token, fetch, prog => io.emit('sync_progress', prog))
+        .catch(err => logError('manual_sync', err, { pageId: page_id }));
+        
+    res.json({ success: true, message: 'Sync started' });
+});
+
+// ── Quota ───────────────────────────────────────────────────────────────────
+app.post(['/api/update_quota', '/api/update_quota.php'], requireAuth, verifyCsrf, async (req, res) => {
+    const { fb_user_id, count } = req.body;
+    if (!fb_user_id) return res.status(400).json({ error: 'fb_user_id required' });
+    
+    try {
+        const result = await db.updateUserQuota(fb_user_id, count);
+        if (result) res.json(result);
+        else res.status(404).json({ error: 'User not found' });
+    } catch (err) {
+        logError('update_quota', err);
+        res.status(500).json({ error: 'Failed to update quota' });
+    }
+});
+
 // ── Sync ──────────────────────────────────────────────────────────────────────
 app.post('/api/sync/all', requireAuth, verifyCsrf, async (req, res) => {
     if (!dbConnected) return res.status(503).json({ error: 'Database not connected' });
@@ -628,40 +747,35 @@ app.get('/api/config', (req, res) => {
 // ── Main HTML — serve index.php as template ───────────────────────────────────
 function renderIndexHtml(req) {
     const root  = path.join(__dirname, '..');
-    let html    = fs.readFileSync(path.join(root, 'index.php'), 'utf8');
+    let html    = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
     const proto = req.headers['x-forwarded-proto'] || 'https';
     const host  = req.headers['x-forwarded-host'] || req.headers.host || '';
     const siteUrl = process.env.SITE_URL || BASE_URL || (host ? `${proto}://${host}` : '');
     const ver   = Date.now();
 
-    // Strip PHP opening block (everything before <!DOCTYPE html>)
-    html = html.replace(/^[\s\S]*?(?=<!DOCTYPE html>)/i, '');
+    const config = {
+        stripePublishableKey: (process.env.STRIPE_PUBLISHABLE_KEY || '').replace(/'/g, "\\'"),
+        fbAppId: (process.env.FB_APP_ID || '').replace(/'/g, "\\'"),
+        fbRedirectUri: (process.env.FB_REDIRECT_URI || `${siteUrl}/api/auth/callback`).replace(/'/g, "\\'"),
+        contactEmail: (process.env.CONTACT_EMAIL || '').replace(/'/g, "\\'"),
+        siteUrl: siteUrl.replace(/'/g, "\\'"),
+        csrfToken: req.session.csrfToken || '',
+        appEnv: (process.env.APP_ENV || 'production').replace(/'/g, "\\'")
+    };
 
-    // Replace PHP config block with real values
+    // Inject config
     html = html.replace(
         /window\.APP_CONFIG=\{[\s\S]*?\};/,
-        `window.APP_CONFIG={
-  stripePublishableKey:'${(process.env.STRIPE_PUBLISHABLE_KEY||'').replace(/'/g,"\\'")}',
-  fbAppId:'${(process.env.FB_APP_ID||'').replace(/'/g,"\\'")}',
-  fbRedirectUri:'${(process.env.FB_REDIRECT_URI||`${siteUrl}/api/auth/callback`).replace(/'/g,"\\'")}',
-  contactEmail:'${(process.env.CONTACT_EMAIL||'').replace(/'/g,"\\'")}',
-  siteUrl:'${siteUrl.replace(/'/g,"\\'")}',
-  csrfToken:'',
-  appEnv:'${(process.env.APP_ENV||'production').replace(/'/g,"\\'")}'
-};`
+        `window.APP_CONFIG=${JSON.stringify(config)};`
     );
-    html = html.replace(/window\.FB_CONFIG=\{[\s\S]*?\};/, `window.FB_CONFIG={appId:window.APP_CONFIG.fbAppId,csrfToken:''};`);
+    html = html.replace(/window\.FB_CONFIG=\{[\s\S]*?\};/, `window.FB_CONFIG={appId:window.APP_CONFIG.fbAppId,csrfToken:window.APP_CONFIG.csrfToken};`);
 
-    // Replace PHP expressions (patterns include the leading < so the whole <?php...?> is replaced)
-    html = html.replace(/<\?php\s*echo\s*\$canonical_url;\s*\?>/g, siteUrl);
-    html = html.replace(/<\?php\s*echo\s*rtrim\(\$canonical_url,\s*'\/'\);\s*\?>/g, siteUrl.replace(/\/$/, ''));
-    html = html.replace(/<\?php\s*echo\s*\$js_contact_email;\s*\?>/g, process.env.CONTACT_EMAIL || '');
-    html = html.replace(/<\?php\s*echo\s*date\('Y'\);\s*\?>/g, new Date().getFullYear());
-    html = html.replace(/<\?php\s*echo\s*filemtime\([^)]+\);\s*\?>/g, ver);
-    html = html.replace(/<\?php\s*echo\s*time\(\);\s*\?>/g, ver);
-
-    // Remove any leftover PHP tags
-    html = html.replace(/<\?php[\s\S]*?\?>/g, '');
+    // Replace placeholders
+    html = html.replace(/{{SITE_URL}}/g, siteUrl);
+    html = html.replace(/{{SITE_URL_NO_SLASH}}/g, siteUrl.replace(/\/$/, ''));
+    html = html.replace(/{{CONTACT_EMAIL}}/g, process.env.CONTACT_EMAIL || '');
+    html = html.replace(/{{YEAR}}/g, new Date().getFullYear());
+    html = html.replace(/{{VER}}/g, ver);
 
     return html;
 }

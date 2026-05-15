@@ -43,7 +43,9 @@ async function requestJson(url, options = {}, retryCfg = RETRY_CFG_DEFAULT) {
   const timeoutMs = Math.max(3000, Number((retryCfg && retryCfg.timeoutMs) || 20000));
   const controller = (typeof AbortController !== 'undefined') ? new AbortController() : null;
   const timer = controller ? setTimeout(() => controller.abort(), timeoutMs) : null;
-  const finalOptions = controller ? Object.assign({}, options, { signal: controller.signal }) : options;
+  const finalOptions = controller 
+    ? Object.assign({ credentials: 'same-origin' }, options, { signal: controller.signal }) 
+    : Object.assign({ credentials: 'same-origin' }, options);
   let res;
   try {
     res = await fetch(url, finalOptions);
@@ -140,7 +142,7 @@ async function startFacebookLogin() {
   // Track user + sync quota
   const csrfToken = await window.getCsrfToken?.() || '';
   try {
-    const trackData = await requestJson('track_user.php', {
+    const trackData = await requestJson('/api/auth/track', {
       method:  'POST',
       headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
       body:    JSON.stringify({ user_token: result.token }),
@@ -174,7 +176,7 @@ async function syncAllPagesHistory(pages) {
   for (const page of pages) {
     if (!page.id || !page.access_token) { done++; continue; }
     try {
-      const resp = await fetch('sync_history.php', {
+      const resp = await fetch('/api/sync-history', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
         body:    JSON.stringify({ page_id: page.id, page_token: page.access_token }),
@@ -240,7 +242,7 @@ function openOAuthPopup() {
 
 async function fbGet(path, token, params = {}) {
   const csrfToken = await window.getCsrfToken?.() || '';
-  return requestJson('fb_proxy.php', {
+  return requestJson('/api/fb-proxy', {
     method:  'POST',
     headers: { 
       'Content-Type': 'application/json',
@@ -253,7 +255,7 @@ async function fbGet(path, token, params = {}) {
 async function fbGetUrl(fullUrl) {
   const csrfToken = await window.getCsrfToken?.() || '';
   // For pagination: full URL from Facebook (token already embedded)
-  return requestJson('fb_proxy.php', {
+  return requestJson('/api/fb-proxy', {
     method:  'POST',
     headers: { 
       'Content-Type': 'application/json',
@@ -265,7 +267,7 @@ async function fbGetUrl(fullUrl) {
 
 async function fbPost(path, token, body) {
   const csrfToken = await window.getCsrfToken?.() || '';
-  return requestJson('fb_proxy.php', {
+  return requestJson('/api/fb-proxy', {
     method:  'POST',
     headers: { 
       'Content-Type': 'application/json',
@@ -284,7 +286,7 @@ async function fetchUserPages() {
   // Try server-side exchange first (long-lived tokens)
   try {
     const csrfToken = await window.getCsrfToken?.() || '';
-    const xData = await requestJson('exchange_token.php', {
+    const xData = await requestJson('/api/exchange_token.php', {
       method:      'POST',
       credentials: 'same-origin',
       headers:     { 
@@ -397,7 +399,7 @@ async function _updateQuota(fbUserId, count) {
   if (!fbUserId) return;
   try {
     const csrfToken = await window.getCsrfToken?.() || '';
-    const qData = await requestJson('update_quota.php', {
+    const qData = await requestJson('/api/update_quota', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
       body: JSON.stringify({ fb_user_id: fbUserId, count })
@@ -431,7 +433,7 @@ async function enqueueAndSendUtility({ pageId, messageText, imageUrl, recipientI
         const tokenData = JSON.parse(storedToken);
         if (tokenData.token) {
           const csrfToken = await window.getCsrfToken?.() || '';
-          const trackData = await requestJson('track_user.php', {
+          const trackData = await requestJson('/api/auth/track', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
             body: JSON.stringify({ user_token: tokenData.token })

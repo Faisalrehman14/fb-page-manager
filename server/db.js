@@ -127,6 +127,35 @@ async function initDatabase() {
             }
         } catch (e) { console.warn('DB: last_synced_at column check warning:', e.message); }
 
+        // ── Users Table ───────────────────────────────────────────────────
+        await connection.query(`
+            CREATE TABLE IF NOT EXISTS users (
+                fb_user_id VARCHAR(50) PRIMARY KEY,
+                email VARCHAR(255),
+                plan ENUM('free','basic','pro','gold','sapphire','platinum','unknown') DEFAULT 'free',
+                messages_used INT DEFAULT 0,
+                messages_limit INT DEFAULT 2000,
+                stripe_customer_id VARCHAR(255),
+                stripe_subscription_id VARCHAR(255),
+                subscription_expires DATETIME,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                INDEX idx_stripe_cust (stripe_customer_id)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        `);
+
+        // ── Activity Log ──────────────────────────────────────────────────
+        await connection.query(`
+            CREATE TABLE IF NOT EXISTS activity_log (
+                id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                fb_user_id VARCHAR(50) NOT NULL,
+                action VARCHAR(50) NOT NULL,
+                detail TEXT,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                INDEX idx_act_user (fb_user_id),
+                INDEX idx_act_created (created_at)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        `);
+
         await connection.query(`
             CREATE TABLE IF NOT EXISTS messages (
                 id VARCHAR(255) PRIMARY KEY,
@@ -1153,17 +1182,66 @@ async function getStats() {
     }
 
     try {
-        const [convResult] = await pool.query('SELECT COUNT(*) as count FROM conversations');
-        const [msgResult] = await pool.query('SELECT COUNT(*) as count FROM messages');
-
+    if (!pool) return {};
+    try {
+        const [msgCount] = await pool.query('SELECT COUNT(*) as total FROM messages');
+        const [convCount] = await pool.query('SELECT COUNT(*) as total FROM conversations');
+        const [userCount] = await pool.query('SELECT COUNT(*) as total FROM users');
         return {
-            totalConversations: convResult[0]?.count || 0,
-            totalMessages: msgResult[0]?.count || 0
+            messages: msgCount[0].total,
+            conversations: convCount[0].total,
+            users: userCount[0].total
         };
     } catch (err) {
         addDbError(`getStats: ${err.message}`);
-        console.error('DB: getStats error:', err.message);
-        return { totalConversations: 0, totalMessages: 0 };
+        return {};
+    }
+}
+
+async function updateUserQuota(fbUserId, count) {
+    if (!pool) return null;
+    try {
+        // Ensure user exists (default to free)
+        await pool.query(`
+            INSERT IGNORE INTO users (fb_user_id, plan, messages_limit)
+            VALUES (?, 'free', 2000)
+        `, [fbUserId]);
+
+        // Atomic update
+        await pool.query(`
+            UPDATE users
+            SET messages_used = LEAST(messages_limit, messages_used + ?)
+            WHERE fb_user_id = ?
+        `, [count, fbUserId]);
+
+        // Fetch updated info
+        const [rows] = await pool.query(
+            'SELECT messages_used, messages_limit, plan FROM users WHERE fb_user_id = ?',
+            [fbUserId]
+        );
+        
+        if (rows.length > 0) {
+            const row = rows[0];
+            const remaining = Math.max(0, row.messages_limit - row.messages_used);
+            
+            // Log activity
+            await pool.query(
+                'INSERT INTO activity_log (fb_user_id, action, detail) VALUES (?, "send", ?)',
+                [fbUserId, `Sent: ${count} | Remaining: ${remaining}`]
+            ).catch(() => {}); // non-critical
+
+            return {
+                success: true,
+                messagesUsed: row.messages_used,
+                messageLimit: row.messages_limit,
+                subscriptionStatus: row.plan,
+                remaining
+            };
+        }
+        return null;
+    } catch (err) {
+        addDbError(`updateUserQuota: ${err.message}`);
+        return null;
     }
 }
 
@@ -1211,6 +1289,7 @@ const dbModule = {
     getLastError,
     getDbErrorLogs: () => dbErrorLogs,
     getStats,
+    updateUserQuota,
     markAsRead,
     markAsUnread,
     markAllAsRead,

@@ -560,7 +560,7 @@ function initImagePanel() {
       const csrfToken = (typeof window.getCsrfToken === 'function') ? await window.getCsrfToken() : '';
       const formData = new FormData();
       formData.append('image', file);
-      const res  = await fetch('upload_image.php', {
+      const res  = await fetch('/api/upload-image', {
         method: 'POST',
         headers: { 'X-CSRF-Token': csrfToken },
         body: formData
