@@ -48,17 +48,20 @@ window.APP_CONFIG = window.APP_CONFIG || { fbAppId: '', csrfToken: '', appEnv: '
 window.FB_CONFIG={appId:window.APP_CONFIG.fbAppId,csrfToken:window.APP_CONFIG.csrfToken};
 window.getCsrfToken = async (forceRefresh = false) => {
   if (!forceRefresh && window.APP_CONFIG.csrfToken) return window.APP_CONFIG.csrfToken;
-  const cookieMatch = document.cookie.match(/CSRF_TOKEN=([^;]+)/);
-  if (cookieMatch) {
+  const cookieMatch = document.cookie.match(/(?:^|; )CSRF_TOKEN=([^;]+)/);
+  if (cookieMatch && cookieMatch[1]) {
     window.APP_CONFIG.csrfToken = cookieMatch[1];
     return cookieMatch[1];
   }
   try {
     const res = await fetch('/api/csrf-token');
     const data = await res.json();
-    window.APP_CONFIG.csrfToken = data.csrfToken;
-    return data.csrfToken;
-  } catch(e) { return ''; }
+    if (data.csrfToken) {
+      window.APP_CONFIG.csrfToken = data.csrfToken;
+      return data.csrfToken;
+    }
+  } catch(e) {}
+  return window.APP_CONFIG.csrfToken || '';
 };
 </script>
 
