@@ -31,10 +31,16 @@ const sessionMiddleware = session({
 });
 app.use(sessionMiddleware);
 
-// Ensure CSRF token exists
+// Ensure CSRF token exists and is persisted
 app.use((req, res, next) => {
-    if (req.session && !req.session.csrfToken) {
-        req.session.csrfToken = crypto.randomBytes(32).toString('hex');
+    if (req.session) {
+        if (!req.session.csrfToken) {
+            req.session.csrfToken = crypto.randomBytes(32).toString('hex');
+            return req.session.save(err => {
+                if (err) console.error('Session save error:', err);
+                next();
+            });
+        }
     }
     next();
 });
@@ -418,7 +424,12 @@ io.on('connection', socket => {
 
 
 // ── Auth ──────────────────────────────────────────────────────────────────────
-app.get('/api/csrf-token', (req, res) => res.json({ csrfToken: generateCsrf(req) }));
+app.get('/api/csrf-token', (req, res) => {
+    const token = generateCsrf(req);
+    req.session.save(() => {
+        res.json({ csrfToken: token });
+    });
+});
 
 // Bridge: accept FB user token from old JS-SDK auth flow → create server session
 app.post('/api/auth/fb-token', async (req, res) => {
