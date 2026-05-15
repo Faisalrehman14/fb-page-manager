@@ -147,13 +147,8 @@
     return d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
   }
 
-  // Smart API Base: Use :3000 for local dev, but use standard port for Production (Railway)
-  const API_BASE = (function() {
-    const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-    const protocol = window.location.protocol;
-    const host = window.location.hostname;
-    return isLocal ? `${protocol}//${host}:3000/api/messenger` : `${protocol}//${host}/api/messenger`;
-  })();
+  // Simplified API Base: Using relative path + .htaccess proxy for maximum stability
+  const API_BASE = '/api/messenger';
 
   async function api(endpoint, params = {}) {
     const qs = Object.entries(params).map(([k,v]) => k + '=' + encodeURIComponent(v)).join('&');

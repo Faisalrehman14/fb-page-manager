@@ -84,12 +84,13 @@ Options -Indexes -MultiViews
 </FilesMatch>
 
 # ── Protect Config & Scripts Directories ──────
-<IfModule mod_rewrite.c>
   RewriteEngine On
   RewriteRule ^config/ - [F,L]
   RewriteRule ^scripts/ - [F,L]
   RewriteRule ^logs/ - [F,L]
   RewriteRule ^\.cache/ - [F,L]
+  # Proxy Messenger API to Node.js
+  RewriteRule ^api/messenger/(.*)$ http://localhost:3000/api/messenger/$1 [P,L]
 </IfModule>
 
 # ── Force HTTPS (enable when SSL is live) ─────
