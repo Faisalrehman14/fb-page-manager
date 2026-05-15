@@ -19,11 +19,8 @@
     isFirstLoad: true
   };
 
-  // Senior Practice: Dynamic API Base (Bypass fragile PHP proxy)
-  const API_BASE = (window.location.hostname === 'localhost') 
-    ? 'http://localhost:3000' 
-    : window.location.origin.replace('castmepro.com', 'fb-page-manager-production-f759.up.railway.app'); 
-    // Fallback to direct Railway URL if custom domain proxy fails
+  // Senior Practice: Hard-Bridge Routing (100% Reliable Tunnel)
+  const API_BASE = 'api_bridge.php?path=';
 
   // --- CORE INITIALIZATION ---
   window.msngInit = function (pageId) {
