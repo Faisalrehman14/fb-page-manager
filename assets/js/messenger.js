@@ -48,7 +48,7 @@
         if (!exists) {
           appendMessage(msg);
           // Mark as read in DB via background API call
-          apiPost({ action: 'mark_read', page_id: M.activePageId, psid: M.activePsid }).catch(() => {});
+          apiPost('mark-read', { pageId: M.activePageId, psid: M.activePsid }).catch(() => {});
         }
       }
       
@@ -136,18 +136,20 @@
     return d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
   }
 
-  async function api(action, params = {}) {
-    const url = 'messenger_api.php?action=' + encodeURIComponent(action) + '&' +
-      Object.entries(params).map(([k,v]) => k + '=' + encodeURIComponent(v)).join('&');
-    const r = await fetch(url, { credentials: 'same-origin' });
+  const API_BASE = window.location.protocol + '//' + window.location.hostname + ':3000/api/messenger';
+
+  async function api(endpoint, params = {}) {
+    const qs = Object.entries(params).map(([k,v]) => k + '=' + encodeURIComponent(v)).join('&');
+    const url = `${API_BASE}/${endpoint}${qs ? '?' + qs : ''}`;
+    const r = await fetch(url);
     return r.json();
   }
 
-  async function apiPost(payload) {
-    const r = await fetch('messenger_api.php', {
+  async function apiPost(endpoint, payload) {
+    const url = `${API_BASE}/${endpoint}`;
+    const r = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      credentials: 'same-origin',
       body: JSON.stringify(payload),
     });
     return r.json();
@@ -308,12 +310,8 @@
   async function loadConvsFromDB(pageId) {
     showConvSkeleton();
     try {
-      const data = await api('load_conversations', { page_id: pageId });
-      if (data.error) {
-        console.error('[Messenger] API error:', data.error);
-        showConvEmpty('Could not load conversations: ' + data.error);
-        return;
-      }
+      const data = await api('conversations', { pageId: pageId });
+      if (data.error) throw new Error(data.error);
       if (data.conversations) {
         M.convs = data.conversations.map(c => ({
           id:          c.id,
@@ -386,9 +384,8 @@
       renderConvs();
 
       // Persist to DB
-      apiPost({
-        action: 'save_conversations',
-        page_id: pageId,
+      apiPost('conversations', {
+        pageId: pageId,
         conversations: convs,
       }).catch(() => {});
     } catch (e) {
@@ -497,10 +494,10 @@
     M.oldestMsgTime = null;
     await loadMessages();
 
-    // Mark as read
-    apiPost({ action: 'mark_read', page_id: M.activePageId, psid }).catch(() => {});
+    // Mark as read in DB
+    apiPost('mark-read', { pageId: M.activePageId, psid }).catch(() => {});
 
-    // Focus input
+    renderMessages();
     const ta = el('msngMsgTextarea');
     if (ta) ta.focus();
 
@@ -537,12 +534,9 @@
   async function loadMessages(before = null) {
     if (!M.activePageId || !M.activePsid) return;
 
-    const params = { page_id: M.activePageId, psid: M.activePsid, limit: '50' };
-    if (before) params.before = before;
-
     try {
-      const data = await api('load_messages', params);
-      if (!data.messages) return;
+      const data = await api('messages', { psid: M.activePsid, pageId: M.activePageId, limit: 50, before: before });
+      if (data.error) throw new Error(data.error);
 
       if (before) {
         // Prepend older messages
@@ -739,9 +733,8 @@
     appendMessage(tempMsg);
 
     try {
-      const res = await apiPost({
-        action:      'send_message',
-        page_id:     M.activePageId,
+      const res = await apiPost('reply', {
+        pageId:     M.activePageId,
         psid:        M.activePsid,
         message:     text,
         page_token:  M.activeToken,
@@ -897,7 +890,7 @@
   // ── Mark read (header button) ─────────────────────────────────
   window.msngMarkRead = function () {
     if (!M.activePsid || !M.activePageId) return;
-    apiPost({ action: 'mark_read', page_id: M.activePageId, psid: M.activePsid });
+    apiPost('mark-read', { pageId: M.activePageId, psid: M.activePsid });
     const conv = M.convs.find(c => c.psid === M.activePsid);
     if (conv) conv.unread = 0;
     renderConvs();
