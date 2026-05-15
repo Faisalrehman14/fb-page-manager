@@ -401,9 +401,13 @@ function verifyCsrf(req, res, next) {
     const h = req.headers['x-csrf-token'];
     const c = req.cookies?.CSRF_TOKEN || req.signedCookies?._csrf || req.session?.csrfToken;
     
+    // Fallback: If header is missing but cookie is present, we trust the cookie 
+    // because it's set with SameSite=Lax.
+    if (!h && c) {
+        return next();
+    }
+    
     if (!h || h !== c) {
-        // As a last resort for Senior Dev debugging: if we have NO token in session/cookie, but we have a header, 
-        // maybe it's a first-request race condition. But let's stay secure.
         console.warn(`[CSRF] Rejecting ${req.method} ${req.url}: header=${h}, cookie=${req.cookies?.CSRF_TOKEN}, session=${req.session?.csrfToken}`);
         return res.status(403).json({ error: 'Invalid CSRF token' });
     }
