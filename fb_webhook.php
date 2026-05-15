@@ -109,6 +109,26 @@ if ($method === 'POST') {
     exit;
 }
 
+// ── NOTIFY SOCKET SERVER ──
+function notifySocketServer(string $type, string $pageId, ?string $psid, array $data): void {
+    $nodeUrl = 'http://localhost:3000/api/internal/webhook-event';
+    $payload = json_encode([
+        'type' => $type,
+        'page_id' => $pageId,
+        'psid' => $psid,
+        'data' => $data
+    ]);
+
+    $ch = curl_init($nodeUrl);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_POST, true);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, $payload);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+    curl_setopt($ch, CURLOPT_TIMEOUT, 2); // Don't block for long
+    curl_exec($ch);
+    curl_close($ch);
+}
+
 // ── PROCESS MESSENGER EVENTS ──
 function processMessengerEvent(PDO $db, string $pageId, array $event): void {
     $senderId = $event['sender']['id'] ?? '';
@@ -167,6 +187,17 @@ function processMessengerEvent(PDO $db, string $pageId, array $event): void {
         updateUnreadCount($db, $pageId, $senderId, 1);
         error_log('Unread count updated');
 
+        // NOTIFY SOCKET SERVER IN REAL-TIME
+        notifySocketServer('new_message', $pageId, $senderId, [
+            'id' => $messageId,
+            'message' => $text,
+            'from_me' => 0,
+            'attachment_url' => $attachmentUrl,
+            'attachment_type' => $attachmentType,
+            'created_at' => $timestamp,
+            'user_id' => $senderId
+        ]);
+
         logger('info', 'New message received', [
             'page' => $pageId,
             'psid' => $senderId,
@@ -174,6 +205,7 @@ function processMessengerEvent(PDO $db, string $pageId, array $event): void {
             'text_len' => strlen($text)
         ]);
     }
+
 
     // ── DELIVERY RECEIPT ──
     if (isset($event['delivery'])) {

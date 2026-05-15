@@ -506,19 +506,72 @@ app.use((req, res) => {
 });
 
 // =============================================================================
-// START SERVER
+// START SERVER WITH SOCKET.IO
 // =============================================================================
 
-app.listen(PORT, () => {
+const http = require('http');
+const server = http.createServer(app);
+const { Server } = require('socket.io');
+
+const io = new Server(server, {
+    cors: {
+        origin: "*", // Adjust for production
+        methods: ["GET", "POST"]
+    }
+});
+
+// Socket.io connection handling
+io.on('connection', (socket) => {
+    console.log('User connected to socket:', socket.id);
+
+    // Join room for a specific page to receive updates
+    socket.on('join_page', (pageId) => {
+        socket.join(`page_${pageId}`);
+        console.log(`Socket ${socket.id} joined page_${pageId}`);
+    });
+
+    // Join room for a specific conversation
+    socket.on('join_conversation', (psid) => {
+        socket.join(`conv_${psid}`);
+        console.log(`Socket ${socket.id} joined conv_${psid}`);
+    });
+
+    socket.on('disconnect', () => {
+        console.log('User disconnected from socket');
+    });
+});
+
+// Internal API for Webhook to notify Socket.io
+// In production, protect this with a secret key
+app.post('/api/internal/webhook-event', express.json(), (req, res) => {
+    const { type, page_id, psid, data } = req.body;
+    
+    if (!type || !page_id) {
+        return res.status(400).json({ error: 'Missing required fields' });
+    }
+
+    console.log(`Broadcasting event: ${type} for page ${page_id}`);
+
+    // Broadcast to the page room
+    io.to(`page_${page_id}`).emit('webhook_event', { type, page_id, psid, data });
+
+    // If it's a message, also broadcast to the specific conversation room
+    if (psid) {
+        io.to(`conv_${psid}`).emit('new_message', data);
+    }
+
+    res.json({ success: true });
+});
+
+server.listen(PORT, () => {
     console.log(`
 ╔════════════════════════════════════════════════════════════════╗
-║  Facebook Page Inbox - Customer Support Demo                  ║
+║  Facebook Page Inbox - PRO CLASS REAL-TIME MESSENGER         ║
 ║  Server running at http://localhost:${PORT}                      ║
 ╠════════════════════════════════════════════════════════════════╣
-║  IMPORTANT: This is a demo for Meta App Review               ║
-║  - Only reply to customers who messaged first                ║
-║  - No bulk messaging or automation                           ║
-║  - Rate limited: 1 message per 3 seconds per thread          ║
+║  REAL-TIME: Socket.io Enabled                                ║
+║  WEBHOOK BRIDGE: /api/internal/webhook-event                 ║
 ╚════════════════════════════════════════════════════════════════╝
     `);
 });
+

@@ -22,7 +22,77 @@
     oldestMsgTime: null,        // for load-more
     sending:       false,
     userNameCache: {},          // psid → name
+    socket:        null,        // Socket.io instance
   };
+
+  // ── Socket.io Initialization ────────────────────────────────
+  function initSocket() {
+    if (M.socket) return;
+    
+    const socketUrl = window.location.protocol + '//' + window.location.hostname + ':3000';
+    console.log('[Messenger] Connecting to Socket:', socketUrl);
+    
+    M.socket = io(socketUrl);
+
+    M.socket.on('connect', () => {
+      console.log('[Messenger] Socket connected:', M.socket.id);
+      if (M.activePageId) M.socket.emit('join_page', M.activePageId);
+      if (M.activePsid) M.socket.emit('join_conversation', M.activePsid);
+    });
+
+    M.socket.on('new_message', (msg) => {
+      console.log('[Messenger] Socket new_message:', msg);
+      // If this message is for the active conversation, append it
+      if (M.activePsid === msg.user_id) {
+        const exists = M.msgs.find(m => m.id === msg.id);
+        if (!exists) {
+          appendMessage(msg);
+          // Mark as read in DB via background API call
+          apiPost({ action: 'mark_read', page_id: M.activePageId, psid: M.activePsid }).catch(() => {});
+        }
+      }
+      
+      // Update the conversation in the sidebar regardless
+      updateConvInSidebar(msg);
+    });
+
+    M.socket.on('webhook_event', (event) => {
+      console.log('[Messenger] Socket webhook_event:', event);
+      // Handle other event types like delivery, read, etc.
+    });
+
+    M.socket.on('disconnect', () => {
+      console.log('[Messenger] Socket disconnected');
+    });
+  }
+
+  function updateConvInSidebar(msg) {
+    const psid = msg.user_id;
+    const existing = M.convs.find(c => c.psid === psid);
+    if (existing) {
+      if (psid !== M.activePsid) {
+        existing.unread = (existing.unread || 0) + 1;
+      }
+      existing.lastMsg = msg.message;
+      existing.lastMsgAt = msg.created_at;
+      existing.lastFromMe = msg.from_me == 1;
+    } else {
+      // New conversation from socket
+      M.convs.unshift({
+        psid:     psid,
+        name:     'New User', // Will be updated on next DB load
+        picture:  null,
+        lastMsg:  msg.message,
+        lastFromMe: msg.from_me == 1,
+        lastMsgAt:  msg.created_at,
+        unread:   1,
+        page_id:  M.activePageId,
+      });
+    }
+    M.convs.sort((a, b) => new Date(b.lastMsgAt) - new Date(a.lastMsgAt));
+    renderConvs();
+  }
+
 
   // ── Helpers ──────────────────────────────────────────────────
   function esc(str) {
@@ -116,6 +186,7 @@
       renderConvs();
     }
 
+    initSocket();
     startPolling();
   };
 
@@ -162,6 +233,9 @@
     M.activePageId = pageId;
     const page = M.pages.find(p => p.id === pageId);
     M.activeToken = page?.access_token || null;
+
+    // Join socket room for this page
+    if (M.socket) M.socket.emit('join_page', pageId);
 
     // Update page button styles
     M.pages.forEach(p => {
@@ -397,6 +471,10 @@
     M.activePsid    = psid;
     M.activeConvName = name;
     M.activeConvPic  = picture;
+
+    // Join socket room for this conversation
+    if (M.socket) M.socket.emit('join_conversation', psid);
+
     if (pageId) {
       M.activePageId = pageId;
       M.activeToken  = (M.pages.find(p => p.id === pageId) || {}).access_token || M.activeToken;
