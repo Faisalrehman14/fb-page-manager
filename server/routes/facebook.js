@@ -31,8 +31,11 @@ router.post('/sync-history', requireAuth, verifyCsrf, async (req, res) => {
     const { page_id, page_token } = req.body;
     if (!page_id || !page_token) return res.status(400).json({ error: 'page_id and page_token required' });
     try {
-        // Here you would call your db sync logic
-        // For now, we simulate success
+        const io = req.app.get('io');
+        // Non-blocking sync start
+        db.syncPageInitial(page_id, page_token, fetch, prog => io.emit('sync_progress', prog))
+            .catch(err => logError('manual_sync', err, { pageId: page_id }));
+            
         res.json({ success: true, message: 'Sync started' });
     } catch (err) {
         logError('sync-history', err);
