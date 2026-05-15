@@ -950,14 +950,25 @@ app.all(['/api/messenger', '/messenger_api.php'], requireAuth, async (req, res) 
                 return res.json({ 
                     conversations: convs.map(c => ({
                         ...c,
+                        // Field names that messenger.js expects
+                        fb_user_id: c.participantId,
+                        user_name: c.participantName,
+                        user_picture: c.participantPicture || '',
+                        snippet: c.snippet,
+                        last_msg: c.snippet,
+                        last_from_me: c.lastMessageFromPage ? 1 : 0,
+                        last_msg_at: c.updatedTime,
+                        updated_at: c.updatedTime,
+                        is_unread: c.unreadCount || 0,
+                        page_id: c.pageId,
+                        // Also keep the legacy format
                         psid: c.participantId,
                         name: c.participantName,
                         picture: c.participantPicture || '',
                         lastMsg: c.snippet,
                         lastFromMe: c.lastMessageFromPage ? 1 : 0,
                         lastMsgAt: c.updatedTime,
-                        unread: c.unreadCount || 0,
-                        page_id: c.pageId
+                        unread: c.unreadCount || 0
                     }))
                 });
             }
