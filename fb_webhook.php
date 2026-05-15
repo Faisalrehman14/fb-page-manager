@@ -1,308 +1,157 @@
 <?php
+declare(strict_types=1);
+
 /**
- * fb_webhook.php — Facebook Messenger Platform Webhook
+ * fb_webhook.php — Facebook Messenger webhook receiver.
  *
- * This endpoint receives real-time messages from Facebook Messenger Platform.
- * Configure in Facebook Developer Console:
- *   Webhooks → Callback URL: https://yoursite.com/fb_webhook.php
- *   Verify Token: Set FB_WEBHOOK_VERIFY_TOKEN in your .env
+ * Facebook Developer Console settings:
+ *   Callback URL:  https://yoursite.com/fb_webhook.php
+ *   Verify Token:  FB_WEBHOOK_VERIFY_TOKEN (in .env)
+ *   Subscriptions: messages, message_deliveries, message_reads
  *
- * Events to subscribe:
- *   - messages
- *   - messaging_postbacks
- *   - message_deliveries
- *   - message_reads
- *   - messaging_optins
- * ───────────────────────────────────────────────────────── */
+ * Design rule: respond to Facebook within 20 s or it will retry.
+ * Heavy work happens AFTER echo (PHP keeps executing after flush).
+ */
 
 require_once __DIR__ . '/config/load-env.php';
 require_once __DIR__ . '/db_config.php';
+require_once __DIR__ . '/src/Db.php';
+require_once __DIR__ . '/src/ConversationService.php';
+require_once __DIR__ . '/src/MessageService.php';
 
-error_reporting(E_ALL & ~E_NOTICE);
-ini_set('display_errors', '0');
+error_reporting(0);
 ini_set('log_errors', '1');
+ignore_user_abort(true);
 
 header('Content-Type: application/json');
-header('X-Content-Type-Options: nosniff');
-header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+header('Cache-Control: no-store');
 
 $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
-$verifyToken = defined('FB_WEBHOOK_VERIFY_TOKEN') ? FB_WEBHOOK_VERIFY_TOKEN : '';
-$expectedToken = $_GET['hub_verify_token'] ?? '';
 
-try {
-    $db = getDB();
-} catch (Exception $e) {
-    error_log('FB Webhook DB error: ' . $e->getMessage());
-    http_response_code(503);
-    exit;
-}
-
-// ── VERIFICATION (GET) ──
+// ── Webhook Verification (GET) ────────────────────────────────────────────────
 if ($method === 'GET') {
-    $challenge = $_GET['hub_challenge'] ?? '';
+    $token    = defined('FB_WEBHOOK_VERIFY_TOKEN') ? FB_WEBHOOK_VERIFY_TOKEN : '';
+    $received = $_GET['hub_verify_token'] ?? '';
 
-    // Allow empty token for debugging (remove in production!)
-    if ($verifyToken !== '' && !hash_equals($verifyToken, $expectedToken)) {
+    if ($token !== '' && !hash_equals($token, $received)) {
         http_response_code(403);
-        exit('Forbidden - Invalid verify token');
+        exit('Forbidden');
     }
 
-    echo $challenge;
+    echo $_GET['hub_challenge'] ?? '';
     exit;
 }
 
-// ── WEBHOOK EVENTS (POST) ──
-if ($method === 'POST') {
-    // Log ALL POST requests to see if Facebook is calling us
-    error_log('FB Webhook POST received: ' . ($_SERVER['REQUEST_URI'] ?? 'no uri'));
+if ($method !== 'POST') {
+    http_response_code(405);
+    exit;
+}
 
-    $payload = file_get_contents('php://input') ?: '';
-    if ($payload === '') {
-        error_log('FB Webhook POST: Empty payload');
-        http_response_code(400);
-        exit(json_encode(['error' => 'Empty payload']));
-    }
+// ── Event Processing (POST) ───────────────────────────────────────────────────
+$raw     = file_get_contents('php://input') ?: '{}';
+$payload = json_decode($raw, true);
 
-    error_log('FB Webhook POST payload size: ' . strlen($payload));
+if (empty($payload['entry'])) {
+    http_response_code(400);
+    exit(json_encode(['error' => 'Invalid payload']));
+}
 
-    $data = json_decode($payload, true);
-    if (!$data || !isset($data['entry'])) {
-        error_log('FB Webhook POST: Invalid payload - ' . substr($payload, 0, 200));
-        http_response_code(400);
-        exit(json_encode(['error' => 'Invalid payload']));
-    }
+// Acknowledge Facebook immediately — must happen before any slow DB work
+http_response_code(200);
+echo json_encode(['status' => 'ok']);
 
-    // Log webhook receipt
-    $entryCount = count($data['entry'] ?? []);
-    error_log('FB Webhook received: entries=' . $entryCount . ', size=' . strlen($payload));
-    logger('info', 'FB Webhook received', ['entries' => $entryCount, 'size' => strlen($payload)]);
+// Flush response to Facebook now so the connection closes on their end
+if (ob_get_level()) ob_end_flush();
+flush();
 
-    $processed = 0;
-    $errors = 0;
+// ── Process events after response is sent ─────────────────────────────────────
+try {
+    $db    = Db::get();
+    $convs = new ConversationService($db);
+    $msgs  = new MessageService($db);
+} catch (Exception $e) {
+    error_log('[webhook] DB unavailable: ' . $e->getMessage());
+    exit;
+}
 
-    foreach ($data['entry'] as $entry) {
-        $pageId = $entry['id'] ?? '';
-        $time = $entry['time'] ?? time();
+foreach ($payload['entry'] as $entry) {
+    $pageId = $entry['id'] ?? '';
+    if (!$pageId) continue;
 
-        // Process messaging events
-        foreach ($entry['messaging'] ?? [] as $event) {
-            $senderId = $event['sender']['id'] ?? '';
-            $recipientId = $event['recipient']['id'] ?? '';
-
-            try {
-                processMessengerEvent($db, $pageId, $event);
-                $processed++;
-            } catch (Exception $e) {
-                $errors++;
-                error_log('FB Webhook event error: ' . $e->getMessage());
-            }
+    foreach ($entry['messaging'] ?? [] as $event) {
+        try {
+            handleEvent($convs, $msgs, $pageId, $event);
+        } catch (Exception $e) {
+            error_log('[webhook] event error: ' . $e->getMessage());
         }
     }
-
-    // Return 200 immediately (don't wait for processing)
-    echo json_encode([
-        'status' => 'received',
-        'processed' => $processed,
-        'errors' => $errors
-    ]);
-    exit;
 }
 
-// ── NOTIFY SOCKET SERVER ──
-function notifySocketServer(string $type, string $pageId, ?string $psid, array $data): void {
-    $nodeUrl = 'http://localhost:3000/api/internal/webhook-event';
-    $payload = json_encode([
-        'type' => $type,
-        'page_id' => $pageId,
-        'psid' => $psid,
-        'data' => $data
-    ]);
+// ── Event Handler ─────────────────────────────────────────────────────────────
+function handleEvent(
+    ConversationService $convs,
+    MessageService      $msgs,
+    string              $pageId,
+    array               $event
+): void {
+    $psid = $event['sender']['id'] ?? '';
+    if (!$psid || !$pageId) return;
 
-    $ch = curl_init($nodeUrl);
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_POST, true);
-    curl_setopt($ch, CURLOPT_POSTFIELDS, $payload);
-    curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
-    curl_setopt($ch, CURLOPT_TIMEOUT, 2); // Don't block for long
-    curl_exec($ch);
-    curl_close($ch);
-}
+    $ts = isset($event['timestamp'])
+        ? date('Y-m-d H:i:s', (int) ($event['timestamp'] / 1000))
+        : date('Y-m-d H:i:s');
 
-// ── PROCESS MESSENGER EVENTS ──
-function processMessengerEvent(PDO $db, string $pageId, array $event): void {
-    $senderId = $event['sender']['id'] ?? '';
-    $recipientId = $event['recipient']['id'] ?? '';
-    $timestamp = isset($event['timestamp']) ? date('Y-m-d H:i:s', (int)($event['timestamp'] / 1000)) : date('Y-m-d H:i:s');
-
-    // Log ALL incoming events for debugging
-    error_log('FB Webhook Event: pageId=' . $pageId . ', senderId=' . $senderId . ', event=' . json_encode(array_keys($event)));
-
-    // ── MESSAGE EVENT ──
+    // ── Incoming message ──────────────────────────────────────────────────────
     if (isset($event['message'])) {
         $msg = $event['message'];
-        $messageId = $msg['mid'] ?? '';
+
+        // Echo = message we sent, already saved in send_message action
+        if ($msg['is_echo'] ?? false) return;
+
+        $mid  = $msg['mid'] ?? null;
         $text = $msg['text'] ?? '';
-        $hasAttachment = isset($msg['attachments']) && !empty($msg['attachments']);
-        $isEcho = $msg['is_echo'] ?? false;
 
-        error_log('FB Webhook Message: mid=' . $messageId . ', text=' . substr($text, 0, 50) . ', isEcho=' . ($isEcho ? 'true' : 'false'));
-
-        // Skip echoes (messages sent by our bot)
-        if ($isEcho) {
-            error_log('Skipping echo message');
-            return;
-        }
-
-        $attachments = $msg['attachments'] ?? [];
-        $attachmentUrl = null;
-        $attachmentType = null;
-
-        if (!empty($attachments)) {
-            $att = $attachments[0];
-            $attachmentType = $att['type'] ?? 'file';
-            $attachmentUrl = $att['payload']['url'] ?? null;
-            if (!$text && $attachmentType === 'image') {
-                $text = '[Image]';
-            } elseif (!$text && $attachmentType === 'location') {
-                $text = '[Location]';
-            } elseif (!$text && $attachmentType === 'audio') {
-                $text = '[Audio]';
+        // Resolve attachment type + friendly fallback text
+        $attUrl  = null;
+        $attType = null;
+        if (!empty($msg['attachments'])) {
+            $att     = $msg['attachments'][0];
+            $attType = $att['type'] ?? 'file';
+            $attUrl  = $att['payload']['url'] ?? null;
+            if (!$text) {
+                $text = match ($attType) {
+                    'image'    => '[Image]',
+                    'audio'    => '[Audio]',
+                    'video'    => '[Video]',
+                    'location' => '[Location]',
+                    default    => '[Attachment]',
+                };
             }
         }
 
-        // Upsert conversation
-        $userName = '';
-        $userPicture = null;
+        $convId = $convs->ensureExists($pageId, $psid);
+        $saved  = $msgs->save($convId, $pageId, $psid, $mid, $text, false, $attUrl, $attType, $ts);
 
-        // Get or create conversation
-        $convId = upsertConversation($db, $pageId, $senderId, $userName, $userPicture);
-        error_log('Conversation upserted, convId=' . $convId);
-
-        // Save message - isFromUser=true means customer sent it
-        saveMessage($db, $convId, $pageId, $senderId, $messageId, 'text', $text, true, $hasAttachment, $attachmentUrl, $attachmentType, $timestamp);
-        error_log('Message saved: pageId=' . $pageId . ', userId=' . $senderId . ', text=' . substr($text, 0, 50));
-
-        // Update unread count
-        updateUnreadCount($db, $pageId, $senderId, 1);
-        error_log('Unread count updated');
-
-        // NOTIFY SOCKET SERVER IN REAL-TIME
-        notifySocketServer('new_message', $pageId, $senderId, [
-            'id' => $messageId,
-            'message' => $text,
-            'from_me' => 0,
-            'attachment_url' => $attachmentUrl,
-            'attachment_type' => $attachmentType,
-            'created_at' => $timestamp,
-            'user_id' => $senderId
-        ]);
-
-        logger('info', 'New message received', [
-            'page' => $pageId,
-            'psid' => $senderId,
-            'mid' => $messageId,
-            'text_len' => strlen($text)
-        ]);
-    }
-
-
-    // ── DELIVERY RECEIPT ──
-    if (isset($event['delivery'])) {
-        $delivery = $event['delivery'];
-        $mids = $delivery['mids'] ?? [];
-
-        foreach ($mids as $mid) {
-            $db->prepare("UPDATE messenger_messages SET delivered_at = NOW() WHERE message_id = ?")
-               ->execute([$mid]);
+        // Only update counters if this wasn't a duplicate webhook retry
+        if ($saved) {
+            $convs->onIncomingMessage($pageId, $psid, $text);
         }
+
+        error_log(sprintf('[webhook] message saved=%s page=%s psid=%s mid=%s', $saved ? 'yes' : 'dup', $pageId, $psid, $mid ?? 'null'));
+        return;
     }
 
-    // ── READ RECEIPT ──
+    // ── Delivery receipt ──────────────────────────────────────────────────────
+    if (isset($event['delivery'])) {
+        foreach ($event['delivery']['mids'] ?? [] as $mid) {
+            $msgs->markDelivered($mid);
+        }
+        return;
+    }
+
+    // ── Read receipt ──────────────────────────────────────────────────────────
     if (isset($event['read'])) {
-        // Use correct column names: page_id, user_id
-        $db->prepare("UPDATE messenger_messages SET is_read = 1 WHERE page_id = ? AND user_id = ? AND is_read = 0")
-           ->execute([$pageId, $senderId]);
-
-        // Use correct column names: page_id, fb_user_id, is_unread
-        $db->prepare("UPDATE messenger_conversations SET is_unread = 0 WHERE page_id = ? AND fb_user_id = ?")
-           ->execute([$pageId, $senderId]);
+        $msgs->markRead($pageId, $psid);
+        $convs->markRead($pageId, $psid);
     }
-
-    // ── OPTIN (Send to Messenger) ──
-    if (isset($event['optin'])) {
-        $optin = $event['optin'];
-        $ref = $optin['ref'] ?? '';
-        $userId = $optin['user_ref'] ?? '';
-
-        logger('info', 'User optin received', [
-            'page' => $pageId,
-            'ref' => $ref,
-            'user_ref' => $userId
-        ]);
-    }
-}
-
-// ── UPSERT CONVERSATION ──
-function upsertConversation(PDO $db, string $pageId, string $psid, string $userName, ?string $userPicture): int {
-    // Check if exists - use correct column names: page_id, fb_user_id
-    $stmt = $db->prepare("SELECT id FROM messenger_conversations WHERE page_id = ? AND fb_user_id = ?");
-    $stmt->execute([$pageId, $psid]);
-    $row = $stmt->fetch();
-
-    if ($row) {
-        // Update timestamp and snippet
-        $db->prepare("UPDATE messenger_conversations SET updated_at = NOW() WHERE id = ?")
-           ->execute([$row['id']]);
-        return (int)$row['id'];
-    }
-
-    // Create new - use correct column names
-    $db->prepare("
-        INSERT INTO messenger_conversations (page_id, fb_user_id, user_name, user_picture, snippet, updated_at)
-        VALUES (?, ?, ?, ?, '', NOW())
-    ")->execute([$pageId, $psid, $userName ?: 'User', $userPicture]);
-
-    return (int)$db->lastInsertId();
-}
-
-// ── SAVE MESSAGE ──
-function saveMessage(PDO $db, int $convId, string $pageId, string $psid, string $messageId,
-                     string $type, ?string $content, bool $isFromUser, bool $hasAttachment,
-                     ?string $attachmentUrl, ?string $attachmentType, string $sentAt): void {
-    // Avoid duplicates by message_id
-    if ($messageId) {
-        $stmt = $db->prepare("SELECT id FROM messenger_messages WHERE message_id = ? LIMIT 1");
-        $stmt->execute([$messageId]);
-        if ($stmt->fetch()) return;
-    }
-
-    $fromMe = $isFromUser ? 0 : 1;
-    try {
-        $db->prepare("
-            INSERT INTO messenger_messages
-            (conversation_id, page_id, user_id, message_id, message, from_me, attachment_url, attachment_type, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ")->execute([$convId, $pageId, $psid, $messageId ?: null, $content, $fromMe, $attachmentUrl, $attachmentType, $sentAt]);
-    } catch (Exception $e) {
-        // Duplicate key on message_id — ignore
-        error_log('saveMessage duplicate or error: ' . $e->getMessage());
-    }
-}
-
-// ── UPDATE UNREAD COUNT ──
-function updateUnreadCount(PDO $db, string $pageId, string $psid, int $increment): void {
-    // Use correct column names: page_id, fb_user_id, is_unread
-    $db->prepare("
-        UPDATE messenger_conversations
-        SET is_unread = is_unread + 1, updated_at = NOW()
-        WHERE page_id = ? AND fb_user_id = ?
-    ")->execute([$pageId, $psid]);
-}
-
-// ── GET OR CREATE USER INFO (for future enhancement) ──
-function getOrCreateUserInfo(PDO $db, string $pageId, string $psid): array {
-    $stmt = $db->prepare("SELECT * FROM messenger_conversations WHERE page_id = ? AND fb_user_id = ?");
-    $stmt->execute([$pageId, $psid]);
-    return $stmt->fetch() ?: [];
 }

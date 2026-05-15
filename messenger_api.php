@@ -1,381 +1,182 @@
 <?php
+declare(strict_types=1);
+
 /**
- * messenger_api.php — Pro Messenger API
- * Endpoints: load_conversations, load_messages, send_message, poll, mark_read, save_conversations
+ * messenger_api.php — HTTP router for the Messenger inbox.
+ *
+ * This file contains ONLY routing. All business logic lives in src/.
+ *
+ * GET  ?action=load_conversations  &page_id=
+ * GET  ?action=load_messages       &page_id= &psid= [&limit=] [&before=]
+ * GET  ?action=poll                &page_id= &since= [&psid=]
+ * GET  ?action=search              &page_id= &q=
+ * GET  ?action=unread_count        &page_id=
+ * POST { action: send_message,     page_id, psid, message|image_url, page_token }
+ * POST { action: mark_read,        page_id, psid }
+ * POST { action: save_conversations, page_id, conversations: [] }
+ * POST { action: fetch_user_name,  page_id, psid, page_token }
  */
 
 require_once __DIR__ . '/config/load-env.php';
 require_once __DIR__ . '/db_config.php';
+require_once __DIR__ . '/src/Db.php';
+require_once __DIR__ . '/src/FacebookClient.php';
+require_once __DIR__ . '/src/ConversationService.php';
+require_once __DIR__ . '/src/MessageService.php';
 
 header('Content-Type: application/json');
 header('X-Content-Type-Options: nosniff');
-header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+header('Cache-Control: no-store');
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') { http_response_code(200); exit; }
 
-function api_json(array $data, int $code = 200): never {
+function respond(array $data, int $code = 200): never
+{
     http_response_code($code);
     echo json_encode($data, JSON_UNESCAPED_UNICODE);
     exit;
 }
 
-function fb_post(string $url, array $payload): array {
-    $ch = curl_init($url);
-    curl_setopt_array($ch, [
-        CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_POST           => true,
-        CURLOPT_POSTFIELDS     => json_encode($payload),
-        CURLOPT_HTTPHEADER     => ['Content-Type: application/json'],
-        CURLOPT_TIMEOUT        => 12,
-        CURLOPT_SSL_VERIFYPEER => true,
-    ]);
-    $body = curl_exec($ch);
-    $err  = curl_error($ch);
-    curl_close($ch);
-    if ($err) return ['error' => ['message' => 'Network error: ' . $err]];
-    return json_decode($body ?: '{}', true) ?: [];
-}
-
-function fb_get_api(string $endpoint, string $token, array $params = []): array {
-    $params['access_token'] = $token;
-    $url = 'https://graph.facebook.com/' . FB_API_VER . '/' . ltrim($endpoint, '/') . '?' . http_build_query($params);
-    $ch = curl_init($url);
-    curl_setopt_array($ch, [
-        CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_TIMEOUT        => 12,
-        CURLOPT_SSL_VERIFYPEER => true,
-    ]);
-    $body = curl_exec($ch);
-    curl_close($ch);
-    return json_decode($body ?: '{}', true) ?: [];
-}
-
+// ── Bootstrap ────────────────────────────────────────────────────────────────
 try {
-    $db = getDB();
+    $db = Db::get();
+    Db::migrate();
 } catch (Exception $e) {
-    api_json(['error' => 'Database unavailable'], 503);
+    respond(['error' => 'Database unavailable'], 503);
 }
 
-// Auto-create / migrate messenger tables
-try {
-    $db->exec("CREATE TABLE IF NOT EXISTS messenger_conversations (
-        id           INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-        page_id      VARCHAR(64)  NOT NULL,
-        fb_user_id   VARCHAR(64)  NOT NULL,
-        fb_conv_id   VARCHAR(128) DEFAULT NULL,
-        user_name    VARCHAR(255) DEFAULT 'User',
-        user_picture TEXT         DEFAULT NULL,
-        snippet      TEXT         DEFAULT NULL,
-        is_unread    TINYINT(1)   NOT NULL DEFAULT 0,
-        updated_at   DATETIME     DEFAULT NULL,
-        UNIQUE KEY uq_page_user (page_id, fb_user_id),
-        KEY idx_page_updated (page_id, updated_at)
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
-
-    $db->exec("CREATE TABLE IF NOT EXISTS messenger_messages (
-        id              INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-        conversation_id INT UNSIGNED NOT NULL,
-        page_id         VARCHAR(64)  NOT NULL,
-        user_id         VARCHAR(64)  DEFAULT NULL,
-        message_id      VARCHAR(128) DEFAULT NULL,
-        message         TEXT         DEFAULT NULL,
-        from_me         TINYINT(1)   NOT NULL DEFAULT 0,
-        attachment_url  TEXT         DEFAULT NULL,
-        attachment_type VARCHAR(100) DEFAULT NULL,
-        created_at      DATETIME     DEFAULT NULL,
-        KEY idx_conv_time (conversation_id, created_at),
-        KEY idx_page_time (page_id, created_at)
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
-
-    // Migrate existing tables — add missing columns
-    foreach ([
-        "ALTER TABLE messenger_conversations ADD COLUMN fb_conv_id VARCHAR(128) DEFAULT NULL",
-        "ALTER TABLE messenger_messages ADD COLUMN message_id VARCHAR(128) DEFAULT NULL",
-        "ALTER TABLE messenger_messages ADD COLUMN attachment_url TEXT DEFAULT NULL",
-        "ALTER TABLE messenger_messages ADD COLUMN attachment_type VARCHAR(100) DEFAULT NULL",
-    ] as $alter) {
-        try { $db->exec($alter); } catch (Exception $e2) {}
-    }
-} catch (Exception $e) {
-    error_log('[messenger_api] table init error: ' . $e->getMessage());
-}
-
+$convs  = new ConversationService($db);
+$msgs   = new MessageService($db);
 $method = $_SERVER['REQUEST_METHOD'];
-$rawBody = file_get_contents('php://input');
-$body    = json_decode($rawBody ?: '{}', true) ?: [];
-$action  = $_GET['action'] ?? $body['action'] ?? $_POST['action'] ?? '';
+$raw    = file_get_contents('php://input') ?: '{}';
+$body   = json_decode($raw, true) ?: [];
+$action = trim($_GET['action'] ?? $body['action'] ?? '');
 
-// ══════════════════════════════════════════════════════════════
-// GET ENDPOINTS
-// ══════════════════════════════════════════════════════════════
-
+// ── GET ──────────────────────────────────────────────────────────────────────
 if ($method === 'GET') {
 
-    // ── LOAD CONVERSATIONS ──────────────────────────────────────
     if ($action === 'load_conversations') {
         $pageId = trim($_GET['page_id'] ?? '');
-        if (!$pageId) api_json(['error' => 'Missing page_id'], 400);
-
-        $stmt = $db->prepare("
-            SELECT c.*,
-                   (SELECT m.message FROM messenger_messages m
-                    WHERE m.conversation_id = c.id
-                    ORDER BY m.created_at DESC LIMIT 1) AS last_msg,
-                   (SELECT m.from_me FROM messenger_messages m
-                    WHERE m.conversation_id = c.id
-                    ORDER BY m.created_at DESC LIMIT 1) AS last_from_me,
-                   (SELECT m.created_at FROM messenger_messages m
-                    WHERE m.conversation_id = c.id
-                    ORDER BY m.created_at DESC LIMIT 1) AS last_msg_at
-            FROM messenger_conversations c
-            WHERE c.page_id = ?
-            ORDER BY COALESCE(c.updated_at, c.id) DESC
-            LIMIT 200
-        ");
-        $stmt->execute([$pageId]);
-        api_json(['conversations' => $stmt->fetchAll()]);
+        if (!$pageId) respond(['error' => 'Missing page_id'], 400);
+        respond(['conversations' => $convs->list($pageId)]);
     }
 
-    // ── LOAD MESSAGES ───────────────────────────────────────────
     if ($action === 'load_messages') {
-        $pageId  = trim($_GET['page_id'] ?? '');
-        $psid    = trim($_GET['psid'] ?? '');
-        $limit   = min(100, max(20, (int)($_GET['limit'] ?? 50)));
-        $before  = trim($_GET['before'] ?? '');
-
-        if (!$pageId || !$psid) api_json(['error' => 'Missing page_id or psid'], 400);
-
-        $convStmt = $db->prepare("SELECT id FROM messenger_conversations WHERE page_id = ? AND fb_user_id = ?");
-        $convStmt->execute([$pageId, $psid]);
-        $conv = $convStmt->fetch();
-        if (!$conv) api_json(['messages' => [], 'conv_id' => null]);
-
-        if ($before) {
-            $stmt = $db->prepare("SELECT * FROM messenger_messages WHERE conversation_id = ? AND created_at < ? ORDER BY created_at DESC LIMIT ?");
-            $stmt->execute([$conv['id'], $before, $limit]);
-        } else {
-            $stmt = $db->prepare("SELECT * FROM messenger_messages WHERE conversation_id = ? ORDER BY created_at DESC LIMIT ?");
-            $stmt->execute([$conv['id'], $limit]);
-        }
-        $msgs = array_reverse($stmt->fetchAll());
-        api_json(['messages' => $msgs, 'conv_id' => $conv['id']]);
+        $pageId = trim($_GET['page_id'] ?? '');
+        $psid   = trim($_GET['psid']    ?? '');
+        $limit  = min(100, max(20, (int) ($_GET['limit'] ?? 50)));
+        $before = trim($_GET['before']  ?? '') ?: null;
+        if (!$pageId || !$psid) respond(['error' => 'Missing page_id or psid'], 400);
+        $conv = $convs->findByPsid($pageId, $psid);
+        if (!$conv) respond(['messages' => [], 'conv_id' => null]);
+        respond([
+            'messages' => $msgs->list((int) $conv['id'], $limit, $before),
+            'conv_id'  => $conv['id'],
+        ]);
     }
 
-    // ── POLL (real-time updates, called every 3s) ───────────────
     if ($action === 'poll') {
         $pageId = trim($_GET['page_id'] ?? '');
-        $since  = trim($_GET['since']   ?? '');
+        $since  = trim($_GET['since']   ?? '') ?: date('Y-m-d H:i:s', time() - 30);
         $psid   = trim($_GET['psid']    ?? '');
+        if (!$pageId) respond(['error' => 'Missing page_id'], 400);
 
-        if (!$pageId) api_json(['error' => 'Missing page_id'], 400);
-        if (!$since)  $since = date('Y-m-d H:i:s', time() - 30);
-
-        // New messages for the open conversation
         $newMsgs = [];
         if ($psid) {
-            $convRow = $db->prepare("SELECT id FROM messenger_conversations WHERE page_id = ? AND fb_user_id = ?");
-            $convRow->execute([$pageId, $psid]);
-            $conv = $convRow->fetch();
-            if ($conv) {
-                $mStmt = $db->prepare("SELECT * FROM messenger_messages WHERE conversation_id = ? AND created_at > ? ORDER BY created_at ASC");
-                $mStmt->execute([$conv['id'], $since]);
-                $newMsgs = $mStmt->fetchAll();
-            }
+            $conv = $convs->findByPsid($pageId, $psid);
+            if ($conv) $newMsgs = $msgs->newSince((int) $conv['id'], $since);
         }
 
-        // Updated conversations since last poll
-        $cStmt = $db->prepare("SELECT * FROM messenger_conversations WHERE page_id = ? AND updated_at > ? ORDER BY updated_at DESC");
-        $cStmt->execute([$pageId, $since]);
-        $updatedConvs = $cStmt->fetchAll();
-
-        // Total unread
-        $uStmt = $db->prepare("SELECT COALESCE(SUM(is_unread),0) as n FROM messenger_conversations WHERE page_id = ?");
-        $uStmt->execute([$pageId]);
-        $totalUnread = (int)$uStmt->fetchColumn();
-
-        api_json([
+        respond([
             'new_messages'  => $newMsgs,
-            'updated_convs' => $updatedConvs,
-            'total_unread'  => $totalUnread,
+            'updated_convs' => $convs->updatedSince($pageId, $since),
+            'total_unread'  => $convs->totalUnread($pageId),
             'server_time'   => date('Y-m-d H:i:s'),
         ]);
     }
 
-    // ── UNREAD COUNT ────────────────────────────────────────────
-    if ($action === 'unread_count') {
-        $pageId = trim($_GET['page_id'] ?? '');
-        $stmt = $db->prepare("SELECT COALESCE(SUM(is_unread),0) as n FROM messenger_conversations WHERE page_id = ?");
-        $stmt->execute([$pageId]);
-        api_json(['unread' => (int)$stmt->fetchColumn()]);
-    }
-
-    // ── SEARCH ──────────────────────────────────────────────────
     if ($action === 'search') {
         $pageId = trim($_GET['page_id'] ?? '');
         $q      = trim($_GET['q']       ?? '');
-
-        if (!$pageId || strlen($q) < 1) api_json(['conversations' => [], 'messages' => []]);
-
-        $like = '%' . $q . '%';
-
-        // Search conversations by name or last snippet
-        $cStmt = $db->prepare("
-            SELECT c.*,
-                   (SELECT m.message FROM messenger_messages m
-                    WHERE m.conversation_id = c.id
-                    ORDER BY m.created_at DESC LIMIT 1) AS last_msg,
-                   (SELECT m.created_at FROM messenger_messages m
-                    WHERE m.conversation_id = c.id
-                    ORDER BY m.created_at DESC LIMIT 1) AS last_msg_at
-            FROM messenger_conversations c
-            WHERE c.page_id = ?
-              AND (c.user_name LIKE ? OR c.snippet LIKE ?)
-            ORDER BY COALESCE(c.updated_at, c.id) DESC
-            LIMIT 50
-        ");
-        $cStmt->execute([$pageId, $like, $like]);
-        $convResults = $cStmt->fetchAll();
-
-        // Search message content → return matching messages with conversation info
-        $mStmt = $db->prepare("
-            SELECT m.*, c.user_name, c.user_picture, c.fb_user_id AS psid
-            FROM messenger_messages m
-            JOIN messenger_conversations c ON m.conversation_id = c.id
-            WHERE m.page_id = ?
-              AND m.message LIKE ?
-            ORDER BY m.created_at DESC
-            LIMIT 50
-        ");
-        $mStmt->execute([$pageId, $like]);
-        $msgResults = $mStmt->fetchAll();
-
-        api_json(['conversations' => $convResults, 'messages' => $msgResults]);
-    }
-
-    api_json(['error' => 'Unknown GET action: ' . $action], 400);
-}
-
-// ══════════════════════════════════════════════════════════════
-// POST ENDPOINTS
-// ══════════════════════════════════════════════════════════════
-
-if ($method === 'POST') {
-
-    // ── SEND MESSAGE ────────────────────────────────────────────
-    if ($action === 'send_message') {
-        $pageId     = trim($body['page_id']    ?? '');
-        $psid       = trim($body['psid']       ?? '');
-        $text       = trim($body['message']    ?? '');
-        $pageToken  = trim($body['page_token'] ?? '');
-        $imageUrl   = trim($body['image_url']  ?? '');
-
-        if (!$pageId || !$psid || !$pageToken) api_json(['error' => 'Missing required fields'], 400);
-        if (!$text && !$imageUrl) api_json(['error' => 'No message or image'], 400);
-
-        // Build Facebook message payload
-        if ($imageUrl) {
-            $fbPayload = [
-                'recipient'    => ['id' => $psid],
-                'message'      => ['attachment' => ['type' => 'image', 'payload' => ['url' => $imageUrl, 'is_reusable' => true]]],
-                'access_token' => $pageToken,
-            ];
-            $msgContent = '[Image] ' . $imageUrl;
-        } else {
-            $fbPayload = [
-                'recipient'    => ['id' => $psid],
-                'message'      => ['text' => $text],
-                'access_token' => $pageToken,
-            ];
-            $msgContent = $text;
-        }
-
-        $fbResp = fb_post('https://graph.facebook.com/' . FB_API_VER . '/me/messages', $fbPayload);
-
-        if (isset($fbResp['error'])) {
-            api_json(['error' => $fbResp['error']['message'] ?? 'Facebook send failed'], 422);
-        }
-
-        // Save sent message to DB
-        $convStmt = $db->prepare("SELECT id FROM messenger_conversations WHERE page_id = ? AND fb_user_id = ?");
-        $convStmt->execute([$pageId, $psid]);
-        $conv = $convStmt->fetch();
-
-        if (!$conv) {
-            $db->prepare("INSERT IGNORE INTO messenger_conversations (page_id, fb_user_id, user_name, snippet, updated_at) VALUES (?, ?, 'User', '', NOW())")
-               ->execute([$pageId, $psid]);
-            $convStmt->execute([$pageId, $psid]);
-            $conv = $convStmt->fetch();
-        }
-
-        $convId = $conv['id'];
-        $now    = date('Y-m-d H:i:s');
-
-        $db->prepare("INSERT INTO messenger_messages (conversation_id, page_id, user_id, message, from_me, created_at) VALUES (?, ?, ?, ?, 1, ?)")
-           ->execute([$convId, $pageId, $psid, $msgContent, $now]);
-
-        $db->prepare("UPDATE messenger_conversations SET snippet = ?, updated_at = NOW() WHERE id = ?")
-           ->execute([$msgContent, $convId]);
-
-        api_json([
-            'success'    => true,
-            'message_id' => $fbResp['message_id'] ?? '',
-            'saved_at'   => $now,
-            'content'    => $msgContent,
+        if (!$pageId || $q === '') respond(['conversations' => [], 'messages' => []]);
+        respond([
+            'conversations' => $convs->search($pageId, $q),
+            'messages'      => $msgs->search($pageId, $q),
         ]);
     }
 
-    // ── SAVE CONVERSATIONS (from Facebook Graph API) ────────────
-    if ($action === 'save_conversations') {
-        $pageId        = trim($body['page_id'] ?? $_POST['page_id'] ?? '');
-        $conversations = $body['conversations'] ?? json_decode($_POST['conversations'] ?? '[]', true) ?? [];
-        if (!$pageId) api_json(['error' => 'Missing page_id'], 400);
-
-        $stmt = $db->prepare("
-            INSERT INTO messenger_conversations (page_id, fb_user_id, user_name, user_picture, snippet, updated_at, is_unread)
-            VALUES (?, ?, ?, ?, ?, NOW(), ?)
-            ON DUPLICATE KEY UPDATE user_name=VALUES(user_name), user_picture=VALUES(user_picture),
-            snippet=VALUES(snippet), updated_at=NOW(), is_unread=VALUES(is_unread)
-        ");
-
-        $saved = 0;
-        foreach ($conversations as $c) {
-            $stmt->execute([$pageId, $c['psid'] ?? '', $c['user_name'] ?? 'User',
-                $c['user_picture'] ?? null, $c['last_message'] ?? '', (int)($c['unread_count'] ?? 0)]);
-            $saved++;
-        }
-        api_json(['success' => true, 'saved' => $saved]);
+    if ($action === 'unread_count') {
+        $pageId = trim($_GET['page_id'] ?? '');
+        respond(['unread' => $convs->totalUnread($pageId)]);
     }
 
-    // ── MARK READ ───────────────────────────────────────────────
-    if ($action === 'mark_read') {
-        $pageId = trim($body['page_id'] ?? $_POST['page_id'] ?? '');
-        $psid   = trim($body['psid']    ?? $_POST['psid']    ?? '');
-        if (!$pageId || !$psid) api_json(['error' => 'Missing fields'], 400);
-
-        $db->prepare("UPDATE messenger_conversations SET is_unread = 0 WHERE page_id = ? AND fb_user_id = ?")
-           ->execute([$pageId, $psid]);
-        api_json(['success' => true]);
-    }
-
-    // ── FETCH USER NAME FROM FACEBOOK ───────────────────────────
-    if ($action === 'fetch_user_name') {
-        $psid      = trim($body['psid']       ?? '');
-        $pageToken = trim($body['page_token'] ?? '');
-        $pageId    = trim($body['page_id']    ?? '');
-        if (!$psid || !$pageToken) api_json(['error' => 'Missing fields'], 400);
-
-        $data = fb_get_api($psid, $pageToken, ['fields' => 'name,profile_pic']);
-        $name = $data['name'] ?? '';
-        $pic  = $data['profile_pic'] ?? null;
-
-        if ($name && $pageId) {
-            $db->prepare("UPDATE messenger_conversations SET user_name = ?, user_picture = ? WHERE page_id = ? AND fb_user_id = ?")
-               ->execute([$name, $pic, $pageId, $psid]);
-        }
-        api_json(['success' => true, 'name' => $name, 'picture' => $pic]);
-    }
-
-    api_json(['error' => 'Unknown POST action: ' . $action], 400);
+    respond(['error' => 'Unknown GET action: ' . $action], 400);
 }
 
-api_json(['error' => 'Method not allowed'], 405);
+// ── POST ─────────────────────────────────────────────────────────────────────
+if ($method === 'POST') {
+
+    if ($action === 'send_message') {
+        $pageId   = trim($body['page_id']    ?? '');
+        $psid     = trim($body['psid']       ?? '');
+        $text     = trim($body['message']    ?? '');
+        $token    = trim($body['page_token'] ?? '');
+        $imageUrl = trim($body['image_url']  ?? '');
+
+        if (!$pageId || !$psid || !$token) respond(['error' => 'Missing required fields'], 400);
+        if (!$text && !$imageUrl)          respond(['error' => 'No message content'],       400);
+
+        $fb  = new FacebookClient($token);
+        $res = $imageUrl ? $fb->sendImage($psid, $imageUrl) : $fb->sendText($psid, $text);
+
+        if (isset($res['error'])) {
+            respond(['error' => $res['error']['message'] ?? 'Facebook send failed'], 422);
+        }
+
+        $content = $imageUrl ? '[Image] ' . $imageUrl : $text;
+        $now     = date('Y-m-d H:i:s');
+        $convId  = $convs->ensureExists($pageId, $psid);
+
+        $msgs->save($convId, $pageId, $psid, $res['message_id'] ?? null, $content, true, null, null, $now);
+        $convs->onOutgoingMessage($pageId, $psid, $content);
+
+        respond(['success' => true, 'message_id' => $res['message_id'] ?? '', 'saved_at' => $now, 'content' => $content]);
+    }
+
+    if ($action === 'mark_read') {
+        $pageId = trim($body['page_id'] ?? '');
+        $psid   = trim($body['psid']   ?? '');
+        if (!$pageId || !$psid) respond(['error' => 'Missing fields'], 400);
+        $convs->markRead($pageId, $psid);
+        $msgs->markRead($pageId, $psid);
+        respond(['success' => true]);
+    }
+
+    if ($action === 'save_conversations') {
+        $pageId = trim($body['page_id'] ?? '');
+        $list   = $body['conversations'] ?? [];
+        if (!$pageId) respond(['error' => 'Missing page_id'], 400);
+        foreach ($list as $c) {
+            $convs->upsert($pageId, $c['psid'] ?? '', $c['fb_conv_id'] ?? null, $c['user_name'] ?? 'User', $c['last_message'] ?? '', null);
+        }
+        respond(['success' => true, 'saved' => count($list)]);
+    }
+
+    if ($action === 'fetch_user_name') {
+        $pageId = trim($body['page_id']    ?? '');
+        $psid   = trim($body['psid']       ?? '');
+        $token  = trim($body['page_token'] ?? '');
+        if (!$psid || !$token) respond(['error' => 'Missing fields'], 400);
+
+        $fb   = new FacebookClient($token);
+        $info = $fb->getUserProfile($psid);
+        if (!empty($info['name']) && $pageId) {
+            $convs->updateProfile($pageId, $psid, $info['name'], $info['profile_pic'] ?? null);
+        }
+        respond(['success' => true, 'name' => $info['name'] ?? '', 'picture' => $info['profile_pic'] ?? null]);
+    }
+
+    respond(['error' => 'Unknown POST action: ' . $action], 400);
+}
+
+respond(['error' => 'Method not allowed'], 405);
