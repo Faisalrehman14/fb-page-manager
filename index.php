@@ -1179,16 +1179,19 @@ window.FB_CONFIG={appId:window.APP_CONFIG.fbAppId,csrfToken:window.APP_CONFIG.cs
 
             <!-- Header -->
             <div class="msng-chat-hdr">
-              <div class="msng-chat-hdr-avatar" id="msngChatHdrAvatar">
-                <div class="msng-hdr-initial">U</div>
-              </div>
-              <div class="msng-chat-hdr-info">
-                <div class="msng-chat-hdr-name" id="msngChatHdrName">User</div>
-                <div class="msng-chat-hdr-sub" id="msngChatHdrSub">
-                  <i class="fa-solid fa-circle dot-green" style="font-size:7px;color:#22c55e"></i>
-                  Facebook Messenger
+              <div class="msng-chat-hdr-info-wrap">
+                <div class="msng-chat-hdr-avatar" id="msngChatHdrAvatar">
+                  <div class="msng-hdr-initial">U</div>
+                </div>
+                <div class="msng-chat-hdr-info">
+                  <div class="msng-chat-hdr-name" id="msngChatHdrName">User</div>
+                  <div class="msng-chat-hdr-sub" id="msngChatHdrSub">
+                    <i class="fa-solid fa-circle dot-green" style="font-size:7px;color:#22c55e"></i>
+                    Facebook Messenger
+                  </div>
                 </div>
               </div>
+
               <div class="msng-chat-hdr-btns">
                 <button class="msng-chat-hdr-btn" onclick="msngMarkRead()" title="Mark as read">
                   <i class="fa-solid fa-check-double"></i>
