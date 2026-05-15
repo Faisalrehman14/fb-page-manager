@@ -451,6 +451,16 @@ function requireAuth(req, res, next) {
     next();
 }
 
+// Session Restoration Fallback: If session is lost but signed cookies exist, restore it
+app.use((req, res, next) => {
+    if (req.session && !req.session.accessToken && req.signedCookies?._fb_at) {
+        req.session.accessToken = req.signedCookies._fb_at;
+        req.session.userId      = req.signedCookies._fb_uid;
+        req.session.userName    = req.signedCookies._fb_un;
+    }
+    next();
+});
+
 // ── Socket.io Rooms ───────────────────────────────────────────────────────────
 const connectedSockets = new Map();
 const syncCooldown     = new Map();
@@ -492,6 +502,13 @@ app.post('/api/auth/fb-token', async (req, res) => {
         req.session.userId      = uData.id;
         req.session.userName    = uData.name;
         req.session.firstLogin  = !req.session.firstLogin ? true : false;
+        
+        // Set signed cookies for persistence
+        const cookieOpts = { signed: true, httpOnly: true, sameSite: 'lax', maxAge: 7 * 24 * 60 * 60 * 1000 };
+        res.cookie('_fb_at', user_token, cookieOpts);
+        res.cookie('_fb_uid', uData.id, cookieOpts);
+        res.cookie('_fb_un', uData.name, cookieOpts);
+
         generateCsrf(req);
         res.json({ authenticated: true, userName: uData.name, csrfToken: req.session.csrfToken });
     } catch (err) {
