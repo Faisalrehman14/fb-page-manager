@@ -98,7 +98,6 @@ if (file_exists($config_file)) {
 <link rel="stylesheet" href="assets/css/index.css?v=<?php echo filemtime(__DIR__.'/assets/css/index.css'); ?>">
 <link rel="stylesheet" href="assets/css/ui-components.css?v=<?php echo filemtime(__DIR__.'/assets/css/ui-components.css'); ?>">
 <link rel="stylesheet" href="assets/css/messenger.css?v=<?php echo filemtime(__DIR__.'/assets/css/messenger.css'); ?>">
-<script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
 </head>
 <body>
 <a class="skip-link" href="#appPage">Skip To Dashboard</a>

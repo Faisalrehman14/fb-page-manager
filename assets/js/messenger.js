@@ -8,74 +8,21 @@
 
   // ── State ───────────────────────────────────────────────────
   const M = {
-    pages:         [],          // loaded Facebook pages
-    activePageId:  null,        // selected page ID
-    activeToken:   null,        // selected page access_token
-    convs:         [],          // conversations array
-    activePsid:    null,        // open conversation PSID
+    pages:         [],
+    activePageId:  null,
+    activeToken:   null,
+    convs:         [],
+    activePsid:    null,
     activeConvName:'',
     activeConvPic: '',
-    msgs:          [],          // messages for open conv
-    pollTimer:     null,        // setInterval handle
-    lastPollTime:  null,        // ISO string
+    msgs:          [],
+    pollTimer:     null,
+    lastPollTime:  null,
     searchQuery:   '',
-    oldestMsgTime: null,        // for load-more
+    oldestMsgTime: null,
     sending:       false,
-    userNameCache: {},          // psid → name
-    socket:        null,        // Socket.io instance
+    userNameCache: {},
   };
-
-  // ── Socket.io Initialization ────────────────────────────────
-  async function initSocket() {
-    if (M.socket) return;
-    
-    // Safety: Wait for Socket.io library if not yet loaded
-    if (typeof io === 'undefined') {
-      console.warn('[Messenger] Socket.io not ready, retrying in 200ms...');
-      setTimeout(initSocket, 200);
-      return;
-    }
-    
-    const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-    const socketUrl = isLocal 
-      ? window.location.protocol + '//' + window.location.hostname + ':3000'
-      : window.location.protocol + '//' + window.location.hostname;
-      
-    console.log('[Messenger] Connecting to Socket:', socketUrl);
-    
-    M.socket = io(socketUrl);
-
-    M.socket.on('connect', () => {
-      console.log('[Messenger] Socket connected:', M.socket.id);
-      if (M.activePageId) M.socket.emit('join_page', M.activePageId);
-      if (M.activePsid) M.socket.emit('join_conversation', M.activePsid);
-    });
-
-    M.socket.on('new_message', (msg) => {
-      console.log('[Messenger] Socket new_message:', msg);
-      // If this message is for the active conversation, append it
-      if (M.activePsid === msg.user_id) {
-        const exists = M.msgs.find(m => m.id === msg.id);
-        if (!exists) {
-          appendMessage(msg);
-          // Mark as read in DB via background API call
-          apiPost('mark-read', { pageId: M.activePageId, psid: M.activePsid }).catch(() => {});
-        }
-      }
-      
-      // Update the conversation in the sidebar regardless
-      updateConvInSidebar(msg);
-    });
-
-    M.socket.on('webhook_event', (event) => {
-      console.log('[Messenger] Socket webhook_event:', event);
-      // Handle other event types like delivery, read, etc.
-    });
-
-    M.socket.on('disconnect', () => {
-      console.log('[Messenger] Socket disconnected');
-    });
-  }
 
   function updateConvInSidebar(msg) {
     const psid = msg.user_id;
@@ -88,16 +35,15 @@
       existing.lastMsgAt = msg.created_at;
       existing.lastFromMe = msg.from_me == 1;
     } else {
-      // New conversation from socket
       M.convs.unshift({
-        psid:     psid,
-        name:     'New User', // Will be updated on next DB load
-        picture:  null,
-        lastMsg:  msg.message,
+        psid:       psid,
+        name:       'New User',
+        picture:    null,
+        lastMsg:    msg.message,
         lastFromMe: msg.from_me == 1,
         lastMsgAt:  msg.created_at,
-        unread:   1,
-        page_id:  M.activePageId,
+        unread:     1,
+        page_id:    M.activePageId,
       });
     }
     M.convs.sort((a, b) => new Date(b.lastMsgAt) - new Date(a.lastMsgAt));
@@ -147,33 +93,29 @@
     return d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
   }
 
-  // Simplified API Base: Using relative path + .htaccess proxy for maximum stability
-  const API_BASE = '/api/messenger';
-
-  async function api(endpoint, params = {}) {
+  async function api(action, params = {}) {
     const qs = Object.entries(params).map(([k,v]) => k + '=' + encodeURIComponent(v)).join('&');
-    const url = `${API_BASE}/${endpoint}${qs ? '?' + qs : ''}`;
-    
+    const url = 'messenger_api.php?action=' + encodeURIComponent(action) + (qs ? '&' + qs : '');
     try {
-      const r = await fetch(url);
-      const contentType = r.headers.get('content-type');
-      if (!contentType || !contentType.includes('application/json')) {
-        const text = await r.text();
-        console.error('[Messenger] API returned non-JSON:', text.substring(0, 100));
-        throw new Error('Server returned HTML instead of JSON. Check backend routing.');
+      const r = await fetch(url, { credentials: 'same-origin' });
+      const ct = r.headers.get('content-type') || '';
+      if (!ct.includes('application/json')) {
+        const txt = await r.text();
+        console.error('[Messenger] Non-JSON response:', txt.substring(0, 120));
+        throw new Error('API error — check server logs');
       }
-      return await r.json();
+      return r.json();
     } catch (e) {
-      console.error('[Messenger] API Fetch Error:', e);
+      console.error('[Messenger] api() error:', e);
       throw e;
     }
   }
 
-  async function apiPost(endpoint, payload) {
-    const url = `${API_BASE}/${endpoint}`;
-    const r = await fetch(url, {
-      method: 'POST',
+  async function apiPost(payload) {
+    const r = await fetch('messenger_api.php', {
+      method:  'POST',
       headers: { 'Content-Type': 'application/json' },
+      credentials: 'same-origin',
       body: JSON.stringify(payload),
     });
     return r.json();
@@ -212,7 +154,7 @@
       renderConvs();
     }
 
-    initSocket();
+
     startPolling();
   };
 
@@ -260,8 +202,6 @@
     const page = M.pages.find(p => p.id === pageId);
     M.activeToken = page?.access_token || null;
 
-    // Join socket room for this page
-    if (M.socket) M.socket.emit('join_page', pageId);
 
     // Update page button styles
     M.pages.forEach(p => {
@@ -408,10 +348,7 @@
       renderConvs();
 
       // Persist to DB
-      apiPost('conversations', {
-        pageId: pageId,
-        conversations: convs,
-      }).catch(() => {});
+      apiPost({ action: 'save_conversations', page_id: pageId, conversations: convs }).catch(() => {});
     } catch (e) {
       console.error('[Messenger] refreshConvsFromFB error (non-fatal):', e);
     }
@@ -492,8 +429,6 @@
     M.activeConvName = name;
     M.activeConvPic  = picture;
 
-    // Join socket room for this conversation
-    if (M.socket) M.socket.emit('join_conversation', psid);
 
     if (pageId) {
       M.activePageId = pageId;
@@ -518,7 +453,7 @@
     await loadMessages();
 
     // Mark as read in DB
-    apiPost('mark-read', { pageId: M.activePageId, psid }).catch(() => {});
+    apiPost({ action: 'mark_read', page_id: M.activePageId, psid }).catch(() => {});
 
     renderMessages();
     const ta = el('msngMsgTextarea');
@@ -756,8 +691,9 @@
     appendMessage(tempMsg);
 
     try {
-      const res = await apiPost('reply', {
-        pageId:     M.activePageId,
+      const res = await apiPost({
+        action:      'send_message',
+        page_id:     M.activePageId,
         psid:        M.activePsid,
         message:     text,
         page_token:  M.activeToken,
@@ -1021,7 +957,7 @@
   // ── Mark read (header button) ─────────────────────────────────
   window.msngMarkRead = function () {
     if (!M.activePsid || !M.activePageId) return;
-    apiPost('mark-read', { pageId: M.activePageId, psid: M.activePsid });
+    apiPost({ action: 'mark_read', page_id: M.activePageId, psid: M.activePsid });
     const conv = M.convs.find(c => c.psid === M.activePsid);
     if (conv) conv.unread = 0;
     renderConvs();
