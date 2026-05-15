@@ -23,6 +23,19 @@ const sessionMiddleware = session({
     secret: SESSION_SECRET,
     resave: false,
     saveUninitialized: true,
+    store: (function() {
+        const MySQLStore = require('express-mysql-session')(session);
+        return new MySQLStore({
+            clearExpired: true,
+            checkExpirationInterval: 900000,
+            expiration: 86400000,
+            createDatabaseTable: true,
+            schema: {
+                tableName: 'sessions',
+                columnNames: { session_id: 'session_id', expires: 'expires', data: 'data' }
+            }
+        }, db.getPool());
+    })(),
     cookie: {
         secure: false, // Railway handles SSL at proxy
         httpOnly: true,
