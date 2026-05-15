@@ -30,6 +30,14 @@ const sessionMiddleware = session({
     }
 });
 app.use(sessionMiddleware);
+
+// Ensure CSRF token exists
+app.use((req, res, next) => {
+    if (req.session && !req.session.csrfToken) {
+        req.session.csrfToken = crypto.randomBytes(32).toString('hex');
+    }
+    next();
+});
 const io         = new Server(httpServer, {
     cors: { origin: '*', methods: ['GET', 'POST'] },
     transports: ['websocket', 'polling']
