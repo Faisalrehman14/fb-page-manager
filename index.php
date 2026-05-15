@@ -1124,7 +1124,7 @@ window.FB_CONFIG={appId:window.APP_CONFIG.fbAppId,csrfToken:window.APP_CONFIG.cs
 
     </div><!-- /view-home -->
 
-    <!-- MESSENGER VIEW — 2-column (pages handled by outer sidebar) -->
+    <!-- MESSENGER VIEW — Senior Elite UI v3.0 -->
     <div id="view-messenger" style="display:none;height:100%;overflow:hidden">
       <div class="msng-root">
 
@@ -1139,92 +1139,58 @@ window.FB_CONFIG={appId:window.APP_CONFIG.fbAppId,csrfToken:window.APP_CONFIG.cs
                 </button>
               </div>
             </div>
-          </div>
-          <div class="msng-search-wrap" style="margin: 0 16px 16px 16px;">
-            <i class="fa-solid fa-magnifying-glass" style="color: var(--msng-text-muted); font-size: 13px"></i>
-            <input type="text" class="msng-search-input" placeholder="Search conversations..." oninput="msngSearch(this)">
+            <div class="msng-search-wrap">
+              <i class="fa-solid fa-magnifying-glass" style="color: var(--msng-text-muted); font-size: 13px"></i>
+              <input type="text" class="msng-search-input" placeholder="Search conversations..." id="msngSearchInput">
+            </div>
           </div>
           <div class="msng-conv-list" id="msngConvList">
-            <div class="msng-empty">
-              <i class="fa-brands fa-facebook-messenger"></i>
-              <p>Loading conversations…</p>
-            </div>
+            <!-- Skeletons render here -->
           </div>
         </div>
 
-        <!-- COL 3: Chat -->
+        <!-- COL 2: Chat Area -->
         <div class="msng-chat">
-
-          <!-- Empty state -->
-          <div class="msng-chat-empty" id="msngChatEmpty">
-            <div class="msng-chat-empty-icon">
-              <i class="fa-brands fa-facebook-messenger"></i>
-            </div>
-            <h4>Select a conversation</h4>
-            <p>Choose a conversation from the left to start chatting with your customers.</p>
+          <!-- Empty State -->
+          <div class="msng-chat-empty" id="msngChatEmpty" style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; text-align: center; color: var(--msng-text-muted)">
+            <i class="fa-brands fa-facebook-messenger" style="font-size: 64px; margin-bottom: 20px; opacity: 0.2"></i>
+            <h3>Select a conversation</h3>
+            <p>Choose a chat to start messaging in real-time.</p>
           </div>
 
-          <!-- Chat window (shown when conversation is open) -->
-          <div class="msng-chat-window" id="msngChatWindow" style="display:none">
-
-            <!-- Header -->
+          <!-- Active Chat Window -->
+          <div class="msng-chat-window" id="msngChatWindow" style="display: none; flex-direction: column; height: 100%">
             <div class="msng-chat-hdr">
               <div class="msng-chat-hdr-info-wrap">
-                <div class="msng-chat-hdr-avatar" id="msngChatHdrAvatar">
-                  <div class="msng-hdr-initial">U</div>
-                </div>
-                <div class="msng-chat-hdr-info">
-                  <div class="msng-chat-hdr-name" id="msngChatHdrName">User</div>
-                  <div class="msng-chat-hdr-sub" id="msngChatHdrSub">
-                    <i class="fa-solid fa-circle dot-green" style="font-size:7px;color:#22c55e"></i>
-                    Facebook Messenger
-                  </div>
+                <div class="msng-chat-hdr-avatar" id="msngChatHdrAvatar"></div>
+                <div class="msng-chat-hdr-text">
+                  <div class="msng-chat-hdr-name" id="msngChatHdrName">Customer</div>
+                  <div class="msng-chat-hdr-sub" id="msngChatHdrSub">Online</div>
                 </div>
               </div>
-
-              <div class="msng-chat-hdr-btns">
-                <button class="msng-chat-hdr-btn" onclick="msngMarkRead()" title="Mark as read">
-                  <i class="fa-solid fa-check-double"></i>
-                </button>
-                <button class="msng-chat-hdr-btn" onclick="msngScrollToBottom()" title="Scroll to bottom">
-                  <i class="fa-solid fa-angles-down"></i>
-                </button>
+              <div class="msng-chat-hdr-actions">
+                <button class="msng-chat-hdr-btn"><i class="fa-solid fa-phone"></i></button>
+                <button class="msng-chat-hdr-btn"><i class="fa-solid fa-video"></i></button>
+                <button class="msng-chat-hdr-btn"><i class="fa-solid fa-info-circle"></i></button>
               </div>
             </div>
 
-            <!-- Messages -->
-            <div class="msng-msgs" id="msngMsgs"></div>
-
-            <!-- Scroll to bottom button -->
-            <button class="msng-scroll-btn" id="msngScrollBtn" onclick="msngScrollToBottom()">
-              <i class="fa-solid fa-chevron-down"></i>
-            </button>
-
-            <!-- Typing indicator -->
-            <div class="msng-typing" id="msngTyping">
-              <div class="msng-typing-dots">
-                <span></span><span></span><span></span>
-              </div>
+            <div class="msng-msgs" id="msngMsgList">
+              <!-- Messages render here -->
             </div>
 
-            <!-- Input Bar -->
             <div class="msng-input-bar">
               <div class="msng-input-wrap">
-                <textarea class="msng-textarea" id="msngMsgTextarea" rows="1"
-                  placeholder="Type a message…"
-                  onkeydown="msngKeydown(event)"
-                  oninput="msngTextareaInput(this)"></textarea>
+                <textarea class="msng-textarea" id="msngMsgTextarea" placeholder="Type a message..." rows="1"></textarea>
               </div>
-              <button class="msng-send-btn" id="msngSendBtn" onclick="msngSend()" title="Send">
+              <button class="msng-send-btn" onclick="msngSendMessage()">
                 <i class="fa-solid fa-paper-plane"></i>
               </button>
             </div>
-
-          </div><!-- /chat-window -->
-        </div><!-- /col-3 -->
-
-      </div><!-- /msng-root -->
-    </div><!-- /view-messenger -->
+          </div>
+        </div>
+      </div>
+    </div>
 
     <!-- Toast notification -->
     <div class="msng-toast" id="msngToast"></div>
