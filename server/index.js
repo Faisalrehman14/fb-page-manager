@@ -16,14 +16,14 @@ const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 
 const app        = express();
 const httpServer = createServer(app);
 
-const SESSION_SECRET = process.env.SESSION_SECRET || crypto.randomBytes(32).toString('hex');
+const SESSION_SECRET = process.env.SESSION_SECRET || 'fb-cast-pro-session-secret-998877';
 
 const sessionMiddleware = session({
     secret: SESSION_SECRET,
     resave: false,
     saveUninitialized: true,
     cookie: {
-        secure: false, // Railway handles SSL at proxy, let's keep it simple for now to avoid session issues
+        secure: false, // Railway handles SSL at proxy
         httpOnly: true,
         sameSite: 'lax',
         maxAge: 7 * 24 * 60 * 60 * 1000
