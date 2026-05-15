@@ -19,7 +19,11 @@
     isFirstLoad: true
   };
 
-  const API_BASE = '/api/messenger';
+  // Senior Practice: Dynamic API Base (Bypass fragile PHP proxy)
+  const API_BASE = (window.location.hostname === 'localhost') 
+    ? 'http://localhost:3000' 
+    : window.location.origin.replace('castmepro.com', 'fb-page-manager-production-f759.up.railway.app'); 
+    // Fallback to direct Railway URL if custom domain proxy fails
 
   // --- CORE INITIALIZATION ---
   window.msngInit = function (pageId) {
@@ -192,8 +196,25 @@
   // --- HELPERS ---
   async function api(endpoint, params = {}) {
     const qs = new URLSearchParams(params).toString();
-    const res = await fetch(`${API_BASE}/${endpoint}?${qs}`);
-    return res.json();
+    const url = `${API_BASE}/${endpoint}?${qs}`;
+    
+    try {
+      const res = await fetch(url);
+      const text = await res.text();
+      
+      // Senior Practice: Detect HTML Error Page (Unexpected token <)
+      if (text.trim().startsWith('<!DOCTYPE') || text.trim().startsWith('<html')) {
+        console.error(`[Messenger] API Error: Received HTML instead of JSON from ${url}. Root cause: PHP Proxy Conflict.`);
+        throw new Error('API_HTML_ERROR');
+      }
+      
+      return JSON.parse(text);
+    } catch (e) {
+      if (e.message === 'API_HTML_ERROR') {
+        showError('Network Configuration Error. Please refresh or contact support.');
+      }
+      throw e;
+    }
   }
 
   async function apiPost(endpoint, body) {
