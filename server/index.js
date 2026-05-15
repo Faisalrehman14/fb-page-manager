@@ -374,6 +374,9 @@ app.get('/', (req, res) => {
 });
 
 // Serve static assets from project root
+// Redirect /index.html to / to ensure config injection
+app.get('/index.html', (req, res) => res.redirect('/'));
+
 app.use(express.static(path.join(__dirname, '..'), { maxAge: '1h', etag: true, index: false }));
 
 
