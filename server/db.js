@@ -1226,6 +1226,7 @@ async function cleanupOldMessages(daysOld = 30) {
 
 const dbModule = {
     initDatabase,
+    getPool: () => pool,
     isConnected,
     savePage,
     savePages,
