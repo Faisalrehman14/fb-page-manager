@@ -206,6 +206,110 @@
   padding: 0 2px;
 }
 
+/* ── Optimistic send states ──────────────────────────────────────── */
+
+/* Pending: message sent optimistically, waiting for server confirm */
+.msng-msg.pending .msng-bubble {
+  opacity: 0.6;
+}
+.msng-msg.pending .msng-msg-time::after {
+  content: ' · Sending…';
+  font-size: 10px;
+  color: var(--msng-text-muted);
+}
+
+/* Failed: server rejected the message */
+.msng-msg.failed .msng-bubble {
+  background: rgba(239, 68, 68, 0.2);
+  border: 1px solid rgba(239, 68, 68, 0.4);
+}
+.msng-msg-failed {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+  font-size: 11px;
+  color: #ef4444;
+}
+.msng-msg-failed button {
+  background: none;
+  border: 1px solid #ef4444;
+  color: #ef4444;
+  border-radius: 4px;
+  padding: 1px 8px;
+  font-size: 11px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.msng-msg-failed button:hover {
+  background: rgba(239, 68, 68, 0.15);
+}
+
+/* ── Message meta row ────────────────────────────────────────────── */
+.msng-msg-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 16px;
+}
+.msng-msg-time {
+  font-size: 11px;
+  color: var(--msng-text-muted);
+}
+
+/* ── Avatar wrappers ─────────────────────────────────────────────── */
+.msng-msg-avatar-wrap {
+  width: 28px;
+  flex-shrink: 0;
+  align-self: flex-end;
+}
+.msng-msg-avatar,
+.msng-msg-avatar-img {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+.msng-msg-avatar-ph,
+.msng-msg-avatar-img-ph,
+.msng-ci-avatar-img-ph {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgba(0,132,255,.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  color: #fff;
+  flex-shrink: 0;
+}
+.msng-ci-avatar-img {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+.msng-hdr-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+.msng-hdr-avatar-ph {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgba(0,132,255,.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  font-weight: 700;
+  color: #fff;
+}
+
 /* Sync banner */
 .msng-sync-banner {
   display: none;
