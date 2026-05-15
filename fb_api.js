@@ -63,13 +63,19 @@ async function requestJson(url, options = {}, retryCfg = RETRY_CFG_DEFAULT) {
     if (!res.ok) {
       // Auto-re-auth for expired sessions
       if (res.status === 401 && data && data.redirect === '/' && !options._isAuthRetry) {
-        const savedToken = localStorage.getItem('fb_user_token');
-        if (savedToken) {
+        const savedRaw = localStorage.getItem('fb_user_token');
+        if (savedRaw) {
+          let token = savedRaw;
+          try {
+            const parsed = JSON.parse(savedRaw);
+            if (parsed && parsed.token) token = parsed.token;
+          } catch(e) {}
+
           try {
             await fetch('/api/auth/fb-token', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': await window.getCsrfToken?.() || '' },
-              body: JSON.stringify({ user_token: savedToken })
+              body: JSON.stringify({ user_token: token })
             });
             const newOptions = Object.assign({}, options, { _isAuthRetry: true });
             return requestJson(url, newOptions, retryCfg);
