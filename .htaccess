@@ -99,6 +99,12 @@ Options -Indexes -MultiViews
 #   RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [R=301,L]
 # </IfModule>
 
+# ── Proxy /api/messenger to Node.js Backend ─────
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteRule ^api/messenger/(.*) http://localhost:3000/$1 [P,L]
+</IfModule>
+
 # ── ETags (disable for multi-server setups) ───
 FileETag None
 Header unset ETag

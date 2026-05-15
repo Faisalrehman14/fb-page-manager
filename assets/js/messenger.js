@@ -222,9 +222,18 @@
     return div.innerHTML;
   }
 
+  function showError(msg) {
+    const list = document.getElementById('msngConvList');
+    if (list) list.innerHTML = `<div class="msng-error-state">${msg}</div>`;
+  }
+
   function renderSkeletons() {
     const list = document.getElementById('msngConvList');
-    if (list) list.innerHTML = Array(5).fill('<div class="msng-conv-skeleton"></div>').join('');
+    if (list) {
+      list.innerHTML = Array(6).fill(`
+        <div class="msng-skeleton-item" style="height: 72px; background: var(--msng-glass); border-radius: 12px; margin-bottom: 8px; animation: pulse 1.5s infinite"></div>
+      `).join('');
+    }
   }
 
   // Exposed for HTML onclicks
