@@ -228,4 +228,13 @@
     if (conv) selectConversation(conv);
   };
 
+  window.msngSyncNow = function() {
+    console.log('[Messenger] Manual sync triggered...');
+    loadConversations();
+  };
+
+  window.msngScrollToBottom = function() {
+    scrollToBottom();
+  };
+
 })();
