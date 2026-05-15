@@ -189,6 +189,25 @@ app.post(['/webhook', '/fb_webhook.php'], async (req, res) => {
 // ── Auth ──────────────────────────────────────────────────────────────────────
 app.get('/api/csrf-token', (req, res) => res.json({ csrfToken: generateCsrf(req) }));
 
+// Bridge: accept FB user token from old JS-SDK auth flow → create server session
+app.post('/api/auth/fb-token', async (req, res) => {
+    const { user_token } = req.body;
+    if (!user_token) return res.status(400).json({ error: 'user_token required' });
+    try {
+        const uRes  = await fetch(`https://graph.facebook.com/v19.0/me?fields=id,name&access_token=${user_token}`);
+        const uData = await uRes.json();
+        if (uData.error) return res.status(401).json({ error: uData.error.message });
+        req.session.accessToken = user_token;
+        req.session.userId      = uData.id;
+        req.session.userName    = uData.name;
+        req.session.firstLogin  = !req.session.firstLogin ? true : false;
+        generateCsrf(req);
+        res.json({ authenticated: true, userName: uData.name, csrfToken: req.session.csrfToken });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 app.get('/api/auth/login', (req, res) => {
     const state = crypto.randomBytes(16).toString('hex');
     req.session.oauthState = state;

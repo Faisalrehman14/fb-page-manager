@@ -100,6 +100,7 @@ if (file_exists($config_file)) {
 
 <!-- UI Assets -->
 <link rel="stylesheet" href="assets/css/messenger.css?v=<?php echo filemtime(__DIR__.'/assets/css/messenger.css'); ?>">
+<link rel="stylesheet" href="assets/css/inbox.css?v=<?php echo filemtime(__DIR__.'/assets/css/inbox.css'); ?>">
 </head>
 <body>
 <a class="skip-link" href="#appPage">Skip To Dashboard</a>
@@ -1126,83 +1127,105 @@ window.FB_CONFIG={appId:window.APP_CONFIG.fbAppId,csrfToken:window.APP_CONFIG.cs
 
     </div><!-- /view-home -->
 
-    <!-- MESSENGER VIEW — Senior Elite UI v3.0 -->
-    <div id="view-messenger" style="display:none;height:100%;overflow:hidden">
-      <div class="msng-root">
+    <!-- MESSENGER VIEW — Socket.io Real-time -->
+    <div id="view-messenger" style="display:none;height:100%;overflow:hidden;flex-direction:column">
 
-        <!-- COL 1: Conversations -->
-        <div class="msng-convs" id="msngConvsCol">
-          <div class="msng-convs-hdr">
-            <div class="msng-convs-title-wrap">
-              <h1 class="msng-convs-title">Messages</h1>
-              <div class="msng-convs-actions">
-                <button class="msng-chat-hdr-btn" id="msngRefreshBtn" onclick="msngRefresh()" title="Refresh conversations">
-                  <i class="fa-solid fa-rotate"></i>
-                </button>
-                <button class="msng-chat-hdr-btn" onclick="msngSyncNow()" title="Sync from Facebook">
-                  <i class="fa-solid fa-cloud-arrow-down"></i>
-                </button>
-              </div>
-            </div>
-            <div class="msng-search-wrap">
-              <i class="fa-solid fa-magnifying-glass" style="color: var(--msng-text-muted); font-size: 13px"></i>
-              <input type="text" class="msng-search-input" placeholder="Search conversations..." id="msngSearchInput" oninput="msngSearch(this)">
-            </div>
+      <!-- Lightbox -->
+      <div class="lightbox hidden" id="lightbox" onclick="Inbox.closeLightbox(event)">
+        <button class="lb-close" onclick="Inbox.closeLightbox(event)">✕</button>
+        <img id="lb-img" src="" alt="" onclick="event.stopPropagation()">
+      </div>
+
+      <!-- Quick Replies Modal -->
+      <div class="modal-overlay hidden" id="canned-modal" onclick="Inbox.closeCannedModal()">
+        <div class="modal" onclick="event.stopPropagation()">
+          <div class="modal-hd">
+            <span>Quick Replies</span>
+            <button class="close-x" onclick="Inbox.closeCannedModal()">✕</button>
           </div>
-          <div class="msng-conv-list" id="msngConvList">
-            <!-- Skeletons render here -->
+          <div class="modal-bd">
+            <div class="form-row">
+              <label class="form-lbl">Shortcut name</label>
+              <input type="text" id="cr-title" class="form-input" placeholder="e.g. greeting">
+            </div>
+            <div class="form-row">
+              <label class="form-lbl">Message text</label>
+              <textarea id="cr-body" class="form-textarea" placeholder="e.g. Hello! How can I help you today?"></textarea>
+            </div>
+            <div style="height:1px;background:var(--border-color);margin:10px 0 12px"></div>
+            <div id="cr-list"></div>
           </div>
-        </div>
-
-        <!-- COL 2: Chat Area -->
-        <div class="msng-chat">
-          <!-- Empty State -->
-          <div class="msng-chat-empty" id="msngChatEmpty" style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; text-align: center; color: var(--msng-text-muted)">
-            <i class="fa-brands fa-facebook-messenger" style="font-size: 64px; margin-bottom: 20px; opacity: 0.2"></i>
-            <h3>Select a conversation</h3>
-            <p>Choose a chat to start messaging in real-time.</p>
-          </div>
-
-          <!-- Active Chat Window -->
-          <div class="msng-chat-window" id="msngChatWindow" style="display: none; flex-direction: column; height: 100%">
-            <div class="msng-chat-hdr">
-              <div class="msng-chat-hdr-info-wrap">
-                <div class="msng-chat-hdr-avatar" id="msngChatHdrAvatar"></div>
-                <div class="msng-chat-hdr-text">
-                  <div class="msng-chat-hdr-name" id="msngChatHdrName">Customer</div>
-                  <div class="msng-chat-hdr-sub" id="msngChatHdrSub">Online</div>
-                </div>
-              </div>
-              <div class="msng-chat-hdr-actions">
-                <button class="msng-chat-hdr-btn"><i class="fa-solid fa-phone"></i></button>
-                <button class="msng-chat-hdr-btn"><i class="fa-solid fa-video"></i></button>
-                <button class="msng-chat-hdr-btn"><i class="fa-solid fa-info-circle"></i></button>
-              </div>
-            </div>
-
-            <div class="msng-msgs" id="msngMsgs">
-              <!-- Messages render here -->
-            </div>
-            <button class="msng-scroll-btn" id="msngScrollBtn" onclick="msngScrollToBottom()" title="Scroll to bottom">
-              <i class="fa-solid fa-chevron-down"></i>
-            </button>
-
-            <div class="msng-input-bar">
-              <div class="msng-input-wrap">
-                <textarea class="msng-textarea" id="msngMsgTextarea" placeholder="Type a message..." rows="1"
-                  onkeydown="msngKeydown(event)" oninput="msngTextareaInput(this)"></textarea>
-              </div>
-              <button class="msng-send-btn" id="msngSendBtn" onclick="msngSend()">
-                <i class="fa-solid fa-paper-plane"></i>
-              </button>
-            </div>
+          <div class="modal-ft">
+            <button class="btn btn-secondary btn-sm" onclick="Inbox.closeCannedModal()">Close</button>
+            <button class="btn btn-primary btn-sm" id="canned-modal-save-btn" onclick="Inbox.saveNewCanned()">Save Reply</button>
           </div>
         </div>
       </div>
-    </div>
 
-    <!-- Toast notification -->
-    <div class="msng-toast" id="msngToast"></div>
+      <!-- Toast -->
+      <div class="toast-wrap" id="toast-wrap"></div>
+
+      <!-- Sync progress bar -->
+      <div id="sync-bar-wrap" style="display:none;align-items:center;gap:8px;font-size:11px;padding:4px 16px;background:var(--bg-secondary);border-bottom:1px solid var(--border-color)">
+        <div style="flex:1;height:4px;background:var(--border-color);border-radius:2px;overflow:hidden">
+          <div id="sync-bar-fill" style="height:100%;width:0%;background:#1877f2;transition:width 0.3s;border-radius:2px"></div>
+        </div>
+        <span id="sync-bar-label">Syncing...</span>
+      </div>
+
+      <!-- 3-Column Inbox Layout -->
+      <div class="inbox-layout" style="flex:1;min-height:0">
+
+        <!-- Column 1: Pages -->
+        <aside class="col-pages">
+          <div class="col-header">Your Pages</div>
+          <div class="pages-scroll" id="pages-list">
+            <div class="loading-state"><div class="spin"></div><span>Loading pages...</span></div>
+          </div>
+        </aside>
+
+        <!-- Column 2: Conversations -->
+        <aside class="col-convs">
+          <div class="convs-header">
+            <div class="convs-title-row">
+              <span class="convs-title">Conversations</span>
+              <span class="convs-stats" id="conv-count"></span>
+            </div>
+            <div class="search-wrap">
+              <svg class="search-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              <input type="text" class="search-input" id="conv-search" placeholder="Search by name or message...">
+            </div>
+            <div class="filter-tabs">
+              <button class="filter-tab active" data-filter="all" onclick="Inbox.applyFilter('all')">All</button>
+              <button class="filter-tab" data-filter="unread" onclick="Inbox.applyFilter('unread')">Unread <span id="unread-count-tab"></span></button>
+              <button class="filter-tab" data-filter="read" onclick="Inbox.applyFilter('read')">Read</button>
+              <button class="filter-tab" data-filter="archived" onclick="Inbox.applyFilter('archived')">📦 Archived</button>
+            </div>
+          </div>
+          <div class="bulk-bar" id="bulk-bar" style="display:none">
+            <span style="flex:1;color:var(--text-muted)">Actions:</span>
+            <button onclick="Inbox.markAllRead()">✓ Mark all read</button>
+          </div>
+          <div class="convs-scroll" id="conversations-list">
+            <div id="conv-skeletons">
+              <div class="skel-conv"><div class="skel-av skeleton"></div><div class="skel-lines"><div class="skel-line skeleton" style="width:68%"></div><div class="skel-line skeleton" style="width:50%"></div></div></div>
+              <div class="skel-conv"><div class="skel-av skeleton"></div><div class="skel-lines"><div class="skel-line skeleton" style="width:55%"></div><div class="skel-line skeleton" style="width:40%"></div></div></div>
+              <div class="skel-conv"><div class="skel-av skeleton"></div><div class="skel-lines"><div class="skel-line skeleton" style="width:75%"></div><div class="skel-line skeleton" style="width:45%"></div></div></div>
+            </div>
+          </div>
+        </aside>
+
+        <!-- Column 3: Messages -->
+        <main class="col-msgs" id="messages-panel">
+          <div class="msgs-empty">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="64" height="64"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            <h3>Select a conversation</h3>
+            <p>Pick a conversation from the list to view and reply to messages</p>
+          </div>
+        </main>
+
+      </div><!-- /inbox-layout -->
+    </div><!-- /view-messenger -->
 
     <!-- BROADCAST VIEW -->
     <div id="view-broadcast" class="broadcast-view" style="display:none">
@@ -1947,6 +1970,8 @@ window.FB_CONFIG={appId:window.APP_CONFIG.fbAppId,csrfToken:window.APP_CONFIG.cs
 <script src="assets/js/ui-components.js?v=<?php echo filemtime(__DIR__.'/assets/js/ui-components.js'); ?>" defer></script>
 <script src="fb_api.js?v=<?php echo filemtime(__DIR__.'/fb_api.js'); ?>" defer></script>
 <script src="web_ui.js?v=<?php echo time(); ?>"></script>
+<script src="/socket.io/socket.io.js"></script>
+<script src="assets/js/inbox.js?v=<?php echo time(); ?>"></script>
 <script src="assets/js/messenger.js?v=<?php echo time(); ?>"></script>
 
 <script>

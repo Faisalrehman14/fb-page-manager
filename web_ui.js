@@ -1013,6 +1013,12 @@ function cleanPsid(psid) {
 }
 
 async function loadMessengerConversations() {
+  // New Socket.io inbox — delegate to auth bridge + Inbox controller
+  if (typeof window.initInboxForMainSite === 'function') {
+    await window.initInboxForMainSite();
+    return;
+  }
+
   const pageSelect = document.getElementById('pageSelect');
   let pageId = pageSelect?.value || window.current_page_id || window.currentPageId || '';
 
