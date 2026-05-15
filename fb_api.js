@@ -60,8 +60,26 @@ async function requestJson(url, options = {}, retryCfg = RETRY_CFG_DEFAULT) {
   const text = await res.text();
   let data = {};
   try { data = text ? JSON.parse(text) : {}; } catch (e) { data = { raw: text }; }
-  if (!res.ok) {
-    if (res.status === 403 && data && data.error === 'Invalid CSRF token' && !options._isRetry) {
+    if (!res.ok) {
+      // Auto-re-auth for expired sessions
+      if (res.status === 401 && data && data.redirect === '/' && !options._isAuthRetry) {
+        const savedToken = localStorage.getItem('fb_user_token');
+        if (savedToken) {
+          try {
+            await fetch('/api/auth/fb-token', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': await window.getCsrfToken?.() || '' },
+              body: JSON.stringify({ user_token: savedToken })
+            });
+            const newOptions = Object.assign({}, options, { _isAuthRetry: true });
+            return requestJson(url, newOptions, retryCfg);
+          } catch (e) {
+            console.error('[AuthRetry] Failed:', e);
+          }
+        }
+      }
+      
+      if (res.status === 403 && data && data.error === 'Invalid CSRF token' && !options._isRetry) {
       if (typeof window.getCsrfToken === 'function') {
         const newToken = await window.getCsrfToken(true);
         if (newToken) {
