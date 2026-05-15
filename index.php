@@ -1140,6 +1140,9 @@ window.FB_CONFIG={appId:window.APP_CONFIG.fbAppId,csrfToken:window.APP_CONFIG.cs
             </h3>
             <div class="msng-convs-actions">
               <span class="msng-unread-pill" id="msngUnreadPill" style="display:none">0</span>
+              <button class="msng-icon-btn" onclick="msngSyncNow()" title="Sync message history from Facebook">
+                <i class="fa-solid fa-cloud-arrow-down"></i>
+              </button>
               <button class="msng-icon-btn" id="msngRefreshBtn" onclick="msngRefresh()" title="Refresh">
                 <i class="fa-solid fa-arrows-rotate"></i>
               </button>

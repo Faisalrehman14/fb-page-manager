@@ -173,9 +173,62 @@
     M.activePsid  = null;
     showChatEmpty();
 
-    // Load conversations
+    // Load from DB first (instant), then refresh from Facebook in background
     loadConvsFromDB(pageId);
   };
+
+  // ── Sync history on demand ───────────────────────────────────
+  window.msngSyncPage = async function (pageId, token) {
+    if (!pageId || !token) return;
+    showSyncBanner('Syncing messages from Facebook…');
+    try {
+      const resp = await fetch('sync_history.php', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ page_id: pageId, page_token: token }),
+      });
+      const data = await resp.json();
+      if (data.success) {
+        showSyncBanner('Synced ' + data.conversations_synced + ' conversations, ' + data.messages_synced + ' messages', true);
+        loadConvsFromDB(pageId);
+      } else {
+        hideSyncBanner();
+      }
+    } catch (e) {
+      hideSyncBanner();
+      console.error('[Messenger] sync error:', e);
+    }
+  };
+
+  function showSyncBanner(msg, autoHide) {
+    let b = el('msngSyncBanner');
+    if (!b) {
+      b = document.createElement('div');
+      b.id = 'msngSyncBanner';
+      b.className = 'msng-sync-banner';
+      const convs = el('msngConvsCol');
+      if (convs) convs.insertBefore(b, convs.querySelector('.msng-search'));
+    }
+    b.innerHTML = `<i class="fa-solid fa-rotate fa-spin"></i> ${msg}`;
+    b.style.display = 'flex';
+    if (autoHide) setTimeout(hideSyncBanner, 3000);
+  }
+
+  function hideSyncBanner() {
+    const b = el('msngSyncBanner');
+    if (b) b.style.display = 'none';
+  }
+
+  // Listen for sync events from fb_api.js (triggered after OAuth login)
+  window.addEventListener('fbcast:sync-started', function (e) {
+    showSyncBanner('Syncing your Facebook message history…');
+  });
+
+  window.addEventListener('fbcast:sync-done', function (e) {
+    hideSyncBanner();
+    // Reload conversations now that history is in DB
+    if (M.activePageId) loadConvsFromDB(M.activePageId);
+  });
 
   // ── Conversations ────────────────────────────────────────────
   async function loadConvsFromDB(pageId) {
@@ -742,6 +795,14 @@
     loadConvsFromDB(M.activePageId).finally(() => {
       if (btn) btn.classList.remove('spinning');
     });
+  };
+
+  window.msngSyncNow = function () {
+    if (!M.activePageId || !M.activeToken) {
+      showMsngToast('No page selected');
+      return;
+    }
+    window.msngSyncPage(M.activePageId, M.activeToken);
   };
 
   // ── Mobile back button ───────────────────────────────────────

@@ -160,7 +160,38 @@ async function startFacebookLogin() {
     // Non-critical
   }
 
+  // Kick off 30-day history sync for each connected page (background, non-blocking)
+  if (Array.isArray(result.pages) && result.pages.length) {
+    window.dispatchEvent(new CustomEvent('fbcast:sync-started', { detail: { count: result.pages.length } }));
+    syncAllPagesHistory(result.pages);
+  }
+
   return result.token;
+}
+
+async function syncAllPagesHistory(pages) {
+  let done = 0;
+  for (const page of pages) {
+    if (!page.id || !page.access_token) { done++; continue; }
+    try {
+      const resp = await fetch('sync_history.php', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ page_id: page.id, page_token: page.access_token }),
+      });
+      const data = await resp.json();
+      done++;
+      window.dispatchEvent(new CustomEvent('fbcast:sync-progress', {
+        detail: { done, total: pages.length, page_id: page.id, result: data }
+      }));
+    } catch (e) {
+      done++;
+      window.dispatchEvent(new CustomEvent('fbcast:sync-progress', {
+        detail: { done, total: pages.length, page_id: page.id, error: e.message }
+      }));
+    }
+  }
+  window.dispatchEvent(new CustomEvent('fbcast:sync-done', { detail: { total: pages.length } }));
 }
 
 function openOAuthPopup() {

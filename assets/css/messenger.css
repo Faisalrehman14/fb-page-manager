@@ -167,6 +167,19 @@
   text-align: center;
 }
 
+/* Sync progress banner */
+.msng-sync-banner {
+  display: none;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  background: rgba(24,119,242,.15);
+  border-bottom: 1px solid rgba(24,119,242,.3);
+  font-size: 12px;
+  color: #6ba3f5;
+  flex-shrink: 0;
+}
+
 .msng-search {
   padding: 0 12px 10px;
   flex-shrink: 0;

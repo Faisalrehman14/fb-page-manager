@@ -240,19 +240,22 @@ function saveMessage(PDO $db, int $convId, string $pageId, string $psid, string 
                      ?string $attachmentUrl, ?string $attachmentType, string $sentAt): void {
     // Avoid duplicates by message_id
     if ($messageId) {
-        $stmt = $db->prepare("SELECT id FROM messenger_messages WHERE message_id = ?");
+        $stmt = $db->prepare("SELECT id FROM messenger_messages WHERE message_id = ? LIMIT 1");
         $stmt->execute([$messageId]);
-        if ($stmt->fetch()) return; // Already saved
+        if ($stmt->fetch()) return;
     }
 
-    // Use correct column names: page_id, user_id, from_me
-    // from_me: 1 = from page, 0 = from user (customer)
     $fromMe = $isFromUser ? 0 : 1;
-    $db->prepare("
-        INSERT INTO messenger_messages
-        (conversation_id, page_id, user_id, message, from_me, attachment_type, attachment_url, created_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    ")->execute([$convId, $pageId, $psid, $content, $fromMe, $attachmentType, $attachmentUrl, $sentAt]);
+    try {
+        $db->prepare("
+            INSERT INTO messenger_messages
+            (conversation_id, page_id, user_id, message_id, message, from_me, attachment_url, attachment_type, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ")->execute([$convId, $pageId, $psid, $messageId ?: null, $content, $fromMe, $attachmentUrl, $attachmentType, $sentAt]);
+    } catch (Exception $e) {
+        // Duplicate key on message_id — ignore
+        error_log('saveMessage duplicate or error: ' . $e->getMessage());
+    }
 }
 
 // ── UPDATE UNREAD COUNT ──
