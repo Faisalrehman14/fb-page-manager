@@ -274,7 +274,7 @@
   async function loadConvsFromDB(pageId) {
     showConvSkeleton();
     try {
-      const data = await api('conversations', { pageId: pageId });
+      const data = await api('load_conversations', { page_id: pageId });
       if (data.error) throw new Error(data.error);
       if (data.conversations) {
         M.convs = data.conversations.map(c => ({
@@ -493,7 +493,7 @@
     if (!M.activePageId || !M.activePsid) return;
 
     try {
-      const data = await api('messages', { psid: M.activePsid, pageId: M.activePageId, limit: 50, before: before });
+      const data = await api('load_messages', { page_id: M.activePageId, psid: M.activePsid, limit: '50', before: before || '' });
       if (data.error) throw new Error(data.error);
 
       if (before) {
