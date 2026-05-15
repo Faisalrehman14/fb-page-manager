@@ -24,10 +24,10 @@ sed -i "s/Listen 443/Listen 443/" /etc/apache2/ports.conf 2>/dev/null || true
 # Inject PORT into virtual host config
 sed -i "s/__PORT__/$PORT/g" /etc/apache2/sites-available/000-default.conf
 
-# Ensure uploads directory is writable
-mkdir -p /var/www/html/uploads
-chown -R www-data:www-data /var/www/html/uploads
-chmod 775 /var/www/html/uploads
+# Ensure uploads and logs directories exist and are writable
+mkdir -p /var/www/html/uploads /var/www/html/logs
+chown -R www-data:www-data /var/www/html/uploads /var/www/html/logs
+chmod 775 /var/www/html/uploads /var/www/html/logs
 
 echo "Testing Apache configuration..."
 apache2ctl configtest 2>&1
