@@ -176,7 +176,7 @@ async function handleMessagingEvent(pageId, event) {
 // Get Conversations
 app.get('/api/messenger/conversations', async (req, res) => {
     const { pageId } = req.query;
-    if (!pageId) return res.status(400).json({ error: 'pageId required' });
+    if (!pageId) return res.status(400).json({ success: false, error: 'pageId required' });
 
     try {
         const [rows] = await pool.execute(
@@ -185,8 +185,14 @@ app.get('/api/messenger/conversations', async (req, res) => {
         );
         res.json({ success: true, conversations: rows });
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        console.error('DB Error:', err);
+        res.status(500).json({ success: false, error: err.message });
     }
+});
+
+// Fallback Poll (to prevent 404s)
+app.get('/api/messenger/poll', (req, res) => {
+    res.json({ success: true, messages: [] });
 });
 
 // Get Messages
