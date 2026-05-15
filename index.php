@@ -1132,28 +1132,18 @@ window.FB_CONFIG={appId:window.APP_CONFIG.fbAppId,csrfToken:window.APP_CONFIG.cs
         <!-- COL 1: Conversations -->
         <div class="msng-convs" id="msngConvsCol">
           <div class="msng-convs-hdr">
-            <h3>
-              <button class="msng-back-btn" onclick="msngBack()" title="Back">
-                <i class="fa-solid fa-arrow-left"></i>
-              </button>
-              <i class="fa-brands fa-facebook-messenger"></i>
-              Messages
-            </h3>
-            <div class="msng-convs-actions">
-              <span class="msng-unread-pill" id="msngUnreadPill" style="display:none">0</span>
-              <button class="msng-icon-btn" onclick="msngSyncNow()" title="Sync message history from Facebook">
-                <i class="fa-solid fa-cloud-arrow-down"></i>
-              </button>
-              <button class="msng-icon-btn" id="msngRefreshBtn" onclick="msngRefresh()" title="Refresh">
-                <i class="fa-solid fa-arrows-rotate"></i>
-              </button>
+            <div class="msng-convs-title-wrap">
+              <h1 class="msng-convs-title">Messages</h1>
+              <div class="msng-convs-actions">
+                <button class="msng-chat-hdr-btn" onclick="msngSyncNow()" title="Sync from Facebook">
+                  <i class="fa-solid fa-rotate"></i>
+                </button>
+              </div>
             </div>
           </div>
-          <div class="msng-search">
-            <div class="msng-search-inner">
-              <i class="fa-solid fa-magnifying-glass"></i>
-              <input type="text" placeholder="Search conversations…" oninput="msngSearch(this)" autocomplete="off">
-            </div>
+          <div class="msng-search-wrap" style="margin: 0 16px 16px 16px;">
+            <i class="fa-solid fa-magnifying-glass" style="color: var(--msng-text-muted); font-size: 13px"></i>
+            <input type="text" class="msng-search-input" placeholder="Search conversations..." oninput="msngSearch(this)">
           </div>
           <div class="msng-conv-list" id="msngConvList">
             <div class="msng-empty">

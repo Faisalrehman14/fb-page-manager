@@ -1,6 +1,6 @@
 /* ═══════════════════════════════════════════════════════════
    messenger.css — ULTIMATE PRO CLASS Meta-style UI
-   Strict Layout Fix: Forces correct 3-column pinning
+   Refined for perfect alignment and premium aesthetics
    ═══════════════════════════════════════════════════════════ */
 
 :root {
@@ -16,19 +16,18 @@
   --msng-header-height: 72px;
 }
 
-/* ── Root Layout ─────────────────────────────────────────── */
 .msng-root {
   display: flex;
   height: 100% !important;
   width: 100%;
   overflow: hidden;
   background: var(--msng-bg);
-  font-family: 'Inter', -apple-system, sans-serif;
+  font-family: 'Plus Jakarta Sans', sans-serif;
   color: var(--msng-text);
   position: relative;
 }
 
-/* ── Column 2: Conversations ────────────────────────────── */
+/* ── Sidebar: Conversations ─────────────────────────────── */
 .msng-convs {
   width: 360px;
   min-width: 320px;
@@ -39,92 +38,91 @@
   height: 100%;
 }
 
+.msng-convs-hdr {
+  padding: 20px 16px;
+  border-bottom: 1px solid var(--msng-border);
+}
+
+.msng-convs-title-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.msng-convs-title {
+  font-size: 24px;
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: -0.5px;
+}
+
+.msng-search-wrap {
+  position: relative;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+  padding: 8px 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.msng-search-input {
+  background: transparent;
+  border: none;
+  color: #fff;
+  font-size: 14px;
+  width: 100%;
+  outline: none;
+}
+
 .msng-conv-list {
   flex: 1;
   overflow-y: auto;
   padding: 8px;
 }
 
-/* ── Column 3: Chat Window ──────────────────────────────── */
+/* ── Chat Window ────────────────────────────────────────── */
 .msng-chat {
   flex: 1;
   display: flex;
   flex-direction: column;
   background: var(--msng-chat-bg);
   height: 100%;
-  position: relative;
-  overflow: hidden;
-}
-
-.msng-chat-window {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  width: 100%;
-  position: relative;
 }
 
 .msng-chat-hdr {
   height: var(--msng-header-height);
-  min-height: var(--msng-header-height);
   padding: 0 24px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   border-bottom: 1px solid var(--msng-border);
-  background: rgba(9, 12, 17, 0.95);
-  z-index: 10;
+  background: rgba(9, 12, 17, 0.8);
+  backdrop-filter: blur(10px);
 }
 
-.msng-chat-hdr-info-wrap {
-  display: flex;
-  align-items: center;
-  gap: 12px;
+.msng-chat-hdr-name {
+  font-weight: 700;
+  font-size: 16px;
+  color: #fff;
 }
 
-/* The Messages Area must grow to fill space */
+.msng-chat-hdr-sub {
+  font-size: 12px;
+  color: var(--msng-text-muted);
+}
+
 .msng-msgs {
   flex: 1;
   overflow-y: auto;
-  padding: 24px;
+  padding: 20px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  background: var(--msng-chat-bg);
+  gap: 4px;
 }
 
-.msng-msg {
-  display: flex;
-  margin-bottom: 4px;
-  max-width: 75%;
-}
-
-.msng-msg.from-me {
-  align-self: flex-end;
-  flex-direction: row-reverse;
-}
-
-.msng-bubble {
-  padding: 10px 16px;
-  font-size: 15px;
-  line-height: 1.4;
-  border-radius: 18px;
-  word-break: break-word;
-}
-
-.msng-msg:not(.from-me) .msng-bubble {
-  background: var(--msng-bubble-them);
-  color: #fff;
-  border-bottom-left-radius: 4px;
-}
-
-.msng-msg.from-me .msng-bubble {
-  background: var(--msng-bubble-me);
-  color: #fff;
-  border-bottom-right-radius: 4px;
-}
-
-/* Input Bar must be at the very bottom */
+/* ── Input Area ─────────────────────────────────────────── */
 .msng-input-bar {
   padding: 16px 24px;
   background: var(--msng-chat-bg);
@@ -132,22 +130,15 @@
   display: flex;
   align-items: flex-end;
   gap: 12px;
-  min-height: 80px;
 }
 
 .msng-input-wrap {
   flex: 1;
   background: rgba(255, 255, 255, 0.05);
-  border-radius: 24px;
-  padding: 10px 18px;
+  border-radius: 20px;
+  padding: 10px 16px;
   display: flex;
   align-items: center;
-  border: 1px solid transparent;
-  transition: border-color 0.2s;
-}
-
-.msng-input-wrap:focus-within {
-  border-color: var(--msng-primary);
 }
 
 .msng-textarea {
@@ -159,42 +150,43 @@
   font-size: 15px;
   resize: none;
   max-height: 120px;
-  padding: 0;
-  line-height: 1.4;
 }
 
-.msng-send-btn {
-  width: 44px;
-  height: 44px;
+/* ── Components ─────────────────────────────────────────── */
+.msng-conv-item {
   display: flex;
   align-items: center;
-  justify-content: center;
-  color: var(--msng-primary);
-  font-size: 20px;
-  background: transparent;
-  border: none;
+  gap: 12px;
+  padding: 10px;
+  border-radius: 12px;
   cursor: pointer;
-  transition: transform 0.1s;
+  transition: background 0.2s;
 }
 
-.msng-send-btn:hover { transform: scale(1.1); }
+.msng-conv-item:hover { background: rgba(255, 255, 255, 0.05); }
+.msng-conv-item.active { background: rgba(0, 132, 255, 0.15); }
 
-/* Avatar styling */
-.msng-ci-avatar img, .msng-chat-hdr-avatar img {
-  width: 44px;
-  height: 44px;
+.msng-ci-avatar img {
+  width: 48px;
+  height: 48px;
   border-radius: 50%;
   object-fit: cover;
 }
 
-.msng-hdr-initial, .msng-ci-initial {
-  width: 44px;
-  height: 44px;
-  background: linear-gradient(135deg, #0084FF, #00c6ff);
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 700;
+.msng-bubble {
+  padding: 8px 16px;
+  border-radius: 18px;
+  max-width: 85%;
+  font-size: 15px;
+}
+
+.from-me .msng-bubble {
+  background: var(--msng-primary);
+  color: #fff;
+  align-self: flex-end;
+}
+
+.msng-msg:not(.from-me) .msng-bubble {
+  background: var(--msng-bubble-them);
   color: #fff;
 }
