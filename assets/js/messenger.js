@@ -221,33 +221,35 @@
     if (!M.activeToken || !window.fbGet) return;
     try {
       const data = await window.fbGet(pageId + '/conversations', M.activeToken, {
-        fields: 'id,updated_time,senders,snippet',
+        fields: 'id,updated_time,participants,snippet',
         limit: 100,
       });
       if (!data?.data?.length) return;
 
       const convs = data.data.map(c => {
-        const sender = (c.senders?.data || []).find(s => s.id !== pageId) || {};
+        const others = (c.participants?.data || []).filter(p => p.id !== pageId);
+        const sender = others[0] || {};
         return {
-          psid:      sender.id || '',
-          name:      sender.name || 'User',
-          picture:   sender.picture?.data?.url || null,
-          lastMsg:   c.snippet || '',
-          lastFromMe:false,
-          lastMsgAt: c.updated_time,
-          unread:    0,
-          page_id:   pageId,
+          fb_conv_id: c.id || '',
+          psid:       sender.id || '',
+          name:       sender.name || 'User',
+          picture:    null,
+          lastMsg:    c.snippet || '',
+          lastFromMe: false,
+          lastMsgAt:  c.updated_time,
+          unread:     0,
+          page_id:    pageId,
         };
       }).filter(c => c.psid);
 
-      // Merge into M.convs (new ones get added)
+      // Merge into M.convs (new ones get added, existing ones updated)
       convs.forEach(fc => {
         const existing = M.convs.find(mc => mc.psid === fc.psid);
         if (!existing) {
           M.convs.push(fc);
         } else {
+          existing.fb_conv_id = fc.fb_conv_id;
           if (fc.name && fc.name !== 'User') existing.name = fc.name;
-          if (fc.picture) existing.picture = fc.picture;
           if (!existing.lastMsg && fc.lastMsg) existing.lastMsg = fc.lastMsg;
         }
       });
@@ -256,14 +258,14 @@
       M.convs.sort((a, b) => new Date(b.lastMsgAt) - new Date(a.lastMsgAt));
       renderConvs();
 
-      // Save to DB
+      // Persist to DB
       apiPost({
         action: 'save_conversations',
         page_id: pageId,
         conversations: convs,
       }).catch(() => {});
     } catch (e) {
-      console.error('[Messenger] refreshConvsFromFB:', e);
+      console.error('[Messenger] refreshConvsFromFB error (non-fatal):', e);
     }
   }
 
@@ -424,36 +426,9 @@
 
       renderMessages(before ? 'prepend' : 'replace');
 
-      // If no DB messages, try Facebook Graph API
-      if (!before && M.msgs.length === 0 && window.fbGet && M.activeToken) {
-        await loadMsgsFromFB();
-      }
-    } catch (e) {
+      } catch (e) {
       console.error('[Messenger] loadMessages error:', e);
     }
-  }
-
-  async function loadMsgsFromFB() {
-    // Find conversation_id from M.convs
-    const conv = M.convs.find(c => c.psid === M.activePsid);
-    if (!conv?.id) return;
-    try {
-      const data = await window.fbGet(conv.id + '/messages', M.activeToken, {
-        fields: 'id,message,from,created_time,attachments',
-        limit: 50,
-      });
-      if (!data?.data?.length) return;
-
-      M.msgs = data.data.reverse().map(m => ({
-        id:         m.id,
-        message:    m.message || '',
-        from_me:    m.from?.id === M.activePageId ? 1 : 0,
-        created_at: m.created_time,
-        attachment_url: m.attachments?.data?.[0]?.image_data?.url || null,
-        attachment_type: m.attachments?.data?.[0]?.type || null,
-      }));
-      renderMessages('replace');
-    } catch(e) {}
   }
 
   function renderMessages(mode = 'replace') {
