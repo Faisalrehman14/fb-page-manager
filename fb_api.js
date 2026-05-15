@@ -102,6 +102,7 @@ async function requestJson(url, options = {}, retryCfg = RETRY_CFG_DEFAULT) {
   }
   return data;
 }
+window.requestJson = requestJson;
 
 // Volatile state for the active send session
 let runtime = {
