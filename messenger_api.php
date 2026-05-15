@@ -23,6 +23,7 @@ require_once __DIR__ . '/src/Db.php';
 require_once __DIR__ . '/src/FacebookClient.php';
 require_once __DIR__ . '/src/ConversationService.php';
 require_once __DIR__ . '/src/MessageService.php';
+require_once __DIR__ . '/src/PageService.php';
 
 header('Content-Type: application/json');
 header('X-Content-Type-Options: nosniff');
@@ -47,6 +48,7 @@ try {
 
 $convs  = new ConversationService($db);
 $msgs   = new MessageService($db);
+$pages  = new PageService($db);
 $method = $_SERVER['REQUEST_METHOD'];
 $raw    = file_get_contents('php://input') ?: '{}';
 $body   = json_decode($raw, true) ?: [];
@@ -123,8 +125,16 @@ if ($method === 'POST') {
         $token    = trim($body['page_token'] ?? '');
         $imageUrl = trim($body['image_url']  ?? '');
 
-        if (!$pageId || !$psid || !$token) respond(['error' => 'Missing required fields'], 400);
-        if (!$text && !$imageUrl)          respond(['error' => 'No message content'],       400);
+        if (!$pageId || !$psid) respond(['error' => 'Missing required fields'], 400);
+        if (!$text && !$imageUrl) respond(['error' => 'No message content'], 400);
+
+        // Auto-register token in pages table; fall back to stored token if not supplied
+        if ($token && $pageId) {
+            $pages->upsert($pageId, $token);
+        } elseif (!$token) {
+            $token = $pages->findToken($pageId) ?? '';
+        }
+        if (!$token) respond(['error' => 'No page token available'], 400);
 
         $fb  = new FacebookClient($token);
         $res = $imageUrl ? $fb->sendImage($psid, $imageUrl) : $fb->sendText($psid, $text);
@@ -167,6 +177,8 @@ if ($method === 'POST') {
         $psid   = trim($body['psid']       ?? '');
         $token  = trim($body['page_token'] ?? '');
         if (!$psid || !$token) respond(['error' => 'Missing fields'], 400);
+
+        if ($token && $pageId) $pages->upsert($pageId, $token);
 
         $fb   = new FacebookClient($token);
         $info = $fb->getUserProfile($psid);

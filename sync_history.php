@@ -18,6 +18,7 @@ require_once __DIR__ . '/db_config.php';
 require_once __DIR__ . '/src/Db.php';
 require_once __DIR__ . '/src/FacebookClient.php';
 require_once __DIR__ . '/src/ConversationService.php';
+require_once __DIR__ . '/src/PageService.php';
 
 header('Content-Type: application/json');
 header('Cache-Control: no-store');
@@ -46,6 +47,8 @@ try {
 }
 
 $convs  = new ConversationService($db);
+$pagesSvc = new PageService($db);
+$pagesSvc->upsert($pageId, $pageToken); // register / refresh token on every sync
 $fb     = new FacebookClient($pageToken);
 $synced = 0;
 $since  = time() - (30 * 24 * 3600); // last 30 days

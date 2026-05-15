@@ -3,30 +3,35 @@ declare(strict_types=1);
 
 /**
  * All database operations for messenger_conversations.
- * No HTTP calls, no business logic — pure data access.
+ *
+ * Denormalization contract:
+ *   snippet       — text of the last message (set on every send/receive)
+ *   last_from_me  — 1 if WE sent it, 0 if customer sent it
+ *   updated_at    — timestamp of the last message
+ *
+ * Because these three fields are kept in sync, inbox load is a single
+ * indexed scan on messenger_conversations — no JOIN, no subquery.
  */
 class ConversationService
 {
     public function __construct(private readonly PDO $db) {}
 
-    // ── Reads ────────────────────────────────────────────────────────────────
+    // ── Reads ─────────────────────────────────────────────────────────────────
 
+    /**
+     * Full inbox list for a page — one index scan, zero joins.
+     * Returns at most 200 rows ordered by recency.
+     */
     public function list(string $pageId): array
     {
-        // Correlated subquery kept intentionally simple — 200 rows max, indexed on conversation_id+created_at
         $stmt = $this->db->prepare("
-            SELECT c.*,
-                   m.message    AS last_msg,
-                   m.from_me    AS last_from_me,
-                   m.created_at AS last_msg_at
-            FROM messenger_conversations c
-            LEFT JOIN messenger_messages m ON m.id = (
-                SELECT id FROM messenger_messages
-                WHERE conversation_id = c.id
-                ORDER BY created_at DESC LIMIT 1
-            )
-            WHERE c.page_id = ?
-            ORDER BY COALESCE(c.updated_at, c.created_at) DESC
+            SELECT *,
+                   snippet      AS last_msg,
+                   last_from_me AS last_from_me,
+                   updated_at   AS last_msg_at
+            FROM messenger_conversations
+            WHERE page_id = ?
+            ORDER BY COALESCE(updated_at, created_at) DESC
             LIMIT 200
         ");
         $stmt->execute([$pageId]);
@@ -45,7 +50,13 @@ class ConversationService
     public function updatedSince(string $pageId, string $since): array
     {
         $stmt = $this->db->prepare(
-            "SELECT * FROM messenger_conversations WHERE page_id = ? AND updated_at > ? ORDER BY updated_at DESC"
+            "SELECT *,
+                    snippet      AS last_msg,
+                    last_from_me AS last_from_me,
+                    updated_at   AS last_msg_at
+             FROM messenger_conversations
+             WHERE page_id = ? AND updated_at > ?
+             ORDER BY updated_at DESC"
         );
         $stmt->execute([$pageId, $since]);
         return $stmt->fetchAll();
@@ -60,32 +71,31 @@ class ConversationService
         return (int) $stmt->fetchColumn();
     }
 
+    /**
+     * Search by name or snippet — single indexed scan per page_id.
+     */
     public function search(string $pageId, string $q): array
     {
         $like = '%' . $q . '%';
         $stmt = $this->db->prepare("
-            SELECT c.*,
-                   m.message    AS last_msg,
-                   m.created_at AS last_msg_at
-            FROM messenger_conversations c
-            LEFT JOIN messenger_messages m ON m.id = (
-                SELECT id FROM messenger_messages
-                WHERE conversation_id = c.id
-                ORDER BY created_at DESC LIMIT 1
-            )
-            WHERE c.page_id = ? AND (c.user_name LIKE ? OR c.snippet LIKE ?)
-            ORDER BY COALESCE(c.updated_at, c.created_at) DESC
+            SELECT *,
+                   snippet      AS last_msg,
+                   last_from_me AS last_from_me,
+                   updated_at   AS last_msg_at
+            FROM messenger_conversations
+            WHERE page_id = ? AND (user_name LIKE ? OR snippet LIKE ?)
+            ORDER BY COALESCE(updated_at, created_at) DESC
             LIMIT 50
         ");
         $stmt->execute([$pageId, $like, $like]);
         return $stmt->fetchAll();
     }
 
-    // ── Writes ───────────────────────────────────────────────────────────────
+    // ── Writes ────────────────────────────────────────────────────────────────
 
     /**
      * Insert or update a conversation row.
-     * Never overwrites a real name with 'User', never clears snippet with empty string.
+     * Rules: never overwrite a real name with 'User', never clear snippet with ''.
      */
     public function upsert(
         string  $pageId,
@@ -103,8 +113,8 @@ class ConversationService
                 fb_conv_id = COALESCE(VALUES(fb_conv_id), fb_conv_id),
                 snippet    = IF(VALUES(snippet) != '', VALUES(snippet), snippet),
                 updated_at = GREATEST(
-                    COALESCE(updated_at,        '2000-01-01 00:00:00'),
-                    COALESCE(VALUES(updated_at), '2000-01-01 00:00:00')
+                    COALESCE(updated_at,         '2000-01-01 00:00:00'),
+                    COALESCE(VALUES(updated_at),  '2000-01-01 00:00:00')
                 ),
                 user_name  = IF(
                     VALUES(user_name) != '' AND VALUES(user_name) != 'User',
@@ -116,7 +126,7 @@ class ConversationService
 
     /**
      * Returns conversation id, creating the row if it doesn't exist.
-     * Used before saving a message to guarantee the foreign key.
+     * Used before saving a message to guarantee the foreign key exists.
      */
     public function ensureExists(string $pageId, string $psid): int
     {
@@ -139,29 +149,30 @@ class ConversationService
     }
 
     /**
-     * Called when a customer message arrives via webhook.
-     * Increments unread counter and updates snippet + timestamp in one query.
+     * Customer message arrived — increment unread, store denormalized snippet.
      */
     public function onIncomingMessage(string $pageId, string $psid, string $snippet): void
     {
         $this->db->prepare("
             UPDATE messenger_conversations
-            SET is_unread  = is_unread + 1,
-                snippet    = IF(? != '', ?, snippet),
-                updated_at = NOW()
+            SET is_unread    = is_unread + 1,
+                snippet      = IF(? != '', ?, snippet),
+                last_from_me = 0,
+                updated_at   = NOW()
             WHERE page_id = ? AND fb_user_id = ?
         ")->execute([$snippet, $snippet, $pageId, $psid]);
     }
 
     /**
-     * Called when WE send a message — updates snippet but does NOT touch is_unread.
+     * We sent a message — update snippet but do NOT touch is_unread.
      */
     public function onOutgoingMessage(string $pageId, string $psid, string $snippet): void
     {
         $this->db->prepare("
             UPDATE messenger_conversations
-            SET snippet    = IF(? != '', ?, snippet),
-                updated_at = NOW()
+            SET snippet      = IF(? != '', ?, snippet),
+                last_from_me = 1,
+                updated_at   = NOW()
             WHERE page_id = ? AND fb_user_id = ?
         ")->execute([$snippet, $snippet, $pageId, $psid]);
     }
@@ -169,7 +180,9 @@ class ConversationService
     public function updateProfile(string $pageId, string $psid, string $name, ?string $picture): void
     {
         $this->db->prepare(
-            "UPDATE messenger_conversations SET user_name = ?, user_picture = ? WHERE page_id = ? AND fb_user_id = ?"
+            "UPDATE messenger_conversations
+             SET user_name = ?, user_picture = ?
+             WHERE page_id = ? AND fb_user_id = ?"
         )->execute([$name, $picture, $pageId, $psid]);
     }
 }
