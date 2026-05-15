@@ -168,8 +168,19 @@ app.post(['/api/auth/track', '/api/track_user.php', '/track_user.php'], async (r
         const meData = await meRes.json();
         if (meData.error) return res.status(401).json({ error: meData.error.message });
 
-        // Basic quota stub — extend with real DB quota logic when ready
-        res.json({ success: true, user_id: meData.id, user_name: meData.name, quota: { used: 0, limit: 10000, plan: 'pro' } });
+        // Initialize/Fetch user quota from DB
+        const quota = await db.updateUserQuota(meData.id, 0); // 0 = just fetch
+        
+        // Return format expected by index-page.js + web_ui.js
+        res.json({ 
+            success: true, 
+            fb_user_id: meData.id, 
+            fb_name: meData.name,
+            subscriptionStatus: quota?.subscriptionStatus || 'free',
+            messageLimit: quota?.messageLimit || 2000,
+            messagesUsed: quota?.messenger_messagesUsed || 0,
+            plan: quota?.subscriptionStatus || 'free'
+        });
     } catch (err) {
         logError('track_user', err);
         res.status(500).json({ error: 'Tracking failed' });
