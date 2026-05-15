@@ -1078,6 +1078,16 @@ window.getCsrfToken = async (forceRefresh = false) => {
     <!-- MESSENGER VIEW — Socket.io Real-time -->
     <div id="view-messenger" style="display:none;height:100%;overflow:hidden;flex-direction:column">
       <div class="msng-root">
+        <!-- Page Selector Column (Discord-style) -->
+        <div class="msng-pages" id="msngPagesCol">
+          <div class="msng-pages-hdr">
+            <i class="fa-brands fa-facebook" style="font-size:18px;color:var(--primary-color)"></i>
+          </div>
+          <div class="msng-pages-list" id="msngPagesList">
+            <!-- Dynamically populated by renderPages() -->
+          </div>
+        </div>
+
         <!-- Conversation List -->
         <div class="msng-convs" id="msngConvsCol">
           <div class="msng-convs-hdr">

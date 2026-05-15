@@ -856,37 +856,9 @@
   // Only expose what external code (HTML, web_ui.js) needs.
   // ══════════════════════════════════════════════════════════
 
-  window.msngInit = function (retries = 0) {
-    M.pages = (window.loadedPages || []).filter(p => p?.id && p?.access_token);
-    if (!M.pages.length) {
-      if (retries < 10) { setTimeout(() => window.msngInit(retries + 1), 500); return; }
-      const listEl = $('msngConvList');
-      if (listEl) listEl.innerHTML = `<div class="msng-empty">
-        <i class="fa-brands fa-facebook-messenger"></i>
-        <h4>No pages connected</h4>
-        <p>Connect a Facebook page to use Messenger.</p>
-      </div>`;
-      return;
-    }
-    const preferredId = window.currentPageId || M.pages[0].id;
-    if (!M.activePageId || !M.pages.find(p => p.id === M.activePageId)) {
-      window.msngSelectPage(preferredId);
-    } else {
-      renderConvs();
-    }
-    bindConvListDelegate();
-    startPolling();
-  };
+  // msngInit and msngSelectPage are defined below with pages column + Socket.io
 
   window.loadMessengerConversations = function () { window.msngInit(0); };
-
-  window.msngSelectPage = function (pageId) {
-    M.activePageId = pageId;
-    M.activeToken  = (M.pages.find(p => p.id === pageId) || {}).access_token || null;
-    M.activePsid   = null;
-    showChatEmpty();
-    loadConvs(pageId);
-  };
 
   window.msngOpenConv = function (psid, name, picture, pageId) { openConv(psid, name, picture, pageId); };
   window.msngRetry    = function (tempId, text) { doSend(text, tempId); };
@@ -959,6 +931,161 @@
     if (conv) { conv.unread = 0; renderConvs(); }
   };
 
+  // ── Page Selector Column Renderer ────────────────────────────────────────────
+  function renderPages() {
+    const listEl = document.getElementById('msngPagesList');
+    if (!listEl) return;
+
+    listEl.innerHTML = M.pages.map(p => {
+      const isActive = p.id === M.activePageId;
+      const initial = (p.name || 'P').charAt(0).toUpperCase();
+      const pic = p.picture?.data?.url || p.picture || '';
+      const avatar = pic
+        ? `<img class="msng-page-avatar" src="${esc(pic)}" alt="${esc(p.name)}" onerror="this.outerHTML='<div class=\\'msng-page-avatar-ph\\'>${esc(initial)}</div>'">`
+        : `<div class="msng-page-avatar-ph">${esc(initial)}</div>`;
+      
+      return `<div class="msng-page-item ${isActive ? 'active' : ''}" data-page-id="${esc(p.id)}" title="${esc(p.name)}">
+        ${avatar}
+        <span class="msng-page-name">${esc(p.name)}</span>
+      </div>`;
+    }).join('');
+
+    // Click handlers
+    listEl.querySelectorAll('.msng-page-item').forEach(el => {
+      el.addEventListener('click', () => {
+        const pageId = el.dataset.pageId;
+        if (pageId && pageId !== M.activePageId) {
+          window.msngSelectPage(pageId);
+          renderPages(); // Update active highlight
+        }
+      });
+    });
+  }
+
+  // ── Socket.io Real-time Integration ─────────────────────────────────────────
+  let _socket = null;
+
+  function initSocketListeners() {
+    if (typeof io === 'undefined') return;
+    _socket = io();
+
+    // Join rooms for ALL connected pages
+    M.pages.forEach(p => {
+      _socket.emit('join_page', p.id);
+    });
+
+    // New message received via webhook → Socket.io
+    _socket.on('new_message', (msg) => {
+      if (!msg || !msg.pageId) return;
+
+      // If this message is for the currently open conversation
+      if (msg.pageId === M.activePageId && msg.participantId === M.activePsid) {
+        const normalized = {
+          message_id: msg.id,
+          conversation_id: msg.threadId,
+          page_id: msg.pageId,
+          user_id: msg.participantId,
+          message: msg.text,
+          from_me: msg.isFromPage ? 1 : 0,
+          created_at: msg.createdTime,
+          attachment_url: msg.attachments?.[0]?.u || null,
+          attachment_type: msg.attachments?.[0]?.t || null
+        };
+        if (!isDuplicate(normalized)) {
+          M.msgs.push(normalized);
+          appendBubble(normalized);
+        }
+      }
+
+      // Update conversation in sidebar
+      const conv = M.convs.find(c => c.psid === msg.participantId && (c.page_id === msg.pageId || M.activePageId === msg.pageId));
+      if (conv) {
+        conv.lastMsg = msg.text || '[Attachment]';
+        conv.lastFromMe = !!msg.isFromPage;
+        conv.lastMsgAt = msg.createdTime;
+        if (msg.participantId !== M.activePsid && !msg.isFromPage) {
+          conv.unread = (conv.unread || 0) + 1;
+        }
+        M.convs.sort((a, b) => new Date(b.lastMsgAt || 0) - new Date(a.lastMsgAt || 0));
+        renderConvs();
+      } else if (!msg.isFromPage) {
+        // New conversation from a new sender
+        M.convs.unshift({
+          id: msg.threadId,
+          psid: msg.participantId,
+          name: 'New User',
+          picture: null,
+          lastMsg: msg.text || '[Attachment]',
+          lastFromMe: false,
+          lastMsgAt: msg.createdTime,
+          unread: 1,
+          page_id: msg.pageId
+        });
+        renderConvs();
+      }
+
+      // Show toast for messages from others
+      if (!msg.isFromPage && msg.participantId !== M.activePsid) {
+        showToast('New message received');
+      }
+    });
+
+    // Conversation metadata updated
+    _socket.on('conversation_updated', (data) => {
+      if (!data) return;
+      const conv = M.convs.find(c => c.id === data.id || c.psid === data.participantId);
+      if (conv) {
+        if (data.snippet) conv.lastMsg = data.snippet;
+        if (data.updatedTime) conv.lastMsgAt = data.updatedTime;
+        if (data.participantId !== M.activePsid) {
+          conv.unread = data.unreadCount || (conv.unread || 0) + 1;
+        }
+        renderConvs();
+      }
+    });
+  }
+
+  // ── Updated msngInit ────────────────────────────────────────────────────────
+  const _origMsngInit = window.msngInit;
+  window.msngInit = function (retries = 0) {
+    M.pages = (window.loadedPages || []).filter(p => p?.id && p?.access_token);
+    if (!M.pages.length) {
+      if (retries < 10) { setTimeout(() => window.msngInit(retries + 1), 500); return; }
+      const listEl = $('msngConvList');
+      if (listEl) listEl.innerHTML = `<div class="msng-empty">
+        <i class="fa-brands fa-facebook-messenger"></i>
+        <h4>No pages connected</h4>
+        <p>Connect a Facebook page to use Messenger.</p>
+      </div>`;
+      return;
+    }
+
+    // Render pages column
+    renderPages();
+
+    const preferredId = window.currentPageId || M.pages[0].id;
+    if (!M.activePageId || !M.pages.find(p => p.id === M.activePageId)) {
+      window.msngSelectPage(preferredId);
+    } else {
+      renderConvs();
+    }
+    bindConvListDelegate();
+    startPolling();
+
+    // Initialize Socket.io for real-time
+    initSocketListeners();
+  };
+
+  // ── Updated msngSelectPage ──────────────────────────────────────────────────
+  window.msngSelectPage = function (pageId) {
+    M.activePageId = pageId;
+    M.activeToken  = (M.pages.find(p => p.id === pageId) || {}).access_token || null;
+    M.activePsid   = null;
+    renderPages(); // Update active highlight
+    showChatEmpty();
+    loadConvs(pageId);
+  };
+
   // ── Outer page selector integration ─────────────────────────────────────────
   document.addEventListener('DOMContentLoaded', () => {
     const sel = document.getElementById('pageSelect');
@@ -975,8 +1102,6 @@
   });
 
   // ── Stop polling when messenger view is not active ───────────────────────────
-  // Also toggle body.in-messenger so CSS can hide the outer pages sidebar
-  // (the messenger has its own conversation list — no need for a second pages panel)
   const _origSwitch = window.switchDashboardView;
   if (_origSwitch) {
     window.switchDashboardView = function (view) {

@@ -41,6 +41,187 @@ body.in-messenger .sidebar {
 }
 
 /* ══════════════════════════════════════════════════════════════
+   PAGE SELECTOR COLUMN (Discord-style vertical strip)
+   ══════════════════════════════════════════════════════════════ */
+
+.msng-pages {
+  width: 68px;
+  min-width: 68px;
+  flex-shrink: 0;
+  background: #070a0f;
+  border-right: 1px solid var(--msng-border);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 12px 0;
+  gap: 4px;
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+.msng-pages::-webkit-scrollbar { display: none; }
+
+.msng-pages-hdr {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: rgba(0,132,255,0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 8px;
+  flex-shrink: 0;
+}
+
+.msng-pages-list {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+}
+
+.msng-page-item {
+  position: relative;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.msng-page-item::before {
+  content: '';
+  position: absolute;
+  left: -10px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 4px;
+  height: 0;
+  border-radius: 0 4px 4px 0;
+  background: #fff;
+  transition: height 0.2s ease;
+}
+
+.msng-page-item:hover::before {
+  height: 20px;
+}
+
+.msng-page-item.active::before {
+  height: 36px;
+  background: var(--msng-primary);
+}
+
+.msng-page-item:hover {
+  border-radius: 16px;
+}
+
+.msng-page-item.active {
+  border-radius: 16px;
+}
+
+.msng-page-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: inherit;
+  object-fit: cover;
+  display: block;
+  border: 2px solid transparent;
+  transition: all 0.2s ease;
+}
+
+.msng-page-item.active .msng-page-avatar {
+  border-color: var(--msng-primary);
+  box-shadow: 0 0 12px rgba(0,132,255,0.35);
+}
+
+.msng-page-avatar-ph {
+  width: 48px;
+  height: 48px;
+  border-radius: inherit;
+  background: linear-gradient(135deg, #1a1f2e, #252b3d);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 18px;
+  color: var(--msng-primary);
+  border: 2px solid transparent;
+  transition: all 0.2s ease;
+}
+
+.msng-page-item.active .msng-page-avatar-ph {
+  border-color: var(--msng-primary);
+  box-shadow: 0 0 12px rgba(0,132,255,0.35);
+  background: linear-gradient(135deg, #0a1628, #0d2240);
+}
+
+.msng-page-badge {
+  position: absolute;
+  bottom: -2px;
+  right: -2px;
+  min-width: 18px;
+  height: 18px;
+  background: #ef4444;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4px;
+  border: 2px solid #070a0f;
+  line-height: 1;
+}
+
+.msng-page-name {
+  display: none;
+  position: absolute;
+  left: calc(100% + 12px);
+  top: 50%;
+  transform: translateY(-50%);
+  background: #1a1f2e;
+  color: #f1f5f9;
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 100;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+}
+
+.msng-page-item:hover .msng-page-name {
+  display: block;
+}
+
+/* Mobile: pages as horizontal strip */
+@media (max-width: 640px) {
+  .msng-pages {
+    width: 100%;
+    min-width: unset;
+    height: 56px;
+    flex-direction: row;
+    border-right: none;
+    border-bottom: 1px solid var(--msng-border);
+    padding: 6px 12px;
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
+  .msng-pages-hdr { display: none; }
+  .msng-pages-list {
+    flex-direction: row;
+    width: auto;
+  }
+  .msng-page-item { width: 40px; height: 40px; }
+  .msng-page-avatar, .msng-page-avatar-ph { width: 40px; height: 40px; font-size: 14px; }
+  .msng-page-item::before { display: none; }
+  .msng-page-name { display: none !important; }
+  .msng-root { flex-direction: column; }
+}
+
+/* ══════════════════════════════════════════════════════════════
    CONVERSATION LIST (left column)
    ══════════════════════════════════════════════════════════════ */
 
