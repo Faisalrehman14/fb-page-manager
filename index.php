@@ -97,6 +97,7 @@ if (file_exists($config_file)) {
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
 <link rel="stylesheet" href="assets/css/index.css?v=<?php echo filemtime(__DIR__.'/assets/css/index.css'); ?>">
 <link rel="stylesheet" href="assets/css/ui-components.css?v=<?php echo filemtime(__DIR__.'/assets/css/ui-components.css'); ?>">
+<link rel="stylesheet" href="assets/css/messenger.css?v=<?php echo filemtime(__DIR__.'/assets/css/messenger.css'); ?>">
 </head>
 <body>
 <a class="skip-link" href="#appPage">Skip To Dashboard</a>
@@ -1123,60 +1124,120 @@ window.FB_CONFIG={appId:window.APP_CONFIG.fbAppId,csrfToken:window.APP_CONFIG.cs
 
     </div><!-- /view-home -->
 
-    <!-- MESSENGER VIEW -->
-    <div id="view-messenger" class="messenger-view" style="display:none">
-      <div class="messenger-layout">
-        <!-- Conversations List -->
-        <div class="messenger-convs">
-          <div class="mc-header">
-            <h3><i class="fa-brands fa-facebook-messenger"></i> Conversations</h3>
-            <span class="hcp-count" id="messengerConvCount">0</span>
-          </div>
-          <div class="mc-search">
-            <input type="text" id="messengerSearch" placeholder="Search conversations..." oninput="filterConversations()">
-          </div>
-          <div class="mc-list" id="messengerConvList">
-            <div class="mc-empty">
-              <i class="fa-brands fa-facebook-messenger"></i>
-              <p>No conversations yet.<br>Messages will appear here after loading.</p>
-              <button class="hcp-connect-btn" onclick="loadMessengerConversations()">
-                <i class="fa-solid fa-refresh"></i> Load Conversations
+    <!-- MESSENGER VIEW — Pro 3-column -->
+    <div id="view-messenger" style="display:none;height:100%;overflow:hidden">
+      <div class="msng-root">
+
+        <!-- COL 1: Pages -->
+        <div class="msng-pages">
+          <div class="msng-pages-lbl">Pages</div>
+          <div id="msngPagesList"></div>
+        </div>
+
+        <!-- COL 2: Conversations -->
+        <div class="msng-convs" id="msngConvsCol">
+          <div class="msng-convs-hdr">
+            <h3>
+              <button class="msng-back-btn" onclick="msngBack()" title="Back">
+                <i class="fa-solid fa-arrow-left"></i>
               </button>
+              <i class="fa-brands fa-facebook-messenger"></i>
+              Messages
+            </h3>
+            <div class="msng-convs-actions">
+              <span class="msng-unread-pill" id="msngUnreadPill" style="display:none">0</span>
+              <button class="msng-icon-btn" id="msngRefreshBtn" onclick="msngRefresh()" title="Refresh">
+                <i class="fa-solid fa-arrows-rotate"></i>
+              </button>
+            </div>
+          </div>
+          <div class="msng-search">
+            <div class="msng-search-inner">
+              <i class="fa-solid fa-magnifying-glass"></i>
+              <input type="text" placeholder="Search conversations…" oninput="msngSearch(this)" autocomplete="off">
+            </div>
+          </div>
+          <div class="msng-conv-list" id="msngConvList">
+            <div class="msng-empty">
+              <i class="fa-brands fa-facebook-messenger"></i>
+              <p>Select a page to load conversations.</p>
             </div>
           </div>
         </div>
 
-        <!-- Chat Area -->
-        <div class="messenger-chat" id="messengerChatArea">
-          <div class="chat-empty" id="chatEmpty">
-            <i class="fa-regular fa-comments"></i>
+        <!-- COL 3: Chat -->
+        <div class="msng-chat">
+
+          <!-- Empty state -->
+          <div class="msng-chat-empty" id="msngChatEmpty">
+            <div class="msng-chat-empty-icon">
+              <i class="fa-brands fa-facebook-messenger"></i>
+            </div>
             <h4>Select a conversation</h4>
-            <p>Choose a conversation from the left to start chatting</p>
+            <p>Choose a conversation from the left to start chatting with your customers.</p>
           </div>
-          <div id="chatContent" style="display:none">
-            <div class="chat-header" id="chatHeader">
-              <img src="" class="chat-header-avatar" id="chatAvatar" alt="">
-              <div class="chat-header-info">
-                <div class="chat-header-name" id="chatName">User</div>
-                <div class="chat-header-status" id="chatStatus"><i class="fa-solid fa-circle" style="font-size:8px"></i> Active</div>
+
+          <!-- Chat window (shown when conversation is open) -->
+          <div class="msng-chat-window" id="msngChatWindow" style="display:none">
+
+            <!-- Header -->
+            <div class="msng-chat-hdr">
+              <div class="msng-chat-hdr-avatar" id="msngChatHdrAvatar">
+                <div class="msng-hdr-initial">U</div>
               </div>
-              <div class="chat-header-actions">
-                <button class="chat-header-btn" title="Mark as read"><i class="fa-solid fa-check-double"></i></button>
+              <div class="msng-chat-hdr-info">
+                <div class="msng-chat-hdr-name" id="msngChatHdrName">User</div>
+                <div class="msng-chat-hdr-sub" id="msngChatHdrSub">
+                  <i class="fa-solid fa-circle dot-green" style="font-size:7px;color:#22c55e"></i>
+                  Facebook Messenger
+                </div>
+              </div>
+              <div class="msng-chat-hdr-btns">
+                <button class="msng-chat-hdr-btn" onclick="msngMarkRead()" title="Mark as read">
+                  <i class="fa-solid fa-check-double"></i>
+                </button>
+                <button class="msng-chat-hdr-btn" onclick="msngScrollToBottom()" title="Scroll to bottom">
+                  <i class="fa-solid fa-angles-down"></i>
+                </button>
               </div>
             </div>
-            <div class="chat-messages" id="chatMessages"></div>
-            <div class="chat-typing" id="chatTyping">
-              <i class="fa-solid fa-ellipsis"></i> typing...
+
+            <!-- Messages -->
+            <div class="msng-msgs" id="msngMsgs"></div>
+
+            <!-- Scroll to bottom button -->
+            <button class="msng-scroll-btn" id="msngScrollBtn" onclick="msngScrollToBottom()">
+              <i class="fa-solid fa-chevron-down"></i>
+            </button>
+
+            <!-- Typing indicator -->
+            <div class="msng-typing" id="msngTyping">
+              <div class="msng-typing-dots">
+                <span></span><span></span><span></span>
+              </div>
             </div>
-            <div class="chat-input-bar">
-              <button class="chat-attach-btn" title="Attach"><i class="fa-solid fa-paperclip"></i></button>
-              <textarea id="chatInput" rows="1" placeholder="Type a message..." onkeydown="handleChatKeydown(event)"></textarea>
-              <button class="chat-send-btn" onclick="sendChatMessage()"><i class="fa-solid fa-paper-plane"></i></button>
+
+            <!-- Input Bar -->
+            <div class="msng-input-bar">
+              <div class="msng-input-wrap">
+                <textarea class="msng-textarea" id="msngMsgTextarea" rows="1"
+                  placeholder="Type a message…"
+                  onkeydown="msngKeydown(event)"
+                  oninput="msngTextareaInput(this)"></textarea>
+              </div>
+              <button class="msng-send-btn" id="msngSendBtn" onclick="msngSend()" title="Send">
+                <i class="fa-solid fa-paper-plane"></i>
+              </button>
             </div>
-          </div>
-        </div>
-      </div>
+
+          </div><!-- /chat-window -->
+        </div><!-- /col-3 -->
+
+      </div><!-- /msng-root -->
     </div><!-- /view-messenger -->
+
+    <!-- Toast notification -->
+    <div class="msng-toast" id="msngToast"></div>
 
     <!-- BROADCAST VIEW -->
     <div id="view-broadcast" class="broadcast-view" style="display:none">
@@ -1919,6 +1980,7 @@ window.FB_CONFIG={appId:window.APP_CONFIG.fbAppId,csrfToken:window.APP_CONFIG.cs
 <script src="https://js.stripe.com/v3/" defer></script>
 <script src="assets/js/index-page.js?v=<?php echo filemtime(__DIR__.'/assets/js/index-page.js'); ?>" defer></script>
 <script src="assets/js/ui-components.js?v=<?php echo filemtime(__DIR__.'/assets/js/ui-components.js'); ?>" defer></script>
+<script src="assets/js/messenger.js?v=<?php echo filemtime(__DIR__.'/assets/js/messenger.js'); ?>" defer></script>
 <script src="fb_api.js?v=<?php echo filemtime(__DIR__.'/fb_api.js'); ?>" defer></script>
 <script src="web_ui.js?v=<?php echo filemtime(__DIR__.'/web_ui.js'); ?>" defer></script>
 <script>
