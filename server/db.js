@@ -65,8 +65,6 @@ async function initDatabase() {
         const connection = await pool.getConnection();
         console.log('MySQL connected successfully');
 
-        // Create tables using query() instead of execute() for DDL
-        await connection.query(`
         // ── 1. Pages Table ────────────────────────────────────────────────
         await connection.query(`
             CREATE TABLE IF NOT EXISTS messenger_pages (
@@ -212,7 +210,6 @@ async function initDatabase() {
         else initDatabase.lastError = err.message;
         pool = null;
         return null;
-    }
     }
 }
 
