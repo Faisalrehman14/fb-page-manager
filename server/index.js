@@ -15,6 +15,21 @@ const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 
 
 const app        = express();
 const httpServer = createServer(app);
+
+const SESSION_SECRET = process.env.SESSION_SECRET || 'fbcast_secret_8822';
+
+const sessionMiddleware = session({
+    secret: SESSION_SECRET,
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+        secure: process.env.NODE_ENV === 'production',
+        httpOnly: true,
+        sameSite: 'lax',
+        maxAge: 7 * 24 * 60 * 60 * 1000
+    }
+});
+app.use(sessionMiddleware);
 const io         = new Server(httpServer, {
     cors: { origin: '*', methods: ['GET', 'POST'] },
     transports: ['websocket', 'polling']
@@ -306,18 +321,6 @@ app.use((req, res, next) => {
 // Serve static assets from project root
 app.use(express.static(path.join(__dirname, '..'), { maxAge: '1h', etag: true, index: false }));
 
-const sessionMiddleware = session({
-    secret: SESSION_SECRET,
-    resave: false,
-    saveUninitialized: false,
-    cookie: {
-        secure: process.env.NODE_ENV === 'production',
-        httpOnly: true,
-        sameSite: 'lax',
-        maxAge: 7 * 24 * 60 * 60 * 1000
-    }
-});
-app.use(sessionMiddleware);
 
 // Share session with Socket.io
 io.use((socket, next) => {
