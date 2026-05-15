@@ -1171,6 +1171,18 @@ app.get('/', (req, res) => {
     }
 });
 
+// All frontend routes serve the same SPA index.html
+app.get(['/dashboard.html', '/inbox.html', '/messenger.html', '/index.html'], (req, res) => {
+    try {
+        res.setHeader('Content-Type', 'text/html; charset=utf-8');
+        res.setHeader('Cache-Control', 'no-store');
+        res.send(renderIndexHtml(req));
+    } catch (err) {
+        logError('render_index', err);
+        res.status(500).send('<h1>Server Error</h1><p>Could not load application.</p>');
+    }
+});
+
 // ── Global Error Handler ──────────────────────────────────────────────────────
 app.use((err, req, res, next) => {
     logError('express', err, { url: req.url, method: req.method });
