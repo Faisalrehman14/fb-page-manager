@@ -23,7 +23,7 @@ const sessionMiddleware = session({
     resave: false,
     saveUninitialized: true,
     cookie: {
-        secure: process.env.NODE_ENV === 'production',
+        secure: false, // Railway handles SSL at proxy, let's keep it simple for now to avoid session issues
         httpOnly: true,
         sameSite: 'lax',
         maxAge: 7 * 24 * 60 * 60 * 1000
@@ -385,7 +385,10 @@ function generateCsrf(req) {
 function verifyCsrf(req, res, next) {
     if (req.method === 'GET') return next();
     const t = req.headers['x-csrf-token'];
-    if (!t || t !== req.session.csrfToken) return res.status(403).json({ error: 'Invalid CSRF token' });
+    if (!t || t !== req.session.csrfToken) {
+        console.warn(`[CSRF] Rejecting ${req.method} ${req.url}: header=${t}, session=${req.session?.csrfToken}`);
+        return res.status(403).json({ error: 'Invalid CSRF token' });
+    }
     next();
 }
 function requireAuth(req, res, next) {
