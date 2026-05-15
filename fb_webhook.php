@@ -160,8 +160,8 @@ function handleEvent(
     if (!$psid || !$pageId) return;
 
     $ts = isset($event['timestamp'])
-        ? date('Y-m-d H:i:s', (int) ($event['timestamp'] / 1000))
-        : date('Y-m-d H:i:s');
+        ? gmdate('Y-m-d H:i:s', (int) ($event['timestamp'] / 1000))
+        : gmdate('Y-m-d H:i:s');
 
     // ── Incoming message ──────────────────────────────────────────────────────
     if (isset($event['message'])) {

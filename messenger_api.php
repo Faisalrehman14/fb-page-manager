@@ -79,9 +79,13 @@ if ($method === 'GET') {
 
     if ($action === 'poll') {
         $pageId = trim($_GET['page_id'] ?? '');
-        $since  = trim($_GET['since']   ?? '') ?: date('Y-m-d H:i:s', time() - 30);
         $psid   = trim($_GET['psid']    ?? '');
         if (!$pageId) respond(['error' => 'Missing page_id'], 400);
+
+        // Normalise $since — JS sends UTC ISO strings; fall back to 30s ago.
+        // We always return server_time in UTC so all subsequent polls are consistent.
+        $rawSince = trim($_GET['since'] ?? '');
+        $since    = $rawSince ?: gmdate('Y-m-d H:i:s', time() - 30);
 
         $newMsgs = [];
         if ($psid) {
@@ -93,7 +97,7 @@ if ($method === 'GET') {
             'new_messages'  => $newMsgs,
             'updated_convs' => $convs->updatedSince($pageId, $since),
             'total_unread'  => $convs->totalUnread($pageId),
-            'server_time'   => date('Y-m-d H:i:s'),
+            'server_time'   => gmdate('Y-m-d H:i:s'), // UTC — matches JS Date.now()
         ]);
     }
 
@@ -144,7 +148,7 @@ if ($method === 'POST') {
         }
 
         $content = $imageUrl ? '[Image] ' . $imageUrl : $text;
-        $now     = date('Y-m-d H:i:s');
+        $now     = gmdate('Y-m-d H:i:s');
         $convId  = $convs->ensureExists($pageId, $psid);
 
         $msgs->save($convId, $pageId, $psid, $res['message_id'] ?? null, $content, true, null, null, $now);
