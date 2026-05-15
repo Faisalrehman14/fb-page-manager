@@ -204,12 +204,14 @@ async function syncAllPagesHistory(pages) {
   for (const page of pages) {
     if (!page.id || !page.access_token) { done++; continue; }
     try {
-      const resp = await fetch('/api/sync-history', {
+      const data = await requestJson('/api/sync-history', {
         method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'X-CSRF-Token': await window.getCsrfToken?.() || ''
+        },
         body:    JSON.stringify({ page_id: page.id, page_token: page.access_token }),
       });
-      const data = await resp.json();
       done++;
       window.dispatchEvent(new CustomEvent('fbcast:sync-progress', {
         detail: { done, total: pages.length, page_id: page.id, result: data }
