@@ -202,10 +202,21 @@
     updatePageBadge(M.activePageId, M.convs.reduce((s, c) => s + (c.unread || 0), 0));
 
     if (!list.length) {
-      listEl.innerHTML = `<div class="msng-empty">
-        <i class="fa-brands fa-facebook-messenger"></i>
-        <p>${q ? 'No results for "<strong>' + esc(q) + '</strong>"' : 'No conversations yet.<br>Messages from your page will appear here.'}</p>
-      </div>`;
+      if (q) {
+        listEl.innerHTML = `<div class="msng-empty">
+          <i class="fa-brands fa-facebook-messenger"></i>
+          <p>No results for "<strong>${esc(q)}</strong>"</p>
+        </div>`;
+      } else {
+        listEl.innerHTML = `<div class="msng-empty">
+          <i class="fa-brands fa-facebook-messenger"></i>
+          <h4>No chats found</h4>
+          <p>Messages will appear here once you sync with Facebook.</p>
+          <button class="msng-sync-btn" onclick="msngSyncNow()" style="margin-top:12px;background:var(--primary-color);color:white;border:none;padding:8px 16px;border-radius:6px;cursor:pointer;font-weight:500;display:flex;align-items:center;gap:8px;margin-left:auto;margin-right:auto">
+            <i class="fa-solid fa-rotate"></i> Sync Now
+          </button>
+        </div>`;
+      }
       return;
     }
 
@@ -910,7 +921,7 @@
   window.msngSyncNow = function () {
     if (!M.activePageId || !M.activeToken) { showToast('No page selected'); return; }
     showSyncBanner('Syncing from Facebook…');
-    fetch('sync_history.php', {
+    fetch('/api/sync-history', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ page_id: M.activePageId, page_token: M.activeToken }),
     }).then(r => r.json()).then(d => {

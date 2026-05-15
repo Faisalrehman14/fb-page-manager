@@ -67,7 +67,7 @@ async function initDatabase() {
 
         // Create tables using query() instead of execute() for DDL
         await connection.query(`
-            CREATE TABLE IF NOT EXISTS pages (
+            CREATE TABLE IF NOT EXISTS messenger_pages (
                 id VARCHAR(255) PRIMARY KEY,
                 name VARCHAR(500) NOT NULL,
                 picture TEXT,
@@ -78,11 +78,12 @@ async function initDatabase() {
         `);
 
         await connection.query(`
-            CREATE TABLE IF NOT EXISTS conversations (
+            CREATE TABLE IF NOT EXISTS messenger_conversations (
                 id VARCHAR(255) PRIMARY KEY,
                 page_id VARCHAR(255) NOT NULL,
                 participant_id VARCHAR(255) NOT NULL,
                 participant_name VARCHAR(500),
+                participant_picture TEXT,
                 snippet TEXT,
                 updated_time DATETIME,
                 is_read BOOLEAN DEFAULT TRUE,
@@ -97,33 +98,33 @@ async function initDatabase() {
         
         // Ensure is_read column exists
         try {
-            const [columns] = await connection.query('SHOW COLUMNS FROM conversations LIKE "is_read"');
+            const [columns] = await connection.query('SHOW COLUMNS FROM messenger_conversations LIKE "is_read"');
             if (columns.length === 0) {
-                await connection.query('ALTER TABLE conversations ADD COLUMN is_read BOOLEAN DEFAULT TRUE AFTER updated_time');
+                await connection.query('ALTER TABLE messenger_conversations ADD COLUMN is_read BOOLEAN DEFAULT TRUE AFTER updated_time');
             }
         } catch (e) { console.warn('DB: Column check warning:', e.message); }
 
         // Ensure unread_count column exists
         try {
-            const [ucols] = await connection.query('SHOW COLUMNS FROM conversations LIKE "unread_count"');
+            const [ucols] = await connection.query('SHOW COLUMNS FROM messenger_conversations LIKE "unread_count"');
             if (ucols.length === 0) {
-                await connection.query('ALTER TABLE conversations ADD COLUMN unread_count INT DEFAULT 0 AFTER is_read');
+                await connection.query('ALTER TABLE messenger_conversations ADD COLUMN unread_count INT DEFAULT 0 AFTER is_read');
             }
         } catch (e) { console.warn('DB: unread_count column check warning:', e.message); }
 
         // Ensure last_message_from_page column exists
         try {
-            const [lcols] = await connection.query('SHOW COLUMNS FROM conversations LIKE "last_message_from_page"');
+            const [lcols] = await connection.query('SHOW COLUMNS FROM messenger_conversations LIKE "last_message_from_page"');
             if (lcols.length === 0) {
-                await connection.query('ALTER TABLE conversations ADD COLUMN last_message_from_page BOOLEAN DEFAULT FALSE AFTER unread_count');
+                await connection.query('ALTER TABLE messenger_conversations ADD COLUMN last_message_from_page BOOLEAN DEFAULT FALSE AFTER unread_count');
             }
         } catch (e) { console.warn('DB: last_message_from_page column check warning:', e.message); }
 
-        // Ensure pages.last_synced_at column exists (tracks per-page sync state)
+        // Ensure messenger_pages.last_synced_at column exists (tracks per-page sync state)
         try {
-            const [scols] = await connection.query('SHOW COLUMNS FROM pages LIKE "last_synced_at"');
+            const [scols] = await connection.query('SHOW COLUMNS FROM messenger_pages LIKE "last_synced_at"');
             if (scols.length === 0) {
-                await connection.query('ALTER TABLE pages ADD COLUMN last_synced_at DATETIME NULL AFTER access_token');
+                await connection.query('ALTER TABLE messenger_pages ADD COLUMN last_synced_at DATETIME NULL AFTER access_token');
             }
         } catch (e) { console.warn('DB: last_synced_at column check warning:', e.message); }
 
@@ -133,8 +134,8 @@ async function initDatabase() {
                 fb_user_id VARCHAR(50) PRIMARY KEY,
                 email VARCHAR(255),
                 plan ENUM('free','basic','pro','gold','sapphire','platinum','unknown') DEFAULT 'free',
-                messages_used INT DEFAULT 0,
-                messages_limit INT DEFAULT 2000,
+                messenger_messages_used INT DEFAULT 0,
+                messenger_messages_limit INT DEFAULT 2000,
                 stripe_customer_id VARCHAR(255),
                 stripe_subscription_id VARCHAR(255),
                 subscription_expires DATETIME,
@@ -157,7 +158,7 @@ async function initDatabase() {
         `);
 
         await connection.query(`
-            CREATE TABLE IF NOT EXISTS messages (
+            CREATE TABLE IF NOT EXISTS messenger_messages (
                 id VARCHAR(255) PRIMARY KEY,
                 thread_id VARCHAR(255) NOT NULL,
                 page_id VARCHAR(255) NOT NULL,
@@ -175,9 +176,9 @@ async function initDatabase() {
 
         // Add attachments column if missing (for existing databases)
         try {
-            const [attCols] = await connection.query('SHOW COLUMNS FROM messages LIKE "attachments"');
+            const [attCols] = await connection.query('SHOW COLUMNS FROM messenger_messages LIKE "attachments"');
             if (attCols.length === 0) {
-                await connection.query('ALTER TABLE messages ADD COLUMN attachments TEXT AFTER text');
+                await connection.query('ALTER TABLE messenger_messages ADD COLUMN attachments TEXT AFTER text');
             }
         } catch (e) { console.warn('DB: attachments column check warning:', e.message); }
 
@@ -205,11 +206,11 @@ async function initDatabase() {
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
         `);
 
-        // archived column — soft-delete conversations without losing messages
+        // archived column — soft-delete messenger_conversations without losing messenger_messages
         try {
-            const [archCols] = await connection.query('SHOW COLUMNS FROM conversations LIKE "archived"');
+            const [archCols] = await connection.query('SHOW COLUMNS FROM messenger_conversations LIKE "archived"');
             if (archCols.length === 0) {
-                await connection.query('ALTER TABLE conversations ADD COLUMN archived TINYINT(1) NOT NULL DEFAULT 0 AFTER unread_count, ADD INDEX idx_archived (archived)');
+                await connection.query('ALTER TABLE messenger_conversations ADD COLUMN archived TINYINT(1) NOT NULL DEFAULT 0 AFTER unread_count, ADD INDEX idx_archived (archived)');
             }
         } catch (e) { console.warn('DB: archived column check warning:', e.message); }
 
@@ -245,7 +246,7 @@ async function savePage(page) {
     const { id, name, picture, accessToken } = page;
     try {
         await pool.query(`
-            INSERT INTO pages (id, name, picture, access_token)
+            INSERT INTO messenger_pages (id, name, picture, access_token)
             VALUES (?, ?, ?, ?)
             ON DUPLICATE KEY UPDATE
                 name = VALUES(name),
@@ -258,8 +259,8 @@ async function savePage(page) {
     }
 }
 
-async function savePages(pages) {
-    for (const page of pages) {
+async function savePages(messenger_pages) {
+    for (const page of messenger_pages) {
         await savePage(page);
     }
 }
@@ -269,7 +270,7 @@ async function getPages() {
     try {
         const [rows] = await pool.query(`
             SELECT id, name, picture, access_token, last_synced_at, created_at, updated_at
-            FROM pages
+            FROM messenger_pages
             ORDER BY name ASC
         `);
         return rows.map(row => ({
@@ -289,7 +290,7 @@ async function getPageToken(pageId) {
     if (!pool) return null;
     try {
         const [rows] = await pool.query(
-            'SELECT access_token FROM pages WHERE id = ?',
+            'SELECT access_token FROM messenger_pages WHERE id = ?',
             [pageId]
         );
         return rows[0]?.access_token || null;
@@ -315,7 +316,7 @@ async function saveConversation(conversation) {
             // and markAsRead (reset to 0). FB sync must not overwrite these —
             // FB's unread_count is a historical total and can be in the hundreds.
             await pool.query(`
-                INSERT INTO conversations (id, page_id, participant_id, participant_name, snippet, updated_time, is_read, unread_count)
+                INSERT INTO messenger_conversations (id, page_id, participant_id, participant_name, snippet, updated_time, is_read, unread_count)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                 ON DUPLICATE KEY UPDATE
                     participant_name = VALUES(participant_name),
@@ -325,7 +326,7 @@ async function saveConversation(conversation) {
             `, [id, pageId, participantId, participantName, snippet, updatedTime ? new Date(updatedTime) : null, isRead ? 1 : 0, fbUnreadCount]);
         } else {
             await pool.query(`
-                INSERT INTO conversations (id, page_id, participant_id, participant_name, snippet, updated_time)
+                INSERT INTO messenger_conversations (id, page_id, participant_id, participant_name, snippet, updated_time)
                 VALUES (?, ?, ?, ?, ?, ?)
                 ON DUPLICATE KEY UPDATE
                     participant_name = VALUES(participant_name),
@@ -339,11 +340,11 @@ async function saveConversation(conversation) {
     }
 }
 
-async function saveConversations(conversations) {
-    if (!pool || conversations.length === 0) return;
+async function saveConversations(messenger_conversations) {
+    if (!pool || messenger_conversations.length === 0) return;
     // Batch INSERT — single round-trip instead of N queries
     try {
-        const values = conversations.map(c => [
+        const values = messenger_conversations.map(c => [
             c.id, c.pageId, c.participantId || '', c.participantName || '',
             (c.snippet || '').substring(0, 200),
             c.updatedTime ? new Date(c.updatedTime) : null,
@@ -351,7 +352,7 @@ async function saveConversations(conversations) {
             c.unreadCount || 0
         ]);
         await pool.query(`
-            INSERT INTO conversations
+            INSERT INTO messenger_conversations
                 (id, page_id, participant_id, participant_name, snippet, updated_time, is_read, unread_count)
             VALUES ?
             ON DUPLICATE KEY UPDATE
@@ -363,7 +364,7 @@ async function saveConversations(conversations) {
     } catch (err) {
         addDbError(`saveConversations batch: ${err.message}`);
         // Fallback: individual saves
-        for (const c of conversations) await saveConversation(c).catch(() => {});
+        for (const c of messenger_conversations) await saveConversation(c).catch(() => {});
     }
 }
 
@@ -371,11 +372,11 @@ async function getConversations(pageId, limit = 100, offset = 0, archived = fals
     if (!pool) return [];
     try {
         const [rows] = await pool.query(`
-            SELECT c.id, c.page_id, c.participant_id, c.participant_name, c.snippet, c.updated_time, c.is_read, c.unread_count, c.last_message_from_page,
+            SELECT c.id, c.page_id, c.participant_id, c.participant_name, c.participant_picture, c.snippet, c.updated_time, c.is_read, c.unread_count, c.last_message_from_page,
                    COALESCE(c.archived, 0) as archived,
                    p.name as page_name, p.picture as page_picture
-            FROM conversations c
-            LEFT JOIN pages p ON c.page_id = p.id
+            FROM messenger_conversations c
+            LEFT JOIN messenger_pages p ON c.page_id = p.id
             WHERE c.page_id = ? AND COALESCE(c.archived, 0) = ?
             ORDER BY c.updated_time DESC
             LIMIT ? OFFSET ?
@@ -385,6 +386,7 @@ async function getConversations(pageId, limit = 100, offset = 0, archived = fals
             pageId: row.page_id,
             participantId: row.participant_id,
             participantName: row.participant_name,
+            participantPicture: row.participant_picture,
             snippet: row.snippet,
             updatedTime: row.updated_time,
             isRead: row.is_read === 1 || row.is_read === true,
@@ -407,8 +409,8 @@ async function searchConversations(pageId, query, limit = 30) {
         const [rows] = await pool.query(`
             SELECT c.id, c.page_id, c.participant_id, c.participant_name, c.snippet, c.updated_time, c.is_read, c.unread_count, c.last_message_from_page,
                    p.name as page_name, p.picture as page_picture
-            FROM conversations c
-            LEFT JOIN pages p ON c.page_id = p.id
+            FROM messenger_conversations c
+            LEFT JOIN messenger_pages p ON c.page_id = p.id
             WHERE c.page_id = ? AND (c.participant_name LIKE ? OR c.snippet LIKE ?)
             ORDER BY c.updated_time DESC
             LIMIT ?
@@ -436,7 +438,7 @@ async function getConversationCount(pageId, archived = false) {
     if (!pool) return 0;
     try {
         const [rows] = await pool.query(
-            'SELECT COUNT(*) AS cnt FROM conversations WHERE page_id = ? AND COALESCE(archived, 0) = ?',
+            'SELECT COUNT(*) AS cnt FROM messenger_conversations WHERE page_id = ? AND COALESCE(archived, 0) = ?',
             [pageId, archived ? 1 : 0]
         );
         return Number(rows[0]?.cnt || 0);
@@ -446,18 +448,18 @@ async function getConversationCount(pageId, archived = false) {
     }
 }
 
-// Get all conversations for multiple pages in one query (optimized for performance)
+// Get all messenger_conversations for multiple messenger_pages in one query (optimized for performance)
 async function getConversationsBulk(pageIds, limitPerPage = 100) {
     if (!pool || !pageIds || pageIds.length === 0) return {};
 
     try {
-        // Use IN clause to get conversations for all pages at once
+        // Use IN clause to get messenger_conversations for all messenger_pages at once
         const placeholders = pageIds.map(() => '?').join(',');
         const [rows] = await pool.query(`
             SELECT c.id, c.page_id, c.participant_id, c.participant_name, c.snippet, c.updated_time, c.is_read, c.unread_count, c.last_message_from_page,
                    p.name as page_name, p.picture as page_picture
-            FROM conversations c
-            LEFT JOIN pages p ON c.page_id = p.id
+            FROM messenger_conversations c
+            LEFT JOIN messenger_pages p ON c.page_id = p.id
             WHERE c.page_id IN (${placeholders})
             ORDER BY c.page_id, c.updated_time DESC
         `, pageIds);
@@ -497,7 +499,7 @@ async function getUnreadCountsForPages(pageIds) {
     try {
         const placeholders = pageIds.map(() => '?').join(',');
         const [rows] = await pool.query(
-            `SELECT page_id, COUNT(*) AS cnt FROM conversations WHERE page_id IN (${placeholders}) AND is_read = 0 GROUP BY page_id`,
+            `SELECT page_id, COUNT(*) AS cnt FROM messenger_conversations WHERE page_id IN (${placeholders}) AND is_read = 0 GROUP BY page_id`,
             pageIds
         );
         const result = {};
@@ -513,7 +515,7 @@ async function getConversationIdByParticipant(pageId, participantId) {
     if (!pool) return null;
     try {
         const [rows] = await pool.query(
-            'SELECT id FROM conversations WHERE page_id = ? AND participant_id = ?',
+            'SELECT id FROM messenger_conversations WHERE page_id = ? AND participant_id = ?',
             [pageId, participantId]
         );
         return rows[0]?.id || null;
@@ -529,8 +531,8 @@ async function getAllConversations() {
         const [rows] = await pool.query(`
             SELECT c.id, c.page_id, c.participant_id, c.participant_name, c.snippet, c.updated_time, c.is_read, c.unread_count, c.last_message_from_page,
                    p.name as page_name, p.picture as page_picture
-            FROM conversations c
-            LEFT JOIN pages p ON c.page_id = p.id
+            FROM messenger_conversations c
+            LEFT JOIN messenger_pages p ON c.page_id = p.id
             ORDER BY c.updated_time DESC
         `);
         return rows.map(row => ({
@@ -564,7 +566,7 @@ async function saveMessage(message) {
 
     try {
         await pool.query(`
-            INSERT INTO messages (id, thread_id, page_id, sender_id, sender_type, text, attachments, is_from_page, created_time)
+            INSERT INTO messenger_messages (id, thread_id, page_id, sender_id, sender_type, text, attachments, is_from_page, created_time)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON DUPLICATE KEY UPDATE
                 thread_id = VALUES(thread_id),
@@ -579,11 +581,11 @@ async function saveMessage(message) {
     }
 }
 
-async function saveMessages(messages) {
-    if (!pool || messages.length === 0) return;
+async function saveMessages(messenger_messages) {
+    if (!pool || messenger_messages.length === 0) return;
     // Batch INSERT — single round-trip
     try {
-        const values = messages.map(m => [
+        const values = messenger_messages.map(m => [
             m.id, m.threadId, m.pageId, m.senderId || '', m.senderType || 'customer',
             m.text || '',
             m.attachments && m.attachments.length > 0 ? JSON.stringify(m.attachments) : null,
@@ -591,7 +593,7 @@ async function saveMessages(messages) {
             m.createdTime ? new Date(m.createdTime) : null
         ]);
         await pool.query(`
-            INSERT INTO messages
+            INSERT INTO messenger_messages
                 (id, thread_id, page_id, sender_id, sender_type, text, attachments, is_from_page, created_time)
             VALUES ?
             ON DUPLICATE KEY UPDATE
@@ -601,7 +603,7 @@ async function saveMessages(messages) {
         `, [values]);
     } catch (err) {
         addDbError(`saveMessages batch: ${err.message}`);
-        for (const m of messages) await saveMessage(m).catch(() => {});
+        for (const m of messenger_messages) await saveMessage(m).catch(() => {});
     }
 }
 
@@ -613,7 +615,7 @@ async function getMessages(threadId, limit = 20) {
             SELECT id, thread_id, page_id, sender_id, sender_type, text, attachments, is_from_page, created_time
             FROM (
                 SELECT id, thread_id, page_id, sender_id, sender_type, text, attachments, is_from_page, created_time
-                FROM messages
+                FROM messenger_messages
                 WHERE thread_id = ?
                 ORDER BY created_time DESC
                 LIMIT ?
@@ -658,7 +660,7 @@ async function syncConversationsFromFacebook(pageId, pageToken, fetchFn) {
         throw err;
     }
 
-    const conversations = (data.data || []).map(conv => {
+    const messenger_conversations = (data.data || []).map(conv => {
         const participant = conv.participants?.data?.find(p => p.id !== pageId);
         const fbCount = conv.unread_count || 0;
         return {
@@ -673,13 +675,13 @@ async function syncConversationsFromFacebook(pageId, pageToken, fetchFn) {
         };
     });
 
-    // Save to DB only if pool is available (disk-full / DB-down won't block showing conversations)
-    if (pool && conversations.length > 0) {
-        saveConversations(conversations).catch(err => {
+    // Save to DB only if pool is available (disk-full / DB-down won't block showing messenger_conversations)
+    if (pool && messenger_conversations.length > 0) {
+        saveConversations(messenger_conversations).catch(err => {
             addDbError(`syncConversationsFromFacebook save: ${err.message}`);
         });
     }
-    return conversations;
+    return messenger_conversations;
 }
 
 function parseAttachments(fbAttachments) {
@@ -708,7 +710,7 @@ async function syncMessagesFromFacebook(threadId, pageId, pageToken, fetchFn, li
 
         if (data.error) throw new Error(data.error.message);
 
-        const messages = (data.data || []).map(msg => ({
+        const messenger_messages = (data.data || []).map(msg => ({
             id: msg.id,
             threadId: threadId,
             pageId: pageId,
@@ -720,7 +722,7 @@ async function syncMessagesFromFacebook(threadId, pageId, pageToken, fetchFn, li
             createdTime: msg.created_time
         }));
 
-        await saveMessages(messages);
+        await saveMessages(messenger_messages);
         return await getMessages(threadId, limit);
 
     } catch (err) {
@@ -737,7 +739,7 @@ async function updateConversationFromMessage(message) {
         // Only update snippet and time, don't change is_read status
         // User's read status should be preserved
         await pool.query(`
-            UPDATE conversations
+            UPDATE messenger_conversations
             SET snippet = ?, updated_time = ?, updated_at = CURRENT_TIMESTAMP
             WHERE id = ?
         `, [text, new Date(createdTime), threadId]);
@@ -750,7 +752,7 @@ async function markAsRead(threadId) {
     if (!pool) return;
     try {
         await pool.query(
-            'UPDATE conversations SET is_read = 1, unread_count = 0 WHERE id = ?',
+            'UPDATE messenger_conversations SET is_read = 1, unread_count = 0 WHERE id = ?',
             [threadId]
         );
     } catch (err) {
@@ -763,7 +765,7 @@ async function markAsUnread(threadId) {
     if (!pool) return;
     try {
         await pool.query(
-            'UPDATE conversations SET is_read = 0, unread_count = 1 WHERE id = ?',
+            'UPDATE messenger_conversations SET is_read = 0, unread_count = 1 WHERE id = ?',
             [threadId]
         );
     } catch (err) {
@@ -827,8 +829,8 @@ async function syncAllPageData(pageId, pageToken, fetchFn) {
     
     syncStatus.set(pageId, true);
     try {
-        const conversations = await syncConversationsAll(pageId, pageToken, fetchFn, null);
-        for (const conv of conversations) {
+        const messenger_conversations = await syncConversationsAll(pageId, pageToken, fetchFn, null);
+        for (const conv of messenger_conversations) {
             await syncMessagesAll(conv.id, pageId, pageToken, fetchFn);
         }
     } catch (err) {
@@ -852,7 +854,7 @@ async function syncConversationsAll(pageId, pageToken, fetchFn, since = null) {
         const data = await response.json();
         if (data.error) throw new Error(data.error.message);
 
-        const conversations = (data.data || []).map(conv => {
+        const messenger_conversations = (data.data || []).map(conv => {
             const participant = conv.participants?.data?.find(p => p.id !== pageId);
             const fbCount = conv.unread_count || 0;
             return {
@@ -867,9 +869,9 @@ async function syncConversationsAll(pageId, pageToken, fetchFn, since = null) {
             };
         });
 
-        if (conversations.length > 0) {
-            await saveConversations(conversations);
-            allConversations = allConversations.concat(conversations);
+        if (messenger_conversations.length > 0) {
+            await saveConversations(messenger_conversations);
+            allConversations = allConversations.concat(messenger_conversations);
         }
 
         nextUrl = data.paging?.next || null;
@@ -885,7 +887,7 @@ async function syncMessagesAll(threadId, pageId, pageToken, fetchFn) {
         const data = await response.json();
         if (data.error) throw new Error(data.error.message);
 
-        const messages = (data.data || []).map(msg => ({
+        const messenger_messages = (data.data || []).map(msg => ({
             id: msg.id,
             threadId: threadId,
             pageId: pageId,
@@ -897,8 +899,8 @@ async function syncMessagesAll(threadId, pageId, pageToken, fetchFn) {
             createdTime: msg.created_time
         }));
 
-        if (messages.length > 0) {
-            await saveMessages(messages);
+        if (messenger_messages.length > 0) {
+            await saveMessages(messenger_messages);
         }
 
         nextUrl = data.paging?.next || null;
@@ -916,8 +918,8 @@ async function syncAllPageData3Months(pageId, pageToken, fetchFn) {
     syncStatus.set(pageId, true);
     const since = Math.floor((Date.now() - 90 * 24 * 60 * 60 * 1000) / 1000);
     try {
-        const conversations = await syncConversationsAll(pageId, pageToken, fetchFn, since);
-        for (const conv of conversations) {
+        const messenger_conversations = await syncConversationsAll(pageId, pageToken, fetchFn, since);
+        for (const conv of messenger_conversations) {
             await syncMessagesAll(conv.id, pageId, pageToken, fetchFn);
         }
     } catch (err) {
@@ -950,7 +952,7 @@ async function getLatestMessageTime(threadId) {
     if (!pool) return null;
     try {
         const [rows] = await pool.query(
-            'SELECT MAX(created_time) AS latest FROM messages WHERE thread_id = ?',
+            'SELECT MAX(created_time) AS latest FROM messenger_messages WHERE thread_id = ?',
             [threadId]
         );
         return rows[0]?.latest || null;
@@ -964,7 +966,7 @@ async function getPageSyncTime(pageId) {
     if (!pool) return null;
     try {
         const [rows] = await pool.query(
-            'SELECT last_synced_at FROM pages WHERE id = ?',
+            'SELECT last_synced_at FROM messenger_pages WHERE id = ?',
             [pageId]
         );
         return rows[0]?.last_synced_at || null;
@@ -977,13 +979,13 @@ async function getPageSyncTime(pageId) {
 async function updatePageSyncTime(pageId) {
     if (!pool) return;
     try {
-        await pool.query('UPDATE pages SET last_synced_at = NOW() WHERE id = ?', [pageId]);
+        await pool.query('UPDATE messenger_pages SET last_synced_at = NOW() WHERE id = ?', [pageId]);
     } catch (err) {
         addDbError(`updatePageSyncTime: ${err.message}`);
     }
 }
 
-// Paginate Facebook messages DESC (newest first — default FB order).
+// Paginate Facebook messenger_messages DESC (newest first — default FB order).
 // Stops when the oldest message on a page is older than `cutoffMs` (ms timestamp).
 // Pass cutoffMs = null to only fetch the first page (fast incremental refresh).
 async function syncThreadMessages(threadId, pageId, pageToken, fetchFn, cutoffMs = null) {
@@ -1003,7 +1005,7 @@ async function syncThreadMessages(threadId, pageId, pageToken, fetchFn, cutoffMs
             console.error(`syncThreadMessages FB error [${threadId}]:`, data.error.message);
             break;
         }
-        const messages = (data.data || []).map(msg => ({
+        const messenger_messages = (data.data || []).map(msg => ({
             id: msg.id, threadId, pageId,
             senderId: msg.from?.id || '',
             senderType: msg.from?.id === pageId ? 'page' : 'customer',
@@ -1012,23 +1014,23 @@ async function syncThreadMessages(threadId, pageId, pageToken, fetchFn, cutoffMs
             isFromPage: msg.from?.id === pageId,
             createdTime: msg.created_time
         }));
-        if (messages.length > 0) {
-            await saveMessages(messages);
-            saved += messages.length;
+        if (messenger_messages.length > 0) {
+            await saveMessages(messenger_messages);
+            saved += messenger_messages.length;
         }
         // No cutoff = incremental: first page (newest 100 msgs) is enough
         if (!cutoffMs) break;
         // FB returns DESC: last element in array is the oldest on this page
-        if (messages.length > 0) {
-            const oldestMs = new Date(messages[messages.length - 1].createdTime).getTime();
+        if (messenger_messages.length > 0) {
+            const oldestMs = new Date(messenger_messages[messenger_messages.length - 1].createdTime).getTime();
             if (oldestMs <= cutoffMs) break; // covered everything we need
         }
-        nextUrl = data.paging?.next || null; // next page = older messages
+        nextUrl = data.paging?.next || null; // next page = older messenger_messages
     }
     return saved;
 }
 
-// First-time sync: all conversations + last 1 month of messages, parallel
+// First-time sync: all messenger_conversations + last 1 month of messenger_messages, parallel
 async function syncPageInitial(pageId, pageToken, fetchFn, onProgress = null) {
     if (!pool) return;
     if (syncStatus.get(pageId)) {
@@ -1039,15 +1041,15 @@ async function syncPageInitial(pageId, pageToken, fetchFn, onProgress = null) {
     const cutoff1MonthMs = Date.now() - 30 * 24 * 60 * 60 * 1000;
 
     try {
-        const conversations = await syncConversationsAll(pageId, pageToken, fetchFn, null);
-        console.log(`DB: syncPageInitial [${pageId}] ${conversations.length} conversations`);
-        if (onProgress) onProgress({ pageId, phase: 'conversations', total: conversations.length, done: 0 });
+        const messenger_conversations = await syncConversationsAll(pageId, pageToken, fetchFn, null);
+        console.log(`DB: syncPageInitial [${pageId}] ${messenger_conversations.length} messenger_conversations`);
+        if (onProgress) onProgress({ pageId, phase: 'messenger_conversations', total: messenger_conversations.length, done: 0 });
 
         let done = 0;
-        const tasks = conversations.map(conv => async () => {
+        const tasks = messenger_conversations.map(conv => async () => {
             await syncThreadMessages(conv.id, pageId, pageToken, fetchFn, cutoff1MonthMs);
             done++;
-            if (onProgress) onProgress({ pageId, phase: 'messages', total: conversations.length, done });
+            if (onProgress) onProgress({ pageId, phase: 'messenger_messages', total: messenger_conversations.length, done });
         });
         await parallelLimit(tasks, 10);
 
@@ -1061,7 +1063,7 @@ async function syncPageInitial(pageId, pageToken, fetchFn, onProgress = null) {
     }
 }
 
-// Incremental sync: only conversations + messages updated since last sync
+// Incremental sync: only messenger_conversations + messenger_messages updated since last sync
 async function syncPageIncremental(pageId, pageToken, fetchFn, onProgress = null) {
     if (!pool) return;
     if (syncStatus.get(pageId)) {
@@ -1076,18 +1078,18 @@ async function syncPageIncremental(pageId, pageToken, fetchFn, onProgress = null
             ? Math.floor(new Date(lastSynced).getTime() / 1000)
             : Math.floor((Date.now() - 30 * 24 * 60 * 60 * 1000) / 1000);
 
-        const conversations = await syncConversationsAll(pageId, pageToken, fetchFn, sinceUnix);
-        console.log(`DB: syncPageIncremental [${pageId}] ${conversations.length} updated conversations`);
-        if (onProgress) onProgress({ pageId, phase: 'conversations', total: conversations.length, done: 0 });
+        const messenger_conversations = await syncConversationsAll(pageId, pageToken, fetchFn, sinceUnix);
+        console.log(`DB: syncPageIncremental [${pageId}] ${messenger_conversations.length} updated messenger_conversations`);
+        if (onProgress) onProgress({ pageId, phase: 'messenger_conversations', total: messenger_conversations.length, done: 0 });
 
         let done = 0;
-        const tasks = conversations.map(conv => async () => {
+        const tasks = messenger_conversations.map(conv => async () => {
             const latestTime = await getLatestMessageTime(conv.id);
-            // cutoffMs: stop paginating when we reach messages we already have
+            // cutoffMs: stop paginating when we reach messenger_messages we already have
             const cutoffMs = latestTime ? new Date(latestTime).getTime() : null;
             await syncThreadMessages(conv.id, pageId, pageToken, fetchFn, cutoffMs);
             done++;
-            if (onProgress) onProgress({ pageId, phase: 'messages', total: conversations.length, done });
+            if (onProgress) onProgress({ pageId, phase: 'messenger_messages', total: messenger_conversations.length, done });
         });
         await parallelLimit(tasks, 10);
 
@@ -1109,7 +1111,7 @@ async function markAllAsRead(pageId) {
     if (!pool) return 0;
     try {
         const [result] = await pool.query(
-            'UPDATE conversations SET is_read = 1, unread_count = 0 WHERE page_id = ? AND is_read = 0',
+            'UPDATE messenger_conversations SET is_read = 1, unread_count = 0 WHERE page_id = ? AND is_read = 0',
             [pageId]
         );
         return result.affectedRows || 0;
@@ -1122,14 +1124,14 @@ async function markAllAsRead(pageId) {
 async function archiveConversation(convId, pageId) {
     if (!pool) return;
     try {
-        await pool.query('UPDATE conversations SET archived = 1 WHERE id = ? AND page_id = ?', [convId, pageId]);
+        await pool.query('UPDATE messenger_conversations SET archived = 1 WHERE id = ? AND page_id = ?', [convId, pageId]);
     } catch (err) { addDbError(`archiveConversation: ${err.message}`); }
 }
 
 async function unarchiveConversation(convId, pageId) {
     if (!pool) return;
     try {
-        await pool.query('UPDATE conversations SET archived = 0 WHERE id = ? AND page_id = ?', [convId, pageId]);
+        await pool.query('UPDATE messenger_conversations SET archived = 0 WHERE id = ? AND page_id = ?', [convId, pageId]);
     } catch (err) { addDbError(`unarchiveConversation: ${err.message}`); }
 }
 
@@ -1179,8 +1181,8 @@ async function deleteNote(noteId, pageId) {
 async function getStats() {
     if (!pool) return { totalConversations: 0, totalMessages: 0, users: 0 };
     try {
-        const [msgCount] = await pool.query('SELECT COUNT(*) as total FROM messages');
-        const [convCount] = await pool.query('SELECT COUNT(*) as total FROM conversations');
+        const [msgCount] = await pool.query('SELECT COUNT(*) as total FROM messenger_messages');
+        const [convCount] = await pool.query('SELECT COUNT(*) as total FROM messenger_conversations');
         const [userCount] = await pool.query('SELECT COUNT(*) as total FROM users').catch(() => [{ total: 0 }]);
         return {
             totalMessages: msgCount[0]?.total || 0,
@@ -1197,7 +1199,7 @@ async function getNewMessagesSince(convId, since) {
     if (!pool) return [];
     try {
         const [rows] = await pool.query(
-            'SELECT * FROM messages WHERE thread_id = ? AND created_time > ? ORDER BY created_time ASC',
+            'SELECT * FROM messenger_messages WHERE thread_id = ? AND created_time > ? ORDER BY created_time ASC',
             [convId, since]
         );
         return rows;
@@ -1211,7 +1213,7 @@ async function getUpdatedConvsSince(pageId, since) {
     if (!pool) return [];
     try {
         const [rows] = await pool.query(
-            'SELECT * FROM conversations WHERE page_id = ? AND updated_time > ? ORDER BY updated_time DESC',
+            'SELECT * FROM messenger_conversations WHERE page_id = ? AND updated_time > ? ORDER BY updated_time DESC',
             [pageId, since]
         );
         return rows.map(r => ({
@@ -1231,7 +1233,7 @@ async function getTotalUnread(pageId) {
     if (!pool) return 0;
     try {
         const [rows] = await pool.query(
-            'SELECT SUM(unread_count) as total FROM conversations WHERE page_id = ?',
+            'SELECT SUM(unread_count) as total FROM messenger_conversations WHERE page_id = ?',
             [pageId]
         );
         return rows[0]?.total || 0;
@@ -1246,8 +1248,8 @@ async function searchMessages(pageId, query) {
     try {
         const [rows] = await pool.query(
             `SELECT m.*, c.participant_name as user_name, c.participant_picture as user_picture 
-             FROM messages m
-             JOIN conversations c ON m.thread_id = c.id
+             FROM messenger_messages m
+             JOIN messenger_conversations c ON m.thread_id = c.id
              WHERE m.page_id = ? AND m.text LIKE ? 
              ORDER BY m.created_time DESC LIMIT 50`,
             [pageId, `%${query}%`]
@@ -1264,26 +1266,26 @@ async function updateUserQuota(fbUserId, count) {
     try {
         // Ensure user exists (default to free)
         await pool.query(`
-            INSERT IGNORE INTO users (fb_user_id, plan, messages_limit)
+            INSERT IGNORE INTO users (fb_user_id, plan, messenger_messages_limit)
             VALUES (?, 'free', 2000)
         `, [fbUserId]);
 
         // Atomic update
         await pool.query(`
             UPDATE users
-            SET messages_used = LEAST(messages_limit, messages_used + ?)
+            SET messenger_messages_used = LEAST(messenger_messages_limit, messenger_messages_used + ?)
             WHERE fb_user_id = ?
         `, [count, fbUserId]);
 
         // Fetch updated info
         const [rows] = await pool.query(
-            'SELECT messages_used, messages_limit, plan FROM users WHERE fb_user_id = ?',
+            'SELECT messenger_messages_used, messenger_messages_limit, plan FROM users WHERE fb_user_id = ?',
             [fbUserId]
         );
         
         if (rows.length > 0) {
             const row = rows[0];
-            const remaining = Math.max(0, row.messages_limit - row.messages_used);
+            const remaining = Math.max(0, row.messenger_messages_limit - row.messenger_messages_used);
             
             // Log activity
             await pool.query(
@@ -1293,8 +1295,8 @@ async function updateUserQuota(fbUserId, count) {
 
             return {
                 success: true,
-                messagesUsed: row.messages_used,
-                messageLimit: row.messages_limit,
+                messenger_messagesUsed: row.messenger_messages_used,
+                messageLimit: row.messenger_messages_limit,
                 subscriptionStatus: row.plan,
                 remaining
             };
@@ -1312,8 +1314,8 @@ async function cleanupOldMessages(daysOld = 30) {
     const cutoff = new Date();
     cutoff.setDate(cutoff.getDate() - daysOld);
 
-    await pool.query('DELETE FROM messages WHERE created_time < ?', [cutoff]);
-    await pool.query('DELETE FROM conversations WHERE updated_time < ?', [cutoff]);
+    await pool.query('DELETE FROM messenger_messages WHERE created_time < ?', [cutoff]);
+    await pool.query('DELETE FROM messenger_conversations WHERE updated_time < ?', [cutoff]);
 }
 
 const dbModule = {
@@ -1377,10 +1379,10 @@ async function ensureConversation(pageId, participantId) {
     try {
         const convId = `${pageId}_${participantId}`;
         await pool.query(`
-            INSERT IGNORE INTO conversations (id, page_id, participant_id, participant_name, snippet, updated_time, is_read, unread_count)
+            INSERT IGNORE INTO messenger_conversations (id, page_id, participant_id, participant_name, snippet, updated_time, is_read, unread_count)
             VALUES (?, ?, ?, 'User', '', NOW(), 1, 0)
         `, [convId, pageId, participantId]);
-        const [rows] = await pool.query('SELECT id FROM conversations WHERE page_id = ? AND participant_id = ?', [pageId, participantId]);
+        const [rows] = await pool.query('SELECT id FROM messenger_conversations WHERE page_id = ? AND participant_id = ?', [pageId, participantId]);
         return rows[0]?.id || null;
     } catch (err) {
         addDbError(`ensureConversation: ${err.message}`);
@@ -1393,7 +1395,7 @@ async function onIncomingMessage(threadId, pageId, participantId, text) {
     if (!pool) return;
     try {
         await pool.query(`
-            UPDATE conversations
+            UPDATE messenger_conversations
             SET snippet = ?, updated_time = NOW(), is_read = 0,
                 unread_count = unread_count + 1, last_message_from_page = 0
             WHERE id = ?

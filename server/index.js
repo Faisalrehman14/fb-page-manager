@@ -696,12 +696,14 @@ app.all(['/api/messenger', '/messenger_api.php'], requireAuth, async (req, res) 
                 return res.json({ 
                     conversations: convs.map(c => ({
                         ...c,
-                        fb_user_id: c.participant_id,
-                        user_name: c.participant_name,
-                        user_picture: c.participant_picture,
-                        last_msg: c.snippet,
-                        last_msg_at: c.updated_time,
-                        is_unread: c.is_read ? 0 : 1
+                        psid: c.participantId,
+                        name: c.participantName,
+                        picture: c.participantPicture || '',
+                        lastMsg: c.snippet,
+                        lastFromMe: c.lastMessageFromPage ? 1 : 0,
+                        lastMsgAt: c.updatedTime,
+                        unread: c.unreadCount || 0,
+                        page_id: c.pageId
                     }))
                 });
             }
@@ -744,13 +746,13 @@ app.all(['/api/messenger', '/messenger_api.php'], requireAuth, async (req, res) 
                 return res.json({ 
                     conversations: conversations.map(c => ({
                         ...c,
-                        fb_user_id: c.participant_id,
-                        user_name: c.participant_name,
-                        user_picture: c.participant_picture
+                        psid: c.participantId,
+                        name: c.participantName,
+                        picture: c.participantPicture || ''
                     })), 
                     messages: messages.map(m => ({
                         ...m,
-                        psid: m.sender_id
+                        psid: m.senderId || m.sender_id
                     }))
                 });
             }
