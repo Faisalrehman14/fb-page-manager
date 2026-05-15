@@ -51,8 +51,8 @@ window.APP_CONFIG={
   appEnv:''
 };
 window.FB_CONFIG={appId:window.APP_CONFIG.fbAppId,csrfToken:window.APP_CONFIG.csrfToken};
-window.getCsrfToken = async () => {
-  if (window.APP_CONFIG.csrfToken) return window.APP_CONFIG.csrfToken;
+window.getCsrfToken = async (forceRefresh = false) => {
+  if (!forceRefresh && window.APP_CONFIG.csrfToken) return window.APP_CONFIG.csrfToken;
   try {
     const res = await fetch('/api/csrf-token');
     const data = await res.json();

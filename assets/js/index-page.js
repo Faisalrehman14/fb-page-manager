@@ -193,6 +193,16 @@ async function fetchJsonWithRetry(url, options = {}, cfg = {}) {
       let data = {};
       try { data = text ? JSON.parse(text) : {}; } catch (e) { data = { raw: text }; }
       if (!res.ok) {
+        if (res.status === 403 && data && data.error === 'Invalid CSRF token' && !options._isRetry) {
+          if (typeof window.getCsrfToken === 'function') {
+            const newToken = await window.getCsrfToken(true);
+            if (newToken) {
+              const newOptions = Object.assign({}, options, { _isRetry: true });
+              newOptions.headers = Object.assign({}, options.headers || {}, { 'X-CSRF-Token': newToken });
+              return fetchJsonWithRetry(url, newOptions, cfg);
+            }
+          }
+        }
         const errMsg = (data && (data.error || data.message))
           ? (typeof data.error === 'object' ? JSON.stringify(data.error) : data.error || data.message)
           : `Request failed (${res.status})`;
