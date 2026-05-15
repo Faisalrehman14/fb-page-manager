@@ -1136,14 +1136,17 @@ window.FB_CONFIG={appId:window.APP_CONFIG.fbAppId,csrfToken:window.APP_CONFIG.cs
             <div class="msng-convs-title-wrap">
               <h1 class="msng-convs-title">Messages</h1>
               <div class="msng-convs-actions">
-                <button class="msng-chat-hdr-btn" onclick="msngSyncNow()" title="Sync from Facebook">
+                <button class="msng-chat-hdr-btn" id="msngRefreshBtn" onclick="msngRefresh()" title="Refresh conversations">
                   <i class="fa-solid fa-rotate"></i>
+                </button>
+                <button class="msng-chat-hdr-btn" onclick="msngSyncNow()" title="Sync from Facebook">
+                  <i class="fa-solid fa-cloud-arrow-down"></i>
                 </button>
               </div>
             </div>
             <div class="msng-search-wrap">
               <i class="fa-solid fa-magnifying-glass" style="color: var(--msng-text-muted); font-size: 13px"></i>
-              <input type="text" class="msng-search-input" placeholder="Search conversations..." id="msngSearchInput">
+              <input type="text" class="msng-search-input" placeholder="Search conversations..." id="msngSearchInput" oninput="msngSearch(this)">
             </div>
           </div>
           <div class="msng-conv-list" id="msngConvList">
@@ -1177,15 +1180,19 @@ window.FB_CONFIG={appId:window.APP_CONFIG.fbAppId,csrfToken:window.APP_CONFIG.cs
               </div>
             </div>
 
-            <div class="msng-msgs" id="msngMsgList">
+            <div class="msng-msgs" id="msngMsgs">
               <!-- Messages render here -->
             </div>
+            <button class="msng-scroll-btn" id="msngScrollBtn" onclick="msngScrollToBottom()" title="Scroll to bottom">
+              <i class="fa-solid fa-chevron-down"></i>
+            </button>
 
             <div class="msng-input-bar">
               <div class="msng-input-wrap">
-                <textarea class="msng-textarea" id="msngMsgTextarea" placeholder="Type a message..." rows="1"></textarea>
+                <textarea class="msng-textarea" id="msngMsgTextarea" placeholder="Type a message..." rows="1"
+                  onkeydown="msngKeydown(event)" oninput="msngTextareaInput(this)"></textarea>
               </div>
-              <button class="msng-send-btn" onclick="msngSendMessage()">
+              <button class="msng-send-btn" id="msngSendBtn" onclick="msngSend()">
                 <i class="fa-solid fa-paper-plane"></i>
               </button>
             </div>
