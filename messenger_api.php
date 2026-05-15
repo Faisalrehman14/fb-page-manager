@@ -56,6 +56,39 @@ try {
     api_json(['error' => 'Database unavailable'], 503);
 }
 
+// Auto-create messenger tables if they don't exist
+try {
+    $db->exec("CREATE TABLE IF NOT EXISTS messenger_conversations (
+        id            INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+        page_id       VARCHAR(64)  NOT NULL,
+        fb_user_id    VARCHAR(64)  NOT NULL,
+        user_name     VARCHAR(255) DEFAULT 'User',
+        user_picture  TEXT         DEFAULT NULL,
+        snippet       TEXT         DEFAULT NULL,
+        is_unread     TINYINT(1)   NOT NULL DEFAULT 0,
+        updated_at    DATETIME     DEFAULT NULL,
+        UNIQUE KEY uq_page_user (page_id, fb_user_id),
+        KEY idx_page_updated (page_id, updated_at)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
+    $db->exec("CREATE TABLE IF NOT EXISTS messenger_messages (
+        id              INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+        conversation_id INT UNSIGNED NOT NULL,
+        page_id         VARCHAR(64)  NOT NULL,
+        user_id         VARCHAR(64)  DEFAULT NULL,
+        message         TEXT         DEFAULT NULL,
+        from_me         TINYINT(1)   NOT NULL DEFAULT 0,
+        fb_message_id   VARCHAR(128) DEFAULT NULL,
+        attachments     TEXT         DEFAULT NULL,
+        created_at      DATETIME     DEFAULT NULL,
+        KEY idx_conv_time (conversation_id, created_at),
+        KEY idx_page_time (page_id, created_at)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+} catch (Exception $e) {
+    // Tables already exist or DB error — log and continue
+    error_log('[messenger_api] table init error: ' . $e->getMessage());
+}
+
 $method = $_SERVER['REQUEST_METHOD'];
 $rawBody = file_get_contents('php://input');
 $body    = json_decode($rawBody ?: '{}', true) ?: [];

@@ -182,6 +182,11 @@
     showConvSkeleton();
     try {
       const data = await api('load_conversations', { page_id: pageId });
+      if (data.error) {
+        console.error('[Messenger] API error:', data.error);
+        showConvEmpty('Could not load conversations: ' + data.error);
+        return;
+      }
       if (data.conversations) {
         M.convs = data.conversations.map(c => ({
           id:          c.id,
@@ -198,10 +203,18 @@
 
         // Refresh from Facebook in background
         refreshConvsFromFB(pageId);
+      } else {
+        showConvEmpty('No conversations yet. Messages from your Facebook page will appear here.');
       }
     } catch (e) {
       console.error('[Messenger] loadConvsFromDB error:', e);
+      showConvEmpty('Connection error. Check your network and try again.');
     }
+  }
+
+  function showConvEmpty(msg) {
+    const el2 = el('msngConvList');
+    if (el2) el2.innerHTML = `<div class="msng-empty"><i class="fa-brands fa-facebook-messenger"></i><p>${msg}</p></div>`;
   }
 
   async function refreshConvsFromFB(pageId) {
