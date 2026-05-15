@@ -329,24 +329,26 @@ app.get(['/api/auth/callback', '/oauth_callback.php'], async (req, res) => {
 // Actually, we should redirect legacy PHP calls to their API equivalents
 app.use((req, res, next) => {
     if (req.path.endsWith('.php')) {
+        const filename = path.basename(req.path);
         const legacyMap = {
-            '/index.php': '/',
-            '/get_csrf.php': '/api/csrf-token',
-            '/fb_proxy.php': '/api/fb-proxy',
-            '/exchange_token.php': '/api/auth/fb-token',
-            '/track_user.php': '/api/auth/track',
-            '/upload_image.php': '/api/upload-image',
-            '/messenger_api.php': '/api/messenger',
-            '/oauth_start.php': '/api/auth/start',
-            '/oauth_callback.php': '/api/auth/callback'
+            'index.php': '/',
+            'get_csrf.php': '/api/csrf-token',
+            'fb_proxy.php': '/api/fb-proxy',
+            'exchange_token.php': '/api/auth/fb-token',
+            'track_user.php': '/api/auth/track',
+            'upload_image.php': '/api/upload-image',
+            'messenger_api.php': '/api/messenger',
+            'oauth_start.php': '/api/auth/start',
+            'oauth_callback.php': '/api/auth/callback',
+            'create_checkout.php': '/api/billing/checkout',
+            'fb_webhook.php': '/api/webhook'
         };
-        if (legacyMap[req.path]) {
-            req.url = legacyMap[req.path];
-            // If we are rewriting to /, we need to let the next handlers (static or custom / route) handle it.
+        if (legacyMap[filename]) {
+            req.url = legacyMap[filename];
             return next();
         }
         // If it's not a mapped route, still block raw PHP
-        return res.status(404).json({ error: 'Not found', hint: 'Use /api/* routes' });
+        return res.status(404).json({ error: 'Not found', hint: 'Use /api/* routes', path: req.path });
     }
     next();
 });
