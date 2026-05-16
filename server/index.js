@@ -1318,6 +1318,20 @@ app.get('/api/debug/errors', requireAuth, (req, res) => {
     res.json({ errorLogs, webhookLogs, requestLogs: requestLogs.slice(0, 20), dbErrors: db.getDbErrorLogs(), dbConnected, sockets: connectedSockets.size });
 });
 
+// Debug: fetch raw FB conversations to diagnose participant issues
+app.get('/api/debug/fb-convs', requireAuth, async (req, res) => {
+    const { page_id, page_token } = req.query;
+    if (!page_id || !page_token) return res.status(400).json({ error: 'page_id and page_token required' });
+    try {
+        const url = `https://graph.facebook.com/v19.0/${page_id}/conversations?fields=id,participants,snippet,updated_time,unread_count&limit=3&access_token=${page_token}`;
+        const r = await fetch(url);
+        const data = await r.json();
+        res.json({ url_called: url.replace(page_token, '[TOKEN]'), raw: data });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
 // ── /api/config — public config for frontend ──────────────────────────────────
 app.get('/api/config', (req, res) => {
     res.json({

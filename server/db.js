@@ -785,6 +785,15 @@ async function syncConversationsAll(pageId, pageToken, fetchFn, since = null) {
         const data = await response.json();
         if (data.error) throw new Error(data.error.message);
 
+        // Log first page of raw data for diagnosis
+        if (allConversations.length === 0) {
+            const sample = (data.data || []).slice(0, 2).map(c => ({
+                id: c.id, hasParticipants: !!c.participants,
+                participants: c.participants?.data?.map(p => ({id: p.id, name: p.name}))
+            }));
+            addDbError(`syncConversationsAll[page1]: total=${(data.data||[]).length}, sample=${JSON.stringify(sample)}`);
+        }
+
         const messenger_conversations = (data.data || []).flatMap(conv => {
             // Find the participant who is NOT the page itself
             const participants = conv.participants?.data || [];
@@ -792,7 +801,7 @@ async function syncConversationsAll(pageId, pageToken, fetchFn, since = null) {
                              || participants.find(p => p.id)  // fallback: first available
                              || null;
             if (!participant?.id) {
-                addDbError(`syncConversationsAll: skipping conv ${conv.id} — no participant found`);
+                addDbError(`syncConversationsAll: skipping conv ${conv.id} — participants=${JSON.stringify(participants)}`);
                 return []; // flatMap skips
             }
             const fbCount = conv.unread_count || 0;
