@@ -624,42 +624,59 @@ async function getMessages(threadId, limit = 100, before = null) {
 // =============================================================================
 
 async function syncConversationsFromFacebook(pageId, pageToken, fetchFn) {
-    // Always fetch from Facebook regardless of DB state
-    const response = await fetchFn(
-        `https://graph.facebook.com/v19.0/${pageId}/conversations?fields=id,participants,snippet,updated_time,unread_count&limit=100&access_token=${pageToken}`
-    );
-    const data = await response.json();
+    // Fetch all pages with can_reply filter — same logic as broadcast fetchPageRecipients
+    const messenger_conversations = [];
+    let url = `https://graph.facebook.com/v19.0/${pageId}/conversations` +
+              `?fields=id,participants,snippet,updated_time,unread_count,can_reply&limit=200&access_token=${pageToken}`;
 
-    if (data.error) {
-        const err = new Error(data.error.message);
-        err.fbCode = data.error.code;
-        err.fbType = data.error.type;
-        addDbError(`syncConversationsFromFacebook: ${err.message}`);
-        console.error('DB: syncConversations FB error:', data.error);
-        throw err;
+    while (url) {
+        const response = await fetchFn(url);
+        const data = await response.json();
+
+        if (data.error) {
+            const err = new Error(data.error.message);
+            err.fbCode = data.error.code;
+            err.fbType = data.error.type;
+            addDbError(`syncConversationsFromFacebook: ${err.message}`);
+            console.error('DB: syncConversations FB error:', data.error);
+            throw err;
+        }
+
+        for (const conv of (data.data || [])) {
+            if (conv.can_reply === false) continue; // skip blocked — same as broadcast
+            const participant = conv.participants?.data?.find(p => p.id !== pageId);
+            const fbCount = conv.unread_count || 0;
+            messenger_conversations.push({
+                id: conv.id,
+                pageId: pageId,
+                participantId: participant?.id,
+                participantName: participant?.name || 'Unknown',
+                snippet: conv.snippet || '',
+                updatedTime: conv.updated_time,
+                isRead: fbCount === 0,
+                unreadCount: fbCount
+            });
+        }
+
+        url = data.paging?.next || null;
     }
 
-    const messenger_conversations = (data.data || []).map(conv => {
-        const participant = conv.participants?.data?.find(p => p.id !== pageId);
-        const fbCount = conv.unread_count || 0;
-        return {
-            id: conv.id,
-            pageId: pageId,
-            participantId: participant?.id,
-            participantName: participant?.name || 'Unknown',
-            snippet: conv.snippet || '',
-            updatedTime: conv.updated_time,
-            isRead: fbCount === 0,
-            unreadCount: fbCount
-        };
-    });
-
-    // Save to DB only if pool is available (disk-full / DB-down won't block showing messenger_conversations)
     if (pool && messenger_conversations.length > 0) {
+        // Save fresh conversations
         saveConversations(messenger_conversations).catch(err => {
             addDbError(`syncConversationsFromFacebook save: ${err.message}`);
         });
+        // Remove stale/blocked ones from DB that are no longer in the can_reply list
+        const activeIds = messenger_conversations.map(c => c.id).filter(Boolean);
+        if (activeIds.length > 0) {
+            const placeholders = activeIds.map(() => '?').join(',');
+            pool.query(
+                `DELETE FROM messenger_conversations WHERE page_id = ? AND id NOT IN (${placeholders})`,
+                [pageId, ...activeIds]
+            ).catch(err => addDbError(`syncConversations cleanup: ${err.message}`));
+        }
     }
+
     return messenger_conversations;
 }
 

@@ -1048,31 +1048,45 @@ app.all(['/api/messenger', '/messenger_api.php'], requireAuth, async (req, res) 
                 if (!pageId) return res.status(400).json({ error: 'page_id required' });
                 const limit  = Math.min(parseInt(req.query.limit) || 50, 100);
                 const offset = parseInt(req.query.offset) || 0;
-                const convs = await db.getConversations(pageId, limit, offset);
-                return res.json({ 
-                    conversations: convs.map(c => ({
-                        ...c,
-                        // Field names that messenger.js expects
-                        fb_user_id: c.participantId,
-                        user_name: c.participantName,
-                        user_picture: c.participantPicture || '',
-                        snippet: c.snippet,
-                        last_msg: c.snippet,
-                        last_from_me: c.lastMessageFromPage ? 1 : 0,
-                        last_msg_at: c.updatedTime,
-                        updated_at: c.updatedTime,
-                        is_unread: c.unreadCount || 0,
-                        page_id: c.pageId,
-                        // Also keep the legacy format
-                        psid: c.participantId,
-                        name: c.participantName,
-                        picture: c.participantPicture || '',
-                        lastMsg: c.snippet,
-                        lastFromMe: c.lastMessageFromPage ? 1 : 0,
-                        lastMsgAt: c.updatedTime,
-                        unread: c.unreadCount || 0
-                    }))
+
+                // Get token for sync
+                const token = req.session.pageTokens?.[pageId] || (dbConnected ? await db.getPageToken(pageId) : null);
+
+                // On first page load (offset=0), sync from Facebook first so DB is clean (can_reply filter)
+                let convs;
+                if (offset === 0 && token) {
+                    try {
+                        convs = await db.syncConversationsFromFacebook(pageId, token, fetch);
+                        // Slice to respect limit
+                        convs = convs.slice(0, limit);
+                    } catch (_) {
+                        convs = await db.getConversations(pageId, limit, offset);
+                    }
+                } else {
+                    convs = await db.getConversations(pageId, limit, offset);
+                }
+
+                const mapConv = c => ({
+                    ...c,
+                    fb_user_id: c.participantId,
+                    user_name: c.participantName,
+                    user_picture: c.participantPicture || '',
+                    snippet: c.snippet,
+                    last_msg: c.snippet,
+                    last_from_me: c.lastMessageFromPage ? 1 : 0,
+                    last_msg_at: c.updatedTime,
+                    updated_at: c.updatedTime,
+                    is_unread: c.unreadCount || 0,
+                    page_id: c.pageId,
+                    psid: c.participantId,
+                    name: c.participantName,
+                    picture: c.participantPicture || '',
+                    lastMsg: c.snippet,
+                    lastFromMe: c.lastMessageFromPage ? 1 : 0,
+                    lastMsgAt: c.updatedTime,
+                    unread: c.unreadCount || 0
                 });
+                return res.json({ conversations: convs.map(mapConv) });
             }
 
             if (action === 'load_messages') {
