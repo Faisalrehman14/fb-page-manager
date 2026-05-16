@@ -1395,7 +1395,7 @@ app.post('/api/schedules', requireAuth, verifyCsrf, async (req, res) => {
     }
     try {
         const id = await db.createSchedule({
-            fb_user_id: req.session.fbUserId,
+            fb_user_id: req.session.userId,
             pages,
             message,
             image_url: image_url || null,
@@ -1412,7 +1412,7 @@ app.post('/api/schedules', requireAuth, verifyCsrf, async (req, res) => {
 app.get('/api/schedules', requireAuth, async (req, res) => {
     try {
         res.setHeader('Cache-Control', 'no-store');
-        const rows = await db.getSchedules(req.session.fbUserId);
+        const rows = await db.getSchedules(req.session.userId);
         res.json({ schedules: rows });
     } catch (err) {
         logError('get_schedules', err);
@@ -1422,7 +1422,7 @@ app.get('/api/schedules', requireAuth, async (req, res) => {
 
 app.delete('/api/schedules/:id', requireAuth, verifyCsrf, async (req, res) => {
     try {
-        const ok = await db.cancelSchedule(parseInt(req.params.id), req.session.fbUserId);
+        const ok = await db.cancelSchedule(parseInt(req.params.id), req.session.userId);
         if (!ok) return res.status(404).json({ error: 'Schedule not found or already started' });
         res.json({ success: true });
     } catch (err) {
