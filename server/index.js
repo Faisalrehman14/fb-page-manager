@@ -505,7 +505,7 @@ io.on('connection', socket => {
 app.get('/api/csrf-token', (req, res) => {
     const token = generateCsrf(req);
     req.session.save(() => {
-        res.json({ csrfToken: token });
+        res.json({ csrfToken: token, token: token });
     });
 });
 
