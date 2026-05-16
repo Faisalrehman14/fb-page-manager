@@ -830,12 +830,20 @@ function switchDashboardView(view) {
     const el = document.getElementById('view-' + s);
     if (!el) return;
     if (s !== view) { el.style.display = 'none'; return; }
-    el.style.display = s === 'templates' ? 'flex' : '';
+    if (s === 'templates') {
+      el.style.cssText = 'display:flex;flex:1;flex-direction:column;min-height:0;overflow:hidden;min-width:0';
+    } else {
+      el.style.display = '';
+    }
   });
 
   // Hide pages sidebar on templates view
   const sidebar = document.querySelector('.sidebar');
   if (sidebar) sidebar.style.display = view === 'templates' ? 'none' : '';
+
+  // Stats panel only belongs to broadcast view
+  const statsPanel = document.querySelector('.stats-panel');
+  if (statsPanel) statsPanel.style.display = view === 'broadcast' ? '' : 'none';
 
   // Load data for specific views
   if (view === 'home') updateHomeViewStats();

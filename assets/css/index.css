@@ -946,8 +946,8 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,te
 /* ══════════════════════════════════════════════════════
    TEMPLATES VIEW  (tv-*)
    ══════════════════════════════════════════════════════ */
-#view-templates{flex:1;min-width:0;display:flex;flex-direction:column;min-height:0;overflow:hidden}
-.tv-root{flex:1;overflow-y:auto;padding:24px;display:flex;flex-direction:column;gap:20px;max-width:1200px;width:100%;box-sizing:border-box;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.08) transparent}
+#view-templates{display:none;flex:1;min-width:0;flex-direction:column;min-height:0;overflow:hidden}
+.tv-root{flex:1;min-height:0;overflow-y:auto;padding:24px;display:flex;flex-direction:column;gap:20px;max-width:1200px;width:100%;box-sizing:border-box;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.08) transparent}
 
 /* Header */
 .tv-hdr{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}

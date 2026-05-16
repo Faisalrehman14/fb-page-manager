@@ -1556,8 +1556,8 @@ window.getCsrfToken = async (forceRefresh = false) => {
 
     </div><!-- /view-broadcast -->
 
-    <!-- COL 4: PERFORMANCE PANEL -->
-    <div class="stats-panel">
+    <!-- COL 4: PERFORMANCE PANEL — shown only alongside broadcast view -->
+    <div class="stats-panel" style="display:none">
 
       <!-- Quick Stats Cards -->
       <div class="panel-section">
@@ -1747,8 +1747,8 @@ window.getCsrfToken = async (forceRefresh = false) => {
     </div>
 
     <!-- TEMPLATES VIEW -->
-    <div id="view-templates" style="display:none;flex:1;flex-direction:column;min-height:0;overflow:hidden">
-      <div class="tv-root" style="flex:1;overflow-y:auto;padding:24px;display:flex;flex-direction:column;gap:20px;max-width:1200px;width:100%;box-sizing:border-box">
+    <div id="view-templates">
+      <div class="tv-root">
 
         <!-- ── Header ── -->
         <div class="tv-hdr">
