@@ -983,7 +983,7 @@ window.svSaveSchedule = async function () {
     if (!res.ok) throw new Error(data.error || 'Failed to schedule');
     showStatus(`Broadcast scheduled for ${pages.length} page${pages.length > 1 ? 's' : ''}!`, 'success');
     $('svMessage').value = '';
-    $('svImageUrl').value = '';
+    svClearImage();
     svUpdateCharCount();
     svLoadSchedules();
   } catch (e) {
@@ -992,6 +992,81 @@ window.svSaveSchedule = async function () {
     btn.disabled = false;
     btn.innerHTML = '<i class="fa-solid fa-calendar-check"></i> Schedule Broadcast';
   }
+};
+
+// Image upload helpers for scheduling view
+window.svHandleImageFile = async function (input) {
+  const file = input.files[0];
+  if (!file) return;
+
+  const preview    = $('svImgPreview');
+  const placeholder = $('svImgPlaceholder');
+  const uploading  = $('svImgUploading');
+  const actions    = $('svImgActions');
+
+  // Show local preview immediately
+  const reader = new FileReader();
+  reader.onload = e => {
+    preview.src = e.target.result;
+    preview.style.display = '';
+    placeholder.style.display = 'none';
+  };
+  reader.readAsDataURL(file);
+
+  // Upload to server
+  uploading.style.display = '';
+  try {
+    const csrf = await window.getCsrfToken();
+    const form = new FormData();
+    form.append('image', file);
+    const res  = await fetch('/api/upload-image', {
+      method: 'POST',
+      headers: { 'X-CSRF-Token': csrf },
+      credentials: 'same-origin',
+      body: form
+    });
+    const data = await res.json();
+    if (!data.success) throw new Error(data.error || 'Upload failed');
+    $('svImageUrl').value = data.url;
+    actions.style.display = '';
+  } catch (e) {
+    showStatus(e.message || 'Image upload failed', 'error');
+    svClearImage();
+  } finally {
+    uploading.style.display = 'none';
+  }
+};
+
+window.svHandleUrlInput = function (input) {
+  const url = (input.value || '').trim();
+  const preview    = $('svImgPreview');
+  const placeholder = $('svImgPlaceholder');
+  const actions    = $('svImgActions');
+  if (url) {
+    preview.src = url;
+    preview.style.display = '';
+    placeholder.style.display = 'none';
+    actions.style.display = '';
+    const okEl = $('svImgOk');
+    if (okEl) okEl.innerHTML = '<i class="fa-solid fa-link"></i> URL set';
+  } else {
+    svClearImage();
+  }
+};
+
+window.svClearImage = function (e) {
+  if (e) e.stopPropagation();
+  $('svImageUrl').value = '';
+  const fileInput = $('svImgFile');
+  if (fileInput) fileInput.value = '';
+  const preview = $('svImgPreview');
+  if (preview) { preview.src = ''; preview.style.display = 'none'; }
+  const placeholder = $('svImgPlaceholder');
+  if (placeholder) placeholder.style.display = '';
+  const actions = $('svImgActions');
+  if (actions) actions.style.display = 'none';
+  const okEl = $('svImgOk');
+  if (okEl) okEl.innerHTML = '<i class="fa-solid fa-circle-check"></i> Image ready';
 };
 
 // Set min datetime to 2 minutes from now

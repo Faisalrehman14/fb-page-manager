@@ -132,6 +132,16 @@
 .sv2-card-cancel:hover{background:rgba(239,68,68,.1);border-color:rgba(239,68,68,.35);color:#f87171}
 .sv2-card-stat{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;color:#4ade80}
 .sv2-card-stat--err{color:#f87171}
+.sv2-img-zone{background:var(--bg2);border:2px dashed var(--border);border-radius:10px;padding:14px;cursor:pointer;transition:border-color .2s,background .2s;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;min-height:84px;position:relative;overflow:hidden}
+.sv2-img-zone:hover,.sv2-img-zone--uploading{border-color:rgba(124,58,237,.5);background:rgba(124,58,237,.05)}
+.sv2-img-placeholder{display:flex;flex-direction:column;align-items:center;gap:6px;color:var(--text3);font-size:12px;pointer-events:none;text-align:center}
+.sv2-img-placeholder i{font-size:24px;color:#a78bfa}
+.sv2-img-preview{max-width:100%;max-height:130px;border-radius:8px;object-fit:contain;display:block}
+.sv2-img-uploading-overlay{position:absolute;inset:0;background:rgba(0,0,0,.5);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:#fff;font-size:12px;font-weight:600;border-radius:8px}
+.sv2-img-actions{display:flex;align-items:center;gap:8px;margin-top:0}
+.sv2-img-ok{font-size:11px;font-weight:600;color:#4ade80;display:inline-flex;align-items:center;gap:5px}
+.sv2-chip--danger{border-color:rgba(239,68,68,.3)!important;color:#f87171!important}
+.sv2-chip--danger:hover{background:rgba(239,68,68,.1)!important;border-color:rgba(239,68,68,.5)!important}
 .sv2-card-meta{font-size:11px;color:var(--text3);display:flex;align-items:center;gap:6px;flex-wrap:wrap}
 .sv2-pages-empty{color:var(--text3);font-size:12px;padding:10px 6px;display:flex;align-items:center;gap:8px}
 .sv2-page-item.selected .sv2-page-check-icon{opacity:1;color:#a78bfa}
@@ -1697,12 +1707,28 @@ window.getCsrfToken = async (forceRefresh = false) => {
             </div>
           </div>
 
-          <!-- Image URL -->
+          <!-- Image Upload -->
           <div class="sv2-section">
-            <div class="sv2-section-label"><i class="fa-solid fa-image"></i> Image URL <span class="sv2-opt">optional</span></div>
-            <div class="sv2-input-wrap">
+            <div class="sv2-section-label"><i class="fa-solid fa-image"></i> Image <span class="sv2-opt">optional</span></div>
+            <div class="sv2-img-zone" id="svImgZone" onclick="document.getElementById('svImgFile').click()" title="Click to upload image">
+              <div id="svImgPlaceholder" class="sv2-img-placeholder">
+                <i class="fa-solid fa-cloud-arrow-up"></i>
+                <span>Click to upload image</span>
+              </div>
+              <img id="svImgPreview" class="sv2-img-preview" style="display:none" alt="preview">
+              <div id="svImgUploading" class="sv2-img-uploading-overlay" style="display:none">
+                <i class="fa-solid fa-spinner fa-spin" style="font-size:20px"></i>
+                <span>Uploading…</span>
+              </div>
+              <input type="file" id="svImgFile" accept="image/*" style="display:none" onchange="svHandleImageFile(this)">
+            </div>
+            <div class="sv2-img-actions" id="svImgActions" style="display:none">
+              <span class="sv2-img-ok" id="svImgOk"><i class="fa-solid fa-circle-check"></i> Image ready</span>
+              <button class="sv2-chip sv2-chip--danger" onclick="svClearImage(event)"><i class="fa-solid fa-xmark"></i> Remove</button>
+            </div>
+            <div class="sv2-input-wrap" style="margin-top:4px">
               <i class="fa-solid fa-link sv2-input-icon"></i>
-              <input class="sv2-input" id="svImageUrl" type="url" placeholder="https://example.com/image.jpg">
+              <input class="sv2-input" id="svImageUrl" type="url" placeholder="Or paste image URL directly…" oninput="svHandleUrlInput(this)">
             </div>
           </div>
 
