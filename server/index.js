@@ -203,13 +203,23 @@ app.post(['/webhook', '/fb_webhook.php'], async (req, res) => {
                     attachments: attachments.length ? attachments : null
                 });
 
-                if (!isEcho) {
-                    // Always update conversation metadata regardless of DB save result
+                // Always update conversation metadata and emit events, even for echoes
+                if (isEcho) {
+                    await db.updateConversationFromMessage({ threadId, text: text || (attachments[0] ? `[${attachments[0].t}]` : 'Message'), createdTime: ts, lastFromMe: true }).catch(() => {});
+                } else {
                     await db.onIncomingMessage(threadId, pageId, participantId, text || (attachments[0] ? `[${attachments[0].t}]` : ''));
-                    const snippet = text || (attachments[0] ? `[${attachments[0].t}]` : 'Message');
-                    io.to(`page_${pageId}`).emit('new_message',          { id: mid, threadId, pageId, participantId, text, isFromPage: false, createdTime: ts, attachments });
-                    io.to(`page_${pageId}`).emit('conversation_updated', { id: threadId, pageId, participantId, snippet, updatedTime: new Date(), isRead: false, unreadCount: 1, lastMessageFromPage: false });
                 }
+
+                const snippet = text || (attachments[0] ? `[${attachments[0].t}]` : 'Message');
+                io.to(`page_${pageId}`).emit('new_message', { 
+                    id: mid, threadId, pageId, participantId, text, 
+                    isFromPage: isEcho, createdTime: ts, attachments 
+                });
+                io.to(`page_${pageId}`).emit('conversation_updated', { 
+                    id: threadId, pageId, participantId, snippet, 
+                    updatedTime: new Date(), isRead: isEcho, 
+                    unreadCount: isEcho ? 0 : 1, lastMessageFromPage: isEcho 
+                });
             } catch (err) {
                 logError('webhook_event', err, { pageId, eventSender: event?.sender?.id });
             }

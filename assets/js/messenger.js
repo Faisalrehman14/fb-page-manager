@@ -1328,9 +1328,12 @@
     // New message from webhook → push into open conversation
     _socket.on('new_message', (msg) => {
       if (!msg || typeof msg !== 'object') return;
-      if (!msg.pageId || !msg.participantId) return; // guard against malformed events
+      if (!msg.pageId || !msg.participantId) return;
 
-      if (msg.pageId === M.activePageId && msg.participantId === M.activePsid) {
+      const msgPageId = String(msg.pageId);
+      const msgPsid   = String(msg.participantId);
+
+      if (msgPageId === String(M.activePageId) && msgPsid === String(M.activePsid)) {
         const normalized = {
           message_id:      msg.id             || null,
           conversation_id: msg.threadId       || null,
@@ -1350,8 +1353,8 @@
 
       // Update sidebar conversation entry
       const conv = M.convs.find(c =>
-        c.psid === msg.participantId &&
-        (c.page_id === msg.pageId || M.activePageId === msg.pageId)
+        String(c.psid) === msgPsid &&
+        (String(c.page_id) === msgPageId || String(M.activePageId) === msgPageId)
       );
       if (conv) {
         conv.lastMsg    = msg.text || '[Attachment]';
