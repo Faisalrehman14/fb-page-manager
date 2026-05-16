@@ -836,10 +836,18 @@ window.svUpdateCharCount = function () {
 };
 
 window.svSelectAllPages = function () {
-  document.querySelectorAll('#svPagesList input[type=checkbox]').forEach(cb => cb.checked = true);
+  document.querySelectorAll('#svPagesList .sv2-page-item').forEach(el => {
+    el.classList.add('selected');
+    const cb = el.querySelector('input[type=checkbox]');
+    if (cb) cb.checked = true;
+  });
 };
 window.svSelectNonePages = function () {
-  document.querySelectorAll('#svPagesList input[type=checkbox]').forEach(cb => cb.checked = false);
+  document.querySelectorAll('#svPagesList .sv2-page-item').forEach(el => {
+    el.classList.remove('selected');
+    const cb = el.querySelector('input[type=checkbox]');
+    if (cb) cb.checked = false;
+  });
 };
 
 function svPopulatePages() {
@@ -847,14 +855,19 @@ function svPopulatePages() {
   if (!box) return;
   const pages = window.loadedPages || [];
   if (!pages.length) {
-    box.innerHTML = '<div class="sv-pages-empty"><i class="fa-solid fa-circle-info"></i> No pages loaded. Connect your Facebook account first.</div>';
+    box.innerHTML = '<div class="sv2-pages-empty"><i class="fa-solid fa-circle-info"></i> No pages connected yet.</div>';
     return;
   }
-  box.innerHTML = pages.map(p => `
-    <label class="sv-page-check">
-      <input type="checkbox" value="${escHtml(p.id)}" data-token="${escHtml(p.access_token || '')}" data-name="${escHtml(p.name || p.id)}" checked>
-      <span class="sv-page-check-name">${escHtml(p.name || p.id)}</span>
-    </label>`).join('');
+  box.innerHTML = pages.map(p => {
+    const initial = (p.name || p.id || '?')[0].toUpperCase();
+    return `<div class="sv2-page-item" onclick="this.classList.toggle('selected');this.querySelector('input').checked=this.classList.contains('selected')" >
+      <input type="checkbox" value="${escHtml(p.id)}" data-token="${escHtml(p.access_token || '')}" data-name="${escHtml(p.name || p.id)}" checked style="display:none">
+      <div class="sv2-page-avatar">${initial}</div>
+      <div class="sv2-page-name">${escHtml(p.name || p.id)}</div>
+      <i class="fa-solid fa-circle-check sv2-page-check-icon"></i>
+    </div>`;
+  }).join('');
+  box.querySelectorAll('.sv2-page-item').forEach(el => el.classList.add('selected'));
 }
 
 window.svLoadSchedules = async function () {
@@ -872,7 +885,11 @@ function svRenderSchedules(list) {
   if (!listEl) return;
 
   const pending = list.filter(s => s.status === 'pending' || s.status === 'running');
-  if (badge) { badge.textContent = pending.length; badge.style.display = pending.length ? '' : 'none'; }
+  if (badge) {
+    const countEl = document.getElementById('svBadgeCount');
+    if (countEl) countEl.textContent = pending.length;
+    badge.style.display = pending.length ? '' : 'none';
+  }
 
   if (!list.length) {
     if (emptyEl) emptyEl.style.display = '';
@@ -887,28 +904,30 @@ function svRenderSchedules(list) {
     const icon    = iconMap[s.status] || 'fa-clock';
     const dt      = new Date(s.scheduled_at);
     const timeStr = dt.toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
-    const msg     = (s.message || '').length > 70 ? s.message.slice(0, 67) + '…' : s.message;
+    const msg     = (s.message || '').length > 80 ? s.message.slice(0, 77) + '…' : (s.message || '');
     const pages   = Array.isArray(s.pages) && s.pages.length
       ? s.pages.map(p => escHtml(p.name || p.id)).join(', ')
       : escHtml(s.page_name || s.page_id || '—');
     const statsLine = s.status === 'done'
-      ? `<span><i class="fa-solid fa-paper-plane"></i> ${s.sent_count || 0}/${s.total_recipients || 0} sent</span>`
+      ? `<span class="sv2-card-stat"><i class="fa-solid fa-paper-plane"></i> ${s.sent_count || 0}/${s.total_recipients || 0} sent</span>`
       : s.status === 'failed'
-        ? `<span style="color:#f87171"><i class="fa-solid fa-triangle-exclamation"></i> ${escHtml((s.error_message || 'Error').substring(0, 60))}</span>`
+        ? `<span class="sv2-card-stat sv2-card-stat--err"><i class="fa-solid fa-triangle-exclamation"></i> ${escHtml((s.error_message || 'Error').substring(0, 60))}</span>`
         : '';
     const cancelBtn = s.status === 'pending'
-      ? `<button class="sv-item-cancel" onclick="svCancelSchedule(${s.id})" title="Cancel schedule"><i class="fa-solid fa-xmark"></i></button>`
+      ? `<button class="sv2-card-cancel" onclick="svCancelSchedule(${s.id})" title="Cancel"><i class="fa-solid fa-xmark"></i></button>`
       : '';
-    const metaIcon = s.status === 'done' ? 'fa-solid fa-circle-check' : s.status === 'failed' ? 'fa-solid fa-circle-xmark' : 'fa-regular fa-clock';
-    return `<div class="sv-item">
-      <div class="sv-item-icon sv-item-icon--${s.status}"><i class="fa-solid ${icon}"></i></div>
-      <div class="sv-item-info">
-        <div class="sv-item-pages">${pages}</div>
-        <div class="sv-item-msg">${escHtml(msg)}</div>
-        <div class="sv-item-meta"><i class="${metaIcon}"></i>${timeStr}${statsLine ? ' · ' : ''}${statsLine}</div>
+    return `<div class="sv2-card">
+      <div class="sv2-card-icon sv2-card-icon--${s.status}"><i class="fa-solid ${icon}"></i></div>
+      <div class="sv2-card-body">
+        <div class="sv2-card-pages"><i class="fa-solid fa-layer-group"></i> ${pages}</div>
+        <div class="sv2-card-msg">${escHtml(msg)}</div>
+        <div class="sv2-card-meta">
+          <i class="fa-regular fa-clock"></i> ${timeStr}
+          ${statsLine ? ' · ' + statsLine : ''}
+        </div>
       </div>
-      <div class="sv-item-right">
-        <span class="sv-status sv-status--${s.status}">${statusLbl[s.status] || s.status}</span>
+      <div class="sv2-card-right">
+        <span class="sv2-pill sv2-pill--${s.status}">${statusLbl[s.status] || s.status}</span>
         ${cancelBtn}
       </div>
     </div>`;
@@ -1027,6 +1046,10 @@ function switchDashboardView(view) {
   // Inside broadcast-view: scheduling panel
   const schedEl = document.getElementById('view-scheduling');
   if (schedEl) schedEl.style.display = view === 'scheduling' ? 'flex' : 'none';
+
+  // Hide the main nav sidebar when in scheduling view (full-width layout)
+  const mainSidebar = document.querySelector('.sidebar');
+  if (mainSidebar) mainSidebar.style.display = view === 'scheduling' ? 'none' : '';
 
   // Load data
   if (view === 'home')       updateHomeViewStats();
