@@ -899,9 +899,12 @@
 
   async function loadMessages(before = null) {
     if (!M.activePageId || !M.activePsid) return;
-    const msgsEl = $('msngMsgs');
+    // Snapshot the psid at call time — used to detect stale responses
+    const forPsid = M.activePsid;
+    const msgsEl  = $('msngMsgs');
 
-    if (!before && msgsEl) {
+    // Only show skeleton when there are no cached messages already displayed
+    if (!before && msgsEl && !M.msgs.length) {
       msgsEl.innerHTML = `<div class="msng-empty" style="margin-top:60px">
         <div class="msng-sk-circle" style="margin:0 auto 12px"></div>
         <p style="opacity:.5">Loading messages…</p>
@@ -912,41 +915,60 @@
     if (M._msgAbort) { M._msgAbort.abort(); }
     const controller = new AbortController();
     M._msgAbort = controller;
+    const isTimeout = { v: false };
 
     // 12-second hard timeout — skeleton will not spin forever
-    const timeout = setTimeout(() => controller.abort(), 12000);
+    const timeout = setTimeout(() => { isTimeout.v = true; controller.abort(); }, 12000);
 
     try {
-      const qs  = new URLSearchParams({ page_id: M.activePageId, psid: M.activePsid, limit: 50, before: before || '' }).toString();
+      const qs  = new URLSearchParams({ page_id: M.activePageId, psid: forPsid, limit: 50, before: before || '' }).toString();
       const url = '/api/messenger?action=load_messages&' + qs;
       const r   = await fetch(url, { credentials: 'same-origin', signal: controller.signal });
+
+      // Stale check: user switched conversations while this request was in flight
+      if (M.activePsid !== forPsid) return;
 
       if (r.status === 401) throw Object.assign(new Error('Session expired — please reload the page'), { _userFacing: true });
       if (!r.ok) throw new Error('Server error (' + r.status + ')');
 
       const data = await r.json();
+      if (M.activePsid !== forPsid) return; // second stale check after JSON parse
 
       if (data.error) {
         if (!before && msgsEl) _showMsgError(msgsEl, data.error);
         return;
       }
+
+      const fresh = data.messages || [];
       if (before) {
-        M.msgs = [...(data.messages || []), ...M.msgs];
+        // "Load earlier" — prepend older messages
+        M.msgs = [...fresh, ...M.msgs];
         renderMessages('prepend');
       } else {
-        M.msgs           = data.messages || [];
+        // Merge: keep any pending/optimistic bubbles not yet in server response
+        const serverIds = new Set(fresh.map(m => m.message_id).filter(Boolean));
+        const pending   = M.msgs.filter(m => m._pending || m._failed);
+        const toKeep    = pending.filter(m => !m.message_id || !serverIds.has(m.message_id));
+        M.msgs           = [...fresh, ...toKeep];
         M.renderedMsgIds = new Set();
         renderMessages('replace');
       }
       if (M.msgs.length > 0) M.oldestMsgTime = M.msgs[0].created_at;
+      // Update cache with fresh data
+      _cacheSave(forPsid);
 
     } catch (e) {
       if (e.name === 'AbortError') {
-        if (!before && msgsEl) _showMsgError(msgsEl, 'Request timed out. Check your connection.');
+        // Only show timeout error — not when aborted by a conversation switch
+        if (isTimeout.v && M.activePsid === forPsid && !before && msgsEl) {
+          _showMsgError(msgsEl, 'Request timed out. Check your connection.');
+        }
         return;
       }
       console.error('[Messenger] loadMessages:', e);
-      if (!before && msgsEl) _showMsgError(msgsEl, e._userFacing ? e.message : 'Failed to load messages. Try again.');
+      if (M.activePsid === forPsid && !before && msgsEl) {
+        _showMsgError(msgsEl, e._userFacing ? e.message : 'Failed to load messages. Try again.');
+      }
     } finally {
       clearTimeout(timeout);
       if (M._msgAbort === controller) M._msgAbort = null;
@@ -963,7 +985,31 @@
     </div>`;
   }
 
+  // ── Per-conversation message cache (max 30 conversations) ───────────────────
+  // Why: every openConv() previously cleared M.msgs and re-fetched from the
+  // server. Switching back to a conversation showed a loading skeleton every
+  // time. Cache stores { msgs, oldestMsgTime } keyed by psid. On return we
+  // render from cache instantly, then refresh silently in the background.
+  const _msgCache = new Map(); // psid → { msgs, oldestMsgTime }
+  const MSG_CACHE_MAX = 30;
+
+  function _cacheSave(psid) {
+    if (!psid || !M.msgs.length) return;
+    _msgCache.set(psid, { msgs: [...M.msgs], oldestMsgTime: M.oldestMsgTime });
+    // Evict oldest entry when over limit
+    if (_msgCache.size > MSG_CACHE_MAX) {
+      _msgCache.delete(_msgCache.keys().next().value);
+    }
+  }
+
+  function _cacheLoad(psid) {
+    return _msgCache.get(psid) || null;
+  }
+
   async function openConv(psid, name, picture, pageId) {
+    // Save current conversation to cache before switching
+    if (M.activePsid && M.activePsid !== psid) _cacheSave(M.activePsid);
+
     M.activePsid     = psid;
     M.activeConvName = name;
     M.activeConvPic  = picture;
@@ -977,8 +1023,22 @@
     renderConvs();
 
     showChatWindow(name, picture);
-    M.msgs = []; M.renderedMsgIds = new Set(); M.oldestMsgTime = null;
-    await loadMessages();
+
+    const cached = _cacheLoad(psid);
+    if (cached && cached.msgs.length) {
+      // Restore from cache instantly — no skeleton, no wait
+      M.msgs           = [...cached.msgs];
+      M.renderedMsgIds = new Set();
+      M.oldestMsgTime  = cached.oldestMsgTime;
+      renderMessages('replace');
+      scrollToBottom(false);
+      // Silent background refresh to pick up any new messages since cached
+      loadMessages().catch(() => {});
+    } else {
+      M.msgs = []; M.renderedMsgIds = new Set(); M.oldestMsgTime = null;
+      await loadMessages();
+    }
+
     post({ action: 'mark_read', page_id: M.activePageId, psid }).catch(() => {});
 
     $('msngMsgTextarea')?.focus();
