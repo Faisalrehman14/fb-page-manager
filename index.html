@@ -837,6 +837,10 @@ window.getCsrfToken = async (forceRefresh = false) => {
           <i class="fa-brands fa-facebook-messenger"></i>
           <span>Messenger</span>
         </a>
+        <a class="nav-side-item" href="#" onclick="switchDashboardView('scheduling');return false;" id="navItemScheduling">
+          <i class="fa-solid fa-clock"></i>
+          <span>Scheduling</span>
+        </a>
       </div>
       <div class="nav-sidebar-footer">
         <div class="nav-user-info">
@@ -1457,8 +1461,7 @@ window.getCsrfToken = async (forceRefresh = false) => {
           <div id="sendHint">Select a page, write message, then start broadcast</div>
           <div class="action-btns">
             <button id="btnStart"    class="act-btn"><i class="fa-solid fa-play"></i> Start Broadcast</button>
-            <button id="btnSchedule" class="act-btn act-btn--schedule" onclick="openScheduleModal()"><i class="fa-solid fa-clock"></i> Schedule</button>
-            <button id="btnPause"    class="act-btn"><i class="fa-solid fa-pause"></i> Pause</button>
+<button id="btnPause"    class="act-btn"><i class="fa-solid fa-pause"></i> Pause</button>
             <button id="btnResume"   class="act-btn"><i class="fa-solid fa-rotate-right"></i> Resume</button>
             <button id="btnStop"     class="act-btn"><i class="fa-solid fa-stop"></i> Stop</button>
           </div>
@@ -1469,22 +1472,6 @@ window.getCsrfToken = async (forceRefresh = false) => {
             <button type="button" class="btn-extra" id="btnExportCSV" disabled title="Export results as CSV">
               <i class="fa-solid fa-file-arrow-down"></i> Export CSV
             </button>
-          </div>
-        </div>
-
-        <!-- Scheduled Broadcasts Panel -->
-        <div class="sched-panel" id="schedPanel">
-          <div class="sched-panel-hdr" onclick="toggleSchedulePanel()">
-            <span><i class="fa-solid fa-clock-rotate-left"></i> Scheduled Broadcasts</span>
-            <span class="sched-badge" id="schedBadge" style="display:none">0</span>
-            <i class="fa-solid fa-chevron-down sched-chevron" id="schedChevron"></i>
-          </div>
-          <div class="sched-panel-body" id="schedPanelBody">
-            <div class="sched-empty" id="schedEmpty">
-              <i class="fa-regular fa-clock"></i>
-              <p>No scheduled broadcasts yet</p>
-            </div>
-            <div id="schedList"></div>
           </div>
         </div>
 
@@ -1563,6 +1550,89 @@ window.getCsrfToken = async (forceRefresh = false) => {
       </div>
 
     </div><!-- /view-broadcast -->
+
+    <!-- ══ SCHEDULING VIEW ══ -->
+    <div id="view-scheduling" style="display:none;height:100%;flex-direction:column">
+      <div class="sv-wrap">
+
+        <!-- LEFT: Create Schedule Form -->
+        <div class="sv-form-col">
+          <div class="sv-hdr">
+            <div class="sv-hdr-icon"><i class="fa-solid fa-calendar-plus"></i></div>
+            <div>
+              <div class="sv-hdr-title">Schedule Broadcast</div>
+              <div class="sv-hdr-sub">Auto-send to multiple pages at a scheduled time</div>
+            </div>
+          </div>
+
+          <div class="sv-field">
+            <label class="sv-label">Target Pages <span class="sv-label-req">*</span></label>
+            <div class="sv-pages-box" id="svPagesList">
+              <div class="sv-pages-empty"><i class="fa-solid fa-rotate fa-spin"></i> Loading pages…</div>
+            </div>
+            <div class="sv-pages-actions">
+              <button class="sv-pages-btn" onclick="svSelectAllPages()"><i class="fa-solid fa-check-double"></i> Select All</button>
+              <button class="sv-pages-btn" onclick="svSelectNonePages()"><i class="fa-solid fa-xmark"></i> None</button>
+            </div>
+          </div>
+
+          <div class="sv-field">
+            <label class="sv-label">Message <span class="sv-label-req">*</span></label>
+            <textarea class="sv-textarea" id="svMessage" placeholder="Type your broadcast message…" rows="5" oninput="svUpdateCharCount()"></textarea>
+            <div class="sv-char-count" id="svCharCount">0 / 2000</div>
+          </div>
+
+          <div class="sv-field">
+            <label class="sv-label">Image URL <span class="sv-label-opt">(optional)</span></label>
+            <input class="sv-input" id="svImageUrl" type="url" placeholder="https://example.com/image.jpg">
+          </div>
+
+          <div class="sv-row">
+            <div class="sv-field sv-field--grow">
+              <label class="sv-label">Scheduled Date &amp; Time <span class="sv-label-req">*</span></label>
+              <input class="sv-input" id="svDateTime" type="datetime-local">
+            </div>
+            <div class="sv-field sv-field--fixed">
+              <label class="sv-label">Send Delay</label>
+              <select class="sv-input" id="svDelay">
+                <option value="800">800ms — Fast</option>
+                <option value="1200" selected>1200ms — Balanced</option>
+                <option value="2000">2000ms — Safe</option>
+                <option value="3000">3000ms — Slow</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="sv-info-row">
+            <i class="fa-solid fa-circle-info"></i>
+            <span>The server checks for due schedules every 60 seconds. Your broadcast will start automatically at the selected time and send to all pages selected above.</span>
+          </div>
+
+          <button class="sv-submit-btn" id="svSubmitBtn" onclick="svSaveSchedule()">
+            <i class="fa-solid fa-calendar-check"></i> Schedule Broadcast
+          </button>
+        </div>
+
+        <!-- RIGHT: Schedules List -->
+        <div class="sv-list-col">
+          <div class="sv-list-hdr">
+            <div class="sv-list-title"><i class="fa-solid fa-list-check"></i> Scheduled Broadcasts</div>
+            <div class="sv-list-hdr-right">
+              <span class="sv-list-badge" id="svBadge" style="display:none">0</span>
+              <button class="sv-refresh-btn" onclick="svLoadSchedules()" title="Refresh"><i class="fa-solid fa-rotate"></i></button>
+            </div>
+          </div>
+          <div class="sv-list-body" id="svList">
+            <div class="sv-list-empty" id="svListEmpty">
+              <i class="fa-regular fa-calendar-xmark"></i>
+              <p>No scheduled broadcasts yet</p>
+              <span>Fill in the form on the left to create one.</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div><!-- /view-scheduling -->
 
     <!-- COL 4: PERFORMANCE PANEL — shown only alongside broadcast view -->
     <div class="stats-panel" style="display:none">

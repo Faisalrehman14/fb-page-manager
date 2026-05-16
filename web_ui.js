@@ -817,63 +817,155 @@ window.switchDashboardView = switchDashboardView;
 // Image URL getter for auto-send (index-page.js)
 Object.defineProperty(window, '_imgAttachUrl', { get: () => currentImageUrl, configurable: true });
 
-// ── Schedule Broadcast ────────────────────────────────────────────────────────
-let _schedPanelOpen = false;
+// ── Scheduling View ───────────────────────────────────────────────────────────
 
-window.openScheduleModal = function () {
-  const pageId   = $('pageSelect')?.value;
-  const message  = ($('messageText')?.value || '').trim();
-  const pageName = $('pageSelect')?.selectedOptions?.[0]?.text || pageId || '—';
+async function getCsrfToken() {
+  if (window.getCsrfToken && window.getCsrfToken !== getCsrfToken) return window.getCsrfToken();
+  const r = await fetch('/api/csrf-token', { credentials: 'same-origin' });
+  const d = await r.json();
+  return d.csrfToken || d.token || '';
+}
 
-  if (!pageId)   { showStatus('Select a page first.', 'warning'); return; }
-  if (!message)  { showStatus('Write a message first.', 'warning'); return; }
-
-  $('schedPageDisplay').textContent = pageName;
-  $('schedMsgPreview').textContent  = message.length > 200 ? message.slice(0, 197) + '…' : message;
-
-  // Set min datetime to 2 minutes from now
-  const now = new Date(Date.now() + 2 * 60 * 1000);
-  const pad = n => String(n).padStart(2, '0');
-  const minVal = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}`;
-  const dtInput = $('schedDateTime');
-  dtInput.min = minVal;
-  if (!dtInput.value || dtInput.value < minVal) dtInput.value = minVal;
-
-  $('schedModal').style.display = 'flex';
+window.svUpdateCharCount = function () {
+  const ta = $('svMessage');
+  const cc = $('svCharCount');
+  if (!ta || !cc) return;
+  const len = ta.value.length;
+  cc.textContent = `${len} / 2000`;
+  cc.style.color = len > 1900 ? '#f87171' : '';
 };
 
-window.closeScheduleModal = function () {
-  $('schedModal').style.display = 'none';
+window.svSelectAllPages = function () {
+  document.querySelectorAll('#svPagesList input[type=checkbox]').forEach(cb => cb.checked = true);
+};
+window.svSelectNonePages = function () {
+  document.querySelectorAll('#svPagesList input[type=checkbox]').forEach(cb => cb.checked = false);
 };
 
-window.saveSchedule = async function () {
-  const pageId    = $('pageSelect')?.value;
-  const pageToken = window.currentPageToken || window._currentPageToken || '';
-  const pageName  = $('pageSelect')?.selectedOptions?.[0]?.text || '';
-  const message   = ($('messageText')?.value || '').trim();
-  const imageUrl  = currentImageUrl || '';
-  const delayMs   = Math.max(500, parseInt($('delayMs')?.value, 10) || 1200);
-  const dtVal     = $('schedDateTime')?.value;
+function svPopulatePages() {
+  const box = $('svPagesList');
+  if (!box) return;
+  const pages = window.loadedPages || [];
+  if (!pages.length) {
+    box.innerHTML = '<div class="sv-pages-empty"><i class="fa-solid fa-circle-info"></i> No pages loaded. Connect your Facebook account first.</div>';
+    return;
+  }
+  box.innerHTML = pages.map(p => `
+    <label class="sv-page-check">
+      <input type="checkbox" value="${escHtml(p.id)}" data-token="${escHtml(p.access_token || '')}" data-name="${escHtml(p.name || p.id)}" checked>
+      <span class="sv-page-check-name">${escHtml(p.name || p.id)}</span>
+    </label>`).join('');
+}
 
-  if (!dtVal) { showStatus('Select a date and time.', 'warning'); return; }
+window.svLoadSchedules = async function () {
+  try {
+    const res  = await fetch('/api/schedules', { credentials: 'same-origin' });
+    const data = await res.json();
+    svRenderSchedules(data.schedules || []);
+  } catch (_) {}
+};
+
+function svRenderSchedules(list) {
+  const listEl  = $('svList');
+  const emptyEl = $('svListEmpty');
+  const badge   = $('svBadge');
+  if (!listEl) return;
+
+  const pending = list.filter(s => s.status === 'pending' || s.status === 'running');
+  if (badge) { badge.textContent = pending.length; badge.style.display = pending.length ? '' : 'none'; }
+
+  if (!list.length) {
+    if (emptyEl) emptyEl.style.display = '';
+    return;
+  }
+  if (emptyEl) emptyEl.style.display = 'none';
+
+  const iconMap   = { pending: 'fa-clock', running: 'fa-spinner fa-spin', done: 'fa-circle-check', failed: 'fa-circle-xmark' };
+  const statusLbl = { pending: 'Pending', running: 'Sending…', done: 'Done', failed: 'Failed' };
+
+  const items = list.map(s => {
+    const icon    = iconMap[s.status] || 'fa-clock';
+    const dt      = new Date(s.scheduled_at);
+    const timeStr = dt.toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+    const msg     = (s.message || '').length > 70 ? s.message.slice(0, 67) + '…' : s.message;
+    const pages   = Array.isArray(s.pages) && s.pages.length
+      ? s.pages.map(p => escHtml(p.name || p.id)).join(', ')
+      : escHtml(s.page_name || s.page_id || '—');
+    const statsLine = s.status === 'done'
+      ? `<span><i class="fa-solid fa-paper-plane"></i> ${s.sent_count || 0}/${s.total_recipients || 0} sent</span>`
+      : s.status === 'failed'
+        ? `<span style="color:#f87171"><i class="fa-solid fa-triangle-exclamation"></i> ${escHtml((s.error_message || 'Error').substring(0, 60))}</span>`
+        : '';
+    const cancelBtn = s.status === 'pending'
+      ? `<button class="sv-item-cancel" onclick="svCancelSchedule(${s.id})" title="Cancel schedule"><i class="fa-solid fa-xmark"></i></button>`
+      : '';
+    return `<div class="sv-item">
+      <div class="sv-item-icon sv-item-icon--${s.status}"><i class="fa-solid ${icon}"></i></div>
+      <div class="sv-item-info">
+        <div class="sv-item-pages">${pages}</div>
+        <div class="sv-item-msg">${escHtml(msg)}</div>
+        <div class="sv-item-meta"><i class="fa-regular fa-clock"></i>${timeStr}${statsLine ? ' · ' : ''}${statsLine}</div>
+      </div>
+      <div class="sv-item-right">
+        <span class="sv-status sv-status--${s.status}">${statusLbl[s.status] || s.status}</span>
+        ${cancelBtn}
+      </div>
+    </div>`;
+  });
+
+  listEl.innerHTML = items.join('');
+}
+
+window.svCancelSchedule = async function (id) {
+  if (!confirm('Cancel this scheduled broadcast?')) return;
+  try {
+    const csrf = await window.getCsrfToken();
+    const res  = await fetch(`/api/schedules/${id}`, {
+      method: 'DELETE', credentials: 'same-origin',
+      headers: { 'X-CSRF-Token': csrf }
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed');
+    showStatus('Schedule cancelled.', 'info');
+    svLoadSchedules();
+  } catch (e) {
+    showStatus(e.message, 'error');
+  }
+};
+
+window.svSaveSchedule = async function () {
+  const checks = Array.from(document.querySelectorAll('#svPagesList input[type=checkbox]:checked'));
+  if (!checks.length) { showStatus('Select at least one page.', 'warning'); return; }
+
+  const pages = checks.map(cb => ({ id: cb.value, name: cb.dataset.name, token: cb.dataset.token }));
+  const message = ($('svMessage')?.value || '').trim();
+  if (!message) { showStatus('Write a message first.', 'warning'); return; }
+
+  const dtVal = $('svDateTime')?.value;
+  if (!dtVal) { showStatus('Select a scheduled date and time.', 'warning'); return; }
+
   const scheduledAt = new Date(dtVal).toISOString();
+  const imageUrl    = ($('svImageUrl')?.value || '').trim();
+  const delayMs     = parseInt($('svDelay')?.value, 10) || 1200;
 
-  const btn = $('schedConfirmBtn');
+  const btn = $('svSubmitBtn');
   btn.disabled = true;
   btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Scheduling…';
 
   try {
-    const csrf = await getCsrfToken();
+    const csrf = await window.getCsrfToken();
     const res  = await fetch('/api/schedules', {
       method: 'POST', credentials: 'same-origin',
       headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrf },
-      body: JSON.stringify({ page_id: pageId, page_name: pageName, page_token: pageToken, message, image_url: imageUrl, delay_ms: delayMs, scheduled_at: scheduledAt })
+      body: JSON.stringify({ pages, message, image_url: imageUrl || null, delay_ms: delayMs, scheduled_at: scheduledAt })
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Failed to schedule');
-    closeScheduleModal();
-    showStatus('Broadcast scheduled!', 'success');
-    loadSchedules();
+    showStatus(`Broadcast scheduled for ${pages.length} page${pages.length > 1 ? 's' : ''}!`, 'success');
+    $('svMessage').value = '';
+    $('svImageUrl').value = '';
+    svUpdateCharCount();
+    svLoadSchedules();
   } catch (e) {
     showStatus(e.message || 'Failed to schedule.', 'error');
   } finally {
@@ -882,97 +974,21 @@ window.saveSchedule = async function () {
   }
 };
 
-async function getCsrfToken() {
-  const r = await fetch('/api/csrf-token', { credentials: 'same-origin' });
-  const d = await r.json();
-  return d.csrfToken || d.token || '';
+// Set min datetime to 2 minutes from now
+function svSetMinDatetime() {
+  const dtInput = $('svDateTime');
+  if (!dtInput) return;
+  const now = new Date(Date.now() + 2 * 60 * 1000);
+  const pad = n => String(n).padStart(2, '0');
+  const minVal = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}`;
+  dtInput.min = minVal;
+  if (!dtInput.value || dtInput.value < minVal) dtInput.value = minVal;
 }
 
-async function loadSchedules() {
-  try {
-    const res  = await fetch('/api/schedules', { credentials: 'same-origin' });
-    const data = await res.json();
-    renderSchedules(data.schedules || []);
-  } catch (_) { }
-}
-
-function renderSchedules(list) {
-  const listEl  = $('schedList');
-  const emptyEl = $('schedEmpty');
-  const badge   = $('schedBadge');
-  if (!listEl) return;
-
-  const pending = list.filter(s => s.status === 'pending' || s.status === 'running');
-  if (badge) { badge.textContent = pending.length; badge.style.display = pending.length ? '' : 'none'; }
-
-  if (!list.length) {
-    listEl.innerHTML = '';
-    if (emptyEl) emptyEl.style.display = '';
-    return;
-  }
-  if (emptyEl) emptyEl.style.display = 'none';
-
-  const iconMap   = { pending: 'fa-clock', running: 'fa-spinner fa-spin', done: 'fa-check', failed: 'fa-xmark' };
-  const statusLbl = { pending: 'Pending', running: 'Sending…', done: 'Done', failed: 'Failed' };
-
-  listEl.innerHTML = list.map(s => {
-    const icon    = iconMap[s.status] || 'fa-clock';
-    const dt      = new Date(s.scheduled_at);
-    const timeStr = dt.toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
-    const msg     = (s.message || '').length > 60 ? s.message.slice(0, 57) + '…' : s.message;
-    const cancelBtn = s.status === 'pending'
-      ? `<button class="sched-item-cancel" onclick="cancelSchedule(${s.id})" title="Cancel"><i class="fa-solid fa-xmark"></i></button>`
-      : '';
-    const stats = s.status === 'done' ? ` · ${s.sent_count}/${s.total_recipients} sent` : (s.status === 'failed' ? ` · ${s.error_message || 'error'}` : '');
-    return `<div class="sched-item">
-      <div class="sched-item-icon sched-item-icon--${s.status}"><i class="fa-solid ${icon}"></i></div>
-      <div class="sched-item-info">
-        <div class="sched-item-page">${escHtml(s.page_name || s.page_id)}</div>
-        <div class="sched-item-msg">${escHtml(msg)}</div>
-        <div class="sched-item-time"><i class="fa-regular fa-clock"></i>${timeStr}${escHtml(stats)}</div>
-      </div>
-      <span class="sched-item-status sched-status--${s.status}">${statusLbl[s.status] || s.status}</span>
-      ${cancelBtn}
-    </div>`;
-  }).join('');
-}
-
-window.cancelSchedule = async function (id) {
-  if (!confirm('Cancel this scheduled broadcast?')) return;
-  try {
-    const csrf = await getCsrfToken();
-    const res  = await fetch(`/api/schedules/${id}`, {
-      method: 'DELETE', credentials: 'same-origin',
-      headers: { 'X-CSRF-Token': csrf }
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Failed');
-    showStatus('Schedule cancelled.', 'info');
-    loadSchedules();
-  } catch (e) {
-    showStatus(e.message, 'error');
-  }
-};
-
-window.toggleSchedulePanel = function () {
-  _schedPanelOpen = !_schedPanelOpen;
-  const body    = $('schedPanelBody');
-  const chevron = $('schedChevron');
-  if (body)    body.classList.toggle('open', _schedPanelOpen);
-  if (chevron) chevron.classList.toggle('open', _schedPanelOpen);
-};
-
-// Load schedules whenever broadcast view is shown and refresh every 30s
-(function initSchedulePanel() {
-  const origSwitch = window.switchDashboardView;
-  window.switchDashboardView = function (view) {
-    origSwitch(view);
-    if (view === 'broadcast') loadSchedules();
-  };
-  setInterval(() => {
-    if (document.getElementById('view-broadcast')?.style.display !== 'none') loadSchedules();
-  }, 30_000);
-})();
+// Auto-refresh schedules every 30s when scheduling view is active
+setInterval(() => {
+  if (document.getElementById('view-scheduling')?.style.display !== 'none') svLoadSchedules();
+}, 30_000);
 
 // Switch between dashboard views
 function switchDashboardView(view) {
@@ -982,7 +998,7 @@ function switchDashboardView(view) {
   if (activeItem) activeItem.classList.add('active');
 
   // Show/hide sections
-  const sections = ['home', 'broadcast', 'messenger'];
+  const sections = ['home', 'broadcast', 'messenger', 'scheduling'];
   sections.forEach(s => {
     const el = document.getElementById('view-' + s);
     if (!el) return;
@@ -996,6 +1012,7 @@ function switchDashboardView(view) {
   // Load data for specific views
   if (view === 'home') updateHomeViewStats();
   if (view === 'messenger') loadMessengerConversations();
+  if (view === 'scheduling') { svPopulatePages(); svSetMinDatetime(); svLoadSchedules(); }
 
   // Show status
   if (view !== 'broadcast') showStatus('Viewing ' + view + '...', 'info');

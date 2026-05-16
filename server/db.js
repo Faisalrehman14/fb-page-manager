@@ -1416,6 +1416,7 @@ const dbModule = {
     cleanupOldMessages,
     ensureConversation,
     onIncomingMessage,
+    migrateSchedules,
     createSchedule,
     getSchedules,
     cancelSchedule,
@@ -1457,12 +1458,23 @@ async function onIncomingMessage(threadId, pageId, participantId, text) {
 }
 
 // ── Scheduled Broadcasts ──────────────────────────────────────────────────────
-async function createSchedule({ fb_user_id, page_id, page_name, page_token, message, image_url, delay_ms, scheduled_at }) {
+// Migration: add pages_data column (safe — ignored if already exists)
+async function migrateSchedules() {
+    if (!pool) return;
+    try { await pool.query("ALTER TABLE scheduled_broadcasts ADD COLUMN pages_data JSON DEFAULT NULL"); } catch (_) {}
+}
+
+// pages: [{id, name, token}, ...]
+async function createSchedule({ fb_user_id, pages, message, image_url, delay_ms, scheduled_at }) {
     if (!pool) throw new Error('DB not connected');
+    const pagesJson = JSON.stringify(pages || []);
+    const firstPage = (pages || [])[0] || {};
     const [result] = await pool.query(
-        `INSERT INTO scheduled_broadcasts (fb_user_id, page_id, page_name, page_token, message, image_url, delay_ms, scheduled_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-        [fb_user_id, page_id, page_name || null, page_token, message, image_url || null, delay_ms || 1200, scheduled_at]
+        `INSERT INTO scheduled_broadcasts
+         (fb_user_id, page_id, page_name, page_token, pages_data, message, image_url, delay_ms, scheduled_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [fb_user_id, firstPage.id || '', firstPage.name || null, firstPage.token || '',
+         pagesJson, message, image_url || null, delay_ms || 1200, scheduled_at]
     );
     return result.insertId;
 }
@@ -1470,20 +1482,25 @@ async function createSchedule({ fb_user_id, page_id, page_name, page_token, mess
 async function getSchedules(fb_user_id) {
     if (!pool) return [];
     const [rows] = await pool.query(
-        `SELECT id, page_id, page_name, message, image_url, delay_ms, scheduled_at, status,
-                total_recipients, sent_count, failed_count, error_message, created_at
+        `SELECT id, pages_data, page_id, page_name, message, image_url, delay_ms,
+                scheduled_at, status, total_recipients, sent_count, failed_count,
+                error_message, created_at
          FROM scheduled_broadcasts
          WHERE fb_user_id = ? AND status != 'cancelled'
-         ORDER BY scheduled_at DESC LIMIT 50`,
+         ORDER BY scheduled_at DESC LIMIT 100`,
         [fb_user_id]
     );
-    return rows;
+    return rows.map(r => ({
+        ...r,
+        pages: r.pages_data ? (typeof r.pages_data === 'string' ? JSON.parse(r.pages_data) : r.pages_data) : [{ id: r.page_id, name: r.page_name }]
+    }));
 }
 
 async function cancelSchedule(id, fb_user_id) {
     if (!pool) return false;
     const [result] = await pool.query(
-        `UPDATE scheduled_broadcasts SET status = 'cancelled' WHERE id = ? AND fb_user_id = ? AND status = 'pending'`,
+        `UPDATE scheduled_broadcasts SET status = 'cancelled'
+         WHERE id = ? AND fb_user_id = ? AND status = 'pending'`,
         [id, fb_user_id]
     );
     return result.affectedRows > 0;
@@ -1492,12 +1509,15 @@ async function cancelSchedule(id, fb_user_id) {
 async function getDueSchedules() {
     if (!pool) return [];
     const [rows] = await pool.query(
-        `SELECT id, fb_user_id, page_id, page_token, message, image_url, delay_ms
+        `SELECT id, fb_user_id, page_id, page_token, pages_data, message, image_url, delay_ms
          FROM scheduled_broadcasts
          WHERE status = 'pending' AND scheduled_at <= NOW()
          ORDER BY scheduled_at ASC LIMIT 10`
     );
-    return rows;
+    return rows.map(r => ({
+        ...r,
+        pages: r.pages_data ? (typeof r.pages_data === 'string' ? JSON.parse(r.pages_data) : r.pages_data) : [{ id: r.page_id, token: r.page_token }]
+    }));
 }
 
 async function updateScheduleStatus(id, status, stats = {}) {
