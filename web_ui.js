@@ -828,7 +828,16 @@ function switchDashboardView(view) {
   const sections = ['home', 'broadcast', 'analytics', 'messenger', 'templates', 'settings', 'help'];
   sections.forEach(s => {
     const el = document.getElementById('view-' + s);
-    if (el) el.style.display = (s === view) ? '' : 'none';
+    if (!el) return;
+    if (s !== view) { el.style.display = 'none'; return; }
+    // Templates needs flex column to scroll properly
+    el.style.display = s === 'templates' ? 'flex' : '';
+    if (s === 'templates') {
+      el.style.flexDirection = 'column';
+      el.style.flex = '1';
+      el.style.minHeight = '0';
+      el.style.overflow = 'hidden';
+    }
   });
 
   // Hide pages sidebar on templates view
