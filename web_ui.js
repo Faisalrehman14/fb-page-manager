@@ -1013,19 +1013,19 @@ function cleanPsid(psid) {
 }
 
 async function loadMessengerConversations() {
-  // New Socket.io inbox — delegate to auth bridge + Inbox controller
-  if (typeof window.initInboxForMainSite === 'function') {
-    await window.initInboxForMainSite();
-    return;
-  }
-
   const pageSelect = document.getElementById('pageSelect');
   let pageId = pageSelect?.value || window.current_page_id || window.currentPageId || '';
 
-  // Delegate to the Messenger system
+  // Primary: Messenger system (messenger.js) — matches the msng-* HTML in dashboard
   if (typeof window.msngInit === 'function') {
     if (pageId) window.currentPageId = pageId;
-    window.msngInit(0); // 0 = first attempt (retries param)
+    window.msngInit(0);
+    return;
+  }
+
+  // Fallback: Inbox system (inbox.js) — only if standalone inbox.html is used
+  if (typeof window.initInboxForMainSite === 'function') {
+    await window.initInboxForMainSite();
     return;
   }
 
