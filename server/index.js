@@ -1378,6 +1378,29 @@ app.post(['/api/update_quota', '/api/update_quota.php'], requireAuth, verifyCsrf
     }
 });
 
+// ── Cleanup blocked conversations (immediate, per-page) ──────────────────────
+app.post('/api/conversations/cleanup', requireAuth, async (req, res) => {
+    if (!dbConnected) return res.status(503).json({ error: 'Database not connected' });
+    try {
+        const pages = req.session.pageTokens ? Object.entries(req.session.pageTokens) : [];
+        if (!pages.length) return res.status(400).json({ error: 'No page tokens in session. Re-login.' });
+        let totalDeleted = 0;
+        for (const [pageId, token] of pages) {
+            try {
+                const convs = await db.syncConversationsFromFacebook(pageId, token, fetch);
+                // syncConversationsFromFacebook already does the DELETE internally (awaited)
+                totalDeleted += convs.length; // not deleted count but synced
+            } catch (err) {
+                logError('conversations_cleanup', err, { pageId });
+            }
+        }
+        res.json({ success: true, message: `Cleaned up ${pages.length} page(s), ${totalDeleted} active conversations kept` });
+    } catch (err) {
+        logError('conversations_cleanup', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // ── Sync ──────────────────────────────────────────────────────────────────────
 app.post('/api/sync/all', requireAuth, verifyCsrf, async (req, res) => {
     if (!dbConnected) return res.status(503).json({ error: 'Database not connected' });

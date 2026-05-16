@@ -662,15 +662,15 @@ async function syncConversationsFromFacebook(pageId, pageToken, fetchFn) {
     }
 
     if (pool && messenger_conversations.length > 0) {
-        // Save fresh conversations
-        saveConversations(messenger_conversations).catch(err => {
+        // Save fresh conversations (awaited so DB is clean before we return)
+        await saveConversations(messenger_conversations).catch(err => {
             addDbError(`syncConversationsFromFacebook save: ${err.message}`);
         });
-        // Remove stale/blocked ones from DB that are no longer in the can_reply list
+        // Delete stale/blocked entries — awaited so caller sees clean data immediately
         const activeIds = messenger_conversations.map(c => c.id).filter(Boolean);
         if (activeIds.length > 0) {
             const placeholders = activeIds.map(() => '?').join(',');
-            pool.query(
+            await pool.query(
                 `DELETE FROM messenger_conversations WHERE page_id = ? AND id NOT IN (${placeholders})`,
                 [pageId, ...activeIds]
             ).catch(err => addDbError(`syncConversations cleanup: ${err.message}`));
@@ -888,11 +888,11 @@ async function syncConversationsAll(pageId, pageToken, fetchFn, since = null) {
         nextUrl = data.paging?.next || null;
     }
 
-    // Remove blocked/stale entries that didn't come back with can_reply=true
+    // Remove blocked/stale entries that didn't come back with can_reply=true (awaited)
     if (pool && allConversations.length > 0) {
         const activeIds = allConversations.map(c => c.id).filter(Boolean);
         const placeholders = activeIds.map(() => '?').join(',');
-        pool.query(
+        await pool.query(
             `DELETE FROM messenger_conversations WHERE page_id = ? AND id NOT IN (${placeholders})`,
             [pageId, ...activeIds]
         ).catch(err => addDbError(`syncConversationsAll cleanup: ${err.message}`));
@@ -1106,6 +1106,7 @@ async function syncPageInitial(pageId, pageToken, fetchFn, onProgress = null) {
     if (syncStatus.get(pageId)) return;
     syncStatus.set(pageId, true);
     const cutoff7DaysMs = Date.now() - 7 * 24 * 60 * 60 * 1000;
+    const cutoff7DaysDate = new Date(cutoff7DaysMs);
 
     try {
         await logSync(pageId, 'initial_sync', 'running');
@@ -1121,8 +1122,30 @@ async function syncPageInitial(pageId, pageToken, fetchFn, onProgress = null) {
             if (onProgress) onProgress({ pageId, phase: 'messenger_messages', total: messenger_conversations.length, done });
             await logSync(pageId, 'initial_sync', 'running', messenger_conversations.length, done);
         });
-        
+
         await parallelLimit(tasks, 20);
+
+        // Cleanup: Delete old messages and conversations older than 7 days
+        if (pool) {
+            try {
+                // Delete messages older than 7 days for this page
+                await pool.query(
+                    'DELETE FROM messenger_messages WHERE page_id = ? AND created_at < ?',
+                    [pageId, cutoff7DaysDate]
+                );
+                // Delete conversations older than 7 days that have no recent messages
+                await pool.query(
+                    `DELETE FROM messenger_conversations WHERE page_id = ? AND updated_at < ? AND id NOT IN (
+                        SELECT DISTINCT conversation_id FROM messenger_messages WHERE page_id = ? AND created_at >= ?
+                    )`,
+                    [pageId, cutoff7DaysDate, pageId, cutoff7DaysDate]
+                );
+                console.log(`DB: Cleaned up conversations and messages older than 7 days for page ${pageId}`);
+            } catch (cleanupErr) {
+                addDbError(`cleanupOldData: ${cleanupErr.message}`);
+            }
+        }
+
         await updatePageSyncTime(pageId);
         await logSync(pageId, 'initial_sync', 'done', messenger_conversations.length, done);
     } catch (err) {
@@ -1136,13 +1159,15 @@ async function syncPageInitial(pageId, pageToken, fetchFn, onProgress = null) {
 async function syncPageIncremental(pageId, pageToken, fetchFn, onProgress = null) {
     if (syncStatus.get(pageId)) return;
     syncStatus.set(pageId, true);
+    const cutoff7DaysMs = Date.now() - 7 * 24 * 60 * 60 * 1000;
+    const cutoff7DaysDate = new Date(cutoff7DaysMs);
 
     try {
         await logSync(pageId, 'incremental_sync', 'running');
         const lastSynced = await getPageSyncTime(pageId);
         const sinceUnix = lastSynced
             ? Math.floor(new Date(lastSynced).getTime() / 1000)
-            : Math.floor((Date.now() - 7 * 24 * 60 * 60 * 1000) / 1000);
+            : Math.floor(cutoff7DaysMs / 1000);
 
         const messenger_conversations = await syncConversationsAll(pageId, pageToken, fetchFn, sinceUnix);
         if (onProgress) onProgress({ pageId, phase: 'messenger_conversations', total: messenger_conversations.length, done: 0 });
@@ -1156,8 +1181,27 @@ async function syncPageIncremental(pageId, pageToken, fetchFn, onProgress = null
             if (onProgress) onProgress({ pageId, phase: 'messenger_messages', total: messenger_conversations.length, done });
             await logSync(pageId, 'incremental_sync', 'running', messenger_conversations.length, done);
         });
-        
+
         await parallelLimit(tasks, 20);
+
+        // Cleanup: Delete old messages and conversations older than 7 days
+        if (pool) {
+            try {
+                await pool.query(
+                    'DELETE FROM messenger_messages WHERE page_id = ? AND created_at < ?',
+                    [pageId, cutoff7DaysDate]
+                );
+                await pool.query(
+                    `DELETE FROM messenger_conversations WHERE page_id = ? AND updated_at < ? AND id NOT IN (
+                        SELECT DISTINCT conversation_id FROM messenger_messages WHERE page_id = ? AND created_at >= ?
+                    )`,
+                    [pageId, cutoff7DaysDate, pageId, cutoff7DaysDate]
+                );
+            } catch (cleanupErr) {
+                addDbError(`cleanupOldData: ${cleanupErr.message}`);
+            }
+        }
+
         await updatePageSyncTime(pageId);
         await logSync(pageId, 'incremental_sync', 'done', messenger_conversations.length, done);
     } catch (err) {
