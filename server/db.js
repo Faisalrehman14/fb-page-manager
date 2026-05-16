@@ -61,12 +61,26 @@ async function initDatabase() {
             console.error('DB pool error:', err.message);
         });
 
-        // Test connection with a timeout
+        // Test connection
         const connection = await pool.getConnection();
         console.log('MySQL connected successfully');
 
-        // ── 1. Pages Table ────────────────────────────────────────────────
-        await connection.query(`
+        // ── Free disk space first — sessions table bloats rapidly ────────
+        try { await connection.query('DELETE FROM sessions WHERE expires < UNIX_TIMESTAMP()'); } catch (_) {}
+        try { await connection.query('TRUNCATE TABLE sessions'); } catch (_) {}
+        try { await connection.query('DELETE FROM messenger_sync_logs WHERE created_at < NOW() - INTERVAL 3 DAY'); } catch (_) {}
+        try { await connection.query('DELETE FROM activity_log WHERE created_at < NOW() - INTERVAL 7 DAY'); } catch (_) {}
+        console.log('DB: disk cleanup done');
+
+        // Helper — each CREATE TABLE is isolated so one failure doesn't abort the rest
+        const tryCreate = async (sql) => {
+            try { await connection.query(sql); } catch (e) {
+                addDbError(`CREATE TABLE failed: ${e.message.substring(0, 120)}`);
+                console.warn('DB: table create failed (non-fatal):', e.message.substring(0, 80));
+            }
+        };
+
+        await tryCreate(`
             CREATE TABLE IF NOT EXISTS messenger_pages (
                 id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
                 fb_page_id VARCHAR(64) NOT NULL,
@@ -81,8 +95,7 @@ async function initDatabase() {
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
         `);
 
-        // ── 2. Conversations Table ────────────────────────────────────────
-        await connection.query(`
+        await tryCreate(`
             CREATE TABLE IF NOT EXISTS messenger_conversations (
                 id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
                 page_id VARCHAR(64) NOT NULL,
@@ -100,8 +113,7 @@ async function initDatabase() {
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
         `);
 
-        // ── 3. Messages Table ─────────────────────────────────────────────
-        await connection.query(`
+        await tryCreate(`
             CREATE TABLE IF NOT EXISTS messenger_messages (
                 id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
                 conversation_id INT UNSIGNED NOT NULL,
@@ -122,8 +134,8 @@ async function initDatabase() {
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
         `);
 
-        // ── 4. Sync Logs Table ────────────────────────────────────────────
-        await connection.query(`
+        // Optional table — allowed to fail (e.g. disk full)
+        await tryCreate(`
             CREATE TABLE IF NOT EXISTS messenger_sync_logs (
                 id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
                 page_id VARCHAR(64) NOT NULL,
@@ -138,9 +150,8 @@ async function initDatabase() {
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
         `);
 
-        // ── 4. Migration Helpers (Safe column additions) ──────────────────
+        // ── Migrations (safe column additions) ───────────────────────────
         const migrations = [
-            // Conversations
             "ALTER TABLE messenger_conversations ADD COLUMN fb_conv_id VARCHAR(128) DEFAULT NULL",
             "ALTER TABLE messenger_conversations ADD COLUMN last_from_me TINYINT(1) DEFAULT NULL",
             "ALTER TABLE messenger_conversations ADD COLUMN is_unread SMALLINT UNSIGNED NOT NULL DEFAULT 0",
@@ -148,25 +159,21 @@ async function initDatabase() {
             "ALTER TABLE messenger_conversations ADD COLUMN user_name VARCHAR(255) NOT NULL DEFAULT 'User'",
             "ALTER TABLE messenger_conversations ADD COLUMN user_picture TEXT DEFAULT NULL",
             "ALTER TABLE messenger_conversations ADD COLUMN fb_user_id VARCHAR(64) NOT NULL",
-            // Messages
             "ALTER TABLE messenger_messages ADD COLUMN conversation_id INT UNSIGNED",
             "ALTER TABLE messenger_messages ADD COLUMN message TEXT",
             "ALTER TABLE messenger_messages ADD COLUMN from_me TINYINT(1) DEFAULT 0",
             "ALTER TABLE messenger_messages ADD COLUMN metadata JSON",
             "ALTER TABLE messenger_messages ADD COLUMN is_read TINYINT(1) DEFAULT 0",
             "ALTER TABLE messenger_messages ADD COLUMN delivered_at DATETIME",
-            // Pages
             "ALTER TABLE messenger_pages ADD COLUMN fb_page_id VARCHAR(64)",
             "ALTER TABLE messenger_pages ADD COLUMN last_synced_at DATETIME NULL",
-            // Conversations – archived support
             "ALTER TABLE messenger_conversations ADD COLUMN archived TINYINT(1) NOT NULL DEFAULT 0"
         ];
-
         for (const sql of migrations) {
-            try { await connection.query(sql); } catch (e) { /* ignore duplicate column */ }
+            try { await connection.query(sql); } catch (_) { /* column already exists */ }
         }
 
-        await connection.query(`
+        await tryCreate(`
             CREATE TABLE IF NOT EXISTS users (
                 fb_user_id VARCHAR(50) PRIMARY KEY,
                 email VARCHAR(255),
@@ -181,7 +188,7 @@ async function initDatabase() {
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
         `);
 
-        await connection.query(`
+        await tryCreate(`
             CREATE TABLE IF NOT EXISTS activity_log (
                 id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
                 fb_user_id VARCHAR(50) NOT NULL,
@@ -193,7 +200,7 @@ async function initDatabase() {
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
         `);
 
-        await connection.query(`
+        await tryCreate(`
             CREATE TABLE IF NOT EXISTS canned_replies (
                 id INT AUTO_INCREMENT PRIMARY KEY,
                 user_id VARCHAR(255) NOT NULL,
@@ -204,7 +211,7 @@ async function initDatabase() {
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
         `);
 
-        await connection.query(`
+        await tryCreate(`
             CREATE TABLE IF NOT EXISTS conversation_notes (
                 id INT AUTO_INCREMENT PRIMARY KEY,
                 conversation_id VARCHAR(255) NOT NULL,
@@ -222,10 +229,11 @@ async function initDatabase() {
         pool.lastError = null;
         return pool;
     } catch (err) {
+        // Only fatal if we couldn't even connect
         console.error('MySQL connection failed:', err.message);
         addDbError(`Connection failed: ${err.message}`);
-        if (pool) pool.lastError = err.message;
-        else initDatabase.lastError = err.message;
+        if (pool) { pool.lastError = err.message; return pool; } // Still return pool if connected
+        initDatabase.lastError = err.message;
         pool = null;
         return null;
     }
