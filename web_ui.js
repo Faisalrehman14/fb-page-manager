@@ -841,6 +841,11 @@ function updateHomeViewStats() {
   if (hSuccess) hSuccess.textContent = successRate + '%';
   if (hPages) hPages.textContent = window.totalPagesCount || '0';
   if (hBroadcasts) hBroadcasts.textContent = window.totalBroadcastsCount || '0';
+  // Sync KPI row (duplicated IDs with suffix 2)
+  const el2 = (id) => document.getElementById(id);
+  const t2 = el2('homeTotalMessages2'); if (t2) t2.textContent = total.toLocaleString();
+  const s2 = el2('homeSentCount2');     if (s2) s2.textContent = sent.toLocaleString();
+  const b2 = el2('homeTotalBroadcasts2'); if (b2) b2.textContent = window.totalBroadcastsCount || '0';
 
   // Update plan banner
   const planName = document.getElementById('homePlanName');
