@@ -1135,19 +1135,48 @@ window.getCsrfToken = async (forceRefresh = false) => {
             </div>
 
             <div id="msngMsgs" class="msng-msgs"></div>
-            
+
             <div class="msng-typing" id="msngTyping">
               <div class="msng-typing-dots"><span></span><span></span><span></span></div>
+              <span class="msng-typing-label">typing…</span>
+            </div>
+
+            <!-- Canned replies panel -->
+            <div id="msngCannedPanel" class="msng-canned-panel" style="display:none">
+              <div class="msng-canned-hdr">
+                <i class="fa-solid fa-bolt"></i> Quick Replies
+                <button class="msng-canned-close" onclick="msngToggleCanned()"><i class="fa-solid fa-xmark"></i></button>
+              </div>
+              <div id="msngCannedList" class="msng-canned-list">
+                <div class="msng-canned-item" onclick="msngUseCanned(this)">Thank you for reaching out! How can I help you today?</div>
+                <div class="msng-canned-item" onclick="msngUseCanned(this)">I'll look into this and get back to you shortly.</div>
+                <div class="msng-canned-item" onclick="msngUseCanned(this)">Our team will respond within 24 hours. Thank you for your patience!</div>
+                <div class="msng-canned-item" onclick="msngUseCanned(this)">Please share more details so we can assist you better.</div>
+                <div class="msng-canned-item" onclick="msngUseCanned(this)">We appreciate your feedback! We'll work on improving this.</div>
+                <div class="msng-canned-item" onclick="msngUseCanned(this)">Your order has been processed. You'll receive a confirmation shortly.</div>
+              </div>
             </div>
 
             <div class="msng-input-bar">
+              <button class="msng-input-btn" title="Attach image" onclick="document.getElementById('msngFileInput').click()">
+                <i class="fa-solid fa-image"></i>
+              </button>
+              <button class="msng-input-btn" title="Quick replies" onclick="msngToggleCanned()" id="msngCannedBtn">
+                <i class="fa-solid fa-bolt"></i>
+              </button>
               <div class="msng-input-wrap">
-                <textarea id="msngMsgTextarea" class="msng-textarea" placeholder="Type a message..." rows="1"></textarea>
+                <textarea id="msngMsgTextarea" class="msng-textarea" placeholder="Type a message…" rows="1"
+                  oninput="msngTextareaInput(this);msngUpdateCharCount(this)"
+                  onkeydown="msngKeydown(event)"></textarea>
               </div>
-              <button id="msngSendBtn" class="msng-send-btn" onclick="msngSend()"><i class="fa-solid fa-paper-plane"></i></button>
+              <span id="msngCharCount" class="msng-char-count"></span>
+              <button id="msngSendBtn" class="msng-send-btn" onclick="msngSend()">
+                <i class="fa-solid fa-paper-plane"></i>
+              </button>
             </div>
+            <input type="file" id="msngFileInput" accept="image/*" style="display:none" onchange="msngOnFileSelect(this)">
           </div>
-          
+
           <button id="msngScrollBtn" class="msng-scroll-btn" onclick="msngScrollToBottom()"><i class="fa-solid fa-arrow-down"></i></button>
         </div>
       </div>

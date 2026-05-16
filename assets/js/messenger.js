@@ -173,7 +173,7 @@
     if (attType === 'image' && attUrl) {
       content = `<img class="msng-att-img" src="${esc(attUrl)}" alt="Image"
                       onclick="window.open('${esc(attUrl)}','_blank')">`;
-      if (txt && txt !== '[Image]') content += `<div>${esc(txt)}</div>`;
+      if (txt && txt !== '[Image]') content += `<div style="margin-top:4px">${esc(txt)}</div>`;
     } else if (txt) {
       content = esc(txt).replace(/\n/g, '<br>');
     } else {
@@ -184,14 +184,36 @@
       ? `<div class="msng-msg-avatar-wrap">${avatarHtml(M.activeConvPic, M.activeConvName, 'msng-msg-avatar')}</div>`
       : '';
 
-    return `<div class="msng-msg ${fromMe ? 'from-me' : ''} ${msg._pending ? 'pending' : ''}"
+    // Page name label on sent messages (like competitor's "FBCast Pro")
+    const pageName = fromMe
+      ? esc(M.pages.find(p => p.id === M.activePageId)?.name || 'FBCast Pro')
+      : '';
+    const senderLabel = fromMe
+      ? `<div class="msng-msg-sender"><i class="fa-brands fa-facebook-messenger" style="font-size:9px;opacity:.7"></i> ${pageName}</div>`
+      : '';
+
+    // Delivery status tick
+    let tick = '';
+    if (fromMe) {
+      if (msg._pending) {
+        tick = `<span class="msng-tick msng-tick--sending" title="Sending…"><i class="fa-regular fa-clock"></i></span>`;
+      } else if (msg._failed) {
+        tick = `<span class="msng-tick msng-tick--failed" title="Failed"><i class="fa-solid fa-circle-exclamation"></i></span>`;
+      } else {
+        tick = `<span class="msng-tick msng-tick--sent" title="Sent"><i class="fa-solid fa-check-double"></i></span>`;
+      }
+    }
+
+    return `<div class="msng-msg ${fromMe ? 'from-me' : ''} ${msg._pending ? 'pending' : ''} ${msg._failed ? 'failed' : ''}"
                  ${tempId ? `data-temp-id="${esc(tempId)}"` : ''}
                  ${msg.message_id ? `data-msg-id="${esc(msg.message_id)}"` : ''}>
       ${avatar}
       <div class="msng-msg-group">
+        ${senderLabel}
         <div class="msng-bubble">${content}</div>
         <div class="msng-msg-meta">
           <span class="msng-msg-time">${esc(fmtMsgTime(msg.created_at))}</span>
+          ${tick}
         </div>
       </div>
     </div>`;
@@ -328,11 +350,19 @@
       return;
     }
 
-    let html = `<div class="msng-load-more" id="msngLoadMoreWrap">
-      <button class="msng-load-more-btn" data-action="load-more">
-        <i class="fa-solid fa-chevron-up"></i> Load earlier messages
-      </button>
-    </div>`;
+    // Show "beginning of conversation" only when ≤30 messages (likely all loaded)
+    const showStart = M.msgs.length > 0 && M.msgs.length <= 30;
+    let html = showStart
+      ? `<div class="msng-conv-start">
+           <div class="msng-conv-start-avatar">${avatarHtml(M.activeConvPic, M.activeConvName, 'msng-conv-start-img')}</div>
+           <div class="msng-conv-start-name">${esc(M.activeConvName)}</div>
+           <div class="msng-conv-start-sub">Beginning of your conversation on Facebook Messenger</div>
+         </div>`
+      : `<div class="msng-load-more" id="msngLoadMoreWrap">
+           <button class="msng-load-more-btn" data-action="load-more">
+             <i class="fa-solid fa-chevron-up"></i> Load earlier messages
+           </button>
+         </div>`;
 
     let lastDate = '';
     M.msgs.forEach(msg => {
@@ -978,6 +1008,82 @@
   window.msngTextareaInput = function (ta) {
     ta.style.height = 'auto';
     ta.style.height = Math.min(ta.scrollHeight, 120) + 'px';
+  };
+
+  window.msngUpdateCharCount = function (ta) {
+    const el  = $('msngCharCount');
+    if (!el) return;
+    const len = ta.value.length;
+    if (len === 0) { el.textContent = ''; el.className = 'msng-char-count'; return; }
+    el.textContent = len + '/2000';
+    el.className   = 'msng-char-count' + (len > 1800 ? ' msng-char-count--warn' : '') + (len >= 2000 ? ' msng-char-count--over' : '');
+    if (len >= 2000) ta.value = ta.value.slice(0, 2000);
+  };
+
+  window.msngToggleCanned = function () {
+    const panel = $('msngCannedPanel');
+    const btn   = $('msngCannedBtn');
+    if (!panel) return;
+    const open = panel.style.display !== 'none';
+    panel.style.display = open ? 'none' : 'flex';
+    btn?.classList.toggle('active', !open);
+  };
+
+  window.msngUseCanned = function (el) {
+    const ta = $('msngMsgTextarea');
+    if (ta) {
+      ta.value = el.textContent.trim();
+      ta.focus();
+      window.msngTextareaInput(ta);
+      window.msngUpdateCharCount(ta);
+    }
+    window.msngToggleCanned();
+  };
+
+  window.msngOnFileSelect = async function (input) {
+    const file = input.files[0];
+    if (!file) return;
+    input.value = '';
+
+    if (!M.activePsid || !M.activePageId || !M.activeToken) {
+      showToast('Select a conversation first', 'warning');
+      return;
+    }
+    if (file.size > 8 * 1024 * 1024) {
+      showToast('Image too large — max 8 MB', 'error');
+      return;
+    }
+
+    // Optimistic preview bubble
+    const objUrl  = URL.createObjectURL(file);
+    const tempId  = 'temp_img_' + Date.now();
+    const previewMsg = { message: '', from_me: 1, created_at: new Date().toISOString(), _tempId: tempId, _pending: true, attachment_url: objUrl, attachment_type: 'image' };
+    M.msgs.push(previewMsg);
+    M.renderedMsgIds.add(tempId);
+    appendBubble(previewMsg);
+
+    try {
+      const form = new FormData();
+      form.append('file', file);
+      form.append('page_id', M.activePageId);
+      form.append('psid', M.activePsid);
+      form.append('page_token', M.activeToken);
+
+      const r = await fetch('/api/messenger/upload', { method: 'POST', credentials: 'same-origin', body: form });
+      const d = await r.json();
+
+      if (d.error) throw new Error(d.error);
+
+      const bubble = document.querySelector(`[data-temp-id="${tempId}"]`);
+      if (bubble) { bubble.removeAttribute('data-temp-id'); bubble.classList.remove('pending'); }
+      if (d.message_id) M.renderedMsgIds.add(d.message_id);
+      URL.revokeObjectURL(objUrl);
+
+    } catch (e) {
+      const bubble = document.querySelector(`[data-temp-id="${tempId}"]`);
+      if (bubble) { bubble.classList.add('failed'); bubble.classList.remove('pending'); }
+      showToast('Image send failed: ' + e.message, 'error');
+    }
   };
 
   window.msngSearch = function (input) {

@@ -877,6 +877,42 @@ app.post('/api/threads/:threadId/attach', requireAuth, verifyCsrf, upload.single
     }
 });
 
+// ── Messenger Image Upload ────────────────────────────────────────────────────
+app.post('/api/messenger/upload', requireAuth, upload.single('file'), async (req, res) => {
+    const { page_id: pageId, psid, page_token: bodyToken } = req.body;
+    const file = req.file;
+    if (!pageId      || !/^\d+$/.test(pageId)) return res.status(400).json({ error: 'Invalid page_id' });
+    if (!psid        || !/^\d+$/.test(psid))   return res.status(400).json({ error: 'Invalid psid' });
+    if (!file)                                  return res.status(400).json({ error: 'No file uploaded' });
+
+    const token = req.session.pageTokens?.[pageId] || (dbConnected ? await db.getPageToken(pageId) : null) || bodyToken;
+    if (!token) return res.status(401).json({ error: 'Page token not found' });
+
+    try {
+        const mime       = file.mimetype;
+        const attachType = mime.startsWith('image/') ? 'image' : mime.startsWith('video/') ? 'video' : 'file';
+        const form       = new FormData();
+        form.append('recipient', JSON.stringify({ id: psid }));
+        form.append('message',   JSON.stringify({ attachment: { type: attachType, payload: { is_reusable: false } } }));
+        form.append('filedata',  new Blob([file.buffer], { type: mime }), file.originalname || 'upload');
+        const fbRes = await fetch(`https://graph.facebook.com/v19.0/me/messages?access_token=${token}`, { method: 'POST', body: form });
+        const data  = await fbRes.json();
+        if (data.error) throw new Error(data.error.message);
+
+        if (dbConnected && data.message_id) {
+            const convInfo = await db.getConversationIdByParticipant(pageId, psid);
+            if (convInfo?.id) {
+                await db.saveMessage({ id: data.message_id, conversationId: convInfo.id, pageId, senderId: pageId, senderType: 'page', text: '', isFromPage: true, createdTime: new Date().toISOString(), attachments: [{ t: attachType, u: '' }] });
+            }
+        }
+        io.to(`page_${pageId}`).emit('new_message', { id: data.message_id, psid, text: '', isFromPage: true, createdTime: new Date().toISOString(), attachments: [{ t: attachType, u: '' }] });
+        res.json({ success: true, message_id: data.message_id });
+    } catch (err) {
+        logError('messenger_upload', err, { pageId, psid });
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // ── FB Proxy ──────────────────────────────────────────────────────────────────
 app.post('/api/fb-proxy', verifyCsrf, async (req, res) => {
     const { method = 'GET', path: fbPath, token, params = {}, body = {}, url: fullUrl } = req.body;
