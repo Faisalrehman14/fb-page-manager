@@ -122,10 +122,6 @@ const FB_APP_SECRET        = (process.env.FB_APP_SECRET        || '').trim();
 const BASE_URL             = (process.env.BASE_URL             || '').trim();
 const WEBHOOK_VERIFY_TOKEN = (process.env.WEBHOOK_VERIFY_TOKEN || process.env.FB_WEBHOOK_VERIFY_TOKEN || 'ADMIN12345').trim();
 
-    console.error(`[ERROR:${type}]`, entry.message, Object.keys(ctx).length ? ctx : '');
-    return entry;
-}
-
 process.on('unhandledRejection', r  => logError('unhandledRejection', r instanceof Error ? r : new Error(String(r))));
 process.on('uncaughtException',  err => logError('uncaughtException',  err));
 
@@ -175,24 +171,18 @@ app.post(['/webhook', '/fb_webhook.php'], async (req, res) => {
                 // Delivery/read receipts have no message body — skip silently
                 if (!event.message) continue;
 
-                const isEcho        = !!event.message.is_echo;
-                const participantId = isEcho ? event.recipient?.id : event.sender?.id;
+                const isEcho      = !!event.message.is_echo;
+                const senderId    = event.sender?.id;
+                const recipientId = event.recipient?.id;
+                const participantId = isEcho ? recipientId : senderId;
                 if (!participantId) {
                     logError('webhook_no_participant', new Error('Missing sender/recipient'), { pageId, eventKeys: Object.keys(event) });
                     continue;
                 }
 
-                // Deduplicate by message ID — FB retries on 200 ACK failure
                 const mid  = event.message.mid || null;
                 const text = (event.message.text || '').trim();
                 const ts   = event.timestamp ? new Date(event.timestamp).toISOString() : new Date().toISOString();
-
-                // Correctly identify sender and receiver
-                // For normal messages: sender = customer, recipient = page
-                // For echoes (from mobile app): sender = page, recipient = customer
-                const senderId = event.sender?.id;
-                const recipientId = event.recipient?.id;
-                const participantId = isEcho ? recipientId : senderId;
 
                 const attachments = (event.message.attachments || [])
                     .map(a => ({ t: a.type || 'file', u: a.payload?.url || '' }))
