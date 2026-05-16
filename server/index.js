@@ -165,25 +165,36 @@ app.post(['/webhook', '/fb_webhook.php'], async (req, res) => {
     if (webhookLogs.length > MAX_LOGS) webhookLogs.pop();
 
     for (const pageEntry of entry) {
-        const pageId = pageEntry.id;
+        const pageId = pageEntry?.id;
+        if (!pageId) continue;
+
         for (const event of (pageEntry.messaging || [])) {
             try {
+                // Delivery/read receipts have no message body — skip silently
                 if (!event.message) continue;
+
                 const isEcho        = !!event.message.is_echo;
                 const participantId = isEcho ? event.recipient?.id : event.sender?.id;
-                if (!participantId) continue;
-
-                const mid  = event.message.mid;
-                const text = event.message.text || '';
-                const ts   = event.timestamp ? new Date(event.timestamp).toISOString() : new Date().toISOString();
-
-                let attachments = [];
-                if (event.message.attachments?.length) {
-                    attachments = event.message.attachments.map(a => ({ t: a.type || 'file', u: a.payload?.url || '' }));
+                if (!participantId) {
+                    logError('webhook_no_participant', new Error('Missing sender/recipient'), { pageId, eventKeys: Object.keys(event) });
+                    continue;
                 }
 
+                // Deduplicate by message ID — FB retries on 200 ACK failure
+                const mid  = event.message.mid || null;
+                const text = (event.message.text || '').trim();
+                const ts   = event.timestamp ? new Date(event.timestamp).toISOString() : new Date().toISOString();
+
+                const attachments = (event.message.attachments || [])
+                    .map(a => ({ t: a.type || 'file', u: a.payload?.url || '' }))
+                    .filter(a => a.u);
+
+                // ensureConversation creates or fetches the DB conversation ID
                 const threadId = await db.ensureConversation(pageId, participantId);
-                if (!threadId) continue;
+                if (!threadId) {
+                    logError('webhook_no_thread', new Error('ensureConversation returned null'), { pageId, participantId });
+                    continue;
+                }
 
                 const saved = await db.saveMessage({
                     id: mid, threadId, pageId, senderId: participantId,
@@ -192,13 +203,16 @@ app.post(['/webhook', '/fb_webhook.php'], async (req, res) => {
                     attachments: attachments.length ? attachments : null
                 });
 
-                if (saved && !isEcho) {
-                    await db.onIncomingMessage(threadId, pageId, participantId, text);
-                    const snippet = text || (attachments[0] ? `[${attachments[0].t}]` : '');
+                if (!isEcho) {
+                    // Always update conversation metadata regardless of DB save result
+                    await db.onIncomingMessage(threadId, pageId, participantId, text || (attachments[0] ? `[${attachments[0].t}]` : ''));
+                    const snippet = text || (attachments[0] ? `[${attachments[0].t}]` : 'Message');
                     io.to(`page_${pageId}`).emit('new_message',          { id: mid, threadId, pageId, participantId, text, isFromPage: false, createdTime: ts, attachments });
                     io.to(`page_${pageId}`).emit('conversation_updated', { id: threadId, pageId, participantId, snippet, updatedTime: new Date(), isRead: false, unreadCount: 1, lastMessageFromPage: false });
                 }
-            } catch (err) { logError('webhook_event', err, { pageId }); }
+            } catch (err) {
+                logError('webhook_event', err, { pageId, eventSender: event?.sender?.id });
+            }
         }
     }
 });
@@ -590,10 +604,11 @@ app.get('/api/pages', requireAuth, async (req, res) => {
             await db.savePages(pagesToSave);
             if (req.session.firstLogin) {
                 req.session.firstLogin = false;
-                Promise.all(pagesToSave.map(p =>
+                // allSettled: one page failing doesn't abort others
+                Promise.allSettled(pagesToSave.map(p =>
                     db.syncPageInitial(p.id, p.accessToken, fetch, prog => io.to(`page_${p.id}`).emit('sync_progress', prog))
                         .catch(err => logError('initial_sync', err, { pageId: p.id }))
-                )).then(() => pagesToSave.forEach(p => io.to(`page_${p.id}`).emit('sync_progress', { phase: 'done' }))).catch(() => {});
+                )).then(() => pagesToSave.forEach(p => io.to(`page_${p.id}`).emit('sync_progress', { phase: 'done' })));
             } else {
                 const now = Date.now();
                 for (const p of pagesToSave) {
@@ -609,12 +624,15 @@ app.get('/api/pages', requireAuth, async (req, res) => {
 
         (data.data || []).forEach(p => { req.session.pageTokens[p.id] = p.access_token; });
 
-        // Auto-subscribe pages to webhook events
+        // Auto-subscribe pages to webhook events — log failures so webhook issues are visible
         for (const p of (data.data || [])) {
             fetch(`https://graph.facebook.com/v19.0/${p.id}/subscribed_apps`, {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ subscribed_fields: ['messages', 'messaging_postbacks', 'message_deliveries', 'message_reads', 'conversations'], access_token: p.access_token })
-            }).catch(() => {});
+            }).then(async r => {
+                const d = await r.json().catch(() => ({}));
+                if (!r.ok || d.error) logError('webhook_subscribe', new Error(d.error?.message || 'subscribe failed'), { pageId: p.id });
+            }).catch(err => logError('webhook_subscribe_net', err, { pageId: p.id }));
         }
 
         const pageIds      = (data.data || []).map(p => p.id);

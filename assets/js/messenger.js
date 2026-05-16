@@ -37,6 +37,9 @@
     search: { query: '', timer: null },
 
     ui: { sending: false, loadingMore: false },
+
+    _msgAbort: null,   // AbortController for in-flight loadMessages request
+    _offline:  false,  // true while socket is disconnected
   };
 
   // ══════════════════════════════════════════════════════════
@@ -60,11 +63,11 @@
     if (typeof window.requestJson === 'function') {
       return window.requestJson('/api/messenger', {
         method:  'POST',
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
           'X-CSRF-Token': await window.getCsrfToken?.() || ''
         },
-        body:    JSON.stringify(payload)
+        body: JSON.stringify(payload)
       });
     }
     const r = await fetch('/api/messenger', {
@@ -73,6 +76,11 @@
       credentials: 'same-origin',
       body:        JSON.stringify(payload),
     });
+    if (r.status === 401) return { error: 'Session expired — please reload the page' };
+    if (r.status === 429) return { error: 'Too many requests — slow down' };
+    if (!r.ok) {
+      try { return await r.json(); } catch { return { error: 'Server error (' + r.status + ')' }; }
+    }
     return r.json();
   }
 
@@ -476,8 +484,15 @@
       if (M.activePsid) params.psid = M.activePsid;
 
       const data = await get('poll', params);
+      if (data.error && data.error.includes('Session')) {
+        showToast(data.error, 'error', 8000);
+        stopPolling();
+        return;
+      }
+      const wasOffline = M.poll.failures >= 3;
       M.poll.since    = data.server_time || new Date().toISOString().replace('T', ' ').slice(0, 19);
       M.poll.failures = 0;
+      if (wasOffline) { hideConnBanner(); showToast('Back online', 'success', 2500); }
 
       // New messages in the open conversation
       (data.new_messages || []).forEach(msg => {
@@ -528,7 +543,7 @@
           c.fb_user_id !== M.activePsid && parseInt(c.is_unread) > 0
         );
         if (newFromOthers.length) {
-          showToast('New message from ' + (newFromOthers[0].user_name || 'a customer'));
+          showToast('New message from ' + (newFromOthers[0].user_name || 'a customer'), 'info');
         }
       }
 
@@ -539,9 +554,17 @@
       schedulePoll(3000);
 
     } catch (e) {
-      console.error('[Messenger] poll error:', e);
       M.poll.failures++;
-      schedulePoll(Math.min(3000 * (2 ** M.poll.failures), 30_000));
+      const base  = Math.min(3000 * (2 ** M.poll.failures), 30_000);
+      const jitter = Math.floor(Math.random() * 1000); // spread clients
+      schedulePoll(base + jitter);
+
+      if (M.poll.failures === 3) {
+        showToast('Connection is slow — retrying…', 'warning', 5000);
+      } else if (M.poll.failures >= 6) {
+        showConnBanner('Reconnecting… check your network');
+      }
+      console.warn('[Messenger] poll error (attempt ' + M.poll.failures + '):', e.message);
     }
   }
 
@@ -571,7 +594,7 @@
   async function doSend(text, retryTempId = null) {
     if (M.ui.sending || !text.trim()) return;
     if (!M.activePsid || !M.activePageId || !M.activeToken) {
-      showToast('Select a page and conversation first');
+      showToast('Select a page and conversation first', 'warning');
       return;
     }
 
@@ -620,7 +643,7 @@
       renderConvs();
 
     } catch (e) {
-      showToast('Send failed — tap Retry to try again');
+      showToast('Send failed — tap Retry to try again', 'error');
 
       // Mark the specific bubble as failed — do NOT remove it
       const bubble = document.querySelector(`[data-temp-id="${tempId}"]`);
@@ -749,12 +772,35 @@
     if (b) b.style.display = 'none';
   }
 
-  function showToast(msg) {
+  // type: 'info' | 'success' | 'error' | 'warning'
+  function showToast(msg, type = 'info', duration = 3500) {
     const t = $('msngToast');
     if (!t) return;
     t.textContent = msg;
-    t.classList.add('show');
-    setTimeout(() => t.classList.remove('show'), 3000);
+    t.className = `msng-toast msng-toast--${type} show`;
+    clearTimeout(t._hideTimer);
+    t._hideTimer = setTimeout(() => {
+      t.classList.remove('show');
+      setTimeout(() => { t.className = 'msng-toast'; }, 300);
+    }, duration);
+  }
+
+  function showConnBanner(msg) {
+    let b = $('msngConnBanner');
+    if (!b) {
+      b = document.createElement('div');
+      b.id = 'msngConnBanner';
+      b.className = 'msng-conn-banner';
+      const root = document.querySelector('.msng-root');
+      if (root) root.insertBefore(b, root.firstChild);
+    }
+    b.innerHTML = `<i class="fa-solid fa-wifi" style="opacity:.6"></i> ${msg}`;
+    b.style.display = 'flex';
+  }
+
+  function hideConnBanner() {
+    const b = $('msngConnBanner');
+    if (b) b.style.display = 'none';
   }
 
   // ══════════════════════════════════════════════════════════
@@ -806,32 +852,47 @@
     } catch (e) {
       const listEl = $('msngConvList');
       if (listEl) listEl.innerHTML = `<div class="msng-empty">
-        <i class="fa-solid fa-triangle-exclamation"></i>
-        <p>Could not load conversations. Check network.</p>
+        <i class="fa-solid fa-triangle-exclamation" style="color:#f87171;font-size:24px;margin-bottom:8px"></i>
+        <p style="color:#f87171;font-size:13px;margin:0 0 12px">Could not load conversations</p>
+        <button onclick="window.msngRefresh()" class="msng-retry-btn">
+          <i class="fa-solid fa-rotate-right"></i> Retry
+        </button>
       </div>`;
+      showToast(e.message?.includes('Session') ? 'Session expired — reload the page' : 'Failed to load chats', 'error');
     }
   }
 
   async function loadMessages(before = null) {
     if (!M.activePageId || !M.activePsid) return;
     const msgsEl = $('msngMsgs');
+
     if (!before && msgsEl) {
       msgsEl.innerHTML = `<div class="msng-empty" style="margin-top:60px">
         <div class="msng-sk-circle" style="margin:0 auto 12px"></div>
         <p style="opacity:.5">Loading messages…</p>
       </div>`;
     }
+
+    // Abort any in-flight message fetch before starting a new one
+    if (M._msgAbort) { M._msgAbort.abort(); }
+    const controller = new AbortController();
+    M._msgAbort = controller;
+
+    // 12-second hard timeout — skeleton will not spin forever
+    const timeout = setTimeout(() => controller.abort(), 12000);
+
     try {
-      const data = await get('load_messages', {
-        page_id: M.activePageId, psid: M.activePsid, limit: 50, before: before || '',
-      });
+      const qs  = new URLSearchParams({ page_id: M.activePageId, psid: M.activePsid, limit: 50, before: before || '' }).toString();
+      const url = '/api/messenger?action=load_messages&' + qs;
+      const r   = await fetch(url, { credentials: 'same-origin', signal: controller.signal });
+
+      if (r.status === 401) throw Object.assign(new Error('Session expired — please reload the page'), { _userFacing: true });
+      if (!r.ok) throw new Error('Server error (' + r.status + ')');
+
+      const data = await r.json();
+
       if (data.error) {
-        console.error('[Messenger] loadMessages error:', data.error);
-        if (!before && msgsEl) msgsEl.innerHTML = `<div class="msng-empty" style="margin-top:60px">
-          <i class="fa-solid fa-triangle-exclamation" style="color:#f87171"></i>
-          <p style="color:#f87171">${esc(data.error)}</p>
-          <button onclick="window.msngRefresh()" style="margin-top:8px;padding:6px 16px;background:var(--primary-color);color:#fff;border:none;border-radius:6px;cursor:pointer">Retry</button>
-        </div>`;
+        if (!before && msgsEl) _showMsgError(msgsEl, data.error);
         return;
       }
       if (before) {
@@ -843,14 +904,28 @@
         renderMessages('replace');
       }
       if (M.msgs.length > 0) M.oldestMsgTime = M.msgs[0].created_at;
+
     } catch (e) {
+      if (e.name === 'AbortError') {
+        if (!before && msgsEl) _showMsgError(msgsEl, 'Request timed out. Check your connection.');
+        return;
+      }
       console.error('[Messenger] loadMessages:', e);
-      if (!before && msgsEl) msgsEl.innerHTML = `<div class="msng-empty" style="margin-top:60px">
-        <i class="fa-solid fa-triangle-exclamation" style="color:#f87171"></i>
-        <p style="color:#f87171">Failed to load messages</p>
-        <button onclick="window.msngRefresh()" style="margin-top:8px;padding:6px 16px;background:var(--primary-color);color:#fff;border:none;border-radius:6px;cursor:pointer">Retry</button>
-      </div>`;
+      if (!before && msgsEl) _showMsgError(msgsEl, e._userFacing ? e.message : 'Failed to load messages. Try again.');
+    } finally {
+      clearTimeout(timeout);
+      if (M._msgAbort === controller) M._msgAbort = null;
     }
+  }
+
+  function _showMsgError(msgsEl, msg) {
+    msgsEl.innerHTML = `<div class="msng-empty" style="margin-top:60px">
+      <i class="fa-solid fa-triangle-exclamation" style="color:#f87171;font-size:28px;margin-bottom:10px"></i>
+      <p style="color:#f87171;margin:0 0 12px;font-size:13px;max-width:260px;text-align:center">${esc(msg)}</p>
+      <button onclick="window.msngRefresh()" class="msng-retry-btn">
+        <i class="fa-solid fa-rotate-right"></i> Try Again
+      </button>
+    </div>`;
   }
 
   async function openConv(psid, name, picture, pageId) {
@@ -916,22 +991,35 @@
   window.msngLoadMore = async function () {
     if (!M.oldestMsgTime || M.ui.loadingMore) return;
     M.ui.loadingMore = true;
-    const btn = $('msngLoadMoreWrap');
-    if (btn) btn.innerHTML = '<div class="msng-sk-line" style="width:120px;margin:auto"></div>';
-    await loadMessages(M.oldestMsgTime);
-    M.ui.loadingMore = false;
+    const wrap = $('msngLoadMoreWrap');
+    const origHtml = wrap?.innerHTML;
+    if (wrap) wrap.innerHTML = '<div class="msng-sk-line" style="width:120px;margin:auto"></div>';
+    try {
+      await loadMessages(M.oldestMsgTime);
+    } catch (e) {
+      if (wrap && origHtml) wrap.innerHTML = origHtml;
+      showToast('Could not load earlier messages', 'error');
+    } finally {
+      M.ui.loadingMore = false;
+    }
   };
 
-  window.msngSyncNow = function () {
-    if (!M.activePageId || !M.activeToken) { showToast('No page selected'); return; }
+  window.msngSyncNow = async function () {
+    if (!M.activePageId || !M.activeToken) { showToast('No page selected', 'warning'); return; }
     showSyncBanner('Syncing from Facebook…');
-    fetch('/api/sync-history', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ page_id: M.activePageId, page_token: M.activeToken }),
-    }).then(r => r.json()).then(d => {
-      if (d.success) { showSyncBanner('Synced ' + d.synced + ' conversations', true); loadConvs(M.activePageId); }
-      else hideSyncBanner();
-    }).catch(hideSyncBanner);
+    try {
+      const r = await fetch('/api/sync-history', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ page_id: M.activePageId, page_token: M.activeToken }),
+      });
+      const d = await r.json();
+      if (!r.ok || d.error) throw new Error(d.error || ('Server error ' + r.status));
+      showSyncBanner('Synced ' + (d.synced || 0) + ' conversations', true);
+      loadConvs(M.activePageId);
+    } catch (e) {
+      hideSyncBanner();
+      showToast('Sync failed: ' + e.message, 'error', 5000);
+    }
   };
 
   window.msngRefresh = function () {
@@ -991,28 +1079,55 @@
 
   function initSocketListeners() {
     if (typeof io === 'undefined') return;
-    _socket = io();
+    if (_socket?.connected) return; // already live
 
-    // Join rooms for ALL connected pages
-    M.pages.forEach(p => {
-      _socket.emit('join_page', p.id);
+    _socket = io({ reconnectionDelay: 2000, reconnectionDelayMax: 15000, reconnectionAttempts: Infinity });
+
+    _socket.on('connect', () => {
+      M._offline = false;
+      hideConnBanner();
+      // Re-join rooms after every reconnect
+      M.pages.forEach(p => _socket.emit('join_page', p.id));
     });
 
-    // New message received via webhook → Socket.io
-    _socket.on('new_message', (msg) => {
-      if (!msg || !msg.pageId) return;
+    _socket.on('connect_error', (err) => {
+      console.warn('[Socket] connect_error:', err.message);
+      if (!M._offline) {
+        M._offline = true;
+        showConnBanner('Real-time updates unavailable — using polling');
+      }
+    });
 
-      // If this message is for the currently open conversation
+    _socket.on('disconnect', (reason) => {
+      console.warn('[Socket] disconnected:', reason);
+      M._offline = true;
+      if (reason !== 'io client disconnect') {
+        showConnBanner('Reconnecting to real-time updates…');
+      }
+    });
+
+    _socket.on('reconnect', (attempt) => {
+      M._offline = false;
+      hideConnBanner();
+      showToast('Real-time reconnected', 'success', 2500);
+      M.pages.forEach(p => _socket.emit('join_page', p.id));
+    });
+
+    // New message from webhook → push into open conversation
+    _socket.on('new_message', (msg) => {
+      if (!msg || typeof msg !== 'object') return;
+      if (!msg.pageId || !msg.participantId) return; // guard against malformed events
+
       if (msg.pageId === M.activePageId && msg.participantId === M.activePsid) {
         const normalized = {
-          message_id: msg.id,
-          conversation_id: msg.threadId,
-          page_id: msg.pageId,
-          user_id: msg.participantId,
-          message: msg.text,
-          from_me: msg.isFromPage ? 1 : 0,
-          created_at: msg.createdTime,
-          attachment_url: msg.attachments?.[0]?.u || null,
+          message_id:      msg.id             || null,
+          conversation_id: msg.threadId       || null,
+          page_id:         msg.pageId,
+          user_id:         msg.participantId,
+          message:         typeof msg.text === 'string' ? msg.text : '',
+          from_me:         msg.isFromPage ? 1 : 0,
+          created_at:      msg.createdTime    || new Date().toISOString(),
+          attachment_url:  msg.attachments?.[0]?.u || null,
           attachment_type: msg.attachments?.[0]?.t || null
         };
         if (!isDuplicate(normalized)) {
@@ -1021,50 +1136,69 @@
         }
       }
 
-      // Update conversation in sidebar
-      const conv = M.convs.find(c => c.psid === msg.participantId && (c.page_id === msg.pageId || M.activePageId === msg.pageId));
+      // Update sidebar conversation entry
+      const conv = M.convs.find(c =>
+        c.psid === msg.participantId &&
+        (c.page_id === msg.pageId || M.activePageId === msg.pageId)
+      );
       if (conv) {
-        conv.lastMsg = msg.text || '[Attachment]';
+        conv.lastMsg    = msg.text || '[Attachment]';
         conv.lastFromMe = !!msg.isFromPage;
-        conv.lastMsgAt = msg.createdTime;
+        conv.lastMsgAt  = msg.createdTime || new Date().toISOString();
         if (msg.participantId !== M.activePsid && !msg.isFromPage) {
           conv.unread = (conv.unread || 0) + 1;
         }
         M.convs.sort((a, b) => new Date(b.lastMsgAt || 0) - new Date(a.lastMsgAt || 0));
         renderConvs();
-      } else if (!msg.isFromPage) {
-        // New conversation from a new sender
+      } else if (!msg.isFromPage && msg.participantId) {
         M.convs.unshift({
-          id: msg.threadId,
-          psid: msg.participantId,
-          name: 'New User',
-          picture: null,
-          lastMsg: msg.text || '[Attachment]',
-          lastFromMe: false,
-          lastMsgAt: msg.createdTime,
-          unread: 1,
-          page_id: msg.pageId
+          id: msg.threadId, psid: msg.participantId,
+          name: 'New User', picture: null,
+          lastMsg: msg.text || '[Attachment]', lastFromMe: false,
+          lastMsgAt: msg.createdTime || new Date().toISOString(),
+          unread: 1, page_id: msg.pageId
         });
         renderConvs();
       }
 
-      // Show toast for messages from others
       if (!msg.isFromPage && msg.participantId !== M.activePsid) {
-        showToast('New message received');
+        showToast('New message received', 'info');
       }
     });
 
-    // Conversation metadata updated
+    // Conversation metadata refresh (snippet, unread count)
     _socket.on('conversation_updated', (data) => {
-      if (!data) return;
+      if (!data || typeof data !== 'object') return;
       const conv = M.convs.find(c => c.id === data.id || c.psid === data.participantId);
       if (conv) {
-        if (data.snippet) conv.lastMsg = data.snippet;
+        if (data.snippet)     conv.lastMsg   = data.snippet;
         if (data.updatedTime) conv.lastMsgAt = data.updatedTime;
         if (data.participantId !== M.activePsid) {
           conv.unread = data.unreadCount || (conv.unread || 0) + 1;
         }
         renderConvs();
+      }
+    });
+
+    // Typing indicator
+    _socket.on('typing', (data) => {
+      if (!data || data.pageId !== M.activePageId || data.participantId !== M.activePsid) return;
+      const el = $('msngTyping');
+      if (!el) return;
+      el.style.display = 'flex';
+      clearTimeout(el._hideTimer);
+      el._hideTimer = setTimeout(() => { el.style.display = 'none'; }, 3000);
+    });
+
+    // Sync progress (initial or incremental sync running on server)
+    _socket.on('sync_progress', (prog) => {
+      if (!prog) return;
+      if (prog.phase === 'done') {
+        hideSyncBanner();
+        if (M.activePageId) loadConvs(M.activePageId);
+      } else {
+        const pct = prog.total ? Math.round((prog.done / prog.total) * 100) : 0;
+        showSyncBanner(`Syncing history… ${prog.done || 0}/${prog.total || '?'} (${pct}%)`);
       }
     });
   }
