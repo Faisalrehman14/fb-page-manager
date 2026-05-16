@@ -17,6 +17,25 @@ const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 
 const app        = express();
 const httpServer = createServer(app);
 
+// ── State & Logs ─────────────────────────────────────────────────────────────
+let requestLogs = [], webhookLogs = [], errorLogs = [];
+const MAX_LOGS  = 100;
+let dbConnected = false;
+
+function logError(type, error, ctx = {}) {
+    const entry = {
+        id: `${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+        time: new Date().toISOString(), type,
+        message: error?.message || String(error),
+        stack: error?.stack ? error.stack.split('\n').slice(0, 6).join('\n') : null,
+        context: ctx
+    };
+    errorLogs.unshift(entry);
+    if (errorLogs.length > MAX_LOGS) errorLogs.pop();
+    console.error(`[ERROR:${type}]`, entry.message, Object.keys(ctx).length ? ctx : '');
+    return entry;
+}
+
 // ── Critical Healthcheck (Must be at the very top for Railway) ────────────────
 app.get('/api/health', (req, res) => {
     res.json({ 
@@ -103,22 +122,6 @@ const FB_APP_SECRET        = (process.env.FB_APP_SECRET        || '').trim();
 const BASE_URL             = (process.env.BASE_URL             || '').trim();
 const WEBHOOK_VERIFY_TOKEN = (process.env.WEBHOOK_VERIFY_TOKEN || process.env.FB_WEBHOOK_VERIFY_TOKEN || 'ADMIN12345').trim();
 
-let dbConnected = false;
-
-// ── Logging ───────────────────────────────────────────────────────────────────
-let requestLogs = [], webhookLogs = [], errorLogs = [];
-const MAX_LOGS  = 100;
-
-function logError(type, error, ctx = {}) {
-    const entry = {
-        id: `${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
-        time: new Date().toISOString(), type,
-        message: error?.message || String(error),
-        stack: error?.stack ? error.stack.split('\n').slice(0, 6).join('\n') : null,
-        context: ctx
-    };
-    errorLogs.unshift(entry);
-    if (errorLogs.length > MAX_LOGS) errorLogs.pop();
     console.error(`[ERROR:${type}]`, entry.message, Object.keys(ctx).length ? ctx : '');
     return entry;
 }
