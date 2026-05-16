@@ -248,10 +248,17 @@
     updatePageBadge(M.activePageId, M.convs.reduce((s, c) => s + (c.unread || 0), 0));
 
     if (!list.length) {
+      const syncBannerVisible = $('msngSyncBanner')?.style.display !== 'none' && $('msngSyncBanner');
       if (q) {
         listEl.innerHTML = `<div class="msng-empty">
           <i class="fa-brands fa-facebook-messenger"></i>
           <p>No results for "<strong>${esc(q)}</strong>"</p>
+        </div>`;
+      } else if (syncBannerVisible) {
+        listEl.innerHTML = `<div class="msng-empty">
+          <i class="fa-solid fa-rotate fa-spin" style="font-size:28px;color:var(--primary-color);margin-bottom:10px"></i>
+          <h4>Syncing conversations…</h4>
+          <p style="font-size:12px;opacity:.7">Please wait while we load your Facebook chats</p>
         </div>`;
       } else {
         listEl.innerHTML = `<div class="msng-empty">
@@ -804,6 +811,7 @@
     }
     b.innerHTML = `<i class="fa-solid fa-rotate fa-spin"></i> ${msg}`;
     b.style.display = 'flex';
+    if (!M.convs.length) renderConvs(); // switch list to syncing state
     if (autoHide) setTimeout(() => { b.style.display = 'none'; }, 3000);
   }
 
