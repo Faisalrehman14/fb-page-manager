@@ -946,7 +946,7 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,te
 /* ══════════════════════════════════════════════════════
    TEMPLATES VIEW  (tv-*)
    ══════════════════════════════════════════════════════ */
-#view-templates{flex:1;min-width:0;overflow-y:auto;height:100%}
+#view-templates{flex:1;min-width:0;overflow-y:auto;height:100%;display:block}
 .tv-root{padding:24px;display:flex;flex-direction:column;gap:20px;max-width:1200px;width:100%;box-sizing:border-box}
 
 /* Header */
