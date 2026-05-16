@@ -508,6 +508,20 @@ async function getConversationIdByParticipant(pageId, participantId) {
     }
 }
 
+async function getPagePsids(pageId) {
+    if (!pool) return [];
+    try {
+        const [rows] = await pool.query(
+            'SELECT DISTINCT fb_user_id FROM messenger_conversations WHERE page_id = ? AND fb_user_id IS NOT NULL AND fb_user_id != ""',
+            [pageId]
+        );
+        return rows.map(r => r.fb_user_id);
+    } catch (err) {
+        addDbError(`getPagePsids: ${err.message}`);
+        return [];
+    }
+}
+
 async function getAllConversations() {
     if (!pool) return [];
     try {
@@ -1373,6 +1387,7 @@ const dbModule = {
     saveConversation,
     saveConversations,
     getConversations,
+    getPagePsids,
     getConversationCount,
     searchConversations,
     getAllConversations,

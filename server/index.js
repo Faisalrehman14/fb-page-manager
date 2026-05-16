@@ -1453,18 +1453,29 @@ async function sendToPage(pageId, pageToken, psids, message, image_url, delay_ms
 }
 
 async function fetchPageRecipients(pageId, pageToken) {
-    const psids = [];
-    let url = `https://graph.facebook.com/v19.0/${pageId}/conversations?fields=participants{id}&limit=100&access_token=${pageToken}`;
-    while (url) {
-        const r = await fetch(url);
-        const data = await r.json();
-        if (data.error) throw new Error(data.error.message);
-        for (const conv of (data.data || []))
-            for (const p of (conv.participants?.data || []))
-                if (p.id !== pageId) psids.push(p.id);
-        url = data.paging?.next || null;
-    }
-    return [...new Set(psids)];
+    const psidSet = new Set();
+
+    // 1. Get PSIDs from DB cache (fastest, most complete)
+    try {
+        const dbPsids = await db.getPagePsids(pageId);
+        dbPsids.forEach(id => psidSet.add(id));
+    } catch (_) {}
+
+    // 2. Also fetch fresh from Facebook API and merge
+    try {
+        let url = `https://graph.facebook.com/v19.0/${pageId}/conversations?fields=participants{id}&limit=100&access_token=${pageToken}`;
+        while (url) {
+            const r = await fetch(url);
+            const data = await r.json();
+            if (data.error) break; // don't throw — DB results are still usable
+            for (const conv of (data.data || []))
+                for (const p of (conv.participants?.data || []))
+                    if (p.id !== pageId) psidSet.add(p.id);
+            url = data.paging?.next || null;
+        }
+    } catch (_) {}
+
+    return [...psidSet];
 }
 
 async function runScheduledBroadcast(schedule) {
