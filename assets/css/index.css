@@ -2588,18 +2588,23 @@ body.annual .price-billing-annual{display:block}
 
 /* ── Hero Banner ─────────────────────────────── */
 .hv-hero {
-  position: relative; overflow: hidden;
+  position: relative;
   border-radius: 20px;
-  background: linear-gradient(135deg, #050e24 0%, #071228 40%, #050912 100%);
-  border: 1px solid rgba(8,102,255,.18);
-  padding: 36px 40px;
+  background: linear-gradient(135deg, #050e24 0%, #071228 50%, #060d20 100%);
+  border: 1px solid rgba(8,102,255,.2);
+  padding: 32px 36px;
   box-shadow: 0 8px 40px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.04);
 }
 
-/* Animated glow orbs */
+/* Glow orbs — clipped inside their own wrapper so hero content is never clipped */
+.hv-hero-glows {
+  position: absolute; inset: 0;
+  border-radius: 20px; overflow: hidden;
+  pointer-events: none;
+}
 .hv-hero-orb {
   position: absolute; border-radius: 50%;
-  filter: blur(70px); pointer-events: none;
+  filter: blur(70px);
 }
 .hv-hero-orb1 {
   width: 340px; height: 340px;
@@ -2626,8 +2631,8 @@ body.annual .price-billing-annual{display:block}
 .hv-hero-content {
   position: relative; z-index: 1;
   display: flex; align-items: center;
-  justify-content: space-between; gap: 32px;
-  flex-wrap: wrap;
+  justify-content: space-between; gap: 28px;
+  flex-wrap: nowrap;
 }
 .hv-hero-left { flex: 1; min-width: 0; }
 
