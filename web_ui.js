@@ -649,6 +649,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   btnFetchPages?.addEventListener('click', async () => {
     setLoading(btnFetchPages, true);
+    btnFetchPages.classList.add('spinning');
     uiTrackEvent('pages_refresh_click', { source: 'manual' });
     try {
       await loadPagesFromFacebook({ silent: false });
@@ -660,6 +661,7 @@ document.addEventListener('DOMContentLoaded', () => {
         window.showToast('Refresh failed: ' + msg, 'error');
       }
     }
+    btnFetchPages.classList.remove('spinning');
     setLoading(btnFetchPages, false);
   });
 

@@ -861,7 +861,12 @@ window.getCsrfToken = async (forceRefresh = false) => {
             <i class="fa-solid fa-flag"></i>
             <span>Pages</span>
           </div>
-          <span class="sidebar-page-count" id="sidebarPageCount" style="display:none">0</span>
+          <div style="display:flex;align-items:center;gap:6px;">
+            <span class="sidebar-page-count" id="sidebarPageCount" style="display:none">0</span>
+            <button id="btnFetchPages" class="sidebar-sync-btn" title="Sync pages from Facebook">
+              <i class="fa-solid fa-rotate"></i>
+            </button>
+          </div>
         </div>
       </div>
       <div class="sidebar-pages">
