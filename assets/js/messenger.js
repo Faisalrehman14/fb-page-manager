@@ -1346,11 +1346,28 @@
     }
   };
 
-  window.msngRefresh = function () {
-    if (!M.activePageId) return;
+  window.msngRefresh = async function () {
+    if (!M.activePageId || !M.activeToken) return;
     const btn = $('msngRefreshBtn');
     if (btn) btn.classList.add('spinning');
-    loadConvs(M.activePageId).finally?.(() => btn?.classList.remove('spinning'));
+
+    try {
+      // Sync fresh conversations from Facebook first, then reload from DB
+      await fetch('/api/sync-history', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
+        body: JSON.stringify({ page_id: M.activePageId, page_token: M.activeToken }),
+      });
+    } catch (_) {
+      // Network hiccup — still reload from DB below
+    }
+
+    try {
+      await loadConvs(M.activePageId);
+    } finally {
+      btn?.classList.remove('spinning');
+    }
   };
 
   window.msngBack = function () {
