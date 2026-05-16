@@ -866,74 +866,69 @@ function updateHomeViewStats() {
     if (planPct) planPct.textContent = pct + '%';
   }
 
-  // Update pages list
+  // Update connected pages grid — premium card design
   const pagesList = document.getElementById('homePagesList');
+  const countBadge = document.getElementById('homePagesCountBadge');
   if (pagesList && window.loadedPages && window.loadedPages.length > 0) {
-    const countBadge = document.getElementById('homePagesCountBadge');
-    if (countBadge) countBadge.textContent = window.loadedPages.length;
-    pagesList.innerHTML = window.loadedPages.map(p => `
-      <div class="hcp-page-item">
-        <img src="${p.picture?.data?.url || ''}" class="hcp-page-img" onerror="this.style.display='none'" alt="">
-        <div class="hcp-page-info">
-          <div class="hcp-page-name">${p.name}</div>
-          ${p.category ? `<div class="hcp-page-cat">${p.category}</div>` : ''}
-        </div>
-        <div class="hcp-page-status"></div>
-      </div>
-    `).join('');
-  } else if (pagesList) {
-    pagesList.innerHTML = `
-      <div class="hcp-empty">
-        <i class="fa-brands fa-facebook"></i>
-        <p>No pages connected yet.<br>Connect with Facebook to get started.</p>
-        <button class="hcp-connect-btn" onclick="triggerConnect()">
-          <i class="fa-brands fa-facebook"></i> Connect Facebook
-        </button>
-      </div>
-    `;
-  }
-
-  // Update pages overview grid
-  const pagesGrid = document.getElementById('homePagesGrid');
-  const pagesCountBadge2 = document.getElementById('homePagesCountBadge2');
-  if (pagesGrid && window.loadedPages && window.loadedPages.length > 0) {
-    if (pagesCountBadge2) pagesCountBadge2.textContent = window.loadedPages.length + ' Page' + (window.loadedPages.length !== 1 ? 's' : '');
-    pagesGrid.innerHTML = window.loadedPages.map(p => {
-      const initial = (p.name || 'P').charAt(0).toUpperCase();
+    const n = window.loadedPages.length;
+    if (countBadge) countBadge.textContent = n + ' Page' + (n !== 1 ? 's' : '');
+    pagesList.innerHTML = window.loadedPages.map(p => {
+      const initial   = (p.name || 'P').charAt(0).toUpperCase();
+      const pic       = p.picture?.data?.url || p.picture || '';
       const followers = p.followers_count || p.fan_count || 0;
-      const reachable = p.followers_count ? Math.floor(p.followers_count * 0.7) : 0;
+      const reachable = followers ? Math.floor(followers * 0.7) : 0;
+      const fmtNum    = n => n >= 1000 ? (n / 1000).toFixed(1) + 'K' : (n || '0');
+      const unread    = p.unreadCount || 0;
       return `
-        <div class="hpo-page-card">
-          <div class="hpo-page-top">
-            ${p.picture?.data?.url
-              ? `<img src="${p.picture.data.url}" class="hpo-page-avatar" alt="" onerror="this.style.display='none'">`
-              : `<div class="hpo-page-avatar-placeholder">${initial}</div>`
-            }
-            <div class="hpo-page-info">
-              <div class="hpo-page-name">${p.name}</div>
-              ${p.category ? `<div class="hpo-page-cat">${p.category}</div>` : ''}
+        <div class="cp-page-card" onclick="switchDashboardView('broadcast')">
+          <div class="cp-card-header">
+            <div class="cp-card-cover"></div>
+            <div class="cp-card-avatar-wrap">
+              ${pic
+                ? `<img class="cp-card-avatar" src="${pic}" alt="${escHtml(p.name)}" onerror="this.outerHTML='<div class=\\"cp-card-avatar-ph\\">${escHtml(initial)}</div>'">`
+                : `<div class="cp-card-avatar-ph">${escHtml(initial)}</div>`}
+              <span class="cp-card-active-dot" title="Connected"></span>
             </div>
           </div>
-          <div class="hpo-page-stats">
-            <div class="hpo-page-stat">
-              <div class="hpo-page-stat-val">${followers >= 1000 ? (followers/1000).toFixed(1) + 'K' : (followers || '0')}</div>
-              <div class="hpo-page-stat-lbl">Followers</div>
-            </div>
-            <div class="hpo-page-stat">
-              <div class="hpo-page-stat-val">${reachable >= 1000 ? (reachable/1000).toFixed(1) + 'K' : (reachable || '0')}</div>
-              <div class="hpo-page-stat-lbl">Reachable</div>
+          <div class="cp-card-body">
+            <div class="cp-card-name">${escHtml(p.name)}</div>
+            ${p.category ? `<div class="cp-card-cat">${escHtml(p.category)}</div>` : ''}
+            <div class="cp-card-stats">
+              <div class="cp-card-stat">
+                <div class="cp-stat-val">${fmtNum(followers)}</div>
+                <div class="cp-stat-lbl">Followers</div>
+              </div>
+              <div class="cp-card-stat-div"></div>
+              <div class="cp-card-stat">
+                <div class="cp-stat-val">${fmtNum(reachable)}</div>
+                <div class="cp-stat-lbl">Reachable</div>
+              </div>
+              <div class="cp-card-stat-div"></div>
+              <div class="cp-card-stat">
+                <div class="cp-stat-val ${unread > 0 ? 'cp-stat-unread' : ''}">${unread > 99 ? '99+' : unread}</div>
+                <div class="cp-stat-lbl">Unread</div>
+              </div>
             </div>
           </div>
-          <div class="hpo-page-badge"><i class="fa-solid fa-circle-check"></i> Active</div>
+          <div class="cp-card-actions">
+            <button class="cp-btn-broadcast" onclick="event.stopPropagation();switchDashboardView('broadcast')">
+              <i class="fa-solid fa-bullhorn"></i> Broadcast
+            </button>
+            <button class="cp-btn-chat" onclick="event.stopPropagation();switchDashboardView('messenger')">
+              <i class="fa-brands fa-facebook-messenger"></i> Chat
+            </button>
+          </div>
         </div>
       `;
     }).join('');
-  } else if (pagesGrid) {
-    pagesGrid.innerHTML = `
-      <div class="hcp-empty" style="grid-column:1/-1;">
-        <i class="fa-brands fa-facebook"></i>
-        <p>No pages connected yet.<br>Connect with Facebook to get started.</p>
-        <button class="hcp-connect-btn" onclick="triggerConnect()">
+  } else if (pagesList) {
+    if (countBadge) countBadge.textContent = '0 Pages';
+    pagesList.innerHTML = `
+      <div class="cp-empty">
+        <div class="cp-empty-icon"><i class="fa-brands fa-facebook-messenger"></i></div>
+        <h4>No pages connected</h4>
+        <p>Connect your Facebook account to start broadcasting to your audience.</p>
+        <button class="cp-connect-btn" onclick="triggerConnect()">
           <i class="fa-brands fa-facebook"></i> Connect Facebook
         </button>
       </div>

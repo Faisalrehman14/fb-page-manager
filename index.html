@@ -1015,37 +1015,38 @@ window.getCsrfToken = async (forceRefresh = false) => {
         </div>
       </div>
 
-      <!-- Pages Overview -->
-      <div class="home-pages-overview" id="homePagesOverview">
-        <div class="hpo-hdr">
-          <span><i class="fa-brands fa-facebook"></i> Your Facebook Pages</span>
-          <span class="hcp-count" id="homePagesCountBadge2">0 Pages</span>
+      <!-- Connected Pages — single premium section -->
+      <div class="cp-section">
+        <div class="cp-hdr">
+          <div class="cp-hdr-left">
+            <div class="cp-hdr-icon"><i class="fa-brands fa-facebook-messenger"></i></div>
+            <div>
+              <div class="cp-hdr-title">Connected Pages</div>
+              <div class="cp-hdr-sub">Your Facebook pages linked to FBCast Pro</div>
+            </div>
+          </div>
+          <div class="cp-hdr-right">
+            <span class="cp-page-count" id="homePagesCountBadge">0 Pages</span>
+            <button class="cp-refresh-btn" onclick="triggerConnect()" title="Reconnect">
+              <i class="fa-brands fa-facebook"></i> Add Page
+            </button>
+          </div>
         </div>
-        <div class="hpo-grid" id="homePagesGrid">
-          <!-- Pages will be loaded here dynamically -->
+        <div class="cp-grid" id="homePagesList">
+          <div class="cp-empty">
+            <div class="cp-empty-icon"><i class="fa-brands fa-facebook-messenger"></i></div>
+            <h4>No pages connected</h4>
+            <p>Connect your Facebook account to start broadcasting to your audience.</p>
+            <button class="cp-connect-btn" onclick="triggerConnect()">
+              <i class="fa-brands fa-facebook"></i> Connect Facebook
+            </button>
+          </div>
         </div>
       </div>
 
-      <!-- Connected Pages + Recent Activity -->
+      <!-- Bottom: Recent Activity + Results -->
       <div class="home-bottom-grid">
-        <!-- Connected Pages -->
-        <div class="home-card-panel">
-          <div class="hcp-hdr">
-            <span><i class="fa-brands fa-facebook"></i> Your Facebook Pages</span>
-            <span class="hcp-count" id="homePagesCountBadge">0</span>
-          </div>
-          <div class="hcp-pages-list" id="homePagesList">
-            <div class="hcp-empty">
-              <i class="fa-brands fa-facebook"></i>
-              <p>No pages connected yet.<br>Connect with Facebook to get started.</p>
-              <button class="hcp-connect-btn" onclick="triggerConnect()">
-                <i class="fa-brands fa-facebook"></i> Connect Facebook
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <!-- Recent Activity -->
+        <!-- Recent Broadcasts -->
         <div class="home-card-panel">
           <div class="hcp-hdr">
             <span><i class="fa-solid fa-clock-rotate-left"></i> Recent Broadcasts</span>
@@ -1060,18 +1061,21 @@ window.getCsrfToken = async (forceRefresh = false) => {
             </div>
           </div>
         </div>
+
+        <!-- Latest Broadcast Results -->
+        <div class="home-card-panel" id="homeResultsSection" style="display:none">
+          <div class="hcp-hdr">
+            <span><i class="fa-solid fa-chart-bar"></i> Latest Results</span>
+            <span class="hrs-badge" id="hrsBadge">0 sent</span>
+          </div>
+          <div class="hrs-results-grid" id="hrsResultsGrid"></div>
+        </div>
       </div>
 
-      <!-- Latest Broadcast Results -->
-      <div class="home-results-section" id="homeResultsSection" style="display:none">
-        <div class="hrs-hdr">
-          <span><i class="fa-solid fa-chart-bar"></i> Latest Broadcast Results</span>
-          <span class="hrs-badge" id="hrsBadge">0 sent</span>
-        </div>
-        <div class="hrs-results-grid" id="hrsResultsGrid">
-          <!-- Dynamic results will be injected here -->
-        </div>
-      </div>
+      <!-- hidden compat IDs -->
+      <span id="homePagesCountBadge2" style="display:none"></span>
+      <div id="homePagesGrid"         style="display:none"></div>
+      <div id="homeResultsSection2"   style="display:none"></div>
 
     </div><!-- /view-home -->
 
