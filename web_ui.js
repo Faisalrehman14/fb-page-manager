@@ -999,11 +999,19 @@ function switchDashboardView(view) {
 
   // Show/hide sections
   const sections = ['home', 'broadcast', 'messenger', 'scheduling'];
-  const flexViews = new Set(['messenger', 'scheduling']);
   sections.forEach(s => {
     const el = document.getElementById('view-' + s);
     if (!el) return;
-    el.style.display = s === view ? (flexViews.has(s) ? 'flex' : '') : 'none';
+    if (s === view) {
+      el.style.removeProperty('display');
+      el.classList.add('sv-active');
+      // Force flex for flex-based views
+      if (s === 'messenger') el.style.display = 'flex';
+      if (s === 'scheduling') el.style.display = 'flex';
+    } else {
+      el.style.display = 'none';
+      el.classList.remove('sv-active');
+    }
   });
 
   // Stats panel only belongs to broadcast view

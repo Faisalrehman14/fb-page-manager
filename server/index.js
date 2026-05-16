@@ -475,6 +475,13 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, '..', 'index.html'));
 });
 
+// Disable caching for all /api/* routes
+app.use('/api', (req, res, next) => {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    next();
+});
+
 // Serve static assets from project root
 // Redirect /index.html to / to ensure config injection
 app.get('/index.html', (req, res) => res.redirect('/'));
@@ -1404,6 +1411,7 @@ app.post('/api/schedules', requireAuth, verifyCsrf, async (req, res) => {
 
 app.get('/api/schedules', requireAuth, async (req, res) => {
     try {
+        res.setHeader('Cache-Control', 'no-store');
         const rows = await db.getSchedules(req.session.fbUserId);
         res.json({ schedules: rows });
     } catch (err) {
