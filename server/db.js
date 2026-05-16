@@ -141,7 +141,9 @@ async function initDatabase() {
             "ALTER TABLE messenger_messages ADD COLUMN delivered_at DATETIME",
             // Pages
             "ALTER TABLE messenger_pages ADD COLUMN fb_page_id VARCHAR(64)",
-            "ALTER TABLE messenger_pages ADD COLUMN last_synced_at DATETIME NULL"
+            "ALTER TABLE messenger_pages ADD COLUMN last_synced_at DATETIME NULL",
+            // Conversations – archived support
+            "ALTER TABLE messenger_conversations ADD COLUMN archived TINYINT(1) NOT NULL DEFAULT 0"
         ];
 
         for (const sql of migrations) {
@@ -315,10 +317,10 @@ async function getConversations(pageId, limit = 100, offset = 0, archived = fals
                    p.name as page_name, p.avatar_url as page_picture
             FROM messenger_conversations c
             LEFT JOIN messenger_pages p ON c.page_id = p.fb_page_id
-            WHERE c.page_id = ?
+            WHERE c.page_id = ? AND COALESCE(c.archived, 0) = ?
             ORDER BY c.updated_at DESC
             LIMIT ? OFFSET ?
-        `, [pageId, limit, offset]);
+        `, [pageId, archived ? 1 : 0, limit, offset]);
         return rows.map(row => ({
             id: row.id,
             pageId: row.page_id,
@@ -451,7 +453,7 @@ async function getConversationIdByParticipant(pageId, participantId) {
     if (!pool) return null;
     try {
         const [rows] = await pool.query(
-            'SELECT id FROM messenger_conversations WHERE page_id = ? AND participant_id = ?',
+            'SELECT id FROM messenger_conversations WHERE page_id = ? AND fb_user_id = ?',
             [pageId, participantId]
         );
         return rows[0]?.id || null;

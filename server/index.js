@@ -591,16 +591,16 @@ app.get('/api/pages', requireAuth, async (req, res) => {
             if (req.session.firstLogin) {
                 req.session.firstLogin = false;
                 Promise.all(pagesToSave.map(p =>
-                    db.syncPageInitial(p.id, p.accessToken, fetch, prog => io.emit('sync_progress', prog))
+                    db.syncPageInitial(p.id, p.accessToken, fetch, prog => io.to(`page_${p.id}`).emit('sync_progress', prog))
                         .catch(err => logError('initial_sync', err, { pageId: p.id }))
-                )).then(() => io.emit('sync_progress', { phase: 'done' })).catch(() => {});
+                )).then(() => pagesToSave.forEach(p => io.to(`page_${p.id}`).emit('sync_progress', { phase: 'done' }))).catch(() => {});
             } else {
                 const now = Date.now();
                 for (const p of pagesToSave) {
                     const last = syncAllCooldown.get(p.id) || 0;
                     if (now - last > 300000) {
                         syncAllCooldown.set(p.id, now);
-                        db.syncPageIncremental(p.id, p.accessToken, fetch, prog => io.emit('sync_progress', prog))
+                        db.syncPageIncremental(p.id, p.accessToken, fetch, prog => io.to(`page_${p.id}`).emit('sync_progress', prog))
                             .catch(err => logError('incremental_sync', err, { pageId: p.id }));
                     }
                 }
@@ -735,9 +735,12 @@ app.post('/api/threads/:threadId/reply', requireAuth, verifyCsrf, async (req, re
             await db.markAsRead(threadId);
         }
 
-        io.to(`page_${pageId}`).emit('new_message',        { id: data.message_id, threadId, text: message.trim(), isFromPage: true, senderId: pageId, createdTime });
-        io.to(`page_${pageId}`).emit('conversation_updated', { id: threadId, pageId, snippet: message.trim(), updatedTime: new Date(), isRead: true, unreadCount: 0, lastMessageFromPage: true });
         res.json({ success: true, messageId: data.message_id });
+        // Emit AFTER HTTP response so the optimistic tempId element is already in DOM when socket fires
+        setImmediate(() => {
+            io.to(`page_${pageId}`).emit('new_message',          { id: data.message_id, threadId, text: message.trim(), isFromPage: true, senderId: pageId, createdTime });
+            io.to(`page_${pageId}`).emit('conversation_updated', { id: threadId, pageId, snippet: message.trim(), updatedTime: new Date(), isRead: true, unreadCount: 0, lastMessageFromPage: true });
+        });
     } catch (err) {
         logError('reply_route', err, { pageId, threadId });
         res.status(500).json({ error: err.message });
@@ -974,23 +977,58 @@ app.all(['/api/messenger', '/messenger_api.php'], requireAuth, async (req, res) 
             }
 
             if (action === 'load_messages') {
-                const psid = req.query.psid;
+                const psid  = req.query.psid;
+                const limit = Math.min(parseInt(req.query.limit) || 50, 100);
                 if (!pageId || !psid) return res.status(400).json({ error: 'page_id and psid required' });
-                const convId = `${pageId}_${psid}`;
-                const dbMessages = await db.getMessages(convId);
-                
-                // Map to frontend expected names
-                const messages = dbMessages.map(m => ({
-                    ...m,
-                    message_id: m.mid,
-                    message: m.text,
-                    from_me: m.isFromPage ? 1 : 0,
-                    created_at: m.createdTime,
-                    attachment_url: m.attachments?.[0]?.u || null,
-                    attachment_type: m.attachments?.[0]?.t || null
-                }));
 
-                return res.json({ messages, conv_id: convId });
+                const mapMsg = m => ({
+                    ...m,
+                    message_id:      m.mid || m.id,
+                    message:         m.text || m.message || '',
+                    from_me:         m.isFromPage ? 1 : 0,
+                    created_at:      m.createdTime || m.created_at,
+                    attachment_url:  (m.attachments?.[0]?.u) || null,
+                    attachment_type: (m.attachments?.[0]?.t) || null
+                });
+
+                // Try DB cache first (using correct integer convId lookup)
+                if (dbConnected) {
+                    const convId = await db.getConversationIdByParticipant(pageId, psid);
+                    if (convId) {
+                        const cached = await db.getMessages(convId, limit);
+                        if (cached.length > 0) return res.json({ messages: cached.map(mapMsg), conv_id: convId });
+                    }
+                }
+
+                // Fallback: fetch live from Facebook Graph API
+                const token = req.session.pageTokens?.[pageId] || (dbConnected ? await db.getPageToken(pageId) : null);
+                if (!token) return res.status(401).json({ error: 'Page token not found', messages: [] });
+
+                try {
+                    // Get conversation ID for this user, then its messages
+                    const convListUrl = `https://graph.facebook.com/v19.0/${pageId}/conversations?user_id=${encodeURIComponent(psid)}&fields=id,messages.limit(${limit}){message,from,created_time,attachments}&access_token=${token}`;
+                    const convListRes = await fetch(convListUrl);
+                    const convListData = await convListRes.json();
+
+                    if (convListData.error) return res.json({ messages: [], error: convListData.error.message });
+
+                    const conv = convListData.data?.[0];
+                    if (!conv) return res.json({ messages: [] });
+
+                    const messages = (conv.messages?.data || []).reverse().map(m => ({
+                        message_id:      m.id,
+                        message:         m.message || '',
+                        from_me:         m.from?.id === pageId ? 1 : 0,
+                        created_at:      m.created_time,
+                        attachment_url:  m.attachments?.data?.[0]?.image_data?.url || m.attachments?.data?.[0]?.file_url || null,
+                        attachment_type: m.attachments?.data?.[0]?.type || null
+                    }));
+
+                    return res.json({ messages, conv_id: conv.id });
+                } catch (fbErr) {
+                    logError('load_messages_fb', fbErr, { pageId, psid });
+                    return res.json({ messages: [] });
+                }
             }
 
             if (action === 'poll') {
@@ -1068,14 +1106,18 @@ app.all(['/api/messenger', '/messenger_api.php'], requireAuth, async (req, res) 
                 if (fbData.error) throw new Error(fbData.error.message);
 
                 const mid = fbData.message_id;
-                const convId = await db.getConversationIdByParticipant(pageId, psid) || `${pageId}_${psid}`;
-                
-                await db.saveMessage({
-                    mid, thread_id: convId, page_id: pageId,
-                    sender_id: pageId, sender_type: 'page',
-                    text: message || '[Image]', is_from_page: 1,
-                    created_time: new Date()
-                }, io);
+                const createdTime = new Date().toISOString();
+                const convId = dbConnected ? (await db.getConversationIdByParticipant(pageId, psid) || null) : null;
+
+                if (convId) {
+                    await db.saveMessage({ id: mid, threadId: convId, pageId, senderId: pageId, text: message || '[Image]', isFromPage: true, createdTime });
+                }
+
+                // Emit real-time events so all agents see the sent message instantly
+                setImmediate(() => {
+                    io.to(`page_${pageId}`).emit('new_message',          { id: mid, threadId: convId || psid, pageId, participantId: psid, text: message || '[Image]', isFromPage: true, createdTime });
+                    io.to(`page_${pageId}`).emit('conversation_updated', { id: convId || psid, pageId, participantId: psid, snippet: message || '[Image]', updatedTime: new Date(), isRead: true, unreadCount: 0, lastMessageFromPage: true });
+                });
 
                 return res.json({ success: true, message_id: mid });
             }
@@ -1101,7 +1143,8 @@ app.post('/api/sync-history', requireAuth, async (req, res) => {
     if (!page_id || !page_token) return res.status(400).json({ error: 'page_id and page_token required' });
     
     // Non-blocking sync start
-    db.syncPageInitial(page_id, page_token, fetch, prog => io.emit('sync_progress', prog))
+    db.syncPageInitial(page_id, page_token, fetch, prog => io.to(`page_${page_id}`).emit('sync_progress', prog))
+        .then(() => io.to(`page_${page_id}`).emit('sync_progress', { phase: 'done' }))
         .catch(err => logError('manual_sync', err, { pageId: page_id }));
         
     res.json({ success: true, message: 'Sync started' });
@@ -1249,10 +1292,10 @@ app.use((err, req, res, next) => {
             const pages = await db.getPages();
             if (!pages.length) return;
             await Promise.all(pages.map(p =>
-                db.syncPageIncremental(p.id, p.access_token, fetch, prog => io.emit('sync_progress', prog))
+                db.syncPageIncremental(p.id, p.access_token, fetch, prog => io.to(`page_${p.id}`).emit('sync_progress', prog))
                     .catch(err => logError('bg_sync', err, { pageId: p.id }))
             ));
-            io.emit('sync_progress', { phase: 'done' });
+            pages.forEach(p => io.to(`page_${p.id}`).emit('sync_progress', { phase: 'done' }));
         } catch (err) { logError('bg_sync_tick', err); }
     }, 5 * 60 * 1000);
 })();
