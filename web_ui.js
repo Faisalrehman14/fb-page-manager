@@ -427,14 +427,15 @@ function initFromStorage() {
 }
 
 async function loadRecipientsForPage(pageId) {
-  const { psids, labelMap } = await runWithRetry(async () => fetchConversations(pageId, ({ fetched, total, pct }) => {
+  const { psids, labelMap, nameMap } = await runWithRetry(async () => fetchConversations(pageId, ({ fetched, total, pct }) => {
     const progressMsg = (pct != null)
       ? `Loading recipients… ${pct}%${total ? ` (${fetched.toLocaleString()} of ${total.toLocaleString()})` : ''}`
       : 'Loading recipients…';
     showStatus(progressMsg, 'info', fetched);
   }), { label: 'Loading recipients', maxAttempts: 2 });
 
-  const list = (psids || []).map(id => ({ id, status: 'pending', error: '', labels: labelMap?.[id] || [] }));
+  window.recipientNames = nameMap || {};
+  const list = (psids || []).map(id => ({ id, status: 'pending', error: '', labels: labelMap?.[id] || [], name: nameMap?.[id] || '' }));
   allRecipients = list;
   recipientsPageId = pageId;
   window.allRecipients = list;
@@ -445,6 +446,17 @@ async function loadRecipientsForPage(pageId) {
   updateCampaignIntel();
   return list;
 }
+
+// ── Personalization tag insert ─────────────────────────
+window.insertPersonalizationTag = function(tag) {
+  const ta = document.getElementById('messageText');
+  if (!ta) return;
+  const start = ta.selectionStart, end = ta.selectionEnd;
+  ta.value = ta.value.slice(0, start) + tag + ta.value.slice(end);
+  ta.selectionStart = ta.selectionEnd = start + tag.length;
+  ta.focus();
+  ta.dispatchEvent(new Event('input'));
+};
 
 // ── Image Attachment Panel ─────────────────────────────
 let currentImageUrl = '';
@@ -706,7 +718,9 @@ document.addEventListener('DOMContentLoaded', () => {
     $('progressBar')?.classList.add('progress-bar--active');
     try {
       await enqueueAndSendUtility({
-        pageId, messageText: text, imageUrl: currentImageUrl, recipientIds, delayMs: delay,
+        pageId, messageText: text, imageUrl: currentImageUrl, recipientIds,
+        recipientNames: window.recipientNames || {},
+        delayMs: delay,
         fbUserId,
         onProgress: ({ index, total, item }) => { updateRecipientRow(item); updateStats(); updateEta(index, total, delay); if(window.updateQuotaUI) window.updateQuotaUI(); },
         onDone: () => {

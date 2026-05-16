@@ -1336,6 +1336,12 @@ window.getCsrfToken = async (forceRefresh = false) => {
           </button>
         </div>
         <textarea id="messageText" rows="7" placeholder="Write your broadcast message here…"></textarea>
+        <div class="msg-personalize-row">
+          <span class="msg-personalize-label">Personalize:</span>
+          <button type="button" class="msg-personalize-btn" onclick="insertPersonalizationTag('{{name}}')" title="Insert recipient's name">
+            <i class="fa-solid fa-user-tag"></i> &#123;&#123;name&#125;&#125;
+          </button>
+        </div>
         <div id="charCount">0 / 2000</div>
         <div class="char-count-bar"><div class="char-count-fill" id="charCountFill"></div></div>
 

@@ -1588,6 +1588,11 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,te
 }
 #messageText:focus{border-color:rgba(8,102,255,.5);background:var(--surface2);box-shadow:0 0 0 3px rgba(8,102,255,.1),0 0 0 1px rgba(8,102,255,.2)}
 #messageText::placeholder{color:var(--text3)}
+/* Personalization tag row */
+.msg-personalize-row{display:flex;align-items:center;gap:8px;margin-top:8px;flex-shrink:0}
+.msg-personalize-label{font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.05em}
+.msg-personalize-btn{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;background:var(--primary-dim);border:1px solid rgba(8,102,255,.25);color:var(--primary-light);border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .2s;letter-spacing:.01em}
+.msg-personalize-btn:hover{background:rgba(8,102,255,.2);border-color:rgba(8,102,255,.45);color:#fff}
 /* Character count bar */
 .char-count-bar{height:2px;background:var(--border);border-radius:1px;margin-top:6px;overflow:hidden}
 .char-count-fill{height:100%;width:0%;border-radius:1px;background:linear-gradient(90deg,var(--primary),var(--cyan));transition:width .15s,background .15s}

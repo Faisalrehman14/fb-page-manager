@@ -372,13 +372,14 @@ async function fetchConversations(pageId, onProgress) {
   // ── Fetch conversations + embedded tags ────────────────
   const allConvos = [];
   const psidMap   = {};
+  const nameMap   = {};
   const psids     = [];
   const labelMap  = {};
   let   totalCount = 0;
 
   // First page via path-based proxy call
   let data = await fbGet(`${page.id}/conversations`, page.access_token, {
-    fields: 'id,participants,tags,can_reply',
+    fields: 'id,participants{id,name},tags,can_reply',
     limit:  '200',
     summary: 'true',
   });
@@ -404,6 +405,7 @@ async function fetchConversations(pageId, onProgress) {
       for (const p of (convo.participants?.data || [])) {
         if (!p?.id || p.id === page.id) continue;
         psidMap[p.id] = convo.id;
+        if (p.name) nameMap[p.id] = p.name;
         if (labels.length) {
           if (!labelMap[p.id]) labelMap[p.id] = [];
           labels.forEach(l => { if (!labelMap[p.id].includes(l)) labelMap[p.id].push(l); });
@@ -428,7 +430,7 @@ async function fetchConversations(pageId, onProgress) {
 
   localStorage.setItem(STORAGE_KEYS.THREAD_MAP, JSON.stringify(psidMap));
 
-  return { page, convos: allConvos, psids: [...new Set(psids)], labelMap };
+  return { page, convos: allConvos, psids: [...new Set(psids)], labelMap, nameMap };
 }
 
 // ── Quota update helper ────────────────────────────────
@@ -456,7 +458,7 @@ async function _updateQuota(fbUserId, count) {
 }
 
 // ── Bulk send queue ────────────────────────────────────
-async function enqueueAndSendUtility({ pageId, messageText, imageUrl, recipientIds, delayMs = 1200, fbUserId = null, onProgress, onDone }) {
+async function enqueueAndSendUtility({ pageId, messageText, imageUrl, recipientIds, recipientNames = {}, delayMs = 1200, fbUserId = null, onProgress, onDone }) {
   const pages = JSON.parse(localStorage.getItem(STORAGE_KEYS.PAGES) || '[]');
   const page  = pages.find(p => p.id === pageId);
   if (!page) throw new Error('Page not found.');
@@ -526,9 +528,11 @@ async function enqueueAndSendUtility({ pageId, messageText, imageUrl, recipientI
     try {
       // ── Send text message (if any) ────────────────────
       if (messageText) {
+        const recipientName = recipientNames[item.id] || 'Friend';
+        const personalizedText = messageText.replace(/\{\{name\}\}/gi, recipientName);
         await fbPost(`${page.id}/messages`, page.access_token, {
           recipient:      { id: item.id },
-          message:        { text: messageText },
+          message:        { text: personalizedText },
           messaging_type: 'UTILITY'
         });
         const qResult = await _updateQuota(fbUserId, 1);
