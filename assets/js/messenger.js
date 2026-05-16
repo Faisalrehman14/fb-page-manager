@@ -1652,6 +1652,20 @@
         });
       }
     });
+
+    // Search input handler
+    const searchInput = document.getElementById('msngSearchInput');
+    if (searchInput) {
+      searchInput.addEventListener('input', function() {
+        window.msngSearch(this);
+      });
+      searchInput.addEventListener('keyup', function(e) {
+        if (e.key === 'Escape') {
+          this.value = '';
+          window.msngSearch(this);
+        }
+      });
+    }
   });
 
   // ── Stop polling when messenger view is not active ───────────────────────────
