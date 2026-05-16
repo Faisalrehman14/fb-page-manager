@@ -991,39 +991,47 @@ setInterval(() => {
 }, 30_000);
 
 // Switch between dashboard views
+// NOTE: #view-scheduling lives INSIDE #view-broadcast (broadcast-view), same as
+// view-analytics/settings/help. To show scheduling, we must show broadcast-view
+// and hide compose/broadcast-col/stats-panel, then show view-scheduling.
 function switchDashboardView(view) {
-  // Update nav items
+  // Update nav active state
   document.querySelectorAll('.nav-side-item').forEach(item => item.classList.remove('active'));
   const activeItem = document.getElementById('navItem' + view.charAt(0).toUpperCase() + view.slice(1));
   if (activeItem) activeItem.classList.add('active');
 
-  // Show/hide sections
-  const sections = ['home', 'broadcast', 'messenger', 'scheduling'];
-  sections.forEach(s => {
+  // Top-level views: home, messenger, broadcast
+  // 'scheduling' shows broadcast-view as its container
+  const topSections = ['home', 'messenger', 'broadcast'];
+  topSections.forEach(s => {
     const el = document.getElementById('view-' + s);
     if (!el) return;
-    if (s === view) {
-      el.style.removeProperty('display');
-      el.classList.add('sv-active');
-      // Force flex for flex-based views
-      if (s === 'messenger') el.style.display = 'flex';
-      if (s === 'scheduling') el.style.display = 'flex';
+    const show = s === view || (s === 'broadcast' && view === 'scheduling');
+    if (show) {
+      el.style.display = s === 'messenger' ? 'flex' : '';
     } else {
       el.style.display = 'none';
-      el.classList.remove('sv-active');
     }
   });
 
-  // Stats panel only belongs to broadcast view
+  // Inside broadcast-view: compose, broadcast-col, stats-panel visible only for 'broadcast'
+  const compose   = document.querySelector('#view-broadcast .compose');
+  const bcastCol  = document.querySelector('#view-broadcast .broadcast-col');
   const statsPanel = document.querySelector('.stats-panel');
-  if (statsPanel) statsPanel.style.display = view === 'broadcast' ? '' : 'none';
+  const isBroadcast = view === 'broadcast';
+  if (compose)    compose.style.display    = isBroadcast ? '' : 'none';
+  if (bcastCol)   bcastCol.style.display   = isBroadcast ? '' : 'none';
+  if (statsPanel) statsPanel.style.display = isBroadcast ? '' : 'none';
 
-  // Load data for specific views
-  if (view === 'home') updateHomeViewStats();
-  if (view === 'messenger') loadMessengerConversations();
+  // Inside broadcast-view: scheduling panel
+  const schedEl = document.getElementById('view-scheduling');
+  if (schedEl) schedEl.style.display = view === 'scheduling' ? 'flex' : 'none';
+
+  // Load data
+  if (view === 'home')       updateHomeViewStats();
+  if (view === 'messenger')  loadMessengerConversations();
   if (view === 'scheduling') { svPopulatePages(); svSetMinDatetime(); svLoadSchedules(); }
 
-  // Show status
   if (view !== 'broadcast') showStatus('Viewing ' + view + '...', 'info');
 }
 
