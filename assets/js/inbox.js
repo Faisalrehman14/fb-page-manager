@@ -544,6 +544,7 @@ async function initDashboardPage() {
 
 async function loadPages() {
     const listContainer = document.getElementById('page-list');
+    if (!listContainer) return; // Not on standalone dashboard — running inside SPA
     showLoading('page-list');
     hideError();
 

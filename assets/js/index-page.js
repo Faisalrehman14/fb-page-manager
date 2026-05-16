@@ -1651,3 +1651,46 @@ function addRecipientRow(item){
     el.classList.add('glow-card');
   });
 })();
+
+/* ─── BROADCAST QUICK-ACTION GLOBALS ─── */
+window.clearResults = function () {
+  ['statTotal','statSent','statFailed'].forEach(function(id){
+    var el = document.getElementById(id);
+    if (el) el.textContent = '0';
+  });
+  var bar = document.getElementById('progressBar');
+  if (bar) { bar.style.width = '0%'; bar.style.background = ''; }
+  var pct = document.getElementById('progressPct');
+  if (pct) pct.textContent = '0%';
+  var eta = document.getElementById('etaText');
+  if (eta) eta.textContent = '';
+  ['qaRetryAll','qaExport'].forEach(function(id){
+    var btn = document.getElementById(id);
+    if (btn) btn.disabled = true;
+  });
+  if (typeof window.showToast === 'function') window.showToast('Results cleared', 'success');
+};
+
+window.retryAllFailed = function () {
+  if (Array.isArray(window.allRecipients)) {
+    window.allRecipients.forEach(function(r){ if (r.status === 'failed') r.status = 'pending'; });
+    if (typeof window.renderRecipients === 'function') window.renderRecipients();
+    if (typeof window.updateStats === 'function') window.updateStats();
+    if (typeof window.showToast === 'function') window.showToast('Failed messages reset to pending.', 'info');
+  }
+};
+
+window.exportResultsCSV = function () {
+  var recs = window.allRecipients || [];
+  if (!recs.length) { if (typeof window.showToast === 'function') window.showToast('No results to export', 'warning'); return; }
+  var rows = [['PSID','Status','Error']].concat(recs.map(function(r){
+    return [r.id, r.status || 'pending', (r.error || '').replace(/,/g,' ')];
+  }));
+  var csv = rows.map(function(r){ return r.join(','); }).join('\n');
+  var blob = new Blob([csv], {type:'text/csv'});
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'fbcast-results-' + new Date().toISOString().slice(0,10) + '.csv';
+  a.click();
+  if (typeof window.showToast === 'function') window.showToast('CSV exported', 'success');
+};

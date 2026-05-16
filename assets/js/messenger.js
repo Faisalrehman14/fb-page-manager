@@ -919,6 +919,19 @@
       if (newConvs.length < limit) M.convHasMore = false;
 
       renderConvs();
+
+      // Auto-sync when first load returns empty — DB may not have been populated yet
+      if (!isMore && newConvs.length === 0 && M.activeToken && !M._autoSynced?.[pageId]) {
+        M._autoSynced = M._autoSynced || {};
+        M._autoSynced[pageId] = true;
+        showSyncBanner('No conversations found — syncing from Facebook…');
+        fetch('/api/sync-history', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'same-origin',
+          body: JSON.stringify({ page_id: pageId, page_token: M.activeToken }),
+        }).catch(() => {});
+      }
     } catch (e) {
       console.error('[Messenger] loadConvs:', e);
       if (!isMore) {
@@ -1217,16 +1230,18 @@
 
   window.msngSyncNow = async function () {
     if (!M.activePageId || !M.activeToken) { showToast('No page selected', 'warning'); return; }
-    showSyncBanner('Syncing from Facebook…');
+    showSyncBanner('Syncing from Facebook… this may take a moment');
     try {
       const r = await fetch('/api/sync-history', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
         body: JSON.stringify({ page_id: M.activePageId, page_token: M.activeToken }),
       });
       const d = await r.json();
       if (!r.ok || d.error) throw new Error(d.error || ('Server error ' + r.status));
-      showSyncBanner('Synced ' + (d.synced || 0) + ' conversations', true);
-      loadConvs(M.activePageId);
+      // Banner stays up — socket sync_progress { phase:'done' } will reload convs and hide it
+      // Fallback: reload after 30s if socket doesn't fire
+      setTimeout(() => { hideSyncBanner(); loadConvs(M.activePageId); }, 30000);
     } catch (e) {
       hideSyncBanner();
       showToast('Sync failed: ' + e.message, 'error', 5000);
