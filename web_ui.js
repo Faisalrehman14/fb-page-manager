@@ -861,12 +861,12 @@ function svPopulatePages() {
   box.innerHTML = pages.map(p => {
     const picUrl  = p.picture?.data?.url || p.picture || '';
     const initial = (p.name || p.id || '?')[0].toUpperCase();
-    const avatar  = picUrl
-      ? `<img src="${escHtml(picUrl)}" class="sv2-page-avatar-img" alt="" onerror="this.style.display='none';this.nextSibling.style.display='flex'">${initial}`
+    const avatarContent = picUrl
+      ? `<img src="${escHtml(picUrl)}" class="sv2-page-avatar-img" alt="${escHtml(initial)}" onerror="this.outerHTML='${initial}'">`
       : initial;
     return `<div class="sv2-page-item" onclick="this.classList.toggle('selected');this.querySelector('input').checked=this.classList.contains('selected')">
       <input type="checkbox" value="${escHtml(p.id)}" data-token="${escHtml(p.access_token || '')}" data-name="${escHtml(p.name || p.id)}" checked style="display:none">
-      <div class="sv2-page-avatar">${avatar}</div>
+      <div class="sv2-page-avatar">${avatarContent}</div>
       <div class="sv2-page-name">${escHtml(p.name || p.id)}</div>
       <i class="fa-solid fa-circle-check sv2-page-check-icon"></i>
     </div>`;
