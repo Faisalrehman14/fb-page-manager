@@ -1108,24 +1108,24 @@ app.all(['/api/messenger', '/messenger_api.php'], requireAuth, async (req, res) 
                 if (!pageId) return res.status(400).json({ error: 'page_id required' });
 
                 let newMessages = [];
-                if (psid) {
+                if (psid && dbConnected) {
                     const convInfo = await db.getConversationIdByParticipant(pageId, psid);
-                    const realConvId = convInfo?.id || `${pageId}_${psid}`;
-                    newMessages = await db.getNewMessagesSince(realConvId, since);
+                    if (convInfo?.id) {
+                        newMessages = await db.getNewMessagesSince(convInfo.id, since);
+                    }
                 }
 
-                const updatedConvs = await db.getUpdatedConvsSince(pageId, since);
-                const totalUnread = await db.getTotalUnread(pageId);
+                const updatedConvs = dbConnected ? await db.getUpdatedConvsSince(pageId, since) : [];
+                const totalUnread  = dbConnected ? await db.getTotalUnread(pageId) : 0;
 
                 return res.json({
                     new_messages: newMessages.map(m => ({
-                        ...m,
-                        message_id: m.mid,
-                        message: m.text,
-                        from_me: m.isFromPage ? 1 : 0,
-                        created_at: m.createdTime,
-                        attachment_url: m.attachments?.[0]?.u || null,
-                        attachment_type: m.attachments?.[0]?.t || null
+                        message_id:      m.mid,
+                        message:         m.text        || '',
+                        from_me:         m.isFromPage  ? 1 : 0,
+                        created_at:      m.createdTime,
+                        attachment_url:  m.attachment_url  || null,
+                        attachment_type: m.attachment_type || null
                     })),
                     updated_convs: updatedConvs,
                     total_unread: totalUnread,
@@ -1179,11 +1179,15 @@ app.all(['/api/messenger', '/messenger_api.php'], requireAuth, async (req, res) 
 
                 const mid = fbData.message_id;
                 const createdTime = new Date().toISOString();
-                const convInfo = dbConnected ? await db.getConversationIdByParticipant(pageId, psid) : null;
-                const convId = convInfo?.id || null;
+                let convId = null;
+                if (dbConnected) {
+                    const convInfo = await db.getConversationIdByParticipant(pageId, psid);
+                    convId = convInfo?.id || await db.ensureConversation(pageId, psid);
+                }
 
                 if (convId) {
                     await db.saveMessage({ id: mid, threadId: convId, pageId, senderId: pageId, text: message || '[Image]', isFromPage: true, createdTime });
+                    await db.updateConversationFromMessage({ threadId: convId, text: message || '[Image]', createdTime }).catch(() => {});
                 }
 
                 // Emit real-time events so all agents see the sent message instantly

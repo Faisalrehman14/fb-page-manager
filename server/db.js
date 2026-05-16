@@ -1116,9 +1116,21 @@ async function getStats() {
 async function getNewMessagesSince(convId, since) {
     if (!pool) return [];
     try {
+        // Convert ISO string (e.g. '2026-05-16T05:10:30.123Z') to JS Date so
+        // mysql2 serialises it as 'YYYY-MM-DD HH:MM:SS.mmm' — MySQL's DATETIME
+        // implicit cast cannot parse the trailing 'Z', returning NULL and
+        // matching zero rows.
+        const sinceDate = since instanceof Date ? since : new Date(since);
+        if (isNaN(sinceDate)) throw new Error('invalid since: ' + since);
+
         const [rows] = await pool.query(
-            'SELECT id, message_id as mid, message as text, from_me as isFromPage, created_at as createdTime, attachment_url FROM messenger_messages WHERE conversation_id = ? AND created_at > ? ORDER BY created_at ASC',
-            [convId, since]
+            `SELECT id, message_id AS mid, message AS text,
+                    from_me AS isFromPage, created_at AS createdTime,
+                    attachment_url, attachment_type
+             FROM messenger_messages
+             WHERE conversation_id = ? AND created_at > ?
+             ORDER BY created_at ASC`,
+            [convId, sinceDate]
         );
         return rows;
     } catch (err) {
@@ -1130,9 +1142,10 @@ async function getNewMessagesSince(convId, since) {
 async function getUpdatedConvsSince(pageId, since) {
     if (!pool) return [];
     try {
+        const sinceDate = since instanceof Date ? since : new Date(since);
         const [rows] = await pool.query(
             'SELECT id, page_id, fb_user_id, user_name, user_picture, snippet, updated_at, is_unread, last_from_me FROM messenger_conversations WHERE page_id = ? AND updated_at > ? ORDER BY updated_at DESC',
-            [pageId, since]
+            [pageId, sinceDate]
         );
         return rows.map(r => ({
             id: r.id,
