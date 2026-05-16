@@ -762,11 +762,21 @@ app.post('/api/threads/:threadId/reply', requireAuth, verifyCsrf, async (req, re
     if (!token) return res.status(401).json({ error: 'Page token not found', tokenMissing: true });
 
     try {
-        const fbRes = await fetch(`https://graph.facebook.com/v19.0/me/messages?access_token=${token}`, {
-            method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ recipient: { id: recipientId }, message: { text: message.trim() } })
-        });
-        const data = await fbRes.json();
+        const _replyUrl  = `https://graph.facebook.com/v19.0/me/messages?access_token=${token}`;
+        const _replySend = async (tag = null) => {
+            const body = { recipient: { id: recipientId }, message: { text: message.trim() } };
+            if (tag) { body.messaging_type = 'MESSAGE_TAG'; body.tag = tag; }
+            const r = await fetch(_replyUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+            return r.json();
+        };
+        let data = await _replySend();
+        if (data.error) {
+            const code = data.error.code;
+            const em   = (data.error.message || '').toLowerCase();
+            if (code === 10 || code === 551 || em.includes('outside of allowed window') || em.includes('24 hour') || em.includes('messaging window')) {
+                data = await _replySend('HUMAN_AGENT');
+            }
+        }
         if (data.error) throw new Error(data.error.message);
 
         const createdTime = new Date().toISOString();
@@ -1209,18 +1219,31 @@ app.all(['/api/messenger', '/messenger_api.php'], requireAuth, async (req, res) 
                 if (!token) return res.status(400).json({ error: 'Page token not found' });
 
                 // Call Facebook API
-                const fbUrl = `https://graph.facebook.com/v19.0/me/messages?access_token=${token}`;
-                const payload = {
-                    recipient: { id: psid },
-                    message: image_url ? { attachment: { type: 'image', payload: { url: image_url } } } : { text: message }
+                const fbUrl  = `https://graph.facebook.com/v19.0/me/messages?access_token=${token}`;
+                const msgObj = image_url
+                    ? { attachment: { type: 'image', payload: { url: image_url } } }
+                    : { text: message };
+
+                const _fbSend = async (tag = null) => {
+                    const body = { recipient: { id: psid }, message: msgObj };
+                    if (tag) { body.messaging_type = 'MESSAGE_TAG'; body.tag = tag; }
+                    const r = await fetch(fbUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+                    return r.json();
                 };
 
-                const fbRes = await fetch(fbUrl, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-                const fbData = await fbRes.json();
+                let fbData = await _fbSend();
+
+                // 24-hour window closed → retry with HUMAN_AGENT tag (7-day window)
+                if (fbData.error) {
+                    const code = fbData.error.code;
+                    const msg  = (fbData.error.message || '').toLowerCase();
+                    const outside24h = code === 10 || code === 551 ||
+                        msg.includes('outside of allowed window') ||
+                        msg.includes('24 hour') || msg.includes('messaging window');
+                    if (outside24h) {
+                        fbData = await _fbSend('HUMAN_AGENT');
+                    }
+                }
 
                 if (fbData.error) throw new Error(fbData.error.message);
 
