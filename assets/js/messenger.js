@@ -739,7 +739,15 @@
         bubble.classList.remove('pending');
         if (res.message_id) {
           bubble.dataset.msgId = res.message_id;
+          if (now) bubble.dataset.createdTs = new Date(now).getTime();
           M.renderedMsgIds.add(res.message_id);
+        }
+        // Clock → single checkmark (sent)
+        const tickEl = bubble.querySelector('.msng-tick');
+        if (tickEl) {
+          tickEl.className = 'msng-tick msng-tick--sent';
+          tickEl.title     = 'Sent';
+          tickEl.innerHTML = '<i class="fa-solid fa-check"></i>';
         }
       }
       const entry = M.msgs.find(m => m._tempId === tempId);
