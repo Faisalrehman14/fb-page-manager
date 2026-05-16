@@ -904,178 +904,192 @@ window.getCsrfToken = async (forceRefresh = false) => {
       </div>
     </div>
 
-    <!-- HOME VIEW (default) -->
-    <div id="view-home" class="home-view">
+    <!-- HOME VIEW -->
+    <div id="view-home" class="hv">
 
-      <!-- Home Hero Banner -->
-      <div class="home-hero-banner">
-        <div class="hhb-glow"></div>
-        <div class="hhb-content">
-          <div class="hhb-badge">
-            <i class="fa-brands fa-facebook-messenger"></i>
-            FBCast Pro Dashboard
-          </div>
-          <h2 class="hhb-title">Welcome back, <span id="homeUserName">User</span>!</h2>
-          <p class="hhb-sub">Ready to reach your audience? Start broadcasting to all your Facebook Page followers instantly.</p>
-          <div class="hhb-actions">
-            <button class="hhb-btn-primary" onclick="switchDashboardView('broadcast')">
-              <i class="fa-solid fa-bullhorn"></i> Start Broadcasting
-            </button>
-            <button class="hhb-btn-secondary" onclick="switchDashboardView('analytics')">
-              <i class="fa-solid fa-chart-line"></i> View Analytics
-            </button>
+      <!-- ── Top bar: greeting + primary CTA ── -->
+      <div class="hv-topbar">
+        <div class="hv-greeting">
+          <div class="hv-greeting-dot"></div>
+          <div>
+            <h2 class="hv-greeting-title">Good day, <span id="homeUserName">User</span> 👋</h2>
+            <p class="hv-greeting-sub">Here's your FBCast Pro overview</p>
           </div>
         </div>
-        <div class="hhb-stats-row">
-          <div class="hhb-stat">
-            <div class="hhb-stat-val" id="homeTotalBroadcasts">0</div>
-            <div class="hhb-stat-lbl">Total Broadcasts</div>
+        <button class="hv-cta" onclick="switchDashboardView('broadcast')">
+          <i class="fa-solid fa-bullhorn"></i>
+          New Broadcast
+          <i class="fa-solid fa-arrow-right hv-cta-arrow"></i>
+        </button>
+      </div>
+
+      <!-- ── KPI Stats row ── -->
+      <div class="hv-kpi-row">
+        <div class="hv-kpi">
+          <div class="hv-kpi-icon hv-kpi-blue"><i class="fa-solid fa-paper-plane"></i></div>
+          <div class="hv-kpi-body">
+            <div class="hv-kpi-val" id="homeTotalBroadcasts">0</div>
+            <div class="hv-kpi-lbl">Broadcasts</div>
           </div>
-          <div class="hhb-stat">
-            <div class="hhb-stat-val" id="homeTotalMessages">0</div>
-            <div class="hhb-stat-lbl">Total Sent</div>
+        </div>
+        <div class="hv-kpi">
+          <div class="hv-kpi-icon hv-kpi-indigo"><i class="fa-solid fa-envelope"></i></div>
+          <div class="hv-kpi-body">
+            <div class="hv-kpi-val" id="homeTotalMessages">0</div>
+            <div class="hv-kpi-lbl">Total Sent</div>
           </div>
-          <div class="hhb-stat">
-            <div class="hhb-stat-val sent-val" id="homeSentCount">0</div>
-            <div class="hhb-stat-lbl">Delivered</div>
+        </div>
+        <div class="hv-kpi">
+          <div class="hv-kpi-icon hv-kpi-green"><i class="fa-solid fa-circle-check"></i></div>
+          <div class="hv-kpi-body">
+            <div class="hv-kpi-val hv-green" id="homeSentCount">0</div>
+            <div class="hv-kpi-lbl">Delivered</div>
           </div>
-          <div class="hhb-stat">
-            <div class="hhb-stat-val failed-val" id="homeFailedCount">0</div>
-            <div class="hhb-stat-lbl">Failed</div>
+        </div>
+        <div class="hv-kpi">
+          <div class="hv-kpi-icon hv-kpi-red"><i class="fa-solid fa-circle-xmark"></i></div>
+          <div class="hv-kpi-body">
+            <div class="hv-kpi-val hv-red" id="homeFailedCount">0</div>
+            <div class="hv-kpi-lbl">Failed</div>
           </div>
-          <div class="hhb-stat">
-            <div class="hhb-stat-val pending-val" id="homePendingCount">0</div>
-            <div class="hhb-stat-lbl">Pending</div>
+        </div>
+        <div class="hv-kpi">
+          <div class="hv-kpi-icon hv-kpi-amber"><i class="fa-solid fa-clock"></i></div>
+          <div class="hv-kpi-body">
+            <div class="hv-kpi-val hv-amber" id="homePendingCount">0</div>
+            <div class="hv-kpi-lbl">Pending</div>
           </div>
         </div>
       </div>
 
-      <!-- Plan Info Banner -->
-      <div class="home-plan-banner">
-        <div class="home-plan-left">
-          <div class="hpb-plan-badge">
-            <i class="fa-solid fa-crown"></i>
-            <span id="homePlanName">Free Plan</span>
-          </div>
-          <div class="hpb-plan-info">
-            <div class="hpb-msg-used">
-              <span class="hpb-used-num" id="homeMsgUsed">0</span>
-              <span class="hpb-sep">/</span>
-              <span class="hpb-total-num" id="homeMsgTotal">2,000</span>
-              <span class="hpb-lbl">messages used</span>
-            </div>
-          </div>
-        </div>
-        <div class="home-plan-right">
-          <div class="hpb-progress-bar">
-            <div class="hpb-progress-fill" id="homePlanProgress"></div>
-          </div>
-          <span class="hpb-progress-pct" id="homePlanPct">0%</span>
-          <button class="hpb-upgrade-btn" onclick="if(typeof openUpgradeModal==='function')openUpgradeModal(this);else document.getElementById('upgradeModal').style.display='flex'">
-            <i class="fa-solid fa-rocket"></i> Upgrade
-          </button>
-        </div>
-      </div>
+      <!-- ── Main 2-col grid ── -->
+      <div class="hv-main-grid">
 
-      <!-- Quick Actions Cards -->
-      <div class="home-quick-actions">
-        <div class="home-quick-grid">
-          <div class="home-qa-card" onclick="switchDashboardView('broadcast')">
-            <div class="qa-card-icon qa-icon-blue"><i class="fa-solid fa-paper-plane"></i></div>
-            <div class="qa-card-body">
-              <div class="qa-card-title">New Broadcast</div>
-              <div class="qa-card-desc">Send a message to all your page followers</div>
+        <!-- LEFT: Connected Pages -->
+        <div class="hv-panel hv-panel-pages">
+          <div class="hv-panel-hdr">
+            <div class="hv-panel-hdr-left">
+              <i class="fa-brands fa-facebook-messenger hv-panel-icon"></i>
+              <span class="hv-panel-title">Connected Pages</span>
+              <span class="hv-count-pill" id="homePagesCountBadge">0</span>
             </div>
-            <i class="fa-solid fa-arrow-right qa-card-arrow"></i>
-          </div>
-          <div class="home-qa-card" onclick="switchDashboardView('templates')">
-            <div class="qa-card-icon qa-icon-purple"><i class="fa-solid fa-bookmark"></i></div>
-            <div class="qa-card-body">
-              <div class="qa-card-title">Templates</div>
-              <div class="qa-card-desc">Use pre-built message templates</div>
-            </div>
-            <i class="fa-solid fa-arrow-right qa-card-arrow"></i>
-          </div>
-          <div class="home-qa-card" onclick="switchDashboardView('analytics')">
-            <div class="qa-card-icon qa-icon-green"><i class="fa-solid fa-chart-line"></i></div>
-            <div class="qa-card-body">
-              <div class="qa-card-title">Analytics</div>
-              <div class="qa-card-desc">Track your broadcast performance</div>
-            </div>
-            <i class="fa-solid fa-arrow-right qa-card-arrow"></i>
-          </div>
-          <div class="home-qa-card" onclick="switchDashboardView('settings')">
-            <div class="qa-card-icon qa-icon-amber"><i class="fa-solid fa-gear"></i></div>
-            <div class="qa-card-body">
-              <div class="qa-card-title">Settings</div>
-              <div class="qa-card-desc">Configure your preferences</div>
-            </div>
-            <i class="fa-solid fa-arrow-right qa-card-arrow"></i>
-          </div>
-        </div>
-      </div>
-
-      <!-- Connected Pages — single premium section -->
-      <div class="cp-section">
-        <div class="cp-hdr">
-          <div class="cp-hdr-left">
-            <div class="cp-hdr-icon"><i class="fa-brands fa-facebook-messenger"></i></div>
-            <div>
-              <div class="cp-hdr-title">Connected Pages</div>
-              <div class="cp-hdr-sub">Your Facebook pages linked to FBCast Pro</div>
-            </div>
-          </div>
-          <div class="cp-hdr-right">
-            <span class="cp-page-count" id="homePagesCountBadge">0 Pages</span>
-            <button class="cp-refresh-btn" onclick="triggerConnect()" title="Reconnect">
-              <i class="fa-brands fa-facebook"></i> Add Page
+            <button class="hv-link-btn" onclick="triggerConnect()">
+              <i class="fa-solid fa-plus"></i> Add
             </button>
           </div>
-        </div>
-        <div class="cp-grid" id="homePagesList">
-          <div class="cp-empty">
-            <div class="cp-empty-icon"><i class="fa-brands fa-facebook-messenger"></i></div>
-            <h4>No pages connected</h4>
-            <p>Connect your Facebook account to start broadcasting to your audience.</p>
-            <button class="cp-connect-btn" onclick="triggerConnect()">
-              <i class="fa-brands fa-facebook"></i> Connect Facebook
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Bottom: Recent Activity + Results -->
-      <div class="home-bottom-grid">
-        <!-- Recent Broadcasts -->
-        <div class="home-card-panel">
-          <div class="hcp-hdr">
-            <span><i class="fa-solid fa-clock-rotate-left"></i> Recent Broadcasts</span>
-          </div>
-          <div class="hcp-activity-list" id="homeActivityList">
-            <div class="hcp-empty">
-              <i class="fa-solid fa-bullhorn"></i>
-              <p>No broadcasts yet.<br>Start your first broadcast to see history here.</p>
-              <button class="hcp-connect-btn" onclick="switchDashboardView('broadcast')">
-                <i class="fa-solid fa-paper-plane"></i> Start Now
+          <div class="hv-pages-grid" id="homePagesList">
+            <div class="hv-empty">
+              <i class="fa-brands fa-facebook-messenger"></i>
+              <p>No pages connected yet</p>
+              <button class="hv-empty-btn" onclick="triggerConnect()">
+                <i class="fa-brands fa-facebook"></i> Connect Facebook
               </button>
             </div>
           </div>
         </div>
 
-        <!-- Latest Broadcast Results -->
-        <div class="home-card-panel" id="homeResultsSection" style="display:none">
-          <div class="hcp-hdr">
-            <span><i class="fa-solid fa-chart-bar"></i> Latest Results</span>
-            <span class="hrs-badge" id="hrsBadge">0 sent</span>
+        <!-- RIGHT: Plan + Quick Actions -->
+        <div class="hv-right-col">
+
+          <!-- Plan Usage Card -->
+          <div class="hv-panel hv-plan-card">
+            <div class="hv-plan-top">
+              <div class="hv-plan-badge">
+                <i class="fa-solid fa-crown"></i>
+                <span id="homePlanName">Free Plan</span>
+              </div>
+              <button class="hv-upgrade-btn" onclick="if(typeof openUpgradeModal==='function')openUpgradeModal(this);else document.getElementById('upgradeModal').style.display='flex'">
+                <i class="fa-solid fa-rocket"></i> Upgrade
+              </button>
+            </div>
+            <div class="hv-plan-nums">
+              <span class="hv-plan-used" id="homeMsgUsed">0</span>
+              <span class="hv-plan-sep">/</span>
+              <span class="hv-plan-total" id="homeMsgTotal">2,000</span>
+              <span class="hv-plan-unit">messages</span>
+            </div>
+            <div class="hv-plan-bar">
+              <div class="hv-plan-fill" id="homePlanProgress"></div>
+            </div>
+            <div class="hv-plan-pct-row">
+              <span class="hv-plan-pct" id="homePlanPct">0%</span>
+              <span class="hv-plan-pct-lbl">used this month</span>
+            </div>
           </div>
-          <div class="hrs-results-grid" id="hrsResultsGrid"></div>
+
+          <!-- Quick Actions -->
+          <div class="hv-panel hv-qa-panel">
+            <div class="hv-panel-hdr">
+              <div class="hv-panel-hdr-left">
+                <i class="fa-solid fa-bolt hv-panel-icon hv-amber-icon"></i>
+                <span class="hv-panel-title">Quick Actions</span>
+              </div>
+            </div>
+            <div class="hv-qa-list">
+              <button class="hv-qa-item" onclick="switchDashboardView('broadcast')">
+                <span class="hv-qa-dot hv-qa-blue"></span>
+                <div class="hv-qa-text">
+                  <span class="hv-qa-label">New Broadcast</span>
+                  <span class="hv-qa-desc">Send to all page followers</span>
+                </div>
+                <i class="fa-solid fa-arrow-right hv-qa-arrow"></i>
+              </button>
+              <button class="hv-qa-item" onclick="switchDashboardView('messenger')">
+                <span class="hv-qa-dot hv-qa-cyan"></span>
+                <div class="hv-qa-text">
+                  <span class="hv-qa-label">Open Messenger</span>
+                  <span class="hv-qa-desc">Reply to customer chats</span>
+                </div>
+                <i class="fa-solid fa-arrow-right hv-qa-arrow"></i>
+              </button>
+              <button class="hv-qa-item" onclick="switchDashboardView('analytics')">
+                <span class="hv-qa-dot hv-qa-green"></span>
+                <div class="hv-qa-text">
+                  <span class="hv-qa-label">Analytics</span>
+                  <span class="hv-qa-desc">Track campaign performance</span>
+                </div>
+                <i class="fa-solid fa-arrow-right hv-qa-arrow"></i>
+              </button>
+              <button class="hv-qa-item" onclick="switchDashboardView('templates')">
+                <span class="hv-qa-dot hv-qa-purple"></span>
+                <div class="hv-qa-text">
+                  <span class="hv-qa-label">Templates</span>
+                  <span class="hv-qa-desc">Pre-built message templates</span>
+                </div>
+                <i class="fa-solid fa-arrow-right hv-qa-arrow"></i>
+              </button>
+            </div>
+          </div>
+
+        </div><!-- /hv-right-col -->
+      </div><!-- /hv-main-grid -->
+
+      <!-- ── Recent Broadcasts + Results (bottom full-width) ── -->
+      <div class="hv-panel hv-activity-panel">
+        <div class="hv-panel-hdr">
+          <div class="hv-panel-hdr-left">
+            <i class="fa-solid fa-clock-rotate-left hv-panel-icon"></i>
+            <span class="hv-panel-title">Recent Broadcasts</span>
+          </div>
+          <span class="hv-act-badge" id="hrsBadge" style="display:none">0 sent</span>
         </div>
+        <div id="homeActivityList" class="hv-activity-body">
+          <div class="hv-empty hv-empty-sm">
+            <i class="fa-solid fa-bullhorn"></i>
+            <p>No broadcasts yet — start your first campaign</p>
+            <button class="hv-empty-btn" onclick="switchDashboardView('broadcast')">
+              <i class="fa-solid fa-paper-plane"></i> Start Now
+            </button>
+          </div>
+        </div>
+        <div id="hrsResultsGrid" style="padding:0 16px 16px"></div>
       </div>
 
       <!-- hidden compat IDs -->
       <span id="homePagesCountBadge2" style="display:none"></span>
-      <div id="homePagesGrid"         style="display:none"></div>
-      <div id="homeResultsSection2"   style="display:none"></div>
+      <div  id="homePagesGrid"        style="display:none"></div>
+      <div  id="homeResultsSection"   style="display:none"></div>
+      <div  id="homeResultsSection2"  style="display:none"></div>
 
     </div><!-- /view-home -->
 
