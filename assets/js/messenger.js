@@ -23,7 +23,9 @@
     activePageId: null,
     activeToken:  null,
 
-    convs:        [],   // [{ psid, name, picture, lastMsg, lastFromMe, lastMsgAt, unread, page_id }]
+    convs:        [],
+    convOffset:   0,
+    convHasMore:  true,
 
     activePsid:      null,
     activeConvName:  '',
@@ -855,24 +857,44 @@
   function bindConvListDelegate() {
     const listEl = $('msngConvList');
     if (!listEl) return;
+
+    // Click handler (delegated)
     if (_convListListener) listEl.removeEventListener('click', _convListListener);
     _convListListener = e => {
       const item = e.target.closest('[data-psid]');
       if (item) openConv(item.dataset.psid, item.dataset.name, item.dataset.pic, item.dataset.page);
     };
     listEl.addEventListener('click', _convListListener);
+
+    // Infinite scroll handler
+    listEl.onscroll = () => {
+      if (M.ui.loadingConvs || !M.convHasMore) return;
+      const nearBottom = listEl.scrollHeight - listEl.scrollTop - listEl.clientHeight < 100;
+      if (nearBottom) loadConvs(M.activePageId, true);
+    };
   }
 
   // ══════════════════════════════════════════════════════════
   // DATA LOADING
   // ══════════════════════════════════════════════════════════
 
-  async function loadConvs(pageId) {
-    showConvSkeleton();
+  async function loadConvs(pageId, isMore = false) {
+    if (M.ui.loadingConvs) return;
+    if (isMore && !M.convHasMore) return;
+
+    if (!isMore) {
+      M.convOffset = 0;
+      M.convHasMore = true;
+      showConvSkeleton();
+    }
+    M.ui.loadingConvs = true;
+
     try {
-      const data = await get('load_conversations', { page_id: pageId });
+      const limit = 40;
+      const data = await get('load_conversations', { page_id: pageId, limit, offset: M.convOffset });
       if (data.error) throw new Error(data.error);
-      M.convs = (data.conversations || []).map(c => ({
+
+      const newConvs = (data.conversations || []).map(c => ({
         id:         c.id,
         psid:       c.fb_user_id,
         name:       c.user_name    || 'User',
@@ -883,17 +905,32 @@
         unread:     parseInt(c.is_unread) || 0,
         page_id:    c.page_id,
       }));
+
+      if (isMore) {
+        M.convs = [...M.convs, ...newConvs];
+      } else {
+        M.convs = newConvs;
+      }
+
+      M.convOffset += newConvs.length;
+      if (newConvs.length < limit) M.convHasMore = false;
+
       renderConvs();
     } catch (e) {
-      const listEl = $('msngConvList');
-      if (listEl) listEl.innerHTML = `<div class="msng-empty">
-        <i class="fa-solid fa-triangle-exclamation" style="color:#f87171;font-size:24px;margin-bottom:8px"></i>
-        <p style="color:#f87171;font-size:13px;margin:0 0 12px">Could not load conversations</p>
-        <button onclick="window.msngRefresh()" class="msng-retry-btn">
-          <i class="fa-solid fa-rotate-right"></i> Retry
-        </button>
-      </div>`;
-      showToast(e.message?.includes('Session') ? 'Session expired — reload the page' : 'Failed to load chats', 'error');
+      console.error('[Messenger] loadConvs:', e);
+      if (!isMore) {
+        const listEl = $('msngConvList');
+        if (listEl) listEl.innerHTML = `<div class="msng-empty">
+          <i class="fa-solid fa-triangle-exclamation" style="color:#f87171;font-size:24px;margin-bottom:8px"></i>
+          <p style="color:#f87171;font-size:13px;margin:0 0 12px">Could not load conversations</p>
+          <button onclick="window.msngRefresh()" class="msng-retry-btn">
+            <i class="fa-solid fa-rotate-right"></i> Retry
+          </button>
+        </div>`;
+      }
+      showToast('Failed to load chats', 'error');
+    } finally {
+      M.ui.loadingConvs = false;
     }
   }
 

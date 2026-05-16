@@ -602,24 +602,12 @@ app.get('/api/pages', requireAuth, async (req, res) => {
 
         if (dbConnected) {
             await db.savePages(pagesToSave);
-            if (req.session.firstLogin) {
-                req.session.firstLogin = false;
-                // allSettled: one page failing doesn't abort others
-                Promise.allSettled(pagesToSave.map(p =>
-                    db.syncPageInitial(p.id, p.accessToken, fetch, prog => io.to(`page_${p.id}`).emit('sync_progress', prog))
-                        .catch(err => logError('initial_sync', err, { pageId: p.id }))
-                )).then(() => pagesToSave.forEach(p => io.to(`page_${p.id}`).emit('sync_progress', { phase: 'done' })));
-            } else {
-                const now = Date.now();
-                for (const p of pagesToSave) {
-                    const last = syncAllCooldown.get(p.id) || 0;
-                    if (now - last > 300000) {
-                        syncAllCooldown.set(p.id, now);
-                        db.syncPageIncremental(p.id, p.accessToken, fetch, prog => io.to(`page_${p.id}`).emit('sync_progress', prog))
-                            .catch(err => logError('incremental_sync', err, { pageId: p.id }));
-                    }
-                }
-            }
+            
+            // Parallel Smart Sync for all pages
+            Promise.allSettled(pagesToSave.map(p =>
+                db.syncPageSmart(p.id, p.accessToken, fetch, prog => io.to(`page_${p.id}`).emit('sync_progress', prog))
+                    .catch(err => logError('smart_sync', err, { pageId: p.id }))
+            )).then(() => pagesToSave.forEach(p => io.to(`page_${p.id}`).emit('sync_progress', { phase: 'done' })));
         }
 
         (data.data || []).forEach(p => { req.session.pageTokens[p.id] = p.access_token; });
@@ -1003,7 +991,9 @@ app.all(['/api/messenger', '/messenger_api.php'], requireAuth, async (req, res) 
         if (method === 'GET') {
             if (action === 'load_conversations') {
                 if (!pageId) return res.status(400).json({ error: 'page_id required' });
-                const convs = await db.getConversations(pageId);
+                const limit  = Math.min(parseInt(req.query.limit) || 50, 100);
+                const offset = parseInt(req.query.offset) || 0;
+                const convs = await db.getConversations(pageId, limit, offset);
                 return res.json({ 
                     conversations: convs.map(c => ({
                         ...c,

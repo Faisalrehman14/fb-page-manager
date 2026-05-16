@@ -39,7 +39,7 @@ async function initDatabase() {
         const config = {
             uri: connectionString,
             waitForConnections: true,
-            connectionLimit: 15,
+            connectionLimit: 30,
             queueLimit: 0,
             enableKeepAlive: true,
             keepAliveInitialDelay: 10000,
@@ -959,18 +959,30 @@ async function syncThreadMessages(threadId, pageId, pageToken, fetchFn, cutoffMs
 }
 
 // First-time sync: all messenger_conversations + last 7 days of messenger_messages, parallel
-async function syncPageInitial(pageId, pageToken, fetchFn, onProgress = null) {
+async function syncPageSmart(pageId, pageToken, fetchFn, onProgress = null) {
     if (!pool) return;
-    if (syncStatus.get(pageId)) {
-        console.log(`DB: syncPageInitial already running for ${pageId}`);
-        return;
+    if (syncStatus.get(pageId)) return;
+    
+    try {
+        const lastSynced = await getPageSyncTime(pageId);
+        if (lastSynced) {
+            await syncPageIncremental(pageId, pageToken, fetchFn, onProgress);
+        } else {
+            await syncPageInitial(pageId, pageToken, fetchFn, onProgress);
+        }
+    } catch (err) {
+        console.error(`DB: syncPageSmart error [${pageId}]:`, err);
     }
+}
+
+// First-time sync: all messenger_conversations + last 7 days of messenger_messages, parallel
+async function syncPageInitial(pageId, pageToken, fetchFn, onProgress = null) {
+    if (syncStatus.get(pageId)) return;
     syncStatus.set(pageId, true);
     const cutoff7DaysMs = Date.now() - 7 * 24 * 60 * 60 * 1000;
 
     try {
         const messenger_conversations = await syncConversationsAll(pageId, pageToken, fetchFn, null);
-        console.log(`DB: syncPageInitial [${pageId}] ${messenger_conversations.length} messenger_conversations`);
         if (onProgress) onProgress({ pageId, phase: 'messenger_conversations', total: messenger_conversations.length, done: 0 });
 
         let done = 0;
@@ -979,13 +991,10 @@ async function syncPageInitial(pageId, pageToken, fetchFn, onProgress = null) {
             done++;
             if (onProgress) onProgress({ pageId, phase: 'messenger_messages', total: messenger_conversations.length, done });
         });
-        await parallelLimit(tasks, 10);
+        // Increased parallel limit for faster sync
+        await parallelLimit(tasks, 20);
 
         await updatePageSyncTime(pageId);
-        console.log(`DB: syncPageInitial [${pageId}] complete`);
-    } catch (err) {
-        addDbError(`syncPageInitial: ${err.message}`);
-        console.error(`DB: syncPageInitial error [${pageId}]:`, err.message);
     } finally {
         syncStatus.set(pageId, false);
     }
@@ -993,11 +1002,7 @@ async function syncPageInitial(pageId, pageToken, fetchFn, onProgress = null) {
 
 // Incremental sync: only messenger_conversations + messenger_messages updated since last sync
 async function syncPageIncremental(pageId, pageToken, fetchFn, onProgress = null) {
-    if (!pool) return;
-    if (syncStatus.get(pageId)) {
-        console.log(`DB: syncPageIncremental already running for ${pageId}`);
-        return;
-    }
+    if (syncStatus.get(pageId)) return;
     syncStatus.set(pageId, true);
 
     try {
@@ -1007,25 +1012,19 @@ async function syncPageIncremental(pageId, pageToken, fetchFn, onProgress = null
             : Math.floor((Date.now() - 7 * 24 * 60 * 60 * 1000) / 1000);
 
         const messenger_conversations = await syncConversationsAll(pageId, pageToken, fetchFn, sinceUnix);
-        console.log(`DB: syncPageIncremental [${pageId}] ${messenger_conversations.length} updated messenger_conversations`);
         if (onProgress) onProgress({ pageId, phase: 'messenger_conversations', total: messenger_conversations.length, done: 0 });
 
         let done = 0;
         const tasks = messenger_conversations.map(conv => async () => {
             const latestTime = await getLatestMessageTime(conv.id);
-            // cutoffMs: stop paginating when we reach messenger_messages we already have
             const cutoffMs = latestTime ? new Date(latestTime).getTime() : null;
             await syncThreadMessages(conv.id, pageId, pageToken, fetchFn, cutoffMs);
             done++;
             if (onProgress) onProgress({ pageId, phase: 'messenger_messages', total: messenger_conversations.length, done });
         });
-        await parallelLimit(tasks, 10);
+        await parallelLimit(tasks, 20);
 
         await updatePageSyncTime(pageId);
-        console.log(`DB: syncPageIncremental [${pageId}] complete`);
-    } catch (err) {
-        addDbError(`syncPageIncremental: ${err.message}`);
-        console.error(`DB: syncPageIncremental error [${pageId}]:`, err.message);
     } finally {
         syncStatus.set(pageId, false);
     }
