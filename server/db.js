@@ -835,7 +835,7 @@ async function syncAllPageData(pageId, pageToken, fetchFn) {
 
 function buildConversationsUrl(pageId, pageToken, since = null) {
     const sinceParam = since ? `&since=${since}` : '';
-    return `https://graph.facebook.com/v19.0/${pageId}/conversations?fields=id,participants,snippet,updated_time,unread_count&limit=50${sinceParam}&access_token=${pageToken}`;
+    return `https://graph.facebook.com/v19.0/${pageId}/conversations?fields=id,participants,snippet,updated_time,unread_count,can_reply&limit=200${sinceParam}&access_token=${pageToken}`;
 }
 
 async function syncConversationsAll(pageId, pageToken, fetchFn, since = null) {
@@ -857,6 +857,7 @@ async function syncConversationsAll(pageId, pageToken, fetchFn, since = null) {
         }
 
         const messenger_conversations = (data.data || []).flatMap(conv => {
+            if (conv.can_reply === false) return []; // skip blocked — same as broadcast
             // Find the participant who is NOT the page itself
             const participants = conv.participants?.data || [];
             const participant = participants.find(p => String(p.id) !== String(pageId))
@@ -886,6 +887,17 @@ async function syncConversationsAll(pageId, pageToken, fetchFn, since = null) {
 
         nextUrl = data.paging?.next || null;
     }
+
+    // Remove blocked/stale entries that didn't come back with can_reply=true
+    if (pool && allConversations.length > 0) {
+        const activeIds = allConversations.map(c => c.id).filter(Boolean);
+        const placeholders = activeIds.map(() => '?').join(',');
+        pool.query(
+            `DELETE FROM messenger_conversations WHERE page_id = ? AND id NOT IN (${placeholders})`,
+            [pageId, ...activeIds]
+        ).catch(err => addDbError(`syncConversationsAll cleanup: ${err.message}`));
+    }
+
     return allConversations;
 }
 
