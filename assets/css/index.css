@@ -839,6 +839,11 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,te
 /* LAYOUT */
 .app-body{flex:1;display:flex;gap:12px;padding:12px;overflow:hidden;min-height:0;align-items:stretch;background:var(--bg);flex-shrink:0}
 
+/* Content views — fill all remaining space */
+#view-home,#view-broadcast,#view-analytics,#view-templates,#view-settings,#view-help {
+  flex:1; min-width:0; overflow-y:auto; height:100%;
+}
+
 /* ── NAV SIDEBAR ── */
 .nav-sidebar{
   width:72px;min-width:72px;
@@ -2573,7 +2578,7 @@ body.annual .price-billing-annual{display:block}
 /* Root wrapper */
 .hv {
   display: flex; flex-direction: column; gap: 20px;
-  padding: 24px; max-width: 1200px; margin: 0 auto;
+  padding: 20px; width: 100%; box-sizing: border-box;
   animation: fadeInUp .3s ease both;
 }
 @keyframes fadeInUp {
