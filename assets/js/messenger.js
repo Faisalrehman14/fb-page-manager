@@ -1638,6 +1638,20 @@
         }
       });
     }
+
+    // Load earlier messages button click handler
+    document.addEventListener('click', function(e) {
+      const btn = e.target.closest('.msng-load-more-btn');
+      if (btn && M.oldestMsgTime) {
+        e.preventDefault();
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Loading...';
+        loadMessages(M.oldestMsgTime).finally(() => {
+          btn.disabled = false;
+          btn.innerHTML = '<i class="fa-solid fa-chevron-up"></i> Load earlier messages';
+        });
+      }
+    });
   });
 
   // ── Stop polling when messenger view is not active ───────────────────────────
