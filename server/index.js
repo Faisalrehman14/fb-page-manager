@@ -1329,13 +1329,17 @@ app.all(['/api/messenger', '/messenger_api.php'], requireAuth, async (req, res) 
 app.post('/api/sync-history', requireAuth, async (req, res) => {
     const { page_id, page_token } = req.body;
     if (!page_id || !page_token) return res.status(400).json({ error: 'page_id and page_token required' });
-    
-    // Non-blocking sync start
-    db.syncPageInitial(page_id, page_token, fetch, prog => io.to(`page_${page_id}`).emit('sync_progress', prog))
+
+    // Use incremental sync (only new messages since last sync) if page was synced before,
+    // otherwise fall back to initial sync (last 7 days).
+    const lastSynced = await db.getPageSyncTime(page_id).catch(() => null);
+    const syncFn = lastSynced ? db.syncPageIncremental : db.syncPageInitial;
+
+    syncFn(page_id, page_token, fetch, prog => io.to(`page_${page_id}`).emit('sync_progress', prog))
         .then(() => io.to(`page_${page_id}`).emit('sync_progress', { phase: 'done' }))
         .catch(err => logError('manual_sync', err, { pageId: page_id }));
-        
-    res.json({ success: true, message: 'Sync started' });
+
+    res.json({ success: true, message: lastSynced ? 'Incremental sync started' : 'Initial sync started' });
 });
 
 // ── Quota ───────────────────────────────────────────────────────────────────
