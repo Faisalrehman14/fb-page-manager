@@ -521,19 +521,29 @@ async function saveMessages(messenger_messages) {
     for (const m of messenger_messages) await saveMessage(m).catch(() => {});
 }
 
-async function getMessages(threadId, limit = 100) {
+async function getMessages(threadId, limit = 100, before = null) {
     if (!pool) return [];
 
     try {
-        const [rows] = await pool.query(`
+        let query = `
             SELECT id, message_id as mid, message as text, from_me as is_from_page, created_at as created_time, attachment_url as attachments
             FROM messenger_messages
             WHERE conversation_id = ?
-            ORDER BY created_at ASC
-            LIMIT ?
-        `, [threadId, limit]);
+        `;
+        let params = [threadId];
 
-        return rows.map(row => ({
+        if (before) {
+            query += ' AND created_at < ?';
+            params.push(new Date(before));
+        }
+
+        query += ' ORDER BY created_at DESC LIMIT ?';
+        params.push(limit);
+
+        const [rows] = await pool.query(query, params);
+
+        // Reverse to return oldest → newest
+        return rows.reverse().map(row => ({
             id: row.id,
             mid: row.mid,
             text: row.text,
@@ -948,7 +958,7 @@ async function syncThreadMessages(threadId, pageId, pageToken, fetchFn, cutoffMs
     return saved;
 }
 
-// First-time sync: all messenger_conversations + last 1 month of messenger_messages, parallel
+// First-time sync: all messenger_conversations + last 7 days of messenger_messages, parallel
 async function syncPageInitial(pageId, pageToken, fetchFn, onProgress = null) {
     if (!pool) return;
     if (syncStatus.get(pageId)) {
@@ -956,7 +966,7 @@ async function syncPageInitial(pageId, pageToken, fetchFn, onProgress = null) {
         return;
     }
     syncStatus.set(pageId, true);
-    const cutoff1MonthMs = Date.now() - 30 * 24 * 60 * 60 * 1000;
+    const cutoff7DaysMs = Date.now() - 7 * 24 * 60 * 60 * 1000;
 
     try {
         const messenger_conversations = await syncConversationsAll(pageId, pageToken, fetchFn, null);
@@ -965,7 +975,7 @@ async function syncPageInitial(pageId, pageToken, fetchFn, onProgress = null) {
 
         let done = 0;
         const tasks = messenger_conversations.map(conv => async () => {
-            await syncThreadMessages(conv.id, pageId, pageToken, fetchFn, cutoff1MonthMs);
+            await syncThreadMessages(conv.id, pageId, pageToken, fetchFn, cutoff7DaysMs);
             done++;
             if (onProgress) onProgress({ pageId, phase: 'messenger_messages', total: messenger_conversations.length, done });
         });
@@ -994,7 +1004,7 @@ async function syncPageIncremental(pageId, pageToken, fetchFn, onProgress = null
         const lastSynced = await getPageSyncTime(pageId);
         const sinceUnix = lastSynced
             ? Math.floor(new Date(lastSynced).getTime() / 1000)
-            : Math.floor((Date.now() - 30 * 24 * 60 * 60 * 1000) / 1000);
+            : Math.floor((Date.now() - 7 * 24 * 60 * 60 * 1000) / 1000);
 
         const messenger_conversations = await syncConversationsAll(pageId, pageToken, fetchFn, sinceUnix);
         console.log(`DB: syncPageIncremental [${pageId}] ${messenger_conversations.length} updated messenger_conversations`);

@@ -1031,8 +1031,9 @@ app.all(['/api/messenger', '/messenger_api.php'], requireAuth, async (req, res) 
             }
 
             if (action === 'load_messages') {
-                const psid  = req.query.psid;
-                const limit = Math.min(parseInt(req.query.limit) || 50, 100);
+                const psid   = req.query.psid;
+                const limit  = Math.min(parseInt(req.query.limit) || 50, 100);
+                const before = req.query.before || null;
                 if (!pageId || !psid) return res.status(400).json({ error: 'page_id and psid required' });
 
                 const mapMsg = m => ({
@@ -1045,14 +1046,14 @@ app.all(['/api/messenger', '/messenger_api.php'], requireAuth, async (req, res) 
                     attachment_type: (m.attachments?.[0]?.t) || m.attachment_type || null
                 });
 
-                // Try DB cache first, also grab fb_conv_id to skip step 1
+                // Try DB cache first
                 let dbConvId = null, fbConvId = null;
                 if (dbConnected) {
                     const convInfo = await db.getConversationIdByParticipant(pageId, psid);
                     if (convInfo) {
                         dbConvId = convInfo.id;
                         fbConvId = convInfo.fbConvId || null;
-                        const cached = await db.getMessages(dbConvId, limit);
+                        const cached = await db.getMessages(dbConvId, limit, before);
                         if (cached.length > 0) return res.json({ messages: cached.map(mapMsg), conv_id: dbConvId });
                     }
                 }
@@ -1077,9 +1078,13 @@ app.all(['/api/messenger', '/messenger_api.php'], requireAuth, async (req, res) 
                     }
 
                     // Step 2: fetch messages for that conversation
-                    const msgsRes = await fetch(
-                        `https://graph.facebook.com/v19.0/${fbConvId}/messages?fields=id,message,from,created_time,attachments{image_data,file_url,type}&limit=${limit}&access_token=${token}`
-                    );
+                    let fbMsgsUrl = `https://graph.facebook.com/v19.0/${fbConvId}/messages?fields=id,message,from,created_time,attachments{image_data,file_url,type}&limit=${limit}&access_token=${token}`;
+                    if (before) {
+                        const untilUnix = Math.floor(new Date(before).getTime() / 1000);
+                        fbMsgsUrl += `&until=${untilUnix}`;
+                    }
+
+                    const msgsRes = await fetch(fbMsgsUrl);
                     const msgsData = await msgsRes.json();
                     if (msgsData.error) {
                         logError('load_messages_msgs', new Error(msgsData.error.message), { pageId, psid, fbConvId });
@@ -1095,7 +1100,25 @@ app.all(['/api/messenger', '/messenger_api.php'], requireAuth, async (req, res) 
                         attachment_type: m.attachments?.data?.[0]?.type || null
                     }));
 
-                    return res.json({ messages, conv_id: fbConvId });
+                    // Cache fetched messages in DB
+                    if (dbConnected && messages.length > 0) {
+                        if (!dbConvId) dbConvId = await db.ensureConversation(pageId, psid);
+                        if (dbConvId) {
+                            const dbMsgs = messages.map(m => ({
+                                id: m.message_id,
+                                threadId: dbConvId,
+                                pageId,
+                                senderId: m.from_me ? pageId : psid,
+                                text: m.message,
+                                isFromPage: !!m.from_me,
+                                createdTime: m.created_at,
+                                attachments: m.attachment_url ? [{ u: m.attachment_url, t: m.attachment_type }] : null
+                            }));
+                            await db.saveMessages(dbMsgs).catch(() => {});
+                        }
+                    }
+
+                    return res.json({ messages, conv_id: dbConvId || fbConvId });
                 } catch (fbErr) {
                     logError('load_messages_fb', fbErr, { pageId, psid });
                     return res.json({ messages: [], error: 'Network error fetching messages: ' + fbErr.message });
