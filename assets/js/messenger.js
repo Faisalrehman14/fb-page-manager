@@ -48,7 +48,11 @@
     if (typeof window.requestJson === 'function') {
       return window.requestJson(url, { method: 'GET' });
     }
-    const r   = await fetch(url, { credentials: 'same-origin' });
+    const r = await fetch(url, { credentials: 'same-origin' });
+    if (r.status === 401) return { error: 'Session expired — please reload the page', messages: [], conversations: [] };
+    if (!r.ok && r.status !== 200) {
+      try { return await r.json(); } catch { return { error: 'Server error (' + r.status + ')' }; }
+    }
     return r.json();
   }
 

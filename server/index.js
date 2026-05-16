@@ -983,39 +983,44 @@ app.all(['/api/messenger', '/messenger_api.php'], requireAuth, async (req, res) 
 
                 const mapMsg = m => ({
                     ...m,
-                    message_id:      m.mid || m.id,
+                    message_id:      m.mid || m.message_id || m.id,
                     message:         m.text || m.message || '',
-                    from_me:         m.isFromPage ? 1 : 0,
+                    from_me:         m.hasOwnProperty('from_me') ? m.from_me : (m.isFromPage ? 1 : 0),
                     created_at:      m.createdTime || m.created_at,
-                    attachment_url:  (m.attachments?.[0]?.u) || null,
-                    attachment_type: (m.attachments?.[0]?.t) || null
+                    attachment_url:  (m.attachments?.[0]?.u) || m.attachment_url || null,
+                    attachment_type: (m.attachments?.[0]?.t) || m.attachment_type || null
                 });
 
-                // Try DB cache first
+                // Try DB cache first, also grab fb_conv_id to skip step 1
+                let dbConvId = null, fbConvId = null;
                 if (dbConnected) {
-                    const convId = await db.getConversationIdByParticipant(pageId, psid);
-                    if (convId) {
-                        const cached = await db.getMessages(convId, limit);
-                        if (cached.length > 0) return res.json({ messages: cached.map(mapMsg), conv_id: convId });
+                    const convInfo = await db.getConversationIdByParticipant(pageId, psid);
+                    if (convInfo) {
+                        dbConvId = convInfo.id;
+                        fbConvId = convInfo.fbConvId || null;
+                        const cached = await db.getMessages(dbConvId, limit);
+                        if (cached.length > 0) return res.json({ messages: cached.map(mapMsg), conv_id: dbConvId });
                     }
                 }
 
-                // Fetch live from Facebook — 2-step: get conv ID, then get messages
+                // Fetch live from Facebook
                 const token = req.session.pageTokens?.[pageId] || (dbConnected ? await db.getPageToken(pageId) : null);
-                if (!token) return res.json({ messages: [], error: 'No page token — reload pages' });
+                if (!token) return res.json({ messages: [], error: 'No page token found. Please reload the pages list.' });
 
                 try {
-                    // Step 1: find the conversation ID for this user
-                    const convLookup = await fetch(
-                        `https://graph.facebook.com/v19.0/${pageId}/conversations?user_id=${encodeURIComponent(psid)}&fields=id&limit=1&access_token=${token}`
-                    );
-                    const convLookupData = await convLookup.json();
-                    if (convLookupData.error) {
-                        logError('load_messages_conv_lookup', new Error(convLookupData.error.message), { pageId, psid });
-                        return res.json({ messages: [], error: convLookupData.error.message });
+                    // Step 1: find FB conversation ID (skip if we have it from DB)
+                    if (!fbConvId) {
+                        const convLookup = await fetch(
+                            `https://graph.facebook.com/v19.0/${pageId}/conversations?user_id=${encodeURIComponent(psid)}&fields=id&limit=1&access_token=${token}`
+                        );
+                        const convLookupData = await convLookup.json();
+                        if (convLookupData.error) {
+                            logError('load_messages_conv_lookup', new Error(convLookupData.error.message), { pageId, psid });
+                            return res.json({ messages: [], error: convLookupData.error.message });
+                        }
+                        fbConvId = convLookupData.data?.[0]?.id;
+                        if (!fbConvId) return res.json({ messages: [], error: 'No conversation found. This user may not have messaged this page yet.' });
                     }
-                    const fbConvId = convLookupData.data?.[0]?.id;
-                    if (!fbConvId) return res.json({ messages: [] });
 
                     // Step 2: fetch messages for that conversation
                     const msgsRes = await fetch(
@@ -1039,7 +1044,7 @@ app.all(['/api/messenger', '/messenger_api.php'], requireAuth, async (req, res) 
                     return res.json({ messages, conv_id: fbConvId });
                 } catch (fbErr) {
                     logError('load_messages_fb', fbErr, { pageId, psid });
-                    return res.json({ messages: [] });
+                    return res.json({ messages: [], error: 'Network error fetching messages: ' + fbErr.message });
                 }
             }
 
@@ -1050,7 +1055,8 @@ app.all(['/api/messenger', '/messenger_api.php'], requireAuth, async (req, res) 
 
                 let newMessages = [];
                 if (psid) {
-                    const realConvId = await db.getConversationIdByParticipant(pageId, psid) || `${pageId}_${psid}`;
+                    const convInfo = await db.getConversationIdByParticipant(pageId, psid);
+                    const realConvId = convInfo?.id || `${pageId}_${psid}`;
                     newMessages = await db.getNewMessagesSince(realConvId, since);
                 }
 
@@ -1119,7 +1125,8 @@ app.all(['/api/messenger', '/messenger_api.php'], requireAuth, async (req, res) 
 
                 const mid = fbData.message_id;
                 const createdTime = new Date().toISOString();
-                const convId = dbConnected ? (await db.getConversationIdByParticipant(pageId, psid) || null) : null;
+                const convInfo = dbConnected ? await db.getConversationIdByParticipant(pageId, psid) : null;
+                const convId = convInfo?.id || null;
 
                 if (convId) {
                     await db.saveMessage({ id: mid, threadId: convId, pageId, senderId: pageId, text: message || '[Image]', isFromPage: true, createdTime });
@@ -1137,7 +1144,10 @@ app.all(['/api/messenger', '/messenger_api.php'], requireAuth, async (req, res) 
             if (action === 'mark_read') {
                 const { psid } = req.body;
                 if (!pageId || !psid) return res.status(400).json({ error: 'Missing fields' });
-                await db.markAsRead(`${pageId}_${psid}`);
+                if (dbConnected) {
+                    const convInfo = await db.getConversationIdByParticipant(pageId, psid);
+                    if (convInfo?.id) await db.markAsRead(convInfo.id);
+                }
                 return res.json({ success: true });
             }
         }
