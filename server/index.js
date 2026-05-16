@@ -1474,21 +1474,21 @@ async function sendToPage(pageId, pageToken, psids, nameMap, message, image_url,
     return { sent, failed };
 }
 
-// Fetch recipients exactly like manual broadcast does (fb_api.js fetchConversations)
+// Fetch recipients exactly like manual broadcast (fb_api.js fetchConversations)
+// Priority: Facebook API with can_reply filter. DB only if FB API returns nothing.
 async function fetchPageRecipients(pageId, pageToken) {
-    const psidSet   = new Set();
-    const nameMap   = {};
+    const psidSet = new Set();
+    const nameMap = {};
 
-    // Fetch from Facebook API — same fields/logic as client-side fetchConversations
     try {
         let url = `https://graph.facebook.com/v19.0/${pageId}/conversations` +
                   `?fields=id,participants{id,name},can_reply&limit=200&access_token=${pageToken}`;
         while (url) {
             const r    = await fetch(url);
             const data = await r.json();
-            if (data.error) break;
+            if (data.error) throw new Error(data.error.message);
             for (const conv of (data.data || [])) {
-                if (conv.can_reply === false) continue; // skip blocked convos
+                if (conv.can_reply === false) continue; // skip blocked — same as manual broadcast
                 for (const p of (conv.participants?.data || [])) {
                     if (!p.id || p.id === pageId) continue;
                     psidSet.add(p.id);
@@ -1497,13 +1497,17 @@ async function fetchPageRecipients(pageId, pageToken) {
             }
             url = data.paging?.next || null;
         }
-    } catch (_) {}
+    } catch (err) {
+        logError('fetchPageRecipients_fb', err, { pageId });
+    }
 
-    // Fallback: merge DB cache so no one is missed if FB API is limited
-    try {
-        const dbPsids = await db.getPagePsids(pageId);
-        dbPsids.forEach(id => psidSet.add(id));
-    } catch (_) {}
+    // Only use DB cache if Facebook API returned nothing (network failure etc.)
+    if (psidSet.size === 0) {
+        try {
+            const dbPsids = await db.getPagePsids(pageId);
+            dbPsids.forEach(id => psidSet.add(id));
+        } catch (_) {}
+    }
 
     return { psids: [...psidSet], nameMap };
 }
