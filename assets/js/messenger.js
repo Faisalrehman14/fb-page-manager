@@ -40,6 +40,8 @@
 
     ui: { sending: false, loadingMore: false },
 
+    msgStatus: { delivered: 0, read: 0 }, // unix-ms watermarks for active conversation
+
     pageUnread: {},    // { pageId: unreadCount } — drives red dot on page icons
 
     _msgAbort: null,   // AbortController for in-flight loadMessages request
@@ -199,18 +201,25 @@
     // Delivery status tick
     let tick = '';
     if (fromMe) {
+      const msgTs = msg.created_at ? new Date(msg.created_at).getTime() : 0;
       if (msg._pending) {
         tick = `<span class="msng-tick msng-tick--sending" title="Sending…"><i class="fa-regular fa-clock"></i></span>`;
       } else if (msg._failed) {
         tick = `<span class="msng-tick msng-tick--failed" title="Failed"><i class="fa-solid fa-circle-exclamation"></i></span>`;
+      } else if (M.msgStatus.read > 0 && msgTs > 0 && msgTs <= M.msgStatus.read) {
+        tick = `<span class="msng-tick msng-tick--read" title="Seen"><i class="fa-solid fa-check-double"></i></span>`;
+      } else if (M.msgStatus.delivered > 0 && msgTs > 0 && msgTs <= M.msgStatus.delivered) {
+        tick = `<span class="msng-tick msng-tick--delivered" title="Delivered"><i class="fa-solid fa-check-double"></i></span>`;
       } else {
-        tick = `<span class="msng-tick msng-tick--sent" title="Sent"><i class="fa-solid fa-check-double"></i></span>`;
+        tick = `<span class="msng-tick msng-tick--sent" title="Sent"><i class="fa-solid fa-check"></i></span>`;
       }
     }
 
+    const createdTs = fromMe && msg.created_at ? new Date(msg.created_at).getTime() : 0;
     return `<div class="msng-msg ${fromMe ? 'from-me' : ''} ${msg._pending ? 'pending' : ''} ${msg._failed ? 'failed' : ''}"
                  ${tempId ? `data-temp-id="${esc(tempId)}"` : ''}
-                 ${msg.message_id ? `data-msg-id="${esc(msg.message_id)}"` : ''}>
+                 ${msg.message_id ? `data-msg-id="${esc(msg.message_id)}"` : ''}
+                 ${createdTs ? `data-created-ts="${createdTs}"` : ''}>
       ${avatar}
       <div class="msng-msg-group">
         ${senderLabel}
@@ -429,10 +438,7 @@
 
     msgsEl.insertAdjacentHTML('beforeend', bubbleHtml(msg));
     trackMsgId(msg);
-
-    // Auto-scroll only if user is already near bottom
-    const atBottom = msgsEl.scrollHeight - msgsEl.scrollTop - msgsEl.clientHeight < 80;
-    if (atBottom) scrollToBottom(true);
+    scrollToBottom(true);
   }
 
   function trackMsgId(msg) {
@@ -456,6 +462,25 @@
     if (!msgsEl) return;
     msgsEl.scrollTo({ top: msgsEl.scrollHeight, behavior: smooth ? 'smooth' : 'instant' });
     $('msngScrollBtn')?.classList.remove('visible');
+  }
+
+  function updateTicksInDom() {
+    const msgsEl = $('msngMsgs');
+    if (!msgsEl) return;
+    msgsEl.querySelectorAll('.msng-msg.from-me[data-created-ts]').forEach(el => {
+      const ts     = parseInt(el.dataset.createdTs || '0');
+      const tickEl = el.querySelector('.msng-tick');
+      if (!tickEl || !ts || el.classList.contains('pending') || el.classList.contains('failed')) return;
+      if (M.msgStatus.read > 0 && ts <= M.msgStatus.read) {
+        tickEl.className = 'msng-tick msng-tick--read';
+        tickEl.title     = 'Seen';
+        tickEl.innerHTML = '<i class="fa-solid fa-check-double"></i>';
+      } else if (M.msgStatus.delivered > 0 && ts <= M.msgStatus.delivered) {
+        tickEl.className = 'msng-tick msng-tick--delivered';
+        tickEl.title     = 'Delivered';
+        tickEl.innerHTML = '<i class="fa-solid fa-check-double"></i>';
+      }
+    });
   }
 
   function bindScrollListener(msgsEl) {
@@ -1095,6 +1120,7 @@
     M.activePsid     = psid;
     M.activeConvName = name;
     M.activeConvPic  = picture;
+    M.msgStatus      = { delivered: 0, read: 0 };
     if (pageId) {
       M.activePageId = pageId;
       M.activeToken  = (M.pages.find(p => p.id === pageId) || {}).access_token || M.activeToken;
@@ -1305,18 +1331,20 @@
 
     listEl.innerHTML = M.pages.map(p => {
       const isActive = p.id === M.activePageId;
-      const initial = (p.name || 'P').charAt(0).toUpperCase();
-      const pic = p.picture?.data?.url || p.picture || '';
-      const avatar = pic
+      const initial  = (p.name || 'P').charAt(0).toUpperCase();
+      const pic      = p.picture?.data?.url || p.picture || '';
+      const avatar   = pic
         ? `<img class="msng-page-avatar" src="${esc(pic)}" alt="${esc(p.name)}" onerror="this.outerHTML='<div class=\\'msng-page-avatar-ph\\'>${esc(initial)}</div>'">`
         : `<div class="msng-page-avatar-ph">${esc(initial)}</div>`;
-      
+
       const pgUnread = M.pageUnread[p.id] || 0;
       const pgBadge  = `<span class="msng-page-badge" id="msngPageBadge_${esc(p.id)}"
                               style="display:${pgUnread > 0 ? 'flex' : 'none'}">${pgUnread > 99 ? '99+' : pgUnread}</span>`;
-      return `<div class="msng-page-item ${isActive ? 'active' : ''}" data-page-id="${esc(p.id)}" title="${esc(p.name)}">
-        ${avatar}
-        ${pgBadge}
+      return `<div class="msng-page-item ${isActive ? 'active' : ''}" data-page-id="${esc(p.id)}">
+        <div class="msng-page-avatar-wrap">
+          ${avatar}
+          ${pgBadge}
+        </div>
         <span class="msng-page-name">${esc(p.name)}</span>
       </div>`;
     }).join('');
@@ -1457,6 +1485,22 @@
       el.style.display = 'flex';
       clearTimeout(el._hideTimer);
       el._hideTimer = setTimeout(() => { el.style.display = 'none'; }, 3000);
+    });
+
+    // Delivery / read receipts — update tick icons
+    _socket.on('msg_status', (data) => {
+      if (!data || typeof data !== 'object') return;
+      if (String(data.pageId) !== String(M.activePageId)) return;
+      if (String(data.participantId) !== String(M.activePsid)) return;
+      const watermark = parseInt(data.watermark);
+      if (isNaN(watermark)) return;
+      if (data.type === 'delivered') {
+        if (watermark > M.msgStatus.delivered) M.msgStatus.delivered = watermark;
+      } else if (data.type === 'read') {
+        if (watermark > M.msgStatus.read)      M.msgStatus.read      = watermark;
+        if (watermark > M.msgStatus.delivered) M.msgStatus.delivered = watermark;
+      }
+      updateTicksInDom();
     });
 
     // Sync progress (initial or incremental sync running on server)

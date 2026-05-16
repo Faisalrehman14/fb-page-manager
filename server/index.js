@@ -168,7 +168,33 @@ app.post(['/webhook', '/fb_webhook.php'], async (req, res) => {
 
         for (const event of (pageEntry.messaging || [])) {
             try {
-                // Delivery/read receipts have no message body — skip silently
+                // Delivery receipts — watermark covers all msgs before that timestamp
+                if (event.delivery) {
+                    const watermark     = event.delivery.watermark;
+                    const participantId = event.sender?.id;
+                    if (watermark && participantId) {
+                        io.to(`page_${pageId}`).emit('msg_status', {
+                            type: 'delivered', pageId,
+                            participantId: String(participantId),
+                            watermark
+                        });
+                    }
+                    continue;
+                }
+                // Read receipts
+                if (event.read) {
+                    const watermark     = event.read.watermark;
+                    const participantId = event.sender?.id;
+                    if (watermark && participantId) {
+                        io.to(`page_${pageId}`).emit('msg_status', {
+                            type: 'read', pageId,
+                            participantId: String(participantId),
+                            watermark
+                        });
+                    }
+                    continue;
+                }
+                // No message body (postbacks etc.) — skip
                 if (!event.message) continue;
 
                 const isEcho      = !!event.message.is_echo;
