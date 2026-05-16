@@ -540,13 +540,16 @@
       M.poll.failures = 0;
       if (wasOffline) { hideConnBanner(); showToast('Back online', 'success', 2500); }
 
-      // New messages in the open conversation
+      // New messages in the open conversation — always scroll to bottom
+      let gotNewMsg = false;
       (data.new_messages || []).forEach(msg => {
         if (!isDuplicate(msg)) {
           M.msgs.push(msg);
           appendBubble(msg);
+          gotNewMsg = true;
         }
       });
+      if (gotNewMsg) scrollToBottom(true);
 
       // Updated conversations (unread counts, snippets, new convs from other senders)
       let convListDirty = false;
@@ -889,6 +892,19 @@
   // DATA LOADING
   // ══════════════════════════════════════════════════════════
 
+  function _showConvLoadingMore() {
+    const listEl = $('msngConvList');
+    if (!listEl || listEl.querySelector('#msngConvLoadMore')) return;
+    const el = document.createElement('div');
+    el.id = 'msngConvLoadMore';
+    el.style.cssText = 'text-align:center;padding:12px;color:var(--text-muted);font-size:12px';
+    el.innerHTML = '<i class="fa-solid fa-rotate fa-spin"></i> Loading…';
+    listEl.appendChild(el);
+  }
+  function _hideConvLoadingMore() {
+    $('msngConvLoadMore')?.remove();
+  }
+
   async function loadConvs(pageId, isMore = false) {
     if (M.ui.loadingConvs) return;
     if (isMore && !M.convHasMore) return;
@@ -897,6 +913,8 @@
       M.convOffset = 0;
       M.convHasMore = true;
       showConvSkeleton();
+    } else {
+      _showConvLoadingMore();
     }
     M.ui.loadingConvs = true;
 
@@ -951,10 +969,13 @@
             <i class="fa-solid fa-rotate-right"></i> Retry
           </button>
         </div>`;
+        showToast('Failed to load chats', 'error');
       }
-      showToast('Failed to load chats', 'error');
+      // isMore failure: silently allow retry on next scroll
+      if (isMore) M.convHasMore = true;
     } finally {
       M.ui.loadingConvs = false;
+      _hideConvLoadingMore();
     }
   }
 
@@ -1374,6 +1395,7 @@
         if (!isDuplicate(normalized)) {
           M.msgs.push(normalized);
           appendBubble(normalized);
+          scrollToBottom(true); // Always scroll on incoming message
         }
       }
 

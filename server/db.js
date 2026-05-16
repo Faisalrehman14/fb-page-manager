@@ -1043,7 +1043,9 @@ async function syncPageInitial(pageId, pageToken, fetchFn, onProgress = null) {
 
     try {
         await logSync(pageId, 'initial_sync', 'running');
-        const messenger_conversations = await syncConversationsAll(pageId, pageToken, fetchFn, null);
+        // Only sync conversations updated in the last 7 days to save disk space
+        const since7Days = Math.floor(cutoff7DaysMs / 1000);
+        const messenger_conversations = await syncConversationsAll(pageId, pageToken, fetchFn, since7Days);
         if (onProgress) onProgress({ pageId, phase: 'messenger_conversations', total: messenger_conversations.length, done: 0 });
 
         let done = 0;
