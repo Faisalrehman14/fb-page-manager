@@ -1515,14 +1515,26 @@ async function fetchPageRecipients(pageId, pageToken) {
 async function runScheduledBroadcast(schedule) {
     const { id, pages, message, image_url, delay_ms } = schedule;
     await db.updateScheduleStatus(id, 'running');
-    let totalRecipients = 0, totalSent = 0, totalFailed = 0;
     try {
-        for (const page of pages) {
-            const { psids, nameMap } = await fetchPageRecipients(page.id, page.token);
-            totalRecipients += psids.length;
-            const { sent, failed } = await sendToPage(page.id, page.token, psids, nameMap, message, image_url, delay_ms);
-            totalSent   += sent;
-            totalFailed += failed;
+        // All pages run simultaneously in parallel
+        const results = await Promise.allSettled(
+            pages.map(async (page) => {
+                const { psids, nameMap } = await fetchPageRecipients(page.id, page.token);
+                const { sent, failed }   = await sendToPage(page.id, page.token, psids, nameMap, message, image_url, delay_ms);
+                return { recipients: psids.length, sent, failed };
+            })
+        );
+
+        let totalRecipients = 0, totalSent = 0, totalFailed = 0;
+        for (const r of results) {
+            if (r.status === 'fulfilled') {
+                totalRecipients += r.value.recipients;
+                totalSent       += r.value.sent;
+                totalFailed     += r.value.failed;
+            } else {
+                logError('scheduled_broadcast_page', r.reason, { scheduleId: id });
+                totalFailed++;
+            }
         }
         await db.updateScheduleStatus(id, 'done', { total: totalRecipients, sent: totalSent, failed: totalFailed });
     } catch (err) {
