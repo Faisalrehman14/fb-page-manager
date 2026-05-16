@@ -1432,50 +1432,80 @@ app.delete('/api/schedules/:id', requireAuth, verifyCsrf, async (req, res) => {
 });
 
 // ── Broadcast Scheduler — runs every 60 s ────────────────────────────────────
-async function sendToPage(pageId, pageToken, psids, message, image_url, delay_ms) {
+// Send messages exactly like manual broadcast (enqueueAndSendUtility in fb_api.js)
+async function sendToPage(pageId, pageToken, psids, nameMap, message, image_url, delay_ms) {
     let sent = 0, failed = 0;
+    const base = `https://graph.facebook.com/v19.0/${pageId}/messages`;
+
     for (const psid of psids) {
         try {
+            // Send image first if provided
             if (image_url) {
-                const imgBody = new URLSearchParams({ recipient: JSON.stringify({ id: psid }), messaging_type: 'MESSAGE_TAG', tag: 'ACCOUNT_UPDATE', access_token: pageToken, message: JSON.stringify({ attachment: { type: 'image', payload: { url: image_url, is_reusable: true } } }) });
-                await fetch(`https://graph.facebook.com/v19.0/me/messages`, { method: 'POST', body: imgBody });
+                const body = new URLSearchParams({
+                    recipient:      JSON.stringify({ id: psid }),
+                    message:        JSON.stringify({ attachment: { type: 'image', payload: { url: image_url, is_reusable: true } } }),
+                    messaging_type: 'UTILITY',
+                    access_token:   pageToken
+                });
+                await fetch(base, { method: 'POST', body });
+                await new Promise(r => setTimeout(r, delay_ms));
             }
+
+            // Send text message with {{name}} personalization
             if (message) {
-                const txtBody = new URLSearchParams({ recipient: JSON.stringify({ id: psid }), messaging_type: 'MESSAGE_TAG', tag: 'ACCOUNT_UPDATE', access_token: pageToken, message: JSON.stringify({ text: message }) });
-                const r = await fetch(`https://graph.facebook.com/v19.0/me/messages`, { method: 'POST', body: txtBody });
+                const recipientName    = nameMap[psid] || 'Friend';
+                const personalizedText = message.replace(/\{\{name\}\}/gi, recipientName);
+                const body = new URLSearchParams({
+                    recipient:      JSON.stringify({ id: psid }),
+                    message:        JSON.stringify({ text: personalizedText }),
+                    messaging_type: 'UTILITY',
+                    access_token:   pageToken
+                });
+                const r = await fetch(base, { method: 'POST', body });
                 const d = await r.json();
                 if (d.error) failed++; else sent++;
-            } else { sent++; }
+            } else {
+                sent++;
+            }
         } catch (_) { failed++; }
+
         if (delay_ms > 0) await new Promise(r => setTimeout(r, delay_ms));
     }
     return { sent, failed };
 }
 
+// Fetch recipients exactly like manual broadcast does (fb_api.js fetchConversations)
 async function fetchPageRecipients(pageId, pageToken) {
-    const psidSet = new Set();
+    const psidSet   = new Set();
+    const nameMap   = {};
 
-    // 1. Get PSIDs from DB cache (fastest, most complete)
+    // Fetch from Facebook API — same fields/logic as client-side fetchConversations
+    try {
+        let url = `https://graph.facebook.com/v19.0/${pageId}/conversations` +
+                  `?fields=id,participants{id,name},can_reply&limit=200&access_token=${pageToken}`;
+        while (url) {
+            const r    = await fetch(url);
+            const data = await r.json();
+            if (data.error) break;
+            for (const conv of (data.data || [])) {
+                if (conv.can_reply === false) continue; // skip blocked convos
+                for (const p of (conv.participants?.data || [])) {
+                    if (!p.id || p.id === pageId) continue;
+                    psidSet.add(p.id);
+                    if (p.name) nameMap[p.id] = p.name;
+                }
+            }
+            url = data.paging?.next || null;
+        }
+    } catch (_) {}
+
+    // Fallback: merge DB cache so no one is missed if FB API is limited
     try {
         const dbPsids = await db.getPagePsids(pageId);
         dbPsids.forEach(id => psidSet.add(id));
     } catch (_) {}
 
-    // 2. Also fetch fresh from Facebook API and merge
-    try {
-        let url = `https://graph.facebook.com/v19.0/${pageId}/conversations?fields=participants{id}&limit=100&access_token=${pageToken}`;
-        while (url) {
-            const r = await fetch(url);
-            const data = await r.json();
-            if (data.error) break; // don't throw — DB results are still usable
-            for (const conv of (data.data || []))
-                for (const p of (conv.participants?.data || []))
-                    if (p.id !== pageId) psidSet.add(p.id);
-            url = data.paging?.next || null;
-        }
-    } catch (_) {}
-
-    return [...psidSet];
+    return { psids: [...psidSet], nameMap };
 }
 
 async function runScheduledBroadcast(schedule) {
@@ -1484,9 +1514,9 @@ async function runScheduledBroadcast(schedule) {
     let totalRecipients = 0, totalSent = 0, totalFailed = 0;
     try {
         for (const page of pages) {
-            const psids = await fetchPageRecipients(page.id, page.token);
+            const { psids, nameMap } = await fetchPageRecipients(page.id, page.token);
             totalRecipients += psids.length;
-            const { sent, failed } = await sendToPage(page.id, page.token, psids, message, image_url, delay_ms);
+            const { sent, failed } = await sendToPage(page.id, page.token, psids, nameMap, message, image_url, delay_ms);
             totalSent   += sent;
             totalFailed += failed;
         }
