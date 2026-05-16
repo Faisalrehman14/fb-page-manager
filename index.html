@@ -1747,47 +1747,280 @@ window.getCsrfToken = async (forceRefresh = false) => {
     </div>
 
     <!-- TEMPLATES VIEW -->
-    <div id="view-templates" class="broadcast-view" style="display:none">
-      <div class="templates-panel">
-        <div class="templates-header">
-          <h3><i class="fa-solid fa-bookmark"></i> Message Templates</h3>
-          <button class="btn-primary-sm" onclick="showCreateTemplate()"><i class="fa-solid fa-plus"></i> Create</button>
+    <div id="view-templates" style="display:none">
+      <div class="tv-root">
+
+        <!-- ── Header ── -->
+        <div class="tv-hdr">
+          <div class="tv-hdr-left">
+            <div class="tv-hdr-icon"><i class="fa-solid fa-bookmark"></i></div>
+            <div>
+              <h2 class="tv-hdr-title">Message Templates</h2>
+              <p class="tv-hdr-sub">Ready-to-use templates. Click any card to load it into the composer.</p>
+            </div>
+          </div>
+          <button class="tv-create-btn" onclick="tvShowCreate()">
+            <i class="fa-solid fa-plus"></i> New Template
+          </button>
         </div>
-        <div class="templates-grid" id="templatesGrid">
-          <div class="template-card" onclick="useTemplate('Hi! Your order #{{order_id}} has been shipped. Track at: {{tracking_url}}')">
-            <div class="tpl-icon tpl-icon--order"><i class="fa-solid fa-box"></i></div>
-            <div class="tpl-body">
-              <div class="tpl-name">Order Update</div>
-              <div class="tpl-preview">Hi! Your order #{{order_id}} has been shipped...</div>
-            </div>
-            <i class="fa-solid fa-chevron-right tpl-arrow"></i>
+
+        <!-- ── Filters + Search ── -->
+        <div class="tv-toolbar">
+          <div class="tv-cats" id="tvCats">
+            <button class="tv-cat active" data-cat="all">All</button>
+            <button class="tv-cat" data-cat="sales"><i class="fa-solid fa-tags"></i> Sales</button>
+            <button class="tv-cat" data-cat="support"><i class="fa-solid fa-headset"></i> Support</button>
+            <button class="tv-cat" data-cat="reminder"><i class="fa-solid fa-calendar-check"></i> Reminders</button>
+            <button class="tv-cat" data-cat="welcome"><i class="fa-solid fa-hand-wave"></i> Welcome</button>
+            <button class="tv-cat" data-cat="event"><i class="fa-solid fa-star"></i> Events</button>
           </div>
-          <div class="template-card" onclick="useTemplate('Flash Sale! Get 30% OFF everything today only. Use code SAVE30')">
-            <div class="tpl-icon tpl-icon--sale"><i class="fa-solid fa-tags"></i></div>
-            <div class="tpl-body">
-              <div class="tpl-name">Flash Sale</div>
-              <div class="tpl-preview">Flash Sale! Get 30% OFF everything today only...</div>
-            </div>
-            <i class="fa-solid fa-chevron-right tpl-arrow"></i>
+          <div class="tv-search-wrap">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input type="text" class="tv-search" id="tvSearch" placeholder="Search templates…">
           </div>
-          <div class="template-card" onclick="useTemplate('Reminder: Your appointment is tomorrow at {{time}}. Reply YES to confirm.')">
-            <div class="tpl-icon tpl-icon--reminder"><i class="fa-solid fa-calendar-check"></i></div>
-            <div class="tpl-body">
-              <div class="tpl-name">Appointment Reminder</div>
-              <div class="tpl-preview">Reminder: Your appointment is tomorrow...</div>
+        </div>
+
+        <!-- ── Stats bar ── -->
+        <div class="tv-stats-bar">
+          <span id="tvCount" class="tv-stats-count">12 templates</span>
+          <span class="tv-stats-hint"><i class="fa-solid fa-bolt" style="color:var(--amber)"></i> Click a template to load it instantly into Broadcast</span>
+        </div>
+
+        <!-- ── Grid ── -->
+        <div class="tv-grid" id="tvGrid">
+
+          <!-- SALES -->
+          <div class="tv-card" data-cat="sales" data-text="🔥 Flash Sale! Get 30% OFF everything today only. Use code SAVE30 at checkout. Hurry — offer ends midnight!">
+            <div class="tv-card-hdr">
+              <div class="tv-card-icon" style="background:rgba(245,158,11,.14);color:#FBBF24"><i class="fa-solid fa-tags"></i></div>
+              <span class="tv-badge tv-badge--sales">Sales</span>
             </div>
-            <i class="fa-solid fa-chevron-right tpl-arrow"></i>
+            <div class="tv-card-name">Flash Sale</div>
+            <div class="tv-card-preview">🔥 Flash Sale! Get 30% OFF everything today only. Use code SAVE30 at checkout. Hurry — offer ends midnight!</div>
+            <div class="tv-card-footer">
+              <span class="tv-char-count">89 chars</span>
+              <button class="tv-use-btn" onclick="useTemplate('🔥 Flash Sale! Get 30% OFF everything today only. Use code SAVE30 at checkout. Hurry — offer ends midnight!')">
+                <i class="fa-solid fa-arrow-right"></i> Use
+              </button>
+            </div>
           </div>
-          <div class="template-card" onclick="useTemplate('Thank you for shopping with us! Use code WELCOME10 for 10% off your next order.')">
-            <div class="tpl-icon tpl-icon--greet"><i class="fa-solid fa-heart"></i></div>
-            <div class="tpl-body">
-              <div class="tpl-name">Thank You</div>
-              <div class="tpl-preview">Thank you for shopping with us! Use code WELCOME10...</div>
+
+          <div class="tv-card" data-cat="sales" data-text="Hi {{name}}! You left something in your cart 🛒 Complete your purchase now and get FREE shipping. Valid for 24 hours only.">
+            <div class="tv-card-hdr">
+              <div class="tv-card-icon" style="background:rgba(245,158,11,.14);color:#FBBF24"><i class="fa-solid fa-cart-shopping"></i></div>
+              <span class="tv-badge tv-badge--sales">Sales</span>
             </div>
-            <i class="fa-solid fa-chevron-right tpl-arrow"></i>
+            <div class="tv-card-name">Abandoned Cart</div>
+            <div class="tv-card-preview">Hi {{name}}! You left something in your cart 🛒 Complete your purchase now and get FREE shipping. Valid for 24 hours only.</div>
+            <div class="tv-card-footer">
+              <span class="tv-char-count">127 chars</span>
+              <button class="tv-use-btn" onclick="useTemplate('Hi {{name}}! You left something in your cart 🛒 Complete your purchase now and get FREE shipping. Valid for 24 hours only.')">
+                <i class="fa-solid fa-arrow-right"></i> Use
+              </button>
+            </div>
+          </div>
+
+          <div class="tv-card" data-cat="sales" data-text="Hi {{name}}, as a valued customer you get EARLY ACCESS to our new collection — 24 hours before everyone else! Shop now 👇">
+            <div class="tv-card-hdr">
+              <div class="tv-card-icon" style="background:rgba(245,158,11,.14);color:#FBBF24"><i class="fa-solid fa-crown"></i></div>
+              <span class="tv-badge tv-badge--sales">Sales</span>
+            </div>
+            <div class="tv-card-name">VIP Early Access</div>
+            <div class="tv-card-preview">Hi {{name}}, as a valued customer you get EARLY ACCESS to our new collection — 24 hours before everyone else! Shop now 👇</div>
+            <div class="tv-card-footer">
+              <span class="tv-char-count">131 chars</span>
+              <button class="tv-use-btn" onclick="useTemplate('Hi {{name}}, as a valued customer you get EARLY ACCESS to our new collection — 24 hours before everyone else! Shop now 👇')">
+                <i class="fa-solid fa-arrow-right"></i> Use
+              </button>
+            </div>
+          </div>
+
+          <!-- SUPPORT -->
+          <div class="tv-card" data-cat="support" data-text="Hi {{name}}, thanks for reaching out! Your ticket #{{ticket_id}} has been received. Our team will respond within 24 hours. 🙏">
+            <div class="tv-card-hdr">
+              <div class="tv-card-icon" style="background:rgba(6,182,212,.14);color:#22d3ee"><i class="fa-solid fa-headset"></i></div>
+              <span class="tv-badge tv-badge--support">Support</span>
+            </div>
+            <div class="tv-card-name">Ticket Received</div>
+            <div class="tv-card-preview">Hi {{name}}, thanks for reaching out! Your ticket #{{ticket_id}} has been received. Our team will respond within 24 hours. 🙏</div>
+            <div class="tv-card-footer">
+              <span class="tv-char-count">133 chars</span>
+              <button class="tv-use-btn" onclick="useTemplate('Hi {{name}}, thanks for reaching out! Your ticket #{{ticket_id}} has been received. Our team will respond within 24 hours. 🙏')">
+                <i class="fa-solid fa-arrow-right"></i> Use
+              </button>
+            </div>
+          </div>
+
+          <div class="tv-card" data-cat="support" data-text="Hi {{name}}, we've resolved your issue! Everything should be working now. Let us know if you need anything else — we're always here 😊">
+            <div class="tv-card-hdr">
+              <div class="tv-card-icon" style="background:rgba(6,182,212,.14);color:#22d3ee"><i class="fa-solid fa-circle-check"></i></div>
+              <span class="tv-badge tv-badge--support">Support</span>
+            </div>
+            <div class="tv-card-name">Issue Resolved</div>
+            <div class="tv-card-preview">Hi {{name}}, we've resolved your issue! Everything should be working now. Let us know if you need anything else — we're always here 😊</div>
+            <div class="tv-card-footer">
+              <span class="tv-char-count">138 chars</span>
+              <button class="tv-use-btn" onclick="useTemplate('Hi {{name}}, we\'ve resolved your issue! Everything should be working now. Let us know if you need anything else — we\'re always here 😊')">
+                <i class="fa-solid fa-arrow-right"></i> Use
+              </button>
+            </div>
+          </div>
+
+          <!-- REMINDERS -->
+          <div class="tv-card" data-cat="reminder" data-text="Hi {{name}}! Reminder: Your appointment is tomorrow. Please reply YES to confirm or NO to reschedule. Thank you! 📅">
+            <div class="tv-card-hdr">
+              <div class="tv-card-icon" style="background:rgba(34,197,94,.14);color:#4ade80"><i class="fa-solid fa-calendar-check"></i></div>
+              <span class="tv-badge tv-badge--reminder">Reminder</span>
+            </div>
+            <div class="tv-card-name">Appointment Reminder</div>
+            <div class="tv-card-preview">Hi {{name}}! Reminder: Your appointment is tomorrow. Please reply YES to confirm or NO to reschedule. Thank you! 📅</div>
+            <div class="tv-card-footer">
+              <span class="tv-char-count">117 chars</span>
+              <button class="tv-use-btn" onclick="useTemplate('Hi {{name}}! Reminder: Your appointment is tomorrow. Please reply YES to confirm or NO to reschedule. Thank you! 📅')">
+                <i class="fa-solid fa-arrow-right"></i> Use
+              </button>
+            </div>
+          </div>
+
+          <div class="tv-card" data-cat="reminder" data-text="Hi {{name}}, your order #{{order_id}} has been shipped! 📦 Estimated delivery: {{delivery_date}}. Track your package with the link below.">
+            <div class="tv-card-hdr">
+              <div class="tv-card-icon" style="background:rgba(34,197,94,.14);color:#4ade80"><i class="fa-solid fa-box"></i></div>
+              <span class="tv-badge tv-badge--reminder">Reminder</span>
+            </div>
+            <div class="tv-card-name">Order Shipped</div>
+            <div class="tv-card-preview">Hi {{name}}, your order #{{order_id}} has been shipped! 📦 Estimated delivery: {{delivery_date}}. Track your package with the link below.</div>
+            <div class="tv-card-footer">
+              <span class="tv-char-count">143 chars</span>
+              <button class="tv-use-btn" onclick="useTemplate('Hi {{name}}, your order #{{order_id}} has been shipped! 📦 Estimated delivery: {{delivery_date}}. Track your package with the link below.')">
+                <i class="fa-solid fa-arrow-right"></i> Use
+              </button>
+            </div>
+          </div>
+
+          <div class="tv-card" data-cat="reminder" data-text="Hi {{name}}, your subscription renews in 3 days. To avoid interruption, please ensure your payment is up to date. Thank you! 💳">
+            <div class="tv-card-hdr">
+              <div class="tv-card-icon" style="background:rgba(34,197,94,.14);color:#4ade80"><i class="fa-solid fa-rotate"></i></div>
+              <span class="tv-badge tv-badge--reminder">Reminder</span>
+            </div>
+            <div class="tv-card-name">Renewal Reminder</div>
+            <div class="tv-card-preview">Hi {{name}}, your subscription renews in 3 days. To avoid interruption, please ensure your payment is up to date. Thank you! 💳</div>
+            <div class="tv-card-footer">
+              <span class="tv-char-count">132 chars</span>
+              <button class="tv-use-btn" onclick="useTemplate('Hi {{name}}, your subscription renews in 3 days. To avoid interruption, please ensure your payment is up to date. Thank you! 💳')">
+                <i class="fa-solid fa-arrow-right"></i> Use
+              </button>
+            </div>
+          </div>
+
+          <!-- WELCOME -->
+          <div class="tv-card" data-cat="welcome" data-text="Hi {{name}}, welcome to our community! 🎉 We're thrilled to have you. Use code WELCOME15 for 15% off your first order. Happy shopping!">
+            <div class="tv-card-hdr">
+              <div class="tv-card-icon" style="background:rgba(139,92,246,.14);color:#a78bfa"><i class="fa-solid fa-hand-wave"></i></div>
+              <span class="tv-badge tv-badge--welcome">Welcome</span>
+            </div>
+            <div class="tv-card-name">New Customer Welcome</div>
+            <div class="tv-card-preview">Hi {{name}}, welcome to our community! 🎉 We're thrilled to have you. Use code WELCOME15 for 15% off your first order. Happy shopping!</div>
+            <div class="tv-card-footer">
+              <span class="tv-char-count">141 chars</span>
+              <button class="tv-use-btn" onclick="useTemplate('Hi {{name}}, welcome to our community! 🎉 We\'re thrilled to have you. Use code WELCOME15 for 15% off your first order. Happy shopping!')">
+                <i class="fa-solid fa-arrow-right"></i> Use
+              </button>
+            </div>
+          </div>
+
+          <div class="tv-card" data-cat="welcome" data-text="Thank you for your purchase, {{name}}! 💛 We appreciate your support. Here's 10% off your next order: THANKS10. See you soon!">
+            <div class="tv-card-hdr">
+              <div class="tv-card-icon" style="background:rgba(139,92,246,.14);color:#a78bfa"><i class="fa-solid fa-heart"></i></div>
+              <span class="tv-badge tv-badge--welcome">Welcome</span>
+            </div>
+            <div class="tv-card-name">Thank You</div>
+            <div class="tv-card-preview">Thank you for your purchase, {{name}}! 💛 We appreciate your support. Here's 10% off your next order: THANKS10. See you soon!</div>
+            <div class="tv-card-footer">
+              <span class="tv-char-count">128 chars</span>
+              <button class="tv-use-btn" onclick="useTemplate('Thank you for your purchase, {{name}}! 💛 We appreciate your support. Here\'s 10% off your next order: THANKS10. See you soon!')">
+                <i class="fa-solid fa-arrow-right"></i> Use
+              </button>
+            </div>
+          </div>
+
+          <!-- EVENTS -->
+          <div class="tv-card" data-cat="event" data-text="Hi {{name}}, you're invited! 🎊 Join us for our exclusive event on {{date}}. Limited seats available — reserve yours now before it's full!">
+            <div class="tv-card-hdr">
+              <div class="tv-card-icon" style="background:rgba(236,72,153,.14);color:#f472b6"><i class="fa-solid fa-star"></i></div>
+              <span class="tv-badge tv-badge--event">Event</span>
+            </div>
+            <div class="tv-card-name">Event Invitation</div>
+            <div class="tv-card-preview">Hi {{name}}, you're invited! 🎊 Join us for our exclusive event on {{date}}. Limited seats available — reserve yours now before it's full!</div>
+            <div class="tv-card-footer">
+              <span class="tv-char-count">143 chars</span>
+              <button class="tv-use-btn" onclick="useTemplate('Hi {{name}}, you\'re invited! 🎊 Join us for our exclusive event on {{date}}. Limited seats available — reserve yours now before it\'s full!')">
+                <i class="fa-solid fa-arrow-right"></i> Use
+              </button>
+            </div>
+          </div>
+
+          <div class="tv-card" data-cat="event" data-text="Hi {{name}}, just a reminder that our live webinar starts in 1 hour! 🎙️ Join us at: {{link}} — See you there!">
+            <div class="tv-card-hdr">
+              <div class="tv-card-icon" style="background:rgba(236,72,153,.14);color:#f472b6"><i class="fa-solid fa-video"></i></div>
+              <span class="tv-badge tv-badge--event">Event</span>
+            </div>
+            <div class="tv-card-name">Webinar Reminder</div>
+            <div class="tv-card-preview">Hi {{name}}, just a reminder that our live webinar starts in 1 hour! 🎙️ Join us at: {{link}} — See you there!</div>
+            <div class="tv-card-footer">
+              <span class="tv-char-count">112 chars</span>
+              <button class="tv-use-btn" onclick="useTemplate('Hi {{name}}, just a reminder that our live webinar starts in 1 hour! 🎙️ Join us at: {{link}} — See you there!')">
+                <i class="fa-solid fa-arrow-right"></i> Use
+              </button>
+            </div>
+          </div>
+
+        </div><!-- /tv-grid -->
+
+        <!-- ── Empty state (shown when search has no results) ── -->
+        <div class="tv-empty" id="tvEmpty" style="display:none">
+          <i class="fa-solid fa-magnifying-glass"></i>
+          <h4>No templates found</h4>
+          <p>Try a different search or create a new template.</p>
+          <button class="tv-create-btn" onclick="tvShowCreate()"><i class="fa-solid fa-plus"></i> New Template</button>
+        </div>
+
+      </div><!-- /tv-root -->
+
+      <!-- ── Create Template Modal ── -->
+      <div class="tv-modal-overlay" id="tvModal" style="display:none" onclick="if(event.target===this)tvCloseCreate()">
+        <div class="tv-modal">
+          <div class="tv-modal-hdr">
+            <div class="tv-modal-title"><i class="fa-solid fa-bookmark"></i> New Template</div>
+            <button class="tv-modal-close" onclick="tvCloseCreate()"><i class="fa-solid fa-xmark"></i></button>
+          </div>
+          <div class="tv-modal-body">
+            <div class="tv-field">
+              <label class="tv-label">Template Name</label>
+              <input type="text" class="tv-input" id="tvNewName" placeholder="e.g. Flash Sale Promo">
+            </div>
+            <div class="tv-field">
+              <label class="tv-label">Category</label>
+              <select class="tv-input" id="tvNewCat">
+                <option value="sales">Sales</option>
+                <option value="support">Support</option>
+                <option value="reminder">Reminder</option>
+                <option value="welcome">Welcome</option>
+                <option value="event">Event</option>
+              </select>
+            </div>
+            <div class="tv-field">
+              <label class="tv-label">Message <span style="color:var(--text3);font-weight:400">— use &#123;&#123;name&#125;&#125; for personalization</span></label>
+              <textarea class="tv-input tv-textarea" id="tvNewText" placeholder="Write your message here…" maxlength="2000"></textarea>
+              <span class="tv-modal-charcount" id="tvModalCount">0 / 2000</span>
+            </div>
+          </div>
+          <div class="tv-modal-footer">
+            <button class="tv-modal-cancel" onclick="tvCloseCreate()">Cancel</button>
+            <button class="tv-create-btn" onclick="tvSaveTemplate()"><i class="fa-solid fa-check"></i> Save Template</button>
           </div>
         </div>
       </div>
+
     </div>
 
     <!-- SETTINGS VIEW -->

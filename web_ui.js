@@ -1036,6 +1036,104 @@ function useTemplate(text) {
   }
 }
 
+// ── Templates View logic ───────────────────────────────────
+(function initTemplatesView() {
+  let activeCategory = 'all';
+  let searchQuery = '';
+
+  function filterCards() {
+    const cards = document.querySelectorAll('#tvGrid .tv-card');
+    let visible = 0;
+    cards.forEach(card => {
+      const cat  = card.dataset.cat || '';
+      const text = (card.dataset.text || '') + (card.querySelector('.tv-card-name')?.textContent || '');
+      const catOk  = activeCategory === 'all' || cat === activeCategory;
+      const textOk = !searchQuery || text.toLowerCase().includes(searchQuery);
+      const show = catOk && textOk;
+      card.style.display = show ? '' : 'none';
+      if (show) visible++;
+    });
+    const countEl = document.getElementById('tvCount');
+    if (countEl) countEl.textContent = visible + ' template' + (visible !== 1 ? 's' : '');
+    const emptyEl = document.getElementById('tvEmpty');
+    if (emptyEl) emptyEl.style.display = visible === 0 ? 'flex' : 'none';
+  }
+
+  document.addEventListener('click', e => {
+    const cat = e.target.closest('.tv-cat');
+    if (cat && cat.dataset.cat) {
+      document.querySelectorAll('.tv-cat').forEach(b => b.classList.remove('active'));
+      cat.classList.add('active');
+      activeCategory = cat.dataset.cat;
+      filterCards();
+    }
+  });
+
+  document.addEventListener('input', e => {
+    if (e.target.id === 'tvSearch') {
+      searchQuery = e.target.value.toLowerCase().trim();
+      filterCards();
+    }
+    if (e.target.id === 'tvNewText') {
+      const count = document.getElementById('tvModalCount');
+      if (count) count.textContent = e.target.value.length + ' / 2000';
+    }
+  });
+
+  window.tvShowCreate = function () {
+    const modal = document.getElementById('tvModal');
+    if (modal) {
+      modal.style.display = 'flex';
+      document.getElementById('tvNewName')?.focus();
+    }
+  };
+  window.tvCloseCreate = function () {
+    const modal = document.getElementById('tvModal');
+    if (modal) modal.style.display = 'none';
+  };
+  window.showCreateTemplate = window.tvShowCreate;
+
+  window.tvSaveTemplate = function () {
+    const name = document.getElementById('tvNewName')?.value.trim();
+    const text = document.getElementById('tvNewText')?.value.trim();
+    const cat  = document.getElementById('tvNewCat')?.value || 'sales';
+    if (!name) { showStatus('Please enter a template name.', 'warning'); return; }
+    if (!text) { showStatus('Please enter a message.', 'warning'); return; }
+
+    const catColors = {
+      sales:    ['rgba(245,158,11,.14)','#FBBF24','fa-tags'],
+      support:  ['rgba(6,182,212,.14)','#22d3ee','fa-headset'],
+      reminder: ['rgba(34,197,94,.14)','#4ade80','fa-calendar-check'],
+      welcome:  ['rgba(139,92,246,.14)','#a78bfa','fa-hand-wave'],
+      event:    ['rgba(236,72,153,.14)','#f472b6','fa-star'],
+    };
+    const [bg, color, icon] = catColors[cat] || catColors.sales;
+    const chars = text.length + ' chars';
+    const escaped = text.replace(/'/g, "\\'");
+    const card = document.createElement('div');
+    card.className = 'tv-card'; card.dataset.cat = cat; card.dataset.text = text;
+    card.innerHTML = `
+      <div class="tv-card-hdr">
+        <div class="tv-card-icon" style="background:${bg};color:${color}"><i class="fa-solid ${icon}"></i></div>
+        <span class="tv-badge tv-badge--${cat}">${cat.charAt(0).toUpperCase()+cat.slice(1)}</span>
+      </div>
+      <div class="tv-card-name">${name}</div>
+      <div class="tv-card-preview">${text}</div>
+      <div class="tv-card-footer">
+        <span class="tv-char-count">${chars}</span>
+        <button class="tv-use-btn" onclick="useTemplate('${escaped}')"><i class="fa-solid fa-arrow-right"></i> Use</button>
+      </div>`;
+    document.getElementById('tvGrid')?.prepend(card);
+
+    document.getElementById('tvNewName').value = '';
+    document.getElementById('tvNewText').value = '';
+    document.getElementById('tvModalCount').textContent = '0 / 2000';
+    tvCloseCreate();
+    filterCards();
+    showStatus('Template created!', 'success');
+  };
+})();
+
 // ─────────────────────────────────────────────────────────
 // MESSENGER MODULE
 // ─────────────────────────────────────────────────────────
