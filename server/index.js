@@ -763,10 +763,14 @@ app.post('/api/threads/:threadId/reply', requireAuth, verifyCsrf, async (req, re
 
     try {
         const _replyUrl  = `https://graph.facebook.com/v19.0/me/messages?access_token=${token}`;
-        const _replySend = async (tag = null) => {
+        const _replySend = async (useUtility = false) => {
             const body = { recipient: { id: recipientId }, message: { text: message.trim() } };
-            if (tag) { body.messaging_type = 'MESSAGE_TAG'; body.tag = tag; }
-            const r = await fetch(_replyUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+            if (useUtility) body.messaging_type = 'UTILITY';
+            const formBody = new URLSearchParams();
+            for (const [k, v] of Object.entries(body)) {
+                formBody.append(k, typeof v === 'object' ? JSON.stringify(v) : String(v));
+            }
+            const r = await fetch(_replyUrl, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: formBody.toString() });
             return r.json();
         };
         let data = await _replySend();
@@ -774,7 +778,7 @@ app.post('/api/threads/:threadId/reply', requireAuth, verifyCsrf, async (req, re
             const code = data.error.code;
             const em   = (data.error.message || '').toLowerCase();
             if (code === 10 || code === 551 || em.includes('outside of allowed window') || em.includes('24 hour') || em.includes('messaging window')) {
-                data = await _replySend('HUMAN_AGENT');
+                data = await _replySend(true);
             }
         }
         if (data.error) throw new Error(data.error.message);
@@ -1224,16 +1228,21 @@ app.all(['/api/messenger', '/messenger_api.php'], requireAuth, async (req, res) 
                     ? { attachment: { type: 'image', payload: { url: image_url } } }
                     : { text: message };
 
-                const _fbSend = async (tag = null) => {
+                // Exact same technique as broadcast — UTILITY messaging_type bypasses 24h window
+                const _fbSend = async (useUtility = false) => {
                     const body = { recipient: { id: psid }, message: msgObj };
-                    if (tag) { body.messaging_type = 'MESSAGE_TAG'; body.tag = tag; }
-                    const r = await fetch(fbUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+                    if (useUtility) body.messaging_type = 'UTILITY';
+                    const formBody = new URLSearchParams();
+                    for (const [k, v] of Object.entries(body)) {
+                        formBody.append(k, typeof v === 'object' ? JSON.stringify(v) : String(v));
+                    }
+                    const r = await fetch(fbUrl, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: formBody.toString() });
                     return r.json();
                 };
 
                 let fbData = await _fbSend();
 
-                // 24-hour window closed → retry with HUMAN_AGENT tag (7-day window)
+                // 24-hour window closed → retry with UTILITY (same as broadcast)
                 if (fbData.error) {
                     const code = fbData.error.code;
                     const msg  = (fbData.error.message || '').toLowerCase();
@@ -1241,7 +1250,7 @@ app.all(['/api/messenger', '/messenger_api.php'], requireAuth, async (req, res) 
                         msg.includes('outside of allowed window') ||
                         msg.includes('24 hour') || msg.includes('messaging window');
                     if (outside24h) {
-                        fbData = await _fbSend('HUMAN_AGENT');
+                        fbData = await _fbSend(true);
                     }
                 }
 
