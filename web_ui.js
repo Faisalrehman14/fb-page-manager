@@ -809,6 +809,10 @@ function switchDashboardView(view) {
     if (el) el.style.display = (s === view) ? '' : 'none';
   });
 
+  // Hide pages sidebar on templates view
+  const sidebar = document.querySelector('.sidebar');
+  if (sidebar) sidebar.style.display = view === 'templates' ? 'none' : '';
+
   // Load data for specific views
   if (view === 'home') updateHomeViewStats();
   if (view === 'messenger') loadMessengerConversations();
