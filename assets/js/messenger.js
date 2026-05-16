@@ -38,6 +38,8 @@
 
     ui: { sending: false, loadingMore: false },
 
+    pageUnread: {},    // { pageId: unreadCount } — drives red dot on page icons
+
     _msgAbort: null,   // AbortController for in-flight loadMessages request
     _offline:  false,  // true while socket is disconnected
   };
@@ -328,10 +330,12 @@
 
   function updatePageBadge(pageId, count) {
     if (!pageId) return;
+    const n = parseInt(count) || 0;
+    M.pageUnread[pageId] = n;
     const badge = $('msngPageBadge_' + pageId);
     if (!badge) return;
-    badge.style.display = count > 0 ? 'flex' : 'none';
-    badge.textContent   = count > 99 ? '99+' : count;
+    badge.style.display = n > 0 ? 'flex' : 'none';
+    badge.textContent   = n > 99 ? '99+' : n;
   }
 
   // ══════════════════════════════════════════════════════════
@@ -646,6 +650,7 @@
     M.msgs.push(tempMsg);
     M.renderedMsgIds.add(tempId);
     appendBubble(tempMsg);
+    scrollToBottom(true); // Always scroll when sending — user just typed this message
 
     try {
       const res = await post({
@@ -1162,8 +1167,12 @@
         ? `<img class="msng-page-avatar" src="${esc(pic)}" alt="${esc(p.name)}" onerror="this.outerHTML='<div class=\\'msng-page-avatar-ph\\'>${esc(initial)}</div>'">`
         : `<div class="msng-page-avatar-ph">${esc(initial)}</div>`;
       
+      const pgUnread = M.pageUnread[p.id] || 0;
+      const pgBadge  = `<span class="msng-page-badge" id="msngPageBadge_${esc(p.id)}"
+                              style="display:${pgUnread > 0 ? 'flex' : 'none'}">${pgUnread > 99 ? '99+' : pgUnread}</span>`;
       return `<div class="msng-page-item ${isActive ? 'active' : ''}" data-page-id="${esc(p.id)}" title="${esc(p.name)}">
         ${avatar}
+        ${pgBadge}
         <span class="msng-page-name">${esc(p.name)}</span>
       </div>`;
     }).join('');
@@ -1267,8 +1276,14 @@
         renderConvs();
       }
 
+      // Increment page badge when message comes for a different page
+      if (!msg.isFromPage && msg.pageId && msg.pageId !== M.activePageId) {
+        updatePageBadge(msg.pageId, (M.pageUnread[msg.pageId] || 0) + 1);
+      }
+
       if (!msg.isFromPage && msg.participantId !== M.activePsid) {
-        showToast('New message received', 'info');
+        const pageName = M.pages.find(p => p.id === msg.pageId)?.name || '';
+        showToast('New message' + (pageName ? ' on ' + pageName : ''), 'info');
       }
     });
 
@@ -1313,6 +1328,10 @@
   const _origMsngInit = window.msngInit;
   window.msngInit = function (retries = 0) {
     M.pages = (window.loadedPages || []).filter(p => p?.id && p?.access_token);
+    // Seed per-page unread counts from the pages API response
+    M.pages.forEach(p => {
+      if (M.pageUnread[p.id] == null) M.pageUnread[p.id] = p.unreadCount || 0;
+    });
     if (!M.pages.length) {
       if (retries < 10) { setTimeout(() => window.msngInit(retries + 1), 500); return; }
       const listEl = $('msngConvList');
@@ -1345,7 +1364,8 @@
     M.activePageId = pageId;
     M.activeToken  = (M.pages.find(p => p.id === pageId) || {}).access_token || null;
     M.activePsid   = null;
-    renderPages(); // Update active highlight
+    M.pageUnread[pageId] = 0;  // Clear badge for the page we're switching to
+    renderPages();
     showChatEmpty();
     loadConvs(pageId);
   };
