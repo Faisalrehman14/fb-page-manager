@@ -391,22 +391,19 @@ async function getConversationsBulk(pageIds, limitPerPage = 100) {
     if (!pool || !pageIds || pageIds.length === 0) return {};
 
     try {
-        // Use IN clause to get messenger_conversations for all messenger_pages at once
         const placeholders = pageIds.map(() => '?').join(',');
         const [rows] = await pool.query(`
-            SELECT c.id, c.page_id, c.participant_id, c.participant_name, c.snippet, c.updated_time, c.is_read, c.unread_count, c.last_message_from_page,
-                   p.name as page_name, p.picture as page_picture
+            SELECT c.id, c.page_id, c.fb_user_id as participant_id, c.user_name as participant_name,
+                   c.snippet, c.updated_at as updated_time, c.is_unread, c.last_from_me,
+                   p.name as page_name, p.avatar_url as page_picture
             FROM messenger_conversations c
-            LEFT JOIN messenger_pages p ON c.page_id = p.id
+            LEFT JOIN messenger_pages p ON c.page_id = p.fb_page_id
             WHERE c.page_id IN (${placeholders})
-            ORDER BY c.page_id, c.updated_time DESC
+            ORDER BY c.page_id, c.updated_at DESC
         `, pageIds);
 
-        // Group by page_id
         const result = {};
-        for (const pageId of pageIds) {
-            result[pageId] = [];
-        }
+        for (const pageId of pageIds) result[pageId] = [];
         for (const row of rows) {
             if (!result[row.page_id]) result[row.page_id] = [];
             if (result[row.page_id].length < limitPerPage) {
@@ -417,17 +414,17 @@ async function getConversationsBulk(pageIds, limitPerPage = 100) {
                     participantName: row.participant_name,
                     snippet: row.snippet,
                     updatedTime: row.updated_time,
-                    isRead: row.is_read === 1 || row.is_read === true,
-                    unreadCount: row.unread_count || 0,
+                    isRead: (row.is_unread || 0) === 0,
+                    unreadCount: row.is_unread || 0,
                     pageName: row.page_name,
                     pagePicture: row.page_picture,
-                    lastMessageFromPage: row.last_message_from_page === 1 || row.last_message_from_page === true
+                    lastMessageFromPage: row.last_from_me === 1
                 });
             }
         }
         return result;
     } catch (err) {
-        addDbError(`getAllConversations: ${err.message}`);
+        addDbError(`getConversationsBulk: ${err.message}`);
         return {};
     }
 }
@@ -437,7 +434,7 @@ async function getUnreadCountsForPages(pageIds) {
     try {
         const placeholders = pageIds.map(() => '?').join(',');
         const [rows] = await pool.query(
-            `SELECT page_id, COUNT(*) AS cnt FROM messenger_conversations WHERE page_id IN (${placeholders}) AND is_read = 0 GROUP BY page_id`,
+            `SELECT page_id, COUNT(*) AS cnt FROM messenger_conversations WHERE page_id IN (${placeholders}) AND is_unread > 0 GROUP BY page_id`,
             pageIds
         );
         const result = {};
@@ -467,11 +464,12 @@ async function getAllConversations() {
     if (!pool) return [];
     try {
         const [rows] = await pool.query(`
-            SELECT c.id, c.page_id, c.participant_id, c.participant_name, c.snippet, c.updated_time, c.is_read, c.unread_count, c.last_message_from_page,
-                   p.name as page_name, p.picture as page_picture
+            SELECT c.id, c.page_id, c.fb_user_id as participant_id, c.user_name as participant_name,
+                   c.snippet, c.updated_at as updated_time, c.is_unread, c.last_from_me,
+                   p.name as page_name, p.avatar_url as page_picture
             FROM messenger_conversations c
-            LEFT JOIN messenger_pages p ON c.page_id = p.id
-            ORDER BY c.updated_time DESC
+            LEFT JOIN messenger_pages p ON c.page_id = p.fb_page_id
+            ORDER BY c.updated_at DESC
         `);
         return rows.map(row => ({
             id: row.id,
@@ -480,11 +478,11 @@ async function getAllConversations() {
             participantName: row.participant_name,
             snippet: row.snippet,
             updatedTime: row.updated_time,
-            isRead: row.is_read === 1 || row.is_read === true,
-            unreadCount: row.unread_count || 0,
+            isRead: (row.is_unread || 0) === 0,
+            unreadCount: row.is_unread || 0,
             pageName: row.page_name,
             pagePicture: row.page_picture,
-            lastMessageFromPage: row.last_message_from_page === 1 || row.last_message_from_page === true
+            lastMessageFromPage: row.last_from_me === 1
         }));
     } catch (err) {
         addDbError(`getAllConversations: ${err.message}`);
@@ -498,7 +496,8 @@ async function getAllConversations() {
 
 async function saveMessage(message) {
     if (!pool) return false;
-    const { id, threadId, pageId, senderId, text, attachments, isFromPage, createdTime } = message;
+    const { id, threadId, conversationId, pageId, senderId, text, attachments, isFromPage, createdTime } = message;
+    const convId = conversationId || threadId; // accept both field names
     const attachmentsJson = attachments && attachments.length > 0 ? JSON.stringify(attachments) : null;
 
     try {
@@ -509,7 +508,7 @@ async function saveMessage(message) {
                 message = VALUES(message),
                 attachment_url = VALUES(attachment_url),
                 created_at = VALUES(created_at)
-        `, [threadId, pageId, senderId, id, text, isFromPage ? 1 : 0, createdTime ? new Date(createdTime) : new Date(), attachmentsJson]);
+        `, [convId, pageId, senderId, id, text, isFromPage ? 1 : 0, createdTime ? new Date(createdTime) : new Date(), attachmentsJson]);
         return true;
     } catch (err) {
         addDbError(`saveMessage: ${err.message}`);
@@ -643,13 +642,11 @@ async function updateConversationFromMessage(message) {
     if (!pool) return;
     const { threadId, text, createdTime } = message;
     try {
-        // Only update snippet and time, don't change is_read status
-        // User's read status should be preserved
         await pool.query(`
             UPDATE messenger_conversations
-            SET snippet = ?, updated_time = ?, updated_at = CURRENT_TIMESTAMP
+            SET snippet = ?, updated_at = ?
             WHERE id = ?
-        `, [text, new Date(createdTime), threadId]);
+        `, [(text || '').substring(0, 200), createdTime ? new Date(createdTime) : new Date(), threadId]);
     } catch (err) {
         console.error('DB: updateConversationFromMessage error:', err.message);
     }
@@ -672,7 +669,7 @@ async function markAsUnread(threadId) {
     if (!pool) return;
     try {
         await pool.query(
-            'UPDATE messenger_conversations SET is_read = 0, unread_count = 1 WHERE id = ?',
+            'UPDATE messenger_conversations SET is_unread = 1 WHERE id = ?',
             [threadId]
         );
     } catch (err) {
@@ -859,7 +856,7 @@ async function getLatestMessageTime(threadId) {
     if (!pool) return null;
     try {
         const [rows] = await pool.query(
-            'SELECT MAX(created_time) AS latest FROM messenger_messages WHERE thread_id = ?',
+            'SELECT MAX(created_at) AS latest FROM messenger_messages WHERE conversation_id = ?',
             [threadId]
         );
         return rows[0]?.latest || null;
@@ -873,7 +870,7 @@ async function getPageSyncTime(pageId) {
     if (!pool) return null;
     try {
         const [rows] = await pool.query(
-            'SELECT last_synced_at FROM messenger_pages WHERE id = ?',
+            'SELECT last_synced_at FROM messenger_pages WHERE fb_page_id = ?',
             [pageId]
         );
         return rows[0]?.last_synced_at || null;
@@ -886,7 +883,7 @@ async function getPageSyncTime(pageId) {
 async function updatePageSyncTime(pageId) {
     if (!pool) return;
     try {
-        await pool.query('UPDATE messenger_pages SET last_synced_at = NOW() WHERE id = ?', [pageId]);
+        await pool.query('UPDATE messenger_pages SET last_synced_at = NOW() WHERE fb_page_id = ?', [pageId]);
     } catch (err) {
         addDbError(`updatePageSyncTime: ${err.message}`);
     }
@@ -1032,7 +1029,7 @@ async function markAllAsRead(pageId) {
     if (!pool) return 0;
     try {
         const [result] = await pool.query(
-            'UPDATE messenger_conversations SET is_read = 1, unread_count = 0 WHERE page_id = ? AND is_read = 0',
+            'UPDATE messenger_conversations SET is_unread = 0 WHERE page_id = ? AND is_unread > 0',
             [pageId]
         );
         return result.affectedRows || 0;
@@ -1240,8 +1237,12 @@ async function cleanupOldMessages(daysOld = 30) {
     const cutoff = new Date();
     cutoff.setDate(cutoff.getDate() - daysOld);
 
-    await pool.query('DELETE FROM messenger_messages WHERE created_time < ?', [cutoff]);
-    await pool.query('DELETE FROM messenger_conversations WHERE updated_time < ?', [cutoff]);
+    try {
+        await pool.query('DELETE FROM messenger_messages WHERE created_at < ?', [cutoff]);
+        await pool.query('DELETE FROM messenger_conversations WHERE updated_at < ?', [cutoff]);
+    } catch (err) {
+        addDbError(`cleanupOldMessages: ${err.message}`);
+    }
 }
 
 const dbModule = {
