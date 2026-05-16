@@ -716,10 +716,16 @@ document.addEventListener('DOMContentLoaded', () => {
     activeBroadcastPageId = pageId;
     sendStartTime = Date.now();
     $('progressBar')?.classList.add('progress-bar--active');
+    // Build name map from loaded recipients (covers cached & freshly loaded cases)
+    const recipientNamesMap = Object.fromEntries(
+      allRecipients.filter(r => r.name).map(r => [r.id, r.name])
+    );
+    // Merge with freshly fetched names (window.recipientNames) if available
+    const mergedNames = Object.assign({}, window.recipientNames || {}, recipientNamesMap);
     try {
       await enqueueAndSendUtility({
         pageId, messageText: text, imageUrl: currentImageUrl, recipientIds,
-        recipientNames: window.recipientNames || {},
+        recipientNames: mergedNames,
         delayMs: delay,
         fbUserId,
         onProgress: ({ index, total, item }) => { updateRecipientRow(item); updateStats(); updateEta(index, total, delay); if(window.updateQuotaUI) window.updateQuotaUI(); },
