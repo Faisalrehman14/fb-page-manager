@@ -3186,3 +3186,31 @@ body.annual .price-billing-annual{display:block}
   border-top: 1px solid var(--border);
   display: flex; align-items: center; gap: 6px;
 }
+
+/* ── Left col (2 stacked boxes) ─────────────── */
+.hv-left-col { display: flex; flex-direction: column; gap: 16px; }
+
+/* Main grid updated ratio — left wider, right plan card bigger */
+.hv-main-grid { grid-template-columns: 1fr 360px; }
+@media (max-width: 960px) { .hv-main-grid { grid-template-columns: 1fr; } }
+
+/* Right col — plan card fills full height */
+.hv-right-col { display: flex; flex-direction: column; }
+.hv-right-col .hv-plan-card { flex: 1; }
+
+/* Plan card full-width upgrade button */
+.hv-plan-upgrade-full {
+  display: flex; align-items: center; justify-content: center; gap: 9px;
+  width: 100%; margin-top: 18px; padding: 13px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
+  color: #000; font-size: 12px; font-weight: 800;
+  border: none; cursor: pointer; font-family: inherit;
+  letter-spacing: .2px;
+  box-shadow: 0 4px 18px rgba(245,158,11,.4);
+  transition: transform .18s, box-shadow .18s;
+}
+.hv-plan-upgrade-full:hover { transform: translateY(-2px); box-shadow: 0 6px 24px rgba(245,158,11,.55); }
+
+/* Plan features — 2-col grid, 8 items */
+.hv-plan-features { grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 18px; }

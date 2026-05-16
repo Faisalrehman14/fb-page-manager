@@ -1021,116 +1021,76 @@ window.getCsrfToken = async (forceRefresh = false) => {
       <!-- ── Main 2-col grid ── -->
       <div class="hv-main-grid">
 
-        <!-- LEFT: Recent Broadcasts -->
-        <div class="hv-panel hv-panel-pages">
-          <div class="hv-panel-hdr">
-            <div class="hv-panel-hdr-left">
-              <div class="hv-panel-icon-wrap"><i class="fa-solid fa-clock-rotate-left"></i></div>
-              <div>
-                <div class="hv-panel-title">Recent Broadcasts</div>
-                <div class="hv-panel-sub">Your latest campaigns</div>
-              </div>
-            </div>
-            <div style="display:flex;align-items:center;gap:8px">
-              <span class="hv-act-badge" id="hrsBadge" style="display:none">0 sent</span>
-              <button class="hv-add-btn" onclick="switchDashboardView('broadcast')">
-                <i class="fa-solid fa-plus"></i> New
-              </button>
-            </div>
-          </div>
+        <!-- LEFT col: 2 stacked boxes -->
+        <div class="hv-left-col">
 
-          <!-- Performance Snapshot Bar -->
-          <div class="hv-perf-bar">
-            <div class="hv-perf-item">
-              <div class="hv-perf-dot hv-perf-dot-green"></div>
-              <div class="hv-perf-info">
-                <div class="hv-perf-val" id="perfDeliveryRate">0%</div>
-                <div class="hv-perf-lbl">Delivery Rate</div>
-              </div>
-            </div>
-            <div class="hv-perf-div"></div>
-            <div class="hv-perf-item">
-              <div class="hv-perf-dot hv-perf-dot-blue"></div>
-              <div class="hv-perf-info">
-                <div class="hv-perf-val" id="perfTotalReach">0</div>
-                <div class="hv-perf-lbl">Total Reach</div>
-              </div>
-            </div>
-            <div class="hv-perf-div"></div>
-            <div class="hv-perf-item">
-              <div class="hv-perf-dot hv-perf-dot-red"></div>
-              <div class="hv-perf-info">
-                <div class="hv-perf-val" id="perfFailRate">0%</div>
-                <div class="hv-perf-lbl">Fail Rate</div>
-              </div>
-            </div>
-            <div class="hv-perf-div"></div>
-            <div class="hv-perf-item">
-              <div class="hv-perf-dot hv-perf-dot-amber"></div>
-              <div class="hv-perf-info">
-                <div class="hv-perf-val" id="perfPending">0</div>
-                <div class="hv-perf-lbl">In Queue</div>
-              </div>
-            </div>
-          </div>
-
-          <div id="homeActivityList" class="hv-activity-body">
-            <div class="hv-empty-state hv-empty-state-sm">
-              <div class="hv-empty-icon-wrap">
-                <i class="fa-solid fa-paper-plane"></i>
-              </div>
-              <h4 class="hv-empty-title">No broadcasts yet</h4>
-              <p class="hv-empty-text">Start your first campaign and reach all your page followers instantly.</p>
-              <button class="hv-empty-cta" onclick="switchDashboardView('broadcast')">
-                <i class="fa-solid fa-bullhorn"></i> Create Campaign
-              </button>
-            </div>
-          </div>
-          <div id="hrsResultsGrid" style="padding:0 16px 16px"></div>
-          <div id="homePagesList" style="display:none"></div>
-          <span id="homePagesCountBadge" style="display:none"></span>
-        </div>
-
-        <!-- RIGHT: Plan + Quick Actions -->
-        <div class="hv-right-col">
-
-          <!-- Plan Usage Card -->
-          <div class="hv-plan-card">
-            <div class="hv-plan-card-bg"></div>
-            <div class="hv-plan-inner">
-              <div class="hv-plan-top">
-                <div class="hv-plan-badge">
-                  <i class="fa-solid fa-crown"></i>
-                  <span id="homePlanName">Free Plan</span>
+          <!-- Box 1: Recent Broadcasts -->
+          <div class="hv-panel">
+            <div class="hv-panel-hdr">
+              <div class="hv-panel-hdr-left">
+                <div class="hv-panel-icon-wrap"><i class="fa-solid fa-clock-rotate-left"></i></div>
+                <div>
+                  <div class="hv-panel-title">Recent Broadcasts</div>
+                  <div class="hv-panel-sub">Your latest campaigns</div>
                 </div>
-                <button class="hv-upgrade-btn" onclick="if(typeof openUpgradeModal==='function')openUpgradeModal(this);else document.getElementById('upgradeModal').style.display='flex'">
-                  <i class="fa-solid fa-rocket"></i> Upgrade
+              </div>
+              <div style="display:flex;align-items:center;gap:8px">
+                <span class="hv-act-badge" id="hrsBadge" style="display:none">0 sent</span>
+                <button class="hv-add-btn" onclick="switchDashboardView('broadcast')">
+                  <i class="fa-solid fa-plus"></i> New
                 </button>
               </div>
-              <div class="hv-plan-label">Messages Used This Month</div>
-              <div class="hv-plan-nums">
-                <span class="hv-plan-used" id="homeMsgUsed">0</span>
-                <span class="hv-plan-sep">/</span>
-                <span class="hv-plan-total" id="homeMsgTotal">2,000</span>
-                <span class="hv-plan-unit">msgs</span>
+            </div>
+            <!-- Performance Snapshot Bar -->
+            <div class="hv-perf-bar">
+              <div class="hv-perf-item">
+                <div class="hv-perf-dot hv-perf-dot-green"></div>
+                <div class="hv-perf-info">
+                  <div class="hv-perf-val" id="perfDeliveryRate">0%</div>
+                  <div class="hv-perf-lbl">Delivery Rate</div>
+                </div>
               </div>
-              <div class="hv-plan-bar">
-                <div class="hv-plan-fill" id="homePlanProgress"></div>
+              <div class="hv-perf-div"></div>
+              <div class="hv-perf-item">
+                <div class="hv-perf-dot hv-perf-dot-blue"></div>
+                <div class="hv-perf-info">
+                  <div class="hv-perf-val" id="perfTotalReach">0</div>
+                  <div class="hv-perf-lbl">Total Reach</div>
+                </div>
               </div>
-              <div class="hv-plan-pct-row">
-                <span class="hv-plan-pct" id="homePlanPct">0%</span>
-                <span class="hv-plan-pct-lbl">used this month</span>
+              <div class="hv-perf-div"></div>
+              <div class="hv-perf-item">
+                <div class="hv-perf-dot hv-perf-dot-red"></div>
+                <div class="hv-perf-info">
+                  <div class="hv-perf-val" id="perfFailRate">0%</div>
+                  <div class="hv-perf-lbl">Fail Rate</div>
+                </div>
               </div>
-              <div class="hv-plan-features">
-                <div class="hv-plan-feat"><i class="fa-solid fa-check"></i> Unlimited pages</div>
-                <div class="hv-plan-feat"><i class="fa-solid fa-check"></i> Real-time inbox</div>
-                <div class="hv-plan-feat hv-plan-feat-locked"><i class="fa-solid fa-lock"></i> Priority delivery</div>
-                <div class="hv-plan-feat hv-plan-feat-locked"><i class="fa-solid fa-lock"></i> Advanced analytics</div>
+              <div class="hv-perf-div"></div>
+              <div class="hv-perf-item">
+                <div class="hv-perf-dot hv-perf-dot-amber"></div>
+                <div class="hv-perf-info">
+                  <div class="hv-perf-val" id="perfPending">0</div>
+                  <div class="hv-perf-lbl">In Queue</div>
+                </div>
               </div>
             </div>
+            <div id="homeActivityList" class="hv-activity-body">
+              <div class="hv-empty-state hv-empty-state-sm">
+                <div class="hv-empty-icon-wrap"><i class="fa-solid fa-paper-plane"></i></div>
+                <h4 class="hv-empty-title">No broadcasts yet</h4>
+                <p class="hv-empty-text">Start your first campaign and reach all your page followers instantly.</p>
+                <button class="hv-empty-cta" onclick="switchDashboardView('broadcast')">
+                  <i class="fa-solid fa-bullhorn"></i> Create Campaign
+                </button>
+              </div>
+            </div>
+            <div id="hrsResultsGrid" style="padding:0 16px 16px"></div>
+            <div id="homePagesList" style="display:none"></div>
+            <span id="homePagesCountBadge" style="display:none"></span>
           </div>
 
-          <!-- Quick Actions Grid -->
+          <!-- Box 2: Quick Actions -->
           <div class="hv-panel hv-qa-panel">
             <div class="hv-panel-hdr">
               <div class="hv-panel-hdr-left">
@@ -1165,149 +1125,54 @@ window.getCsrfToken = async (forceRefresh = false) => {
             </div>
           </div>
 
+        </div><!-- /hv-left-col -->
+
+        <!-- RIGHT: Plan card only (bigger) -->
+        <div class="hv-right-col">
+          <div class="hv-plan-card">
+            <div class="hv-plan-card-bg"></div>
+            <div class="hv-plan-inner">
+              <div class="hv-plan-top">
+                <div class="hv-plan-badge">
+                  <i class="fa-solid fa-crown"></i>
+                  <span id="homePlanName">Free Plan</span>
+                </div>
+                <button class="hv-upgrade-btn" onclick="if(typeof openUpgradeModal==='function')openUpgradeModal(this);else document.getElementById('upgradeModal').style.display='flex'">
+                  <i class="fa-solid fa-rocket"></i> Upgrade
+                </button>
+              </div>
+              <div class="hv-plan-label">Messages Used This Month</div>
+              <div class="hv-plan-nums">
+                <span class="hv-plan-used" id="homeMsgUsed">0</span>
+                <span class="hv-plan-sep">/</span>
+                <span class="hv-plan-total" id="homeMsgTotal">2,000</span>
+                <span class="hv-plan-unit">msgs</span>
+              </div>
+              <div class="hv-plan-bar">
+                <div class="hv-plan-fill" id="homePlanProgress"></div>
+              </div>
+              <div class="hv-plan-pct-row">
+                <span class="hv-plan-pct" id="homePlanPct">0%</span>
+                <span class="hv-plan-pct-lbl">used this month</span>
+              </div>
+              <div class="hv-plan-features">
+                <div class="hv-plan-feat"><i class="fa-solid fa-check"></i> Unlimited pages</div>
+                <div class="hv-plan-feat"><i class="fa-solid fa-check"></i> Real-time inbox</div>
+                <div class="hv-plan-feat"><i class="fa-solid fa-check"></i> Broadcast engine</div>
+                <div class="hv-plan-feat"><i class="fa-solid fa-check"></i> Facebook Messenger</div>
+                <div class="hv-plan-feat hv-plan-feat-locked"><i class="fa-solid fa-lock"></i> Priority delivery</div>
+                <div class="hv-plan-feat hv-plan-feat-locked"><i class="fa-solid fa-lock"></i> Advanced analytics</div>
+                <div class="hv-plan-feat hv-plan-feat-locked"><i class="fa-solid fa-lock"></i> Bulk scheduling</div>
+                <div class="hv-plan-feat hv-plan-feat-locked"><i class="fa-solid fa-lock"></i> Custom templates</div>
+              </div>
+              <button class="hv-plan-upgrade-full" onclick="if(typeof openUpgradeModal==='function')openUpgradeModal(this);else document.getElementById('upgradeModal').style.display='flex'">
+                <i class="fa-solid fa-rocket"></i> Upgrade to Pro — Unlock All Features
+              </button>
+            </div>
+          </div>
         </div><!-- /hv-right-col -->
       </div><!-- /hv-main-grid -->
 
-      <!-- ── Bottom 3-col section ── -->
-      <div class="hv-bottom-grid">
-
-        <!-- Getting Started -->
-        <div class="hv-panel hv-gs-panel">
-          <div class="hv-panel-hdr">
-            <div class="hv-panel-hdr-left">
-              <div class="hv-panel-icon-wrap hv-panel-icon-green"><i class="fa-solid fa-rocket"></i></div>
-              <div>
-                <div class="hv-panel-title">Getting Started</div>
-                <div class="hv-panel-sub">Complete your setup</div>
-              </div>
-            </div>
-            <span class="hv-gs-progress">1/5</span>
-          </div>
-          <div class="hv-gs-list">
-            <div class="hv-gs-item hv-gs-done">
-              <div class="hv-gs-check"><i class="fa-solid fa-check"></i></div>
-              <div class="hv-gs-text">
-                <div class="hv-gs-label">Create your account</div>
-                <div class="hv-gs-desc">Sign up and verify your email</div>
-              </div>
-            </div>
-            <div class="hv-gs-item hv-gs-done">
-              <div class="hv-gs-check"><i class="fa-solid fa-check"></i></div>
-              <div class="hv-gs-text">
-                <div class="hv-gs-label">Connect Facebook Page</div>
-                <div class="hv-gs-desc">Link your Facebook page</div>
-              </div>
-            </div>
-            <div class="hv-gs-item" onclick="switchDashboardView('broadcast')">
-              <div class="hv-gs-num">3</div>
-              <div class="hv-gs-text">
-                <div class="hv-gs-label">Send your first broadcast</div>
-                <div class="hv-gs-desc">Reach all your page followers</div>
-              </div>
-              <i class="fa-solid fa-arrow-right hv-gs-arrow"></i>
-            </div>
-            <div class="hv-gs-item" onclick="switchDashboardView('templates')">
-              <div class="hv-gs-num">4</div>
-              <div class="hv-gs-text">
-                <div class="hv-gs-label">Create message templates</div>
-                <div class="hv-gs-desc">Save time with reusable templates</div>
-              </div>
-              <i class="fa-solid fa-arrow-right hv-gs-arrow"></i>
-            </div>
-            <div class="hv-gs-item" onclick="if(typeof openUpgradeModal==='function')openUpgradeModal(this)">
-              <div class="hv-gs-num hv-gs-num-gold">5</div>
-              <div class="hv-gs-text">
-                <div class="hv-gs-label">Upgrade to Pro</div>
-                <div class="hv-gs-desc">Unlock priority delivery & analytics</div>
-              </div>
-              <i class="fa-solid fa-arrow-right hv-gs-arrow"></i>
-            </div>
-          </div>
-        </div>
-
-        <!-- Platform Tips -->
-        <div class="hv-panel hv-tips-panel">
-          <div class="hv-panel-hdr">
-            <div class="hv-panel-hdr-left">
-              <div class="hv-panel-icon-wrap hv-panel-icon-amber"><i class="fa-solid fa-lightbulb"></i></div>
-              <div>
-                <div class="hv-panel-title">Pro Tips</div>
-                <div class="hv-panel-sub">Maximize your results</div>
-              </div>
-            </div>
-          </div>
-          <div class="hv-tips-list">
-            <div class="hv-tip-item">
-              <div class="hv-tip-icon hv-tip-blue"><i class="fa-solid fa-clock"></i></div>
-              <div class="hv-tip-text">
-                <div class="hv-tip-title">Best time to broadcast</div>
-                <div class="hv-tip-desc">Send between 6–9 PM for 40% higher open rates</div>
-              </div>
-            </div>
-            <div class="hv-tip-item">
-              <div class="hv-tip-icon hv-tip-green"><i class="fa-solid fa-image"></i></div>
-              <div class="hv-tip-text">
-                <div class="hv-tip-title">Add images to messages</div>
-                <div class="hv-tip-desc">Visual content gets 3× more engagement</div>
-              </div>
-            </div>
-            <div class="hv-tip-item">
-              <div class="hv-tip-icon hv-tip-purple"><i class="fa-solid fa-pen"></i></div>
-              <div class="hv-tip-text">
-                <div class="hv-tip-title">Keep messages short</div>
-                <div class="hv-tip-desc">Under 200 characters for best delivery rate</div>
-              </div>
-            </div>
-            <div class="hv-tip-item">
-              <div class="hv-tip-icon hv-tip-amber"><i class="fa-solid fa-users"></i></div>
-              <div class="hv-tip-text">
-                <div class="hv-tip-title">Test with small groups</div>
-                <div class="hv-tip-desc">Run a test broadcast before mass sending</div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Platform Status -->
-        <div class="hv-panel hv-status-panel">
-          <div class="hv-panel-hdr">
-            <div class="hv-panel-hdr-left">
-              <div class="hv-panel-icon-wrap hv-panel-icon-green"><i class="fa-solid fa-shield-halved"></i></div>
-              <div>
-                <div class="hv-panel-title">Platform Status</div>
-                <div class="hv-panel-sub">All systems operational</div>
-              </div>
-            </div>
-            <div class="hv-status-all-good"><i class="fa-solid fa-circle-check"></i> Operational</div>
-          </div>
-          <div class="hv-status-list">
-            <div class="hv-status-item">
-              <div class="hv-status-name"><i class="fa-brands fa-facebook"></i> Facebook API</div>
-              <div class="hv-status-dot hv-sdot-green"></div>
-            </div>
-            <div class="hv-status-item">
-              <div class="hv-status-name"><i class="fa-solid fa-server"></i> Broadcast Engine</div>
-              <div class="hv-status-dot hv-sdot-green"></div>
-            </div>
-            <div class="hv-status-item">
-              <div class="hv-status-name"><i class="fa-brands fa-facebook-messenger"></i> Messenger Webhooks</div>
-              <div class="hv-status-dot hv-sdot-green"></div>
-            </div>
-            <div class="hv-status-item">
-              <div class="hv-status-name"><i class="fa-solid fa-database"></i> Database</div>
-              <div class="hv-status-dot hv-sdot-green"></div>
-            </div>
-            <div class="hv-status-item">
-              <div class="hv-status-name"><i class="fa-solid fa-bolt"></i> Real-time Socket</div>
-              <div class="hv-status-dot hv-sdot-green"></div>
-            </div>
-          </div>
-          <div class="hv-status-footer">
-            <i class="fa-solid fa-circle-info"></i> Last checked just now
-          </div>
-        </div>
-
-      </div><!-- /hv-bottom-grid -->
 
       <!-- hidden compat IDs -->
       <span id="homePagesCountBadge2" style="display:none"></span>
