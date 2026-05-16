@@ -3294,3 +3294,74 @@ body.annual .price-billing-annual{display:block}
   transition: transform .18s, box-shadow .18s;
 }
 .hv-lifetime-btn:hover { transform: translateY(-2px); box-shadow: 0 5px 20px rgba(245,158,11,.6); }
+
+/* ═══════════════════════════════════════════════
+   SIDEBAR CONSISTENCY — home / broadcast / messenger
+   ═══════════════════════════════════════════════ */
+
+/* Unified width for both sidebar columns */
+.sidebar       { width: 220px; min-width: 220px; }
+.msng-pages    { width: 220px; min-width: 200px; }
+
+/* Messenger pages column — match main sidebar look exactly */
+.msng-pages {
+  background: var(--surface) !important;
+  border-right: 1px solid var(--border) !important;
+  border-radius: 0;
+}
+.msng-pages-hdr {
+  background: linear-gradient(180deg, rgba(8,102,255,.06), transparent) !important;
+  border-bottom: 1px solid var(--border) !important;
+  color: var(--text2) !important;
+  font-size: 11px !important;
+  font-weight: 800 !important;
+  text-transform: uppercase !important;
+  letter-spacing: .8px !important;
+  padding: 14px 14px 12px !important;
+}
+.msng-pages-hdr i { color: var(--primary-light) !important; }
+
+/* Messenger page item — match main .page-card */
+.msng-page-item {
+  background: transparent !important;
+  border: 1px solid transparent !important;
+  border-radius: var(--radius) !important;
+  padding: 10px 12px !important;
+  margin-bottom: 3px;
+  transition: all .18s !important;
+}
+.msng-page-item:hover {
+  background: var(--surface2) !important;
+  border-color: var(--border) !important;
+  transform: translateX(2px) !important;
+}
+.msng-page-item.active {
+  background: linear-gradient(135deg, rgba(8,102,255,.12), rgba(8,102,255,.06)) !important;
+  border-color: rgba(8,102,255,.28) !important;
+  box-shadow: inset 3px 0 0 var(--primary), 0 2px 12px rgba(8,102,255,.15) !important;
+  transform: translateX(3px) !important;
+}
+.msng-page-item.active .msng-page-name { color: var(--primary-light) !important; font-weight: 700 !important; }
+
+/* Messenger page avatar — match .page-avatar-fallback */
+.msng-page-avatar-ph {
+  background: linear-gradient(135deg, var(--primary), #0044CC) !important;
+  border-radius: 9px !important;
+  border: 1px solid rgba(8,102,255,.3) !important;
+  box-shadow: 0 4px 12px rgba(8,102,255,.2) !important;
+}
+.msng-page-avatar {
+  border-radius: 9px !important;
+  border: 1px solid var(--border2) !important;
+}
+
+/* Messenger page name/sub — match main sidebar typography */
+.msng-page-name { font-size: 12px !important; font-weight: 600 !important; color: var(--text) !important; }
+.msng-page-sub  { font-size: 10px !important; color: var(--text3) !important; }
+
+/* Badge in messenger header */
+.msng-page-badge {
+  background: var(--primary-dim) !important;
+  color: var(--primary-light) !important;
+  border: 1px solid rgba(8,102,255,.2) !important;
+}
