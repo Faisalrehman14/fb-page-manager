@@ -17,6 +17,15 @@ const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 
 const app        = express();
 const httpServer = createServer(app);
 
+// ── Critical Healthcheck (Must be at the very top for Railway) ────────────────
+app.get('/api/health', (req, res) => {
+    res.json({ 
+        status: 'ok', 
+        db: dbConnected ? 'connected' : 'initializing',
+        uptime: Math.floor(process.uptime())
+    });
+});
+
 const SESSION_SECRET = process.env.SESSION_SECRET || 'fb-cast-pro-session-secret-998877';
 
 const sessionMiddleware = session({
@@ -131,16 +140,6 @@ app.use((req, res, next) => {
 app.use(express.json({ verify: (req, res, buf) => { req.rawBody = buf; } }));
 app.use(express.urlencoded({ extended: true }));
 
-// ── Critical Healthcheck (Must be at the top) ─────────────────────────────────
-app.get('/api/health', async (req, res) => {
-    // Return 200 OK immediately for healthchecks, even if DB is still connecting
-    res.json({ 
-        status: 'ok', 
-        db: dbConnected ? 'connected' : 'initializing',
-        uptime: Math.floor(process.uptime()),
-        memory: Math.round(process.memoryUsage().heapUsed / 1024 / 1024) + 'MB'
-    });
-});
 
 // ── Facebook Webhook (must be before express.static so fb_webhook.php isn't served as raw PHP) ──
 app.get(['/webhook', '/fb_webhook.php'], (req, res) => {
@@ -1410,17 +1409,21 @@ app.use((err, req, res, next) => {
     });
 
     try {
-        console.log('DB: Initializing...');
-        await db.initDatabase();
-        dbConnected = db.isConnected();
-        if (dbConnected) {
-            const stats = await db.getStats();
-            console.log(`✅ MySQL connected — ${stats.totalConversations} conversations, ${stats.totalMessages} messages`);
-        } else {
-            console.warn('⚠️  Running without DB:', db.getLastError());
-        }
+        console.log('DB: Initializing in background...');
+        db.initDatabase().then(() => {
+            dbConnected = db.isConnected();
+            if (dbConnected) {
+                db.getStats().then(stats => {
+                    console.log(`✅ MySQL connected — ${stats.totalConversations} conversations, ${stats.totalMessages} messages`);
+                });
+            } else {
+                console.warn('⚠️  Running without DB:', db.getLastError());
+            }
+        }).catch(err => {
+            console.error('DB init failed:', err.message);
+        });
     } catch (err) {
-        console.error('DB init failed:', err.message);
+        console.error('DB startup logic error:', err.message);
     }
 
     // Background incremental sync every 5 min
