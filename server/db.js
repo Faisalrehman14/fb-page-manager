@@ -303,6 +303,7 @@ async function getPageToken(pageId) {
 async function saveConversation(conversation) {
     if (!pool) return;
     const { id, pageId, participantId, participantName, snippet, updatedTime, isRead, unreadCount } = conversation;
+    if (!pageId || !participantId) return; // fb_user_id is NOT NULL — skip rather than fail
     const fbUnreadCount = unreadCount != null ? unreadCount : (isRead ? 0 : 1);
 
     try {
@@ -784,19 +785,27 @@ async function syncConversationsAll(pageId, pageToken, fetchFn, since = null) {
         const data = await response.json();
         if (data.error) throw new Error(data.error.message);
 
-        const messenger_conversations = (data.data || []).map(conv => {
-            const participant = conv.participants?.data?.find(p => p.id !== pageId);
+        const messenger_conversations = (data.data || []).flatMap(conv => {
+            // Find the participant who is NOT the page itself
+            const participants = conv.participants?.data || [];
+            const participant = participants.find(p => String(p.id) !== String(pageId))
+                             || participants.find(p => p.id)  // fallback: first available
+                             || null;
+            if (!participant?.id) {
+                addDbError(`syncConversationsAll: skipping conv ${conv.id} — no participant found`);
+                return []; // flatMap skips
+            }
             const fbCount = conv.unread_count || 0;
-            return {
+            return [{
                 id: conv.id,
                 pageId: pageId,
-                participantId: participant?.id,
-                participantName: participant?.name || 'Unknown',
+                participantId: String(participant.id),
+                participantName: participant.name || 'User',
                 snippet: (conv.snippet || '').substring(0, 200),
                 updatedTime: conv.updated_time,
                 isRead: fbCount === 0,
                 unreadCount: fbCount
-            };
+            }];
         });
 
         if (messenger_conversations.length > 0) {
