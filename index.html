@@ -1552,11 +1552,11 @@ window.getCsrfToken = async (forceRefresh = false) => {
     </div><!-- /view-broadcast -->
 
     <!-- ══ SCHEDULING VIEW ══ -->
-    <div id="view-scheduling" style="display:none;height:100%;flex-direction:column">
-      <div class="sv-wrap">
+    <div id="view-scheduling" style="display:none;height:100%;flex-direction:column;flex:1;min-width:0">
+      <div class="sv-wrap" style="display:flex;gap:20px;height:100%;padding:20px;overflow:hidden;box-sizing:border-box">
 
         <!-- LEFT: Create Schedule Form -->
-        <div class="sv-form-col">
+        <div class="sv-form-col" style="flex:0 0 400px;display:flex;flex-direction:column;gap:16px;overflow-y:auto;padding-right:6px">
           <div class="sv-hdr">
             <div class="sv-hdr-icon"><i class="fa-solid fa-calendar-plus"></i></div>
             <div>
@@ -1614,8 +1614,8 @@ window.getCsrfToken = async (forceRefresh = false) => {
         </div>
 
         <!-- RIGHT: Schedules List -->
-        <div class="sv-list-col">
-          <div class="sv-list-hdr">
+        <div class="sv-list-col" style="flex:1;min-width:0;display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--border);border-radius:16px;overflow:hidden">
+          <div class="sv-list-hdr" style="display:flex;align-items:center;justify-content:space-between;padding:16px 18px;border-bottom:1px solid var(--border);flex-shrink:0">
             <div class="sv-list-title"><i class="fa-solid fa-list-check"></i> Scheduled Broadcasts</div>
             <div class="sv-list-hdr-right">
               <span class="sv-list-badge" id="svBadge" style="display:none">0</span>
