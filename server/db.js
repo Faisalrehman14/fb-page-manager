@@ -224,6 +224,29 @@ async function initDatabase() {
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
         `);
 
+        await tryCreate(`
+            CREATE TABLE IF NOT EXISTS scheduled_broadcasts (
+                id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                fb_user_id VARCHAR(50) NOT NULL,
+                page_id VARCHAR(64) NOT NULL,
+                page_name VARCHAR(255) DEFAULT NULL,
+                page_token TEXT NOT NULL,
+                message TEXT NOT NULL,
+                image_url TEXT DEFAULT NULL,
+                delay_ms INT NOT NULL DEFAULT 1200,
+                scheduled_at DATETIME NOT NULL,
+                status ENUM('pending','running','done','failed','cancelled') DEFAULT 'pending',
+                total_recipients INT DEFAULT 0,
+                sent_count INT DEFAULT 0,
+                failed_count INT DEFAULT 0,
+                error_message TEXT DEFAULT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                INDEX idx_status_time (status, scheduled_at),
+                INDEX idx_user (fb_user_id)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        `);
+
         connection.release();
         console.log('Database tables verified');
         pool.lastError = null;
@@ -1392,7 +1415,12 @@ const dbModule = {
     deleteCannedReply,
     cleanupOldMessages,
     ensureConversation,
-    onIncomingMessage
+    onIncomingMessage,
+    createSchedule,
+    getSchedules,
+    cancelSchedule,
+    getDueSchedules,
+    updateScheduleStatus
 };
 
 // ── ensureConversation — INSERT IGNORE then SELECT (race-safe) ────────────────
@@ -1426,6 +1454,62 @@ async function onIncomingMessage(threadId, pageId, participantId, text) {
     } catch (err) {
         addDbError(`onIncomingMessage: ${err.message}`);
     }
+}
+
+// ── Scheduled Broadcasts ──────────────────────────────────────────────────────
+async function createSchedule({ fb_user_id, page_id, page_name, page_token, message, image_url, delay_ms, scheduled_at }) {
+    if (!pool) throw new Error('DB not connected');
+    const [result] = await pool.query(
+        `INSERT INTO scheduled_broadcasts (fb_user_id, page_id, page_name, page_token, message, image_url, delay_ms, scheduled_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        [fb_user_id, page_id, page_name || null, page_token, message, image_url || null, delay_ms || 1200, scheduled_at]
+    );
+    return result.insertId;
+}
+
+async function getSchedules(fb_user_id) {
+    if (!pool) return [];
+    const [rows] = await pool.query(
+        `SELECT id, page_id, page_name, message, image_url, delay_ms, scheduled_at, status,
+                total_recipients, sent_count, failed_count, error_message, created_at
+         FROM scheduled_broadcasts
+         WHERE fb_user_id = ? AND status != 'cancelled'
+         ORDER BY scheduled_at DESC LIMIT 50`,
+        [fb_user_id]
+    );
+    return rows;
+}
+
+async function cancelSchedule(id, fb_user_id) {
+    if (!pool) return false;
+    const [result] = await pool.query(
+        `UPDATE scheduled_broadcasts SET status = 'cancelled' WHERE id = ? AND fb_user_id = ? AND status = 'pending'`,
+        [id, fb_user_id]
+    );
+    return result.affectedRows > 0;
+}
+
+async function getDueSchedules() {
+    if (!pool) return [];
+    const [rows] = await pool.query(
+        `SELECT id, fb_user_id, page_id, page_token, message, image_url, delay_ms
+         FROM scheduled_broadcasts
+         WHERE status = 'pending' AND scheduled_at <= NOW()
+         ORDER BY scheduled_at ASC LIMIT 10`
+    );
+    return rows;
+}
+
+async function updateScheduleStatus(id, status, stats = {}) {
+    if (!pool) return;
+    await pool.query(
+        `UPDATE scheduled_broadcasts
+         SET status = ?, total_recipients = COALESCE(?, total_recipients),
+             sent_count = COALESCE(?, sent_count), failed_count = COALESCE(?, failed_count),
+             error_message = COALESCE(?, error_message)
+         WHERE id = ?`,
+        [status, stats.total || null, stats.sent || null, stats.failed || null, stats.error || null, id]
+    );
 }
 
 // Getter so server.js can access db.pool after initDatabase() assigns it

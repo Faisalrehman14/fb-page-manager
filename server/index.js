@@ -1374,6 +1374,113 @@ app.post('/api/sync/all', requireAuth, verifyCsrf, async (req, res) => {
     }
 });
 
+// ── Scheduled Broadcasts ─────────────────────────────────────────────────────
+
+app.post('/api/schedules', requireAuth, verifyCsrf, async (req, res) => {
+    const { page_id, page_name, page_token, message, image_url, delay_ms, scheduled_at } = req.body;
+    if (!page_id || !page_token || !message || !scheduled_at)
+        return res.status(400).json({ error: 'page_id, page_token, message, scheduled_at required' });
+    const scheduledDate = new Date(scheduled_at);
+    if (isNaN(scheduledDate) || scheduledDate <= new Date())
+        return res.status(400).json({ error: 'scheduled_at must be a future date/time' });
+    try {
+        const id = await db.createSchedule({
+            fb_user_id: req.session.fbUserId,
+            page_id, page_name, page_token, message,
+            image_url: image_url || null,
+            delay_ms: Math.max(500, parseInt(delay_ms) || 1200),
+            scheduled_at: scheduledDate
+        });
+        res.json({ success: true, id });
+    } catch (err) {
+        logError('create_schedule', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.get('/api/schedules', requireAuth, async (req, res) => {
+    try {
+        const rows = await db.getSchedules(req.session.fbUserId);
+        res.json({ schedules: rows });
+    } catch (err) {
+        logError('get_schedules', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.delete('/api/schedules/:id', requireAuth, verifyCsrf, async (req, res) => {
+    try {
+        const ok = await db.cancelSchedule(parseInt(req.params.id), req.session.fbUserId);
+        if (!ok) return res.status(404).json({ error: 'Schedule not found or already started' });
+        res.json({ success: true });
+    } catch (err) {
+        logError('cancel_schedule', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// ── Broadcast Scheduler — runs every 60 s ────────────────────────────────────
+async function runScheduledBroadcast(schedule) {
+    const { id, page_id, page_token, message, image_url, delay_ms } = schedule;
+    await db.updateScheduleStatus(id, 'running');
+    try {
+        // Fetch all conversation participants for this page
+        let allPsids = [];
+        let url = `https://graph.facebook.com/v19.0/${page_id}/conversations?fields=participants&limit=100&access_token=${page_token}`;
+        while (url) {
+            const r = await fetch(url);
+            const data = await r.json();
+            if (data.error) throw new Error(data.error.message);
+            for (const conv of (data.data || [])) {
+                for (const p of (conv.participants?.data || [])) {
+                    if (p.id !== page_id) allPsids.push(p.id);
+                }
+            }
+            url = data.paging?.next || null;
+        }
+        allPsids = [...new Set(allPsids)];
+
+        let sent = 0, failed = 0;
+        for (const psid of allPsids) {
+            try {
+                const body = new URLSearchParams({ recipient: JSON.stringify({ id: psid }), messaging_type: 'MESSAGE_TAG', tag: 'ACCOUNT_UPDATE', access_token: page_token });
+                if (image_url) {
+                    body.set('message', JSON.stringify({ attachment: { type: 'image', payload: { url: image_url, is_reusable: true } } }));
+                } else {
+                    body.set('message', JSON.stringify({ text: message }));
+                }
+                const r = await fetch(`https://graph.facebook.com/v19.0/me/messages`, { method: 'POST', body });
+                const d = await r.json();
+                if (d.error) { failed++; } else { sent++; }
+                // Send text after image if both provided
+                if (image_url && message && !d.error) {
+                    const tb = new URLSearchParams({ recipient: JSON.stringify({ id: psid }), messaging_type: 'MESSAGE_TAG', tag: 'ACCOUNT_UPDATE', message: JSON.stringify({ text: message }), access_token: page_token });
+                    await fetch(`https://graph.facebook.com/v19.0/me/messages`, { method: 'POST', body: tb });
+                }
+            } catch (_) { failed++; }
+            if (delay_ms > 0) await new Promise(r => setTimeout(r, delay_ms));
+        }
+        await db.updateScheduleStatus(id, 'done', { total: allPsids.length, sent, failed });
+    } catch (err) {
+        await db.updateScheduleStatus(id, 'failed', { error: err.message.substring(0, 200) });
+        logError('scheduled_broadcast', err, { scheduleId: id, pageId: page_id });
+    }
+}
+
+function startBroadcastScheduler() {
+    setInterval(async () => {
+        try {
+            const due = await db.getDueSchedules();
+            for (const s of due) {
+                runScheduledBroadcast(s).catch(err => logError('scheduler_run', err, { id: s.id }));
+            }
+        } catch (err) {
+            logError('scheduler_tick', err);
+        }
+    }, 60_000);
+    console.log('Broadcast scheduler started (60s interval)');
+}
+
 // ── Health & Debug ────────────────────────────────────────────────────────────
 
 app.get('/api/debug/errors', requireAuth, (req, res) => {
@@ -1485,6 +1592,7 @@ app.use((err, req, res, next) => {
                 db.getStats().then(stats => {
                     console.log(`✅ MySQL connected — ${stats.totalConversations} conversations, ${stats.totalMessages} messages`);
                 });
+                startBroadcastScheduler();
             } else {
                 console.warn('⚠️  Running without DB:', db.getLastError());
             }

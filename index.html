@@ -1456,10 +1456,11 @@ window.getCsrfToken = async (forceRefresh = false) => {
           </div>
           <div id="sendHint">Select a page, write message, then start broadcast</div>
           <div class="action-btns">
-            <button id="btnStart"  class="act-btn"><i class="fa-solid fa-play"></i> Start Broadcast</button>
-            <button id="btnPause"  class="act-btn"><i class="fa-solid fa-pause"></i> Pause</button>
-            <button id="btnResume" class="act-btn"><i class="fa-solid fa-rotate-right"></i> Resume</button>
-            <button id="btnStop"   class="act-btn"><i class="fa-solid fa-stop"></i> Stop</button>
+            <button id="btnStart"    class="act-btn"><i class="fa-solid fa-play"></i> Start Broadcast</button>
+            <button id="btnSchedule" class="act-btn act-btn--schedule" onclick="openScheduleModal()"><i class="fa-solid fa-clock"></i> Schedule</button>
+            <button id="btnPause"    class="act-btn"><i class="fa-solid fa-pause"></i> Pause</button>
+            <button id="btnResume"   class="act-btn"><i class="fa-solid fa-rotate-right"></i> Resume</button>
+            <button id="btnStop"     class="act-btn"><i class="fa-solid fa-stop"></i> Stop</button>
           </div>
           <div class="extra-actions">
             <button type="button" class="btn-extra btn-retry" id="btnRetryFailed" disabled title="Retry all failed messages">
@@ -1468,6 +1469,22 @@ window.getCsrfToken = async (forceRefresh = false) => {
             <button type="button" class="btn-extra" id="btnExportCSV" disabled title="Export results as CSV">
               <i class="fa-solid fa-file-arrow-down"></i> Export CSV
             </button>
+          </div>
+        </div>
+
+        <!-- Scheduled Broadcasts Panel -->
+        <div class="sched-panel" id="schedPanel">
+          <div class="sched-panel-hdr" onclick="toggleSchedulePanel()">
+            <span><i class="fa-solid fa-clock-rotate-left"></i> Scheduled Broadcasts</span>
+            <span class="sched-badge" id="schedBadge" style="display:none">0</span>
+            <i class="fa-solid fa-chevron-down sched-chevron" id="schedChevron"></i>
+          </div>
+          <div class="sched-panel-body" id="schedPanelBody">
+            <div class="sched-empty" id="schedEmpty">
+              <i class="fa-regular fa-clock"></i>
+              <p>No scheduled broadcasts yet</p>
+            </div>
+            <div id="schedList"></div>
           </div>
         </div>
 
@@ -1839,6 +1856,40 @@ window.getCsrfToken = async (forceRefresh = false) => {
   </div><!-- /app-body -->
 </div><!-- /appPage -->
 
+
+<!-- ═══ SCHEDULE BROADCAST MODAL ═══ -->
+<div class="sched-overlay" id="schedModal" style="display:none" onclick="if(event.target===this)closeScheduleModal()">
+  <div class="sched-modal">
+    <div class="sched-modal-hdr">
+      <div class="sched-modal-title"><i class="fa-solid fa-clock"></i> Schedule Broadcast</div>
+      <button class="sched-modal-close" onclick="closeScheduleModal()"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="sched-modal-body">
+      <div class="sched-field">
+        <label class="sched-label">Page</label>
+        <div class="sched-page-display" id="schedPageDisplay">— select a page first —</div>
+      </div>
+      <div class="sched-field">
+        <label class="sched-label">Message Preview</label>
+        <div class="sched-msg-preview" id="schedMsgPreview">—</div>
+      </div>
+      <div class="sched-field">
+        <label class="sched-label">Send At <span class="sched-label-hint">(your local time)</span></label>
+        <input type="datetime-local" class="sched-input" id="schedDateTime" min="">
+      </div>
+      <div class="sched-info-row">
+        <i class="fa-solid fa-circle-info"></i>
+        Recipients are fetched automatically at send time from your page's conversations.
+      </div>
+    </div>
+    <div class="sched-modal-footer">
+      <button class="sched-cancel-btn" onclick="closeScheduleModal()">Cancel</button>
+      <button class="sched-confirm-btn" id="schedConfirmBtn" onclick="saveSchedule()">
+        <i class="fa-solid fa-calendar-check"></i> Schedule Broadcast
+      </button>
+    </div>
+  </div>
+</div>
 
 <!-- ═══ UPGRADE MODAL ═══ -->
 <div class="overlay" id="upgradeModal" style="display:none" role="dialog" aria-modal="true" aria-labelledby="upgradeModalTitle" aria-hidden="true">

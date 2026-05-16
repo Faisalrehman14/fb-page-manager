@@ -289,6 +289,7 @@ function renderPages(pages) {
       container.querySelectorAll('.page-card').forEach(c => c.classList.remove('selected'));
       card.classList.add('selected');
       select.value = p.id;
+      window.currentPageToken = p.access_token || '';
       if (previousPageId && previousPageId !== p.id) {
         allRecipients = [];
         recipientsPageId = null;
@@ -815,6 +816,163 @@ window.allRecipients = allRecipients;
 window.switchDashboardView = switchDashboardView;
 // Image URL getter for auto-send (index-page.js)
 Object.defineProperty(window, '_imgAttachUrl', { get: () => currentImageUrl, configurable: true });
+
+// ── Schedule Broadcast ────────────────────────────────────────────────────────
+let _schedPanelOpen = false;
+
+window.openScheduleModal = function () {
+  const pageId   = $('pageSelect')?.value;
+  const message  = ($('messageText')?.value || '').trim();
+  const pageName = $('pageSelect')?.selectedOptions?.[0]?.text || pageId || '—';
+
+  if (!pageId)   { showStatus('Select a page first.', 'warning'); return; }
+  if (!message)  { showStatus('Write a message first.', 'warning'); return; }
+
+  $('schedPageDisplay').textContent = pageName;
+  $('schedMsgPreview').textContent  = message.length > 200 ? message.slice(0, 197) + '…' : message;
+
+  // Set min datetime to 2 minutes from now
+  const now = new Date(Date.now() + 2 * 60 * 1000);
+  const pad = n => String(n).padStart(2, '0');
+  const minVal = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}`;
+  const dtInput = $('schedDateTime');
+  dtInput.min = minVal;
+  if (!dtInput.value || dtInput.value < minVal) dtInput.value = minVal;
+
+  $('schedModal').style.display = 'flex';
+};
+
+window.closeScheduleModal = function () {
+  $('schedModal').style.display = 'none';
+};
+
+window.saveSchedule = async function () {
+  const pageId    = $('pageSelect')?.value;
+  const pageToken = window.currentPageToken || window._currentPageToken || '';
+  const pageName  = $('pageSelect')?.selectedOptions?.[0]?.text || '';
+  const message   = ($('messageText')?.value || '').trim();
+  const imageUrl  = currentImageUrl || '';
+  const delayMs   = Math.max(500, parseInt($('delayMs')?.value, 10) || 1200);
+  const dtVal     = $('schedDateTime')?.value;
+
+  if (!dtVal) { showStatus('Select a date and time.', 'warning'); return; }
+  const scheduledAt = new Date(dtVal).toISOString();
+
+  const btn = $('schedConfirmBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Scheduling…';
+
+  try {
+    const csrf = await getCsrfToken();
+    const res  = await fetch('/api/schedules', {
+      method: 'POST', credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrf },
+      body: JSON.stringify({ page_id: pageId, page_name: pageName, page_token: pageToken, message, image_url: imageUrl, delay_ms: delayMs, scheduled_at: scheduledAt })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to schedule');
+    closeScheduleModal();
+    showStatus('Broadcast scheduled!', 'success');
+    loadSchedules();
+  } catch (e) {
+    showStatus(e.message || 'Failed to schedule.', 'error');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fa-solid fa-calendar-check"></i> Schedule Broadcast';
+  }
+};
+
+async function getCsrfToken() {
+  const r = await fetch('/api/csrf-token', { credentials: 'same-origin' });
+  const d = await r.json();
+  return d.csrfToken || d.token || '';
+}
+
+async function loadSchedules() {
+  try {
+    const res  = await fetch('/api/schedules', { credentials: 'same-origin' });
+    const data = await res.json();
+    renderSchedules(data.schedules || []);
+  } catch (_) { }
+}
+
+function renderSchedules(list) {
+  const listEl  = $('schedList');
+  const emptyEl = $('schedEmpty');
+  const badge   = $('schedBadge');
+  if (!listEl) return;
+
+  const pending = list.filter(s => s.status === 'pending' || s.status === 'running');
+  if (badge) { badge.textContent = pending.length; badge.style.display = pending.length ? '' : 'none'; }
+
+  if (!list.length) {
+    listEl.innerHTML = '';
+    if (emptyEl) emptyEl.style.display = '';
+    return;
+  }
+  if (emptyEl) emptyEl.style.display = 'none';
+
+  const iconMap   = { pending: 'fa-clock', running: 'fa-spinner fa-spin', done: 'fa-check', failed: 'fa-xmark' };
+  const statusLbl = { pending: 'Pending', running: 'Sending…', done: 'Done', failed: 'Failed' };
+
+  listEl.innerHTML = list.map(s => {
+    const icon    = iconMap[s.status] || 'fa-clock';
+    const dt      = new Date(s.scheduled_at);
+    const timeStr = dt.toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+    const msg     = (s.message || '').length > 60 ? s.message.slice(0, 57) + '…' : s.message;
+    const cancelBtn = s.status === 'pending'
+      ? `<button class="sched-item-cancel" onclick="cancelSchedule(${s.id})" title="Cancel"><i class="fa-solid fa-xmark"></i></button>`
+      : '';
+    const stats = s.status === 'done' ? ` · ${s.sent_count}/${s.total_recipients} sent` : (s.status === 'failed' ? ` · ${s.error_message || 'error'}` : '');
+    return `<div class="sched-item">
+      <div class="sched-item-icon sched-item-icon--${s.status}"><i class="fa-solid ${icon}"></i></div>
+      <div class="sched-item-info">
+        <div class="sched-item-page">${escHtml(s.page_name || s.page_id)}</div>
+        <div class="sched-item-msg">${escHtml(msg)}</div>
+        <div class="sched-item-time"><i class="fa-regular fa-clock"></i>${timeStr}${escHtml(stats)}</div>
+      </div>
+      <span class="sched-item-status sched-status--${s.status}">${statusLbl[s.status] || s.status}</span>
+      ${cancelBtn}
+    </div>`;
+  }).join('');
+}
+
+window.cancelSchedule = async function (id) {
+  if (!confirm('Cancel this scheduled broadcast?')) return;
+  try {
+    const csrf = await getCsrfToken();
+    const res  = await fetch(`/api/schedules/${id}`, {
+      method: 'DELETE', credentials: 'same-origin',
+      headers: { 'X-CSRF-Token': csrf }
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed');
+    showStatus('Schedule cancelled.', 'info');
+    loadSchedules();
+  } catch (e) {
+    showStatus(e.message, 'error');
+  }
+};
+
+window.toggleSchedulePanel = function () {
+  _schedPanelOpen = !_schedPanelOpen;
+  const body    = $('schedPanelBody');
+  const chevron = $('schedChevron');
+  if (body)    body.classList.toggle('open', _schedPanelOpen);
+  if (chevron) chevron.classList.toggle('open', _schedPanelOpen);
+};
+
+// Load schedules whenever broadcast view is shown and refresh every 30s
+(function initSchedulePanel() {
+  const origSwitch = window.switchDashboardView;
+  window.switchDashboardView = function (view) {
+    origSwitch(view);
+    if (view === 'broadcast') loadSchedules();
+  };
+  setInterval(() => {
+    if (document.getElementById('view-broadcast')?.style.display !== 'none') loadSchedules();
+  }, 30_000);
+})();
 
 // Switch between dashboard views
 function switchDashboardView(view) {
