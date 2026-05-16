@@ -977,7 +977,19 @@ app.all(['/api/messenger', '/messenger_api.php'], requireAuth, async (req, res) 
                 const psid = req.query.psid;
                 if (!pageId || !psid) return res.status(400).json({ error: 'page_id and psid required' });
                 const convId = `${pageId}_${psid}`;
-                const messages = await db.getMessages(convId);
+                const dbMessages = await db.getMessages(convId);
+                
+                // Map to frontend expected names
+                const messages = dbMessages.map(m => ({
+                    ...m,
+                    message_id: m.mid,
+                    message: m.text,
+                    from_me: m.isFromPage ? 1 : 0,
+                    created_at: m.createdTime,
+                    attachment_url: m.attachments?.[0]?.u || null,
+                    attachment_type: m.attachments?.[0]?.t || null
+                }));
+
                 return res.json({ messages, conv_id: convId });
             }
 
@@ -996,7 +1008,15 @@ app.all(['/api/messenger', '/messenger_api.php'], requireAuth, async (req, res) 
                 const totalUnread = await db.getTotalUnread(pageId);
 
                 return res.json({
-                    new_messages: newMessages,
+                    new_messages: newMessages.map(m => ({
+                        ...m,
+                        message_id: m.mid,
+                        message: m.text,
+                        from_me: m.isFromPage ? 1 : 0,
+                        created_at: m.createdTime,
+                        attachment_url: m.attachments?.[0]?.u || null,
+                        attachment_type: m.attachments?.[0]?.t || null
+                    })),
                     updated_convs: updatedConvs,
                     total_unread: totalUnread,
                     server_time: new Date().toISOString()
