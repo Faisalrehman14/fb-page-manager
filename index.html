@@ -999,35 +999,34 @@ window.getCsrfToken = async (forceRefresh = false) => {
       <!-- ── Main 2-col grid ── -->
       <div class="hv-main-grid">
 
-        <!-- LEFT: Connected Pages -->
+        <!-- LEFT: Recent Broadcasts -->
         <div class="hv-panel hv-panel-pages">
           <div class="hv-panel-hdr">
             <div class="hv-panel-hdr-left">
-              <div class="hv-panel-icon-wrap"><i class="fa-brands fa-facebook-messenger"></i></div>
+              <div class="hv-panel-icon-wrap"><i class="fa-solid fa-clock-rotate-left"></i></div>
               <div>
-                <div class="hv-panel-title">Connected Pages</div>
-                <div class="hv-panel-sub">Your Facebook pages</div>
+                <div class="hv-panel-title">Recent Broadcasts</div>
+                <div class="hv-panel-sub">Your latest campaigns</div>
               </div>
             </div>
-            <div style="display:flex;align-items:center;gap:8px">
-              <span class="hv-count-pill" id="homePagesCountBadge">0</span>
-              <button class="hv-add-btn" onclick="triggerConnect()">
-                <i class="fa-solid fa-plus"></i> Add Page
-              </button>
-            </div>
+            <span class="hv-act-badge" id="hrsBadge" style="display:none">0 sent</span>
           </div>
-          <div class="hv-pages-grid" id="homePagesList">
-            <div class="hv-empty-state">
+          <div id="homeActivityList" class="hv-activity-body">
+            <div class="hv-empty-state hv-empty-state-sm">
               <div class="hv-empty-icon-wrap">
-                <i class="fa-brands fa-facebook-messenger"></i>
+                <i class="fa-solid fa-paper-plane"></i>
               </div>
-              <h4 class="hv-empty-title">No pages connected</h4>
-              <p class="hv-empty-text">Connect your Facebook pages to start broadcasting messages and managing conversations.</p>
-              <button class="hv-empty-cta" onclick="triggerConnect()">
-                <i class="fa-brands fa-facebook"></i> Connect Facebook
+              <h4 class="hv-empty-title">No broadcasts yet</h4>
+              <p class="hv-empty-text">Start your first campaign and reach all your page followers instantly.</p>
+              <button class="hv-empty-cta" onclick="switchDashboardView('broadcast')">
+                <i class="fa-solid fa-bullhorn"></i> Create Campaign
               </button>
             </div>
           </div>
+          <div id="hrsResultsGrid" style="padding:0 16px 16px"></div>
+          <!-- hidden compat -->
+          <div id="homePagesList" style="display:none"></div>
+          <span id="homePagesCountBadge" style="display:none"></span>
         </div>
 
         <!-- RIGHT: Plan + Quick Actions -->
@@ -1100,33 +1099,6 @@ window.getCsrfToken = async (forceRefresh = false) => {
 
         </div><!-- /hv-right-col -->
       </div><!-- /hv-main-grid -->
-
-      <!-- ── Recent Broadcasts ── -->
-      <div class="hv-panel hv-activity-panel">
-        <div class="hv-panel-hdr">
-          <div class="hv-panel-hdr-left">
-            <div class="hv-panel-icon-wrap"><i class="fa-solid fa-clock-rotate-left"></i></div>
-            <div>
-              <div class="hv-panel-title">Recent Broadcasts</div>
-              <div class="hv-panel-sub">Your latest campaigns</div>
-            </div>
-          </div>
-          <span class="hv-act-badge" id="hrsBadge" style="display:none">0 sent</span>
-        </div>
-        <div id="homeActivityList" class="hv-activity-body">
-          <div class="hv-empty-state hv-empty-state-sm">
-            <div class="hv-empty-icon-wrap">
-              <i class="fa-solid fa-paper-plane"></i>
-            </div>
-            <h4 class="hv-empty-title">No broadcasts yet</h4>
-            <p class="hv-empty-text">Start your first campaign and reach all your page followers instantly.</p>
-            <button class="hv-empty-cta" onclick="switchDashboardView('broadcast')">
-              <i class="fa-solid fa-bullhorn"></i> Create Campaign
-            </button>
-          </div>
-        </div>
-        <div id="hrsResultsGrid" style="padding:0 16px 16px"></div>
-      </div>
 
       <!-- hidden compat IDs -->
       <span id="homePagesCountBadge2" style="display:none"></span>
