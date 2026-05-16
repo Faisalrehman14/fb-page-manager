@@ -185,11 +185,17 @@ app.post(['/webhook', '/fb_webhook.php'], async (req, res) => {
                 const text = (event.message.text || '').trim();
                 const ts   = event.timestamp ? new Date(event.timestamp).toISOString() : new Date().toISOString();
 
+                // Correctly identify sender and receiver
+                // For normal messages: sender = customer, recipient = page
+                // For echoes (from mobile app): sender = page, recipient = customer
+                const senderId = event.sender?.id;
+                const recipientId = event.recipient?.id;
+                const participantId = isEcho ? recipientId : senderId;
+
                 const attachments = (event.message.attachments || [])
                     .map(a => ({ t: a.type || 'file', u: a.payload?.url || '' }))
                     .filter(a => a.u);
 
-                // ensureConversation creates or fetches the DB conversation ID
                 const threadId = await db.ensureConversation(pageId, participantId);
                 if (!threadId) {
                     logError('webhook_no_thread', new Error('ensureConversation returned null'), { pageId, participantId });
@@ -197,7 +203,7 @@ app.post(['/webhook', '/fb_webhook.php'], async (req, res) => {
                 }
 
                 const saved = await db.saveMessage({
-                    id: mid, threadId, pageId, senderId: participantId,
+                    id: mid, threadId, pageId, senderId: senderId,
                     senderType: isEcho ? 'page' : 'user',
                     text, isFromPage: isEcho, createdTime: ts,
                     attachments: attachments.length ? attachments : null

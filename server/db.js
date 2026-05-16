@@ -122,6 +122,22 @@ async function initDatabase() {
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
         `);
 
+        // ── 4. Sync Logs Table ────────────────────────────────────────────
+        await connection.query(`
+            CREATE TABLE IF NOT EXISTS messenger_sync_logs (
+                id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                page_id VARCHAR(64) NOT NULL,
+                phase VARCHAR(64) NOT NULL,
+                status VARCHAR(32) NOT NULL,
+                total INT DEFAULT 0,
+                done INT DEFAULT 0,
+                error_message TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                KEY idx_page_status (page_id, status)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        `);
+
         // ── 4. Migration Helpers (Safe column additions) ──────────────────
         const migrations = [
             // Conversations
@@ -899,6 +915,24 @@ async function updatePageSyncTime(pageId) {
     }
 }
 
+async function logSync(pageId, phase, status, total = 0, done = 0, errorMessage = null) {
+    if (!pool) return;
+    try {
+        await pool.query(`
+            INSERT INTO messenger_sync_logs (page_id, phase, status, total, done, error_message)
+            VALUES (?, ?, ?, ?, ?, ?)
+            ON DUPLICATE KEY UPDATE 
+                status = VALUES(status), 
+                total = VALUES(total), 
+                done = VALUES(done), 
+                error_message = VALUES(error_message),
+                updated_at = NOW()
+        `, [pageId, phase, status, total, done, errorMessage]);
+    } catch (err) {
+        console.error(`DB: logSync error [${pageId}]:`, err.message);
+    }
+}
+
 // Paginate Facebook messenger_messages DESC (newest first — default FB order).
 // Stops when the oldest message on a page is older than `cutoffMs` (ms timestamp).
 // Pass cutoffMs = null to only fetch the first page (fast incremental refresh).
@@ -982,6 +1016,7 @@ async function syncPageInitial(pageId, pageToken, fetchFn, onProgress = null) {
     const cutoff7DaysMs = Date.now() - 7 * 24 * 60 * 60 * 1000;
 
     try {
+        await logSync(pageId, 'initial_sync', 'running');
         const messenger_conversations = await syncConversationsAll(pageId, pageToken, fetchFn, null);
         if (onProgress) onProgress({ pageId, phase: 'messenger_conversations', total: messenger_conversations.length, done: 0 });
 
@@ -990,22 +1025,26 @@ async function syncPageInitial(pageId, pageToken, fetchFn, onProgress = null) {
             await syncThreadMessages(conv.id, pageId, pageToken, fetchFn, cutoff7DaysMs);
             done++;
             if (onProgress) onProgress({ pageId, phase: 'messenger_messages', total: messenger_conversations.length, done });
+            await logSync(pageId, 'initial_sync', 'running', messenger_conversations.length, done);
         });
-        // Increased parallel limit for faster sync
+        
         await parallelLimit(tasks, 20);
-
         await updatePageSyncTime(pageId);
+        await logSync(pageId, 'initial_sync', 'done', messenger_conversations.length, done);
+    } catch (err) {
+        await logSync(pageId, 'initial_sync', 'error', 0, 0, err.message);
+        throw err;
     } finally {
         syncStatus.set(pageId, false);
     }
 }
 
-// Incremental sync: only messenger_conversations + messenger_messages updated since last sync
 async function syncPageIncremental(pageId, pageToken, fetchFn, onProgress = null) {
     if (syncStatus.get(pageId)) return;
     syncStatus.set(pageId, true);
 
     try {
+        await logSync(pageId, 'incremental_sync', 'running');
         const lastSynced = await getPageSyncTime(pageId);
         const sinceUnix = lastSynced
             ? Math.floor(new Date(lastSynced).getTime() / 1000)
@@ -1021,10 +1060,15 @@ async function syncPageIncremental(pageId, pageToken, fetchFn, onProgress = null
             await syncThreadMessages(conv.id, pageId, pageToken, fetchFn, cutoffMs);
             done++;
             if (onProgress) onProgress({ pageId, phase: 'messenger_messages', total: messenger_conversations.length, done });
+            await logSync(pageId, 'incremental_sync', 'running', messenger_conversations.length, done);
         });
+        
         await parallelLimit(tasks, 20);
-
         await updatePageSyncTime(pageId);
+        await logSync(pageId, 'incremental_sync', 'done', messenger_conversations.length, done);
+    } catch (err) {
+        await logSync(pageId, 'incremental_sync', 'error', 0, 0, err.message);
+        throw err;
     } finally {
         syncStatus.set(pageId, false);
     }

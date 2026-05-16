@@ -348,6 +348,9 @@
     const msgsEl = $('msngMsgs');
     if (!msgsEl) return;
 
+    // Sort by timestamp (oldest first)
+    M.msgs.sort((a, b) => new Date(a.created_at || 0) - new Date(b.created_at || 0));
+
     if (!M.msgs.length) {
       msgsEl.innerHTML = `<div class="msng-empty" style="margin-top:60px">
         <i class="fa-regular fa-comments"></i>
