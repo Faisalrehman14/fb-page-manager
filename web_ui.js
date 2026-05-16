@@ -847,6 +847,18 @@ function updateHomeViewStats() {
   const s2 = el2('homeSentCount2');     if (s2) s2.textContent = sent.toLocaleString();
   const b2 = el2('homeTotalBroadcasts2'); if (b2) b2.textContent = window.totalBroadcastsCount || '0';
 
+  // Delivery rate
+  const deliveryRate = total > 0 ? Math.round((sent / total) * 100) : 0;
+  const failRate     = total > 0 ? Math.round((failed / total) * 100) : 0;
+  const setT = (id, v) => { const e = document.getElementById(id); if (e) e.textContent = v; };
+  const setW = (id, w) => { const e = document.getElementById(id); if (e) e.style.width = w; };
+  setT('perfDeliveryRate', deliveryRate + '%');
+  setT('perfTotalReach',   sent.toLocaleString());
+  setT('perfFailRate',     failRate + '%');
+  setT('perfPending',      pending.toLocaleString());
+  setT('heroDeliveryPct',  deliveryRate + '%');
+  setW('heroDeliveryFill', deliveryRate + '%');
+
   // Update plan banner
   const planName = document.getElementById('homePlanName');
   const msgUsed = document.getElementById('homeMsgUsed');
