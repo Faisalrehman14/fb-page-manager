@@ -899,12 +899,13 @@ function svRenderSchedules(list) {
     const cancelBtn = s.status === 'pending'
       ? `<button class="sv-item-cancel" onclick="svCancelSchedule(${s.id})" title="Cancel schedule"><i class="fa-solid fa-xmark"></i></button>`
       : '';
+    const metaIcon = s.status === 'done' ? 'fa-solid fa-circle-check' : s.status === 'failed' ? 'fa-solid fa-circle-xmark' : 'fa-regular fa-clock';
     return `<div class="sv-item">
       <div class="sv-item-icon sv-item-icon--${s.status}"><i class="fa-solid ${icon}"></i></div>
       <div class="sv-item-info">
         <div class="sv-item-pages">${pages}</div>
         <div class="sv-item-msg">${escHtml(msg)}</div>
-        <div class="sv-item-meta"><i class="fa-regular fa-clock"></i>${timeStr}${statsLine ? ' · ' : ''}${statsLine}</div>
+        <div class="sv-item-meta"><i class="${metaIcon}"></i>${timeStr}${statsLine ? ' · ' : ''}${statsLine}</div>
       </div>
       <div class="sv-item-right">
         <span class="sv-status sv-status--${s.status}">${statusLbl[s.status] || s.status}</span>
