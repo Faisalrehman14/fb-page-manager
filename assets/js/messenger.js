@@ -351,9 +351,12 @@
     const n = parseInt(count) || 0;
     M.pageUnread[pageId] = n;
     const badge = $('msngPageBadge_' + pageId);
-    if (!badge) return;
-    badge.style.display = n > 0 ? 'flex' : 'none';
-    badge.textContent   = n > 99 ? '99+' : n;
+    if (badge) {
+      badge.style.display = n > 0 ? 'flex' : 'none';
+      badge.textContent   = n > 99 ? '99+' : n;
+    }
+    const sub = $('msngPageSub_' + pageId);
+    if (sub) sub.textContent = n > 0 ? n + ' unread' : 'No unread';
   }
 
   // ══════════════════════════════════════════════════════════
@@ -1378,14 +1381,16 @@
         : `<div class="msng-page-avatar-ph">${esc(initial)}</div>`;
 
       const pgUnread = M.pageUnread[p.id] || 0;
+      const subText  = pgUnread > 0 ? `${pgUnread} unread` : 'No unread';
       const pgBadge  = `<span class="msng-page-badge" id="msngPageBadge_${esc(p.id)}"
                               style="display:${pgUnread > 0 ? 'flex' : 'none'}">${pgUnread > 99 ? '99+' : pgUnread}</span>`;
       return `<div class="msng-page-item ${isActive ? 'active' : ''}" data-page-id="${esc(p.id)}">
-        <div class="msng-page-avatar-wrap">
-          ${avatar}
-          ${pgBadge}
+        <div class="msng-page-avatar-wrap">${avatar}</div>
+        <div class="msng-page-info">
+          <div class="msng-page-name">${esc(p.name)}</div>
+          <div class="msng-page-sub" id="msngPageSub_${esc(p.id)}">${esc(subText)}</div>
         </div>
-        <span class="msng-page-name">${esc(p.name)}</span>
+        ${pgBadge}
       </div>`;
     }).join('');
 
