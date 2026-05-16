@@ -810,22 +810,42 @@
 
   async function loadMessages(before = null) {
     if (!M.activePageId || !M.activePsid) return;
+    const msgsEl = $('msngMsgs');
+    if (!before && msgsEl) {
+      msgsEl.innerHTML = `<div class="msng-empty" style="margin-top:60px">
+        <div class="msng-sk-circle" style="margin:0 auto 12px"></div>
+        <p style="opacity:.5">Loading messages…</p>
+      </div>`;
+    }
     try {
       const data = await get('load_messages', {
         page_id: M.activePageId, psid: M.activePsid, limit: 50, before: before || '',
       });
-      if (data.error) throw new Error(data.error);
+      if (data.error) {
+        console.error('[Messenger] loadMessages error:', data.error);
+        if (!before && msgsEl) msgsEl.innerHTML = `<div class="msng-empty" style="margin-top:60px">
+          <i class="fa-solid fa-triangle-exclamation" style="color:#f87171"></i>
+          <p style="color:#f87171">${esc(data.error)}</p>
+          <button onclick="window.msngRefresh()" style="margin-top:8px;padding:6px 16px;background:var(--primary-color);color:#fff;border:none;border-radius:6px;cursor:pointer">Retry</button>
+        </div>`;
+        return;
+      }
       if (before) {
         M.msgs = [...(data.messages || []), ...M.msgs];
         renderMessages('prepend');
       } else {
-        M.msgs          = data.messages || [];
+        M.msgs           = data.messages || [];
         M.renderedMsgIds = new Set();
         renderMessages('replace');
       }
       if (M.msgs.length > 0) M.oldestMsgTime = M.msgs[0].created_at;
     } catch (e) {
       console.error('[Messenger] loadMessages:', e);
+      if (!before && msgsEl) msgsEl.innerHTML = `<div class="msng-empty" style="margin-top:60px">
+        <i class="fa-solid fa-triangle-exclamation" style="color:#f87171"></i>
+        <p style="color:#f87171">Failed to load messages</p>
+        <button onclick="window.msngRefresh()" style="margin-top:8px;padding:6px 16px;background:var(--primary-color);color:#fff;border:none;border-radius:6px;cursor:pointer">Retry</button>
+      </div>`;
     }
   }
 

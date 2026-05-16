@@ -991,7 +991,7 @@ app.all(['/api/messenger', '/messenger_api.php'], requireAuth, async (req, res) 
                     attachment_type: (m.attachments?.[0]?.t) || null
                 });
 
-                // Try DB cache first (using correct integer convId lookup)
+                // Try DB cache first
                 if (dbConnected) {
                     const convId = await db.getConversationIdByParticipant(pageId, psid);
                     if (convId) {
@@ -1000,22 +1000,34 @@ app.all(['/api/messenger', '/messenger_api.php'], requireAuth, async (req, res) 
                     }
                 }
 
-                // Fallback: fetch live from Facebook Graph API
+                // Fetch live from Facebook — 2-step: get conv ID, then get messages
                 const token = req.session.pageTokens?.[pageId] || (dbConnected ? await db.getPageToken(pageId) : null);
-                if (!token) return res.status(401).json({ error: 'Page token not found', messages: [] });
+                if (!token) return res.json({ messages: [], error: 'No page token — reload pages' });
 
                 try {
-                    // Get conversation ID for this user, then its messages
-                    const convListUrl = `https://graph.facebook.com/v19.0/${pageId}/conversations?user_id=${encodeURIComponent(psid)}&fields=id,messages.limit(${limit}){message,from,created_time,attachments}&access_token=${token}`;
-                    const convListRes = await fetch(convListUrl);
-                    const convListData = await convListRes.json();
+                    // Step 1: find the conversation ID for this user
+                    const convLookup = await fetch(
+                        `https://graph.facebook.com/v19.0/${pageId}/conversations?user_id=${encodeURIComponent(psid)}&fields=id&limit=1&access_token=${token}`
+                    );
+                    const convLookupData = await convLookup.json();
+                    if (convLookupData.error) {
+                        logError('load_messages_conv_lookup', new Error(convLookupData.error.message), { pageId, psid });
+                        return res.json({ messages: [], error: convLookupData.error.message });
+                    }
+                    const fbConvId = convLookupData.data?.[0]?.id;
+                    if (!fbConvId) return res.json({ messages: [] });
 
-                    if (convListData.error) return res.json({ messages: [], error: convListData.error.message });
+                    // Step 2: fetch messages for that conversation
+                    const msgsRes = await fetch(
+                        `https://graph.facebook.com/v19.0/${fbConvId}/messages?fields=id,message,from,created_time,attachments{image_data,file_url,type}&limit=${limit}&access_token=${token}`
+                    );
+                    const msgsData = await msgsRes.json();
+                    if (msgsData.error) {
+                        logError('load_messages_msgs', new Error(msgsData.error.message), { pageId, psid, fbConvId });
+                        return res.json({ messages: [], error: msgsData.error.message });
+                    }
 
-                    const conv = convListData.data?.[0];
-                    if (!conv) return res.json({ messages: [] });
-
-                    const messages = (conv.messages?.data || []).reverse().map(m => ({
+                    const messages = (msgsData.data || []).reverse().map(m => ({
                         message_id:      m.id,
                         message:         m.message || '',
                         from_me:         m.from?.id === pageId ? 1 : 0,
@@ -1024,7 +1036,7 @@ app.all(['/api/messenger', '/messenger_api.php'], requireAuth, async (req, res) 
                         attachment_type: m.attachments?.data?.[0]?.type || null
                     }));
 
-                    return res.json({ messages, conv_id: conv.id });
+                    return res.json({ messages, conv_id: fbConvId });
                 } catch (fbErr) {
                     logError('load_messages_fb', fbErr, { pageId, psid });
                     return res.json({ messages: [] });
