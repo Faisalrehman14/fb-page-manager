@@ -603,11 +603,6 @@ function parseAttachments(fbAttachments) {
 }
 
 async function syncMessagesFromFacebook(threadId, pageId, pageToken, fetchFn, limit = 20) {
-    if (!pool) {
-        console.log('DB: syncMessages - pool not available');
-        return [];
-    }
-
     try {
         const response = await fetchFn(
             `https://graph.facebook.com/v19.0/${threadId}/messages?fields=id,message,from,created_time,attachments&limit=${limit}&access_token=${pageToken}`
@@ -628,13 +623,17 @@ async function syncMessagesFromFacebook(threadId, pageId, pageToken, fetchFn, li
             createdTime: msg.created_time
         }));
 
-        await saveMessages(messenger_messages);
-        return await getMessages(threadId, limit);
+        if (pool) {
+            await saveMessages(messenger_messages);
+            return await getMessages(threadId, limit);
+        }
+        return messenger_messages;
 
     } catch (err) {
         addDbError(`syncMessagesFromFacebook: ${err.message}`);
         console.error('DB: syncMessages error:', err.message);
-        return await getMessages(threadId);
+        if (pool) return await getMessages(threadId);
+        return [];
     }
 }
 
