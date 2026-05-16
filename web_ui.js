@@ -830,14 +830,7 @@ function switchDashboardView(view) {
     const el = document.getElementById('view-' + s);
     if (!el) return;
     if (s !== view) { el.style.display = 'none'; return; }
-    // Templates needs flex column to scroll properly
     el.style.display = s === 'templates' ? 'flex' : '';
-    if (s === 'templates') {
-      el.style.flexDirection = 'column';
-      el.style.flex = '1';
-      el.style.minHeight = '0';
-      el.style.overflow = 'hidden';
-    }
   });
 
   // Hide pages sidebar on templates view
