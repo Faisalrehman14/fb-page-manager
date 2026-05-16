@@ -825,16 +825,21 @@ function switchDashboardView(view) {
   if (activeItem) activeItem.classList.add('active');
 
   // Show/hide sections
-  const sections = ['home', 'broadcast', 'analytics', 'messenger', 'templates', 'settings', 'help'];
+  const sections = ['home', 'broadcast', 'messenger', 'templates'];
   sections.forEach(s => {
     const el = document.getElementById('view-' + s);
     if (!el) return;
     if (s !== view) { el.style.display = 'none'; return; }
     if (s === 'templates') {
-      el.style.cssText = 'display:flex;flex:1;flex-direction:column;min-height:0;overflow:hidden;min-width:0';
+      el.style.cssText = 'display:flex;flex:1;flex-direction:column;height:100%;overflow:hidden;min-width:0';
     } else {
       el.style.display = '';
     }
+  });
+  // Hide any extra views that are not in main nav
+  ['analytics', 'settings', 'help'].forEach(s => {
+    const el = document.getElementById('view-' + s);
+    if (el) el.style.display = 'none';
   });
 
   // Hide pages sidebar on templates view
