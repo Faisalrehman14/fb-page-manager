@@ -1179,21 +1179,50 @@ app.all(['/api/messenger', '/messenger_api.php'], requireAuth, async (req, res) 
 
                 const mid = fbData.message_id;
                 const createdTime = new Date().toISOString();
-                let convId = null;
-                if (dbConnected) {
-                    const convInfo = await db.getConversationIdByParticipant(pageId, psid);
-                    convId = convInfo?.id || await db.ensureConversation(pageId, psid);
-                }
+                
+                // Ensure conversation exists and get its numeric ID
+                const convInfo = await db.getConversationIdByParticipant(pageId, psid);
+                const convId = convInfo?.id || await db.ensureConversation(pageId, psid);
 
                 if (convId) {
-                    await db.saveMessage({ id: mid, threadId: convId, pageId, senderId: pageId, text: message || '[Image]', isFromPage: true, createdTime });
-                    await db.updateConversationFromMessage({ threadId: convId, text: message || '[Image]', createdTime }).catch(() => {});
+                    await db.saveMessage({ 
+                        id: mid, 
+                        threadId: convId, 
+                        pageId, 
+                        senderId: pageId, 
+                        text: message || '[Image]', 
+                        isFromPage: true, 
+                        createdTime 
+                    });
+                    await db.updateConversationFromMessage({ 
+                        threadId: convId, 
+                        text: message || '[Image]', 
+                        createdTime,
+                        lastFromMe: true 
+                    }).catch(() => {});
                 }
 
-                // Emit real-time events so all agents see the sent message instantly
+                // Emit real-time events
                 setImmediate(() => {
-                    io.to(`page_${pageId}`).emit('new_message',          { id: mid, threadId: convId || psid, pageId, participantId: psid, text: message || '[Image]', isFromPage: true, createdTime });
-                    io.to(`page_${pageId}`).emit('conversation_updated', { id: convId || psid, pageId, participantId: psid, snippet: message || '[Image]', updatedTime: new Date(), isRead: true, unreadCount: 0, lastMessageFromPage: true });
+                    io.to(`page_${pageId}`).emit('new_message', { 
+                        id: mid, 
+                        threadId: convId, 
+                        pageId, 
+                        participantId: psid, 
+                        text: message || '[Image]', 
+                        isFromPage: true, 
+                        createdTime 
+                    });
+                    io.to(`page_${pageId}`).emit('conversation_updated', { 
+                        id: convId, 
+                        pageId, 
+                        participantId: psid, 
+                        snippet: message || '[Image]', 
+                        updatedTime: new Date(), 
+                        isRead: true, 
+                        unreadCount: 0, 
+                        lastMessageFromPage: true 
+                    });
                 });
 
                 return res.json({ success: true, message_id: mid });
