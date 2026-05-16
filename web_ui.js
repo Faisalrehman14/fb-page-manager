@@ -859,10 +859,14 @@ function svPopulatePages() {
     return;
   }
   box.innerHTML = pages.map(p => {
+    const picUrl  = p.picture?.data?.url || p.picture || '';
     const initial = (p.name || p.id || '?')[0].toUpperCase();
-    return `<div class="sv2-page-item" onclick="this.classList.toggle('selected');this.querySelector('input').checked=this.classList.contains('selected')" >
+    const avatar  = picUrl
+      ? `<img src="${escHtml(picUrl)}" class="sv2-page-avatar-img" alt="" onerror="this.style.display='none';this.nextSibling.style.display='flex'">${initial}`
+      : initial;
+    return `<div class="sv2-page-item" onclick="this.classList.toggle('selected');this.querySelector('input').checked=this.classList.contains('selected')">
       <input type="checkbox" value="${escHtml(p.id)}" data-token="${escHtml(p.access_token || '')}" data-name="${escHtml(p.name || p.id)}" checked style="display:none">
-      <div class="sv2-page-avatar">${initial}</div>
+      <div class="sv2-page-avatar">${avatar}</div>
       <div class="sv2-page-name">${escHtml(p.name || p.id)}</div>
       <i class="fa-solid fa-circle-check sv2-page-check-icon"></i>
     </div>`;
@@ -922,7 +926,7 @@ function svRenderSchedules(list) {
         <div class="sv2-card-pages"><i class="fa-solid fa-layer-group"></i> ${pages}</div>
         <div class="sv2-card-msg">${escHtml(msg)}</div>
         <div class="sv2-card-meta">
-          <i class="fa-regular fa-clock"></i> ${timeStr}
+          <i class="${s.status === 'done' ? 'fa-solid fa-circle-check' : s.status === 'failed' ? 'fa-solid fa-circle-xmark' : 'fa-regular fa-clock'}"></i> ${timeStr}
           ${statsLine ? ' · ' + statsLine : ''}
         </div>
       </div>
@@ -959,13 +963,13 @@ window.svSaveSchedule = async function () {
 
   const pages = checks.map(cb => ({ id: cb.value, name: cb.dataset.name, token: cb.dataset.token }));
   const message = ($('svMessage')?.value || '').trim();
-  if (!message) { showStatus('Write a message first.', 'warning'); return; }
+  const imageUrl    = ($('svImageUrl')?.value || '').trim();
+  if (!message && !imageUrl) { showStatus('Write a message or add an image.', 'warning'); return; }
 
   const dtVal = $('svDateTime')?.value;
   if (!dtVal) { showStatus('Select a scheduled date and time.', 'warning'); return; }
 
   const scheduledAt = new Date(dtVal).toISOString();
-  const imageUrl    = ($('svImageUrl')?.value || '').trim();
   const delayMs     = parseInt($('svDelay')?.value, 10) || 1200;
 
   const btn = $('svSubmitBtn');
