@@ -457,6 +457,37 @@
     return false;
   }
 
+  // Race-condition guard: Facebook echoes our sent message back before the POST
+  // response arrives → renderedMsgIds doesn't have the message_id yet → duplicate.
+  // Fix: find the matching pending bubble and confirm it in-place.
+  function _tryConfirmPending(msg) {
+    if (msg.from_me != 1 || !msg.message_id) return false;
+    const pending = M.msgs.find(m => m._pending && !m.message_id && m.message === (msg.message || ''));
+    if (!pending) return false;
+
+    pending.message_id = msg.message_id;
+    pending._pending   = false;
+    M.renderedMsgIds.add(msg.message_id);
+
+    if (pending._tempId) {
+      const bubble = document.querySelector(`[data-temp-id="${pending._tempId}"]`);
+      if (bubble) {
+        bubble.removeAttribute('data-temp-id');
+        bubble.classList.remove('pending');
+        bubble.dataset.msgId = msg.message_id;
+        if (msg.created_at) bubble.dataset.createdTs = new Date(msg.created_at).getTime();
+        const tickEl = bubble.querySelector('.msng-tick');
+        if (tickEl) {
+          tickEl.className = 'msng-tick msng-tick--sent';
+          tickEl.title     = 'Sent';
+          tickEl.innerHTML = '<i class="fa-solid fa-check"></i>';
+        }
+      }
+      delete pending._tempId;
+    }
+    return true;
+  }
+
   function scrollToBottom(smooth = false) {
     const msgsEl = $('msngMsgs');
     if (!msgsEl) return;
@@ -568,6 +599,7 @@
       // New messages in the open conversation — always scroll to bottom
       let gotNewMsg = false;
       (data.new_messages || []).forEach(msg => {
+        if (_tryConfirmPending(msg)) return; // our own echo — confirm pending bubble, skip append
         if (!isDuplicate(msg)) {
           M.msgs.push(msg);
           appendBubble(msg);
@@ -1420,10 +1452,11 @@
           attachment_url:  msg.attachments?.[0]?.u || null,
           attachment_type: msg.attachments?.[0]?.t || null
         };
-        if (!isDuplicate(normalized)) {
+        const confirmedPending = _tryConfirmPending(normalized); // race-condition guard for own echo
+        if (!confirmedPending && !isDuplicate(normalized)) {
           M.msgs.push(normalized);
           appendBubble(normalized);
-          scrollToBottom(true); // Always scroll on incoming message
+          scrollToBottom(true);
         }
       }
 
