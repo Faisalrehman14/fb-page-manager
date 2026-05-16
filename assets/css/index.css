@@ -3214,3 +3214,39 @@ body.annual .price-billing-annual{display:block}
 
 /* Plan features — 2-col grid, 8 items */
 .hv-plan-features { grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 18px; }
+
+/* ── Platform Status (inside plan card) ─────── */
+.hv-pstatus {
+  margin-top: 18px; padding-top: 16px;
+  border-top: 1px solid rgba(255,255,255,.07);
+}
+.hv-pstatus-hdr {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 12px;
+}
+.hv-pstatus-title {
+  font-size: 11px; font-weight: 700; color: var(--text2);
+  display: flex; align-items: center; gap: 6px;
+}
+.hv-pstatus-title i { color: #34D399; font-size: 12px; }
+.hv-pstatus-badge {
+  display: flex; align-items: center; gap: 5px;
+  font-size: 9px; font-weight: 700; color: #34D399;
+  background: rgba(16,185,129,.1); border: 1px solid rgba(16,185,129,.2);
+  padding: 3px 8px; border-radius: 20px;
+}
+.hv-pstatus-list { display: flex; flex-direction: column; gap: 2px; }
+.hv-pstatus-item {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 7px 10px; border-radius: 8px;
+  transition: background .15s;
+}
+.hv-pstatus-item:hover { background: rgba(255,255,255,.04); }
+.hv-pstatus-name {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 11px; font-weight: 500; color: var(--text2);
+}
+.hv-pstatus-name i { font-size: 12px; color: var(--text3); width: 14px; text-align: center; }
+.hv-pstatus-dot {
+  width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+}

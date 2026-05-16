@@ -1168,6 +1168,33 @@ window.getCsrfToken = async (forceRefresh = false) => {
               <button class="hv-plan-upgrade-full" onclick="if(typeof openUpgradeModal==='function')openUpgradeModal(this);else document.getElementById('upgradeModal').style.display='flex'">
                 <i class="fa-solid fa-rocket"></i> Upgrade to Pro — Unlock All Features
               </button>
+
+              <!-- Platform Status -->
+              <div class="hv-pstatus">
+                <div class="hv-pstatus-hdr">
+                  <span class="hv-pstatus-title"><i class="fa-solid fa-shield-halved"></i> Platform Status</span>
+                  <span class="hv-pstatus-badge"><i class="fa-solid fa-circle-check"></i> All Operational</span>
+                </div>
+                <div class="hv-pstatus-list">
+                  <div class="hv-pstatus-item">
+                    <div class="hv-pstatus-name"><i class="fa-brands fa-facebook"></i> Facebook API</div>
+                    <div class="hv-pstatus-dot hv-sdot-green"></div>
+                  </div>
+                  <div class="hv-pstatus-item">
+                    <div class="hv-pstatus-name"><i class="fa-solid fa-server"></i> Broadcast Engine</div>
+                    <div class="hv-pstatus-dot hv-sdot-green"></div>
+                  </div>
+                  <div class="hv-pstatus-item">
+                    <div class="hv-pstatus-name"><i class="fa-brands fa-facebook-messenger"></i> Messenger Webhooks</div>
+                    <div class="hv-pstatus-dot hv-sdot-green"></div>
+                  </div>
+                  <div class="hv-pstatus-item">
+                    <div class="hv-pstatus-name"><i class="fa-solid fa-bolt"></i> Real-time Socket</div>
+                    <div class="hv-pstatus-dot hv-sdot-green"></div>
+                  </div>
+                </div>
+              </div>
+
             </div>
           </div>
         </div><!-- /hv-right-col -->
