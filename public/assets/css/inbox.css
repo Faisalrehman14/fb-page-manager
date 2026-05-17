@@ -820,7 +820,10 @@ body {
    Loading & Empty States
    ============================================================================= */
 
-.loading {
+/* Scoped — do not use bare .loading on dashboard buttons (breaks sidebar layout) */
+.inbox-loading-panel,
+#conversationList .loading,
+#messagesContainer .loading {
     display: flex;
     flex-direction: column;
     align-items: center;

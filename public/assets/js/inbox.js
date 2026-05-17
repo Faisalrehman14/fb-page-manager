@@ -331,7 +331,7 @@ function showLoading(containerId) {
     const container = document.getElementById(containerId);
     if (container) {
         container.innerHTML = `
-            <div class="loading">
+            <div class="inbox-loading-panel">
                 <div class="loading-spinner"></div>
                 <span>Loading...</span>
             </div>

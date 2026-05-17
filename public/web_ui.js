@@ -121,7 +121,7 @@ function setLoading(btn, loading) {
   if (!btn) return;
   btn.disabled = !!loading;
   btn.classList.toggle('is-loading', !!loading);
-  btn.classList.toggle('loading', !!loading);
+  /* Never add global class "loading" — inbox.css defines .loading as a full panel (breaks sidebar btn). */
 }
 
 async function runWithRetry(action, options = {}) {
@@ -150,22 +150,26 @@ async function runWithRetry(action, options = {}) {
 
 async function loadPagesFromFacebook(options = {}) {
   const silent = !!options.silent;
-  if (!silent) {
-    showStatus('Loading pages from Facebook…', 'info');
-  }
-  const pages = await runWithRetry(async () => fetchUserPages(), { label: 'Loading pages', maxAttempts: 2 });
-  renderPages(pages || []);
-  window.dispatchEvent(new CustomEvent('fbc:pages-ready', { detail: { count: (pages || []).length } }));
-  if (typeof window.updateHomeViewStats === 'function') window.updateHomeViewStats();
-  uiTrackEvent('pages_refresh_success', { count: (pages || []).length, source: silent ? 'auto' : 'manual' });
-  if (!silent) {
-    if ((pages || []).length === 0) {
-      showStatus('No pages found. Confirm app permissions and page admin access.', 'warning');
-    } else {
-      showStatus(`${(pages || []).length} page(s) loaded.`, 'success');
+  const pageCards = $('pageCards');
+  const scrollEl = pageCards?.closest('.sidebar-pages');
+  if (pageCards) pageCards.classList.add('pages-syncing');
+  try {
+    const pages = await runWithRetry(async () => fetchUserPages(), { label: 'Loading pages', maxAttempts: 2 });
+    renderPages(pages || [], { scrollEl });
+    window.dispatchEvent(new CustomEvent('fbc:pages-ready', { detail: { count: (pages || []).length } }));
+    if (typeof window.updateHomeViewStats === 'function') window.updateHomeViewStats();
+    uiTrackEvent('pages_refresh_success', { count: (pages || []).length, source: silent ? 'auto' : 'manual' });
+    if (!silent && typeof window.showToast === 'function') {
+      if ((pages || []).length === 0) {
+        window.showToast('No pages found. Check Facebook permissions.', 'warning');
+      } else {
+        window.showToast(`${(pages || []).length} page(s) synced.`, 'success');
+      }
     }
+    return pages || [];
+  } finally {
+    if (pageCards) pageCards.classList.remove('pages-syncing');
   }
-  return pages || [];
 }
 
 let statusTimer;
@@ -252,13 +256,14 @@ function pagePictureUrl(p) {
   return '';
 }
 
-function renderPages(pages) {
+function renderPages(pages, opts) {
   const container = $('pageCards');
   const select = $('pageSelect');
   if (!container || !select) return;
 
   const previousPageId = select.value || null;
-  const scrollTop = container.scrollTop;
+  const scrollEl = (opts && opts.scrollEl) || container.closest('.sidebar-pages') || container;
+  const scrollTop = scrollEl.scrollTop;
 
   container.innerHTML = '';
   select.innerHTML = '';
@@ -328,8 +333,14 @@ function renderPages(pages) {
     ? previousPageId
     : pages[0].id;
   const targetCard = container.querySelector('.page-card[data-id="' + targetId + '"]');
-  if (targetCard) targetCard.click();
-  container.scrollTop = scrollTop;
+  if (targetCard) {
+    targetCard.classList.add('selected');
+    select.value = targetId;
+    window.currentPageToken = (pages.find(p => p.id === targetId) || {}).access_token || '';
+    updateSendHint();
+    updateCampaignIntel();
+  }
+  scrollEl.scrollTop = scrollTop;
   if (typeof svPopulatePages === 'function') svPopulatePages();
 }
 
@@ -680,7 +691,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   btnFetchPages?.addEventListener('click', async () => {
     if (btnFetchPages.disabled) return;
-    setLoading(btnFetchPages, true);
+    btnFetchPages.disabled = true;
     btnFetchPages.classList.add('spinning');
     uiTrackEvent('pages_refresh_click', { source: 'manual' });
     try {
@@ -688,13 +699,12 @@ document.addEventListener('DOMContentLoaded', () => {
     } catch (e) {
       uiTrackEvent('pages_refresh_error', { message: e.message || 'failed_to_fetch_pages' });
       const msg = e && e.message ? e.message : 'Failed to fetch pages.';
-      showStatus(msg, 'error');
       if (typeof window.showToast === 'function') {
         window.showToast('Refresh failed: ' + msg, 'error');
       }
     } finally {
       btnFetchPages.classList.remove('spinning');
-      setLoading(btnFetchPages, false);
+      btnFetchPages.disabled = false;
     }
   });
 
