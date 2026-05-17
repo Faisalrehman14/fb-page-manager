@@ -1,0 +1,746 @@
+/**
+ * FBCast Pro — Dashboard Home (professional SaaS layout)
+ * Scoped to #view-home — loads after saas-premium.css
+ */
+
+#view-home.hv,
+#view-home {
+  --hd-glass: rgba(12, 24, 48, 0.65);
+  --hd-border: rgba(255, 255, 255, 0.08);
+  --hd-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.04) inset,
+    0 2px 4px rgba(0, 0, 0, 0.15),
+    0 16px 48px rgba(0, 0, 0, 0.28);
+  --hd-shadow-hover:
+    0 0 0 1px rgba(8, 102, 255, 0.18) inset,
+    0 20px 48px rgba(8, 102, 255, 0.1);
+
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding: 28px 32px 36px;
+  max-width: 1440px;
+  margin: 0 auto;
+  width: 100%;
+  box-sizing: border-box;
+  animation: hd-fade-in 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes hd-fade-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ─── Hero welcome strip ─── */
+#view-home .hv-hero {
+  position: relative;
+  overflow: hidden;
+  border-radius: 20px;
+  padding: 36px 40px;
+  border: 1px solid var(--hd-border);
+  background:
+    linear-gradient(135deg, rgba(8, 102, 255, 0.14) 0%, rgba(124, 58, 237, 0.08) 42%, transparent 70%),
+    linear-gradient(180deg, rgba(13, 27, 56, 0.95) 0%, rgba(8, 18, 38, 0.98) 100%);
+  box-shadow: var(--hd-shadow);
+}
+
+#view-home .hv-hero-glows,
+#view-home .hv-hero-dots {
+  opacity: 0.35;
+}
+
+#view-home .hv-hero-orb1 {
+  background: rgba(8, 102, 255, 0.2);
+}
+#view-home .hv-hero-orb2 {
+  background: rgba(124, 58, 237, 0.15);
+}
+#view-home .hv-hero-orb3 {
+  display: none;
+}
+
+#view-home .hv-hero-content {
+  align-items: stretch;
+  gap: 32px;
+}
+
+#view-home .hv-hero-badges {
+  margin-bottom: 16px;
+  gap: 8px;
+}
+
+#view-home .hv-hero-status,
+#view-home .hv-hero-badge-fb {
+  padding: 5px 12px;
+  border-radius: 100px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  backdrop-filter: blur(8px);
+}
+
+#view-home .hv-hero-badge-fb {
+  background: var(--primary-dim);
+  border: 1px solid rgba(8, 102, 255, 0.28);
+  color: var(--primary-light);
+}
+
+#view-home .hv-hero-title {
+  font-size: clamp(26px, 3.2vw, 34px);
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  line-height: 1.15;
+  color: var(--text);
+  margin-bottom: 10px;
+}
+
+#view-home .hv-hero-name {
+  background: linear-gradient(135deg, #6ab4ff 0%, #c4b5fd 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+#view-home .hv-hero-sub {
+  font-size: 15px;
+  line-height: 1.65;
+  color: var(--text2);
+  max-width: 480px;
+  margin-bottom: 24px;
+}
+
+#view-home .hv-hero-btns {
+  gap: 12px;
+}
+
+#view-home .hv-hero-cta {
+  padding: 12px 22px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 700;
+  background: linear-gradient(135deg, #0866ff 0%, #0052cc 100%);
+  box-shadow: 0 4px 20px rgba(8, 102, 255, 0.4);
+}
+
+#view-home .hv-hero-cta2 {
+  padding: 12px 18px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--hd-border);
+  color: var(--text);
+}
+
+#view-home .hv-hero-cta2:hover {
+  background: rgba(8, 102, 255, 0.1);
+  border-color: rgba(8, 102, 255, 0.3);
+  color: var(--primary-light);
+}
+
+/* Hero schedule widget */
+#view-home .hv-hero-sched-card {
+  min-width: 300px;
+  max-width: 340px;
+  padding: 20px;
+  border-radius: 16px;
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid var(--hd-border);
+  backdrop-filter: blur(16px);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+#view-home .hv-hero-sched-title {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--text);
+  letter-spacing: -0.02em;
+}
+
+#view-home .hv-hero-sched-title i {
+  color: var(--primary-light);
+}
+
+#view-home .hv-hero-sched-badge {
+  background: var(--primary-dim);
+  color: var(--primary-light);
+  border-color: rgba(8, 102, 255, 0.3);
+}
+
+#view-home .hv-hero-sched-empty {
+  border-color: var(--hd-border);
+  color: var(--text3);
+  font-size: 12px;
+}
+
+#view-home .hv-hero-sched-btn {
+  background: var(--primary-dim);
+  border: 1px solid rgba(8, 102, 255, 0.35);
+  color: var(--primary-light);
+  border-radius: 10px;
+  font-weight: 700;
+}
+
+#view-home .hv-hero-sched-btn:hover {
+  background: rgba(8, 102, 255, 0.22);
+  color: #fff;
+}
+
+/* ─── Section header ─── */
+#view-home .hv-metrics-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  margin-bottom: -8px;
+}
+
+#view-home .hv-metrics-eyebrow {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--primary-light);
+  margin: 0 0 4px;
+}
+
+#view-home .hv-metrics-title {
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--text);
+  margin: 0;
+}
+
+/* ─── Sync status bar ─── */
+#view-home .hv-sync-bar {
+  padding: 12px 18px;
+  border-radius: 12px;
+  background: var(--hd-glass);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--hd-border);
+}
+
+#view-home .hv-sync-left {
+  font-size: 13px;
+  color: var(--text2);
+}
+
+#view-home .hv-sync-time {
+  font-size: 12px;
+  color: var(--text3);
+}
+
+#view-home .hv-sync-refresh {
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.04);
+  border-color: var(--hd-border);
+}
+
+/* ─── KPI metrics row ─── */
+#view-home .hv-kpi-row {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 14px;
+}
+
+@media (max-width: 1100px) {
+  #view-home .hv-kpi-row {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  #view-home .hv-kpi-row {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  #view-home {
+    padding: 20px 16px 28px;
+  }
+  #view-home .hv-hero {
+    padding: 24px 20px;
+  }
+  #view-home .hv-hero-content {
+    flex-direction: column;
+  }
+  #view-home .hv-hero-sched-card {
+    min-width: 0;
+    max-width: none;
+    width: 100%;
+  }
+}
+
+#view-home .hv-kpi {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 20px;
+  background: var(--hd-glass);
+  backdrop-filter: blur(14px);
+  border: 1px solid var(--hd-border);
+  border-radius: 14px;
+  box-shadow: var(--hd-shadow);
+  transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease;
+}
+
+#view-home .hv-kpi:hover {
+  transform: translateY(-3px);
+  border-color: rgba(8, 102, 255, 0.22);
+  box-shadow: var(--hd-shadow-hover);
+}
+
+#view-home .hv-kpi::after,
+#view-home .hv-kpi-glow {
+  display: none !important;
+}
+
+#view-home .hv-kpi-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 11px;
+  font-size: 16px;
+  background: var(--primary-dim) !important;
+  color: var(--primary-light) !important;
+  box-shadow: none !important;
+}
+
+#view-home .hv-kpi-blue .hv-kpi-icon,
+#view-home .hv-kpi-green .hv-kpi-icon,
+#view-home .hv-kpi-indigo .hv-kpi-icon,
+#view-home .hv-kpi-red .hv-kpi-icon,
+#view-home .hv-kpi-amber .hv-kpi-icon {
+  background: var(--primary-dim) !important;
+  color: var(--primary-light) !important;
+  box-shadow: none !important;
+}
+
+#view-home .hv-kpi-val {
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  color: var(--text);
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+}
+
+#view-home .hv-kpi-lbl {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text3);
+  text-transform: none;
+  letter-spacing: 0.01em;
+}
+
+#view-home .hv-green {
+  color: var(--green-light) !important;
+}
+#view-home .hv-red {
+  color: #f87171 !important;
+}
+#view-home .hv-amber {
+  color: var(--amber) !important;
+}
+
+#view-home .hv-kpi-clickable {
+  cursor: pointer;
+}
+
+#view-home .hv-kpi-clickable:hover .hv-kpi-lbl {
+  color: var(--primary-light);
+}
+
+/* ─── Main content grid ─── */
+#view-home .hv-main-grid {
+  grid-template-columns: minmax(0, 1fr) 380px;
+  gap: 20px;
+  align-items: start;
+}
+
+@media (max-width: 1024px) {
+  #view-home .hv-main-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+#view-home .hv-left-col {
+  gap: 20px;
+}
+
+#view-home .hv-dual-row {
+  gap: 16px;
+}
+
+/* Shared panels */
+#view-home .hv-panel {
+  background: var(--hd-glass);
+  backdrop-filter: blur(14px);
+  border: 1px solid var(--hd-border);
+  border-radius: 16px;
+  box-shadow: var(--hd-shadow);
+  overflow: hidden;
+}
+
+#view-home .hv-panel:hover {
+  border-color: rgba(8, 102, 255, 0.18);
+}
+
+#view-home .hv-panel-hdr {
+  padding: 18px 20px;
+  border-bottom: 1px solid var(--hd-border);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+#view-home .hv-panel-title {
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+#view-home .hv-panel-sub {
+  font-size: 12px;
+  color: var(--text3);
+  margin-top: 3px;
+}
+
+#view-home .hv-panel-icon-wrap,
+#view-home .hv-panel-icon-purple,
+#view-home .hv-panel-icon-indigo,
+#view-home .hv-panel-icon-amber {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background: var(--primary-dim) !important;
+  color: var(--primary-light) !important;
+}
+
+#view-home .hv-add-btn,
+#view-home .hv-add-btn-purple {
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  justify-content: center;
+  border-radius: 10px;
+  background: var(--primary-dim) !important;
+  border: 1px solid rgba(8, 102, 255, 0.3) !important;
+  color: var(--primary-light) !important;
+  box-shadow: none !important;
+}
+
+#view-home .hv-add-btn:hover,
+#view-home .hv-add-btn-purple:hover {
+  background: rgba(8, 102, 255, 0.22) !important;
+  color: #fff !important;
+}
+
+/* Scheduler half-panel stats */
+#view-home .hv-half-stats {
+  padding: 16px;
+  background: rgba(0, 0, 0, 0.15);
+}
+
+#view-home .hv-half-stat-val {
+  font-size: 22px;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+#view-home .hv-half-stat-lbl {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+#view-home .hv-half-list-hdr {
+  padding: 12px 16px;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+}
+
+#view-home .hv-half-list {
+  max-height: 220px;
+  padding: 12px 14px 16px;
+}
+
+#view-home .hv-sched-main-item {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--hd-border);
+  border-radius: 10px;
+}
+
+#view-home .hv-sched-main-item:hover {
+  border-color: rgba(8, 102, 255, 0.25);
+  background: rgba(8, 102, 255, 0.06);
+}
+
+#view-home .hv-sched-main-icon {
+  background: linear-gradient(135deg, var(--primary), #0048cc) !important;
+  box-shadow: 0 2px 10px rgba(8, 102, 255, 0.35) !important;
+}
+
+#view-home .hv-sched-empty-btn {
+  background: linear-gradient(135deg, var(--primary), #0048cc) !important;
+  box-shadow: var(--shadow-violet) !important;
+}
+
+/* Performance donut */
+#view-home .hv-ph-donut-center {
+  padding: 24px 16px 16px;
+}
+
+#view-home .hv-ph-donut circle:nth-child(2) {
+  stroke: var(--green);
+}
+
+#view-home .hv-ph-donut text {
+  fill: var(--text);
+}
+
+#view-home .hv-ph-half-stats {
+  background: transparent;
+  border-top: 1px solid var(--hd-border);
+}
+
+#view-home .hv-ph-half-stat {
+  background: rgba(0, 0, 0, 0.12);
+  padding: 16px;
+}
+
+#view-home .hv-ph-half-stat-val {
+  font-size: 20px;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+/* Quick actions */
+#view-home .hv-qa-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  padding: 16px 18px 18px;
+}
+
+@media (max-width: 700px) {
+  #view-home .hv-qa-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+#view-home .hv-qa-card {
+  padding: 18px 16px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--hd-border);
+  align-items: flex-start;
+  transition: all 0.22s ease;
+}
+
+#view-home .hv-qa-card:hover {
+  transform: translateY(-3px);
+  border-color: rgba(8, 102, 255, 0.25);
+  box-shadow: var(--hd-shadow-hover);
+  background: rgba(8, 102, 255, 0.06);
+}
+
+#view-home .hv-qa-card-blue,
+#view-home .hv-qa-card-cyan,
+#view-home .hv-qa-card-green,
+#view-home .hv-qa-card-purple {
+  border-color: var(--hd-border);
+}
+
+#view-home .hv-qa-card-icon {
+  width: 36px;
+  height: 36px;
+  margin-bottom: 12px;
+  border-radius: 10px;
+  background: var(--primary-dim) !important;
+  color: var(--primary-light) !important;
+  box-shadow: none !important;
+}
+
+#view-home .hv-qa-card-label {
+  font-size: 13px;
+  font-weight: 700;
+}
+
+#view-home .hv-qa-card-desc {
+  font-size: 11px;
+  color: var(--text3);
+  margin-top: 4px;
+}
+
+/* ─── Plan & billing sidebar ─── */
+#view-home .hv-right-col {
+  gap: 16px;
+  position: sticky;
+  top: 12px;
+}
+
+#view-home .hv-plan-card {
+  border-radius: 18px;
+  border: 1px solid rgba(8, 102, 255, 0.28);
+  box-shadow: var(--hd-shadow), 0 0 40px rgba(8, 102, 255, 0.08);
+}
+
+#view-home .hv-plan-card-bg {
+  background: linear-gradient(165deg, #0a1835 0%, #061228 50%, #040d1c 100%);
+}
+
+#view-home .hv-plan-card-bg::before {
+  background:
+    radial-gradient(ellipse at 90% 10%, rgba(8, 102, 255, 0.2), transparent 55%),
+    radial-gradient(ellipse at 10% 90%, rgba(124, 58, 237, 0.12), transparent 50%);
+}
+
+#view-home .hv-plan-inner {
+  padding: 24px;
+}
+
+#view-home .hv-plan-badge {
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--primary-light);
+}
+
+#view-home .hv-plan-badge i {
+  color: #fbbf24;
+}
+
+#view-home .hv-plan-badge span {
+  color: var(--text);
+}
+
+#view-home .hv-upgrade-btn {
+  background: linear-gradient(135deg, #0866ff, #6d28d9);
+  color: #fff;
+  border: none;
+  font-size: 10px;
+  box-shadow: 0 2px 12px rgba(8, 102, 255, 0.35);
+}
+
+#view-home .hv-plan-used {
+  font-size: 32px;
+}
+
+#view-home .hv-plan-fill {
+  background: linear-gradient(90deg, #0866ff, #7c3aed);
+  height: 8px;
+  border-radius: 100px;
+}
+
+#view-home .hv-plan-bar {
+  height: 8px;
+  background: rgba(0, 0, 0, 0.35);
+}
+
+#view-home .hv-plan-features {
+  gap: 10px;
+}
+
+#view-home .hv-plan-feat {
+  font-size: 11px;
+  color: var(--text2);
+}
+
+#view-home .hv-plan-feat i {
+  color: var(--green-light);
+}
+
+#view-home .hv-plan-upgrade-full {
+  margin-top: 20px;
+  padding: 14px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #0866ff 0%, #6d28d9 100%);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 800;
+  box-shadow: 0 6px 24px rgba(8, 102, 255, 0.4);
+}
+
+#view-home .hv-plan-upgrade-full:hover {
+  box-shadow: 0 10px 32px rgba(8, 102, 255, 0.5);
+}
+
+/* Platform status */
+#view-home .hv-pstatus {
+  margin-top: 20px;
+  padding-top: 18px;
+  border-top: 1px solid var(--hd-border);
+}
+
+#view-home .hv-pstatus-badge {
+  color: var(--green-light);
+  background: rgba(16, 185, 129, 0.1);
+  border-color: rgba(16, 185, 129, 0.22);
+}
+
+#view-home .hv-pstatus-item {
+  padding: 8px 10px;
+  border-radius: 8px;
+}
+
+/* Lifetime card — brand accent, not loud orange */
+#view-home .hv-lifetime-card {
+  border-radius: 14px;
+  border: 1px solid rgba(124, 58, 237, 0.28);
+  margin-top: 0;
+}
+
+#view-home .hv-lifetime-bg {
+  background: linear-gradient(135deg, rgba(124, 58, 237, 0.12), rgba(8, 102, 255, 0.08));
+}
+
+#view-home .hv-lifetime-bg::before {
+  background: radial-gradient(ellipse at 30% 50%, rgba(8, 102, 255, 0.15), transparent 60%);
+}
+
+#view-home .hv-lifetime-icon {
+  background: linear-gradient(135deg, #7c3aed, #0866ff);
+  color: #fff;
+  box-shadow: 0 4px 16px rgba(124, 58, 237, 0.35);
+}
+
+#view-home .hv-lifetime-title {
+  color: var(--text);
+  font-size: 14px;
+}
+
+#view-home .hv-lifetime-desc {
+  color: var(--text2);
+  font-size: 12px;
+}
+
+#view-home .hv-lifetime-btn {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--hd-border);
+  color: var(--primary-light);
+  font-weight: 700;
+  box-shadow: none;
+}
+
+#view-home .hv-lifetime-btn:hover {
+  background: rgba(8, 102, 255, 0.12);
+  border-color: rgba(8, 102, 255, 0.3);
+  color: #fff;
+}
+
+/* Light theme */
+body.light #view-home {
+  --hd-glass: rgba(255, 255, 255, 0.92);
+  --hd-border: rgba(8, 102, 255, 0.12);
+  --hd-shadow: 0 4px 24px rgba(8, 102, 255, 0.08);
+}
+
+body.light #view-home .hv-hero {
+  background: linear-gradient(135deg, rgba(8, 102, 255, 0.08), #fff 60%);
+}
+
+body.light #view-home .hv-hero-sched-card {
+  background: rgba(255, 255, 255, 0.7);
+}
+
+body.light #view-home .hv-kpi,
+body.light #view-home .hv-panel,
+body.light #view-home .hv-qa-card {
+  background: #fff;
+}
+
+body.light #view-home .hv-plan-card-bg {
+  background: linear-gradient(165deg, #f0f5ff, #fff);
+}

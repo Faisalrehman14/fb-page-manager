@@ -42,6 +42,7 @@
 <link rel="stylesheet" href="assets/css/saas.css?v={{VER}}">
 <link rel="stylesheet" href="assets/css/saas-topbar.css?v={{VER}}">
 <link rel="stylesheet" href="assets/css/saas-premium.css?v={{VER}}">
+<link rel="stylesheet" href="assets/css/home-dashboard.css?v={{VER}}">
 <style>
 /* ══ Scheduling View v2 — inline for Railway cache bypass ══ */
 #view-scheduling{display:none;flex-direction:column;flex:1;min-width:0;height:100%;overflow:hidden;background:var(--bg)}
@@ -1050,7 +1051,7 @@ window.getCsrfToken = async (forceRefresh = false) => {
     </div>
 
     <!-- HOME VIEW -->
-    <div id="view-home" class="hv">
+    <div id="view-home" class="hv hv-pro">
 
       <!-- ── Hero Banner ── -->
       <div class="hv-hero">
@@ -1136,6 +1137,13 @@ window.getCsrfToken = async (forceRefresh = false) => {
           </button>
         </div>
       </div>
+
+      <header class="hv-metrics-head">
+        <div>
+          <p class="hv-metrics-eyebrow">Overview</p>
+          <h2 class="hv-metrics-title">Key metrics</h2>
+        </div>
+      </header>
 
       <!-- KPI metrics -->
       <div class="hv-kpi-row">
