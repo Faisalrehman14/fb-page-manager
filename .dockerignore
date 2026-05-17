@@ -1,0 +1,24 @@
+# Sensitive files — never put in Docker image
+.env
+*.jsonl
+
+# Logs and cache
+logs/
+.cache/
+
+# Large media files
+*.mp4
+*.mov
+*.avi
+
+# Dev/docs only
+Screencast*
+README.DEV.md
+DEPLOYMENT.md
+MONITORING.md
+PRODUCTION_*.md
+SAAS_*.md
+UI_*.md
+API.md
+AGENTS.md
+graphify-ai.md

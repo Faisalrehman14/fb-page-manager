@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Payment Status — FBCast Pro</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" crossorigin="anonymous">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    
+    :root {
+      --blue: #1877f2;
+      --green: #22c55e;
+      --red: #ef4444;
+      --amber: #f59e0b;
+      --bg: #0a0d14;
+      --surface: #161b26;
+      --text: #f1f5f9;
+      --text2: #94a3b8;
+    }
+    
+    body {
+      font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+    
+    .payment-container {
+      max-width: 500px;
+      width: 100%;
+    }
+    
+    .payment-card {
+      background: var(--surface);
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: 18px;
+      padding: 40px;
+      text-align: center;
+    }
+    
+    .payment-icon {
+      width: 80px;
+      height: 80px;
+      margin: 0 auto 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      font-size: 36px;
+      animation: iconIn 0.6s ease;
+    }
+    
+    .payment-icon.success {
+      background: rgba(34, 197, 94, 0.1);
+      border: 2px solid rgba(34, 197, 94, 0.2);
+      color: var(--green);
+    }
+    
+    .payment-icon.error {
+      background: rgba(239, 68, 68, 0.1);
+      border: 2px solid rgba(239, 68, 68, 0.2);
+      color: var(--red);
+    }
+    
+    .payment-icon.processing {
+      background: rgba(24, 119, 242, 0.1);
+      border: 2px solid rgba(24, 119, 242, 0.2);
+      color: var(--blue);
+    }
+    
+    .payment-icon i {
+      animation: scaleIn 0.6s cubic-bezier(0.36, 0, 0.66, -0.56);
+    }
+    
+    .payment-icon.processing i {
+      animation: spin 2s linear infinite;
+    }
+    
+    h1 {
+      font-size: 24px;
+      font-weight: 700;
+      margin-bottom: 12px;
+      letter-spacing: -0.5px;
+    }
+    
+    .payment-message {
+      color: var(--text2);
+      font-size: 14px;
+      line-height: 1.6;
+      margin-bottom: 28px;
+    }
+    
+    .payment-details {
+      background: rgba(0, 0, 0, 0.2);
+      border: 1px solid rgba(255,255,255,.05);
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 24px;
+      text-align: left;
+    }
+    
+    .detail-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 0;
+      font-size: 13px;
+      border-bottom: 1px solid rgba(255,255,255,.05);
+    }
+    
+    .detail-row:last-child {
+      border-bottom: none;
+    }
+    
+    .detail-label {
+      color: var(--text2);
+    }
+    
+    .detail-value {
+      color: var(--text);
+      font-weight: 600;
+    }
+    
+    .payment-actions {
+      display: flex;
+      gap: 12px;
+      margin-top: 28px;
+    }
+    
+    .btn {
+      flex: 1;
+      padding: 12px;
+      border: none;
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: inherit;
+      transition: all 0.2s ease;
+    }
+    
+    .btn-primary {
+      background: var(--blue);
+      color: white;
+    }
+    
+    .btn-primary:hover {
+      background: #0b63d4;
+      transform: translateY(-2px);
+    }
+    
+    .btn-secondary {
+      background: rgba(255,255,255,.05);
+      color: var(--text);
+      border: 1px solid rgba(255,255,255,.1);
+    }
+    
+    .btn-secondary:hover {
+      background: rgba(255,255,255,.1);
+    }
+    
+    .progress-bar {
+      height: 3px;
+      background: rgba(255,255,255,.1);
+      border-radius: 2px;
+      overflow: hidden;
+      margin-top: 24px;
+    }
+    
+    .progress-fill {
+      height: 100%;
+      background: var(--blue);
+      animation: progress 3s ease;
+    }
+    
+    @keyframes iconIn {
+      from {
+        opacity: 0;
+        transform: scale(0.8);
+      }
+      to {
+        opacity: 1;
+        transform: scale(1);
+      }
+    }
+    
+    @keyframes scaleIn {
+      0%, 100% { transform: scale(0); }
+      50% { transform: scale(1.2); }
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    
+    @keyframes progress {
+      from { width: 0; }
+      to { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <div class="payment-container">
+    <div class="payment-card">
+      <div class="payment-icon processing">
+        <i class="fas fa-spinner fa-spin"></i>
+      </div>
+      <h1>Processing Payment</h1>
+      <p class="payment-message">Please wait while we verify your payment status...</p>
+      <div class="progress-bar">
+        <div class="progress-fill"></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://js.stripe.com/v3/"></script>
+  <script>
+    const card = document.querySelector('.payment-card');
+    const icon = card.querySelector('.payment-icon');
+    const title = card.querySelector('h1');
+    const message = card.querySelector('.payment-message');
+    const actions = document.createElement('div');
+    actions.className = 'payment-actions';
+    
+    // Get Stripe config from parent window or try to load from config
+    let STRIPE_KEY = null;
+    try {
+      STRIPE_KEY = window.parent?.APP_CONFIG?.stripePublishableKey || 
+                   sessionStorage.getItem('stripe_pk') ||
+                   'pk_test_YOUR_PUBLISHABLE_KEY';
+    } catch (e) {
+      STRIPE_KEY = 'pk_test_YOUR_PUBLISHABLE_KEY';
+    }
+    
+    const stripe = Stripe(STRIPE_KEY);
+    const urlParams = new URLSearchParams(window.location.search);
+    const clientSecret = urlParams.get('payment_intent_client_secret');
+
+    if (!clientSecret) {
+      showError('No payment reference found. <a href="index.html">Return to app</a>');
+    } else {
+      stripe.retrievePaymentIntent(clientSecret)
+        .then(({ paymentIntent }) => {
+          handlePaymentStatus(paymentIntent);
+        })
+        .catch(err => {
+          showError('Unable to verify payment. Please contact support.');
+          console.error('Payment retrieval error:', err);
+        });
+    }
+
+    function handlePaymentStatus(paymentIntent) {
+      const status = paymentIntent.status;
+      
+      if (status === 'succeeded') {
+        showSuccess(paymentIntent);
+      } else if (status === 'processing') {
+        showProcessing(paymentIntent);
+      } else if (status === 'requires_payment_method') {
+        showFailed('Payment method required');
+      } else {
+        showFailed('Payment could not be processed');
+      }
+    }
+
+    function showSuccess(paymentIntent) {
+      icon.className = 'payment-icon success';
+      icon.innerHTML = '<i class="fas fa-check-circle"></i>';
+      title.textContent = 'Payment Successful!';
+      message.innerHTML = '✅ Your payment has been received and your plan is being activated. Redirecting to your dashboard...';
+      
+      const details = document.createElement('div');
+      details.className = 'payment-details';
+      details.innerHTML = `
+        <div class="detail-row">
+          <span class="detail-label">Amount</span>
+          <span class="detail-value">$${(paymentIntent.amount / 100).toFixed(2)}</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Reference</span>
+          <span class="detail-value">${paymentIntent.id.substring(0, 12)}...</span>
+        </div>
+      `;
+      message.parentNode.insertBefore(details, message.nextSibling);
+      
+      setTimeout(() => {
+        window.location.href = 'index.html?payment=success&pi=' + paymentIntent.id;
+      }, 2500);
+    }
+
+    function showProcessing(paymentIntent) {
+      icon.className = 'payment-icon processing';
+      icon.innerHTML = '<i class="fas fa-hourglass-half"></i>';
+      title.textContent = 'Payment Processing';
+      message.innerHTML = '⏳ Your payment is being processed. We\'ll send you an email confirmation once it\'s complete.';
+      
+      const details = document.createElement('div');
+      details.className = 'payment-details';
+      details.innerHTML = `
+        <div class="detail-row">
+          <span class="detail-label">Status</span>
+          <span class="detail-value">In Progress</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Reference</span>
+          <span class="detail-value">${paymentIntent.id.substring(0, 12)}...</span>
+        </div>
+      `;
+      message.parentNode.insertBefore(details, message.nextSibling);
+      
+      actions.innerHTML = `
+        <button class="btn btn-primary" onclick="window.location.href='index.html'">Return to App</button>
+      `;
+      card.appendChild(actions);
+    }
+
+    function showFailed(reason = 'Payment failed') {
+      icon.className = 'payment-icon error';
+      icon.innerHTML = '<i class="fas fa-times-circle"></i>';
+      title.textContent = 'Payment Failed';
+      message.innerHTML = `❌ ${reason}. Please return to the app and try another payment method.`;
+      
+      actions.innerHTML = `
+        <button class="btn btn-secondary" onclick="window.history.back()">Try Again</button>
+        <button class="btn btn-primary" onclick="window.location.href='index.html'">Return to App</button>
+      `;
+      card.appendChild(actions);
+    }
+
+    function showError(msg) {
+      icon.className = 'payment-icon error';
+      icon.innerHTML = '<i class="fas fa-exclamation-circle"></i>';
+      title.textContent = 'Error';
+      message.innerHTML = msg || 'Something went wrong. Please try again.';
+      
+      actions.innerHTML = `
+        <button class="btn btn-primary" onclick="window.location.href='index.html'">Return to App</button>
+      `;
+      card.appendChild(actions);
+    }
+  </script>
+</body>
+</html>

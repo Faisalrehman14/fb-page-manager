@@ -1,0 +1,104 @@
+# ─────────────────────────────────────────────
+#  FBCast Pro — Production .htaccess
+# ─────────────────────────────────────────────
+
+Options -Indexes -MultiViews
+
+# ── Gzip Compression ──────────────────────────
+<IfModule mod_deflate.c>
+  AddOutputFilterByType DEFLATE text/html text/plain text/xml text/css text/javascript application/javascript application/json application/x-javascript image/svg+xml
+  BrowserMatch ^Mozilla/4 gzip-only-text/html
+  BrowserMatch ^Mozilla/4\.0[678] no-gzip
+  BrowserMatch \bMSIE !no-gzip !gzip-only-text/html
+  Header append Vary Accept-Encoding
+</IfModule>
+
+# ── Browser Caching ────────────────────────────
+<IfModule mod_expires.c>
+  ExpiresActive On
+
+  # PHP pages — never cache (auth-sensitive)
+  <FilesMatch "\.php$">
+    ExpiresDefault "access plus 0 seconds"
+    Header set Cache-Control "no-store, no-cache, must-revalidate, max-age=0, private"
+    Header set Pragma "no-cache"
+  </FilesMatch>
+
+  # Versioned JS/CSS — cache aggressively (cache busting via ?v= timestamp)
+  <FilesMatch "\.(js|css)$">
+    ExpiresDefault "access plus 1 year"
+    Header set Cache-Control "public, max-age=31536000"
+  </FilesMatch>
+
+  # Images — cache for 30 days
+  <FilesMatch "\.(jpg|jpeg|png|gif|webp|svg|ico|avif)$">
+    ExpiresDefault "access plus 30 days"
+    Header set Cache-Control "public, max-age=2592000"
+  </FilesMatch>
+
+  # Fonts — cache for 1 year
+  <FilesMatch "\.(woff|woff2|ttf|otf|eot)$">
+    ExpiresDefault "access plus 1 year"
+    Header set Cache-Control "public, max-age=31536000, immutable"
+  </FilesMatch>
+</IfModule>
+
+# ── Security Headers ───────────────────────────
+<IfModule mod_headers.c>
+  Header always set X-Content-Type-Options "nosniff"
+  Header always set X-Frame-Options "SAMEORIGIN"
+  Header always set X-XSS-Protection "1; mode=block"
+  Header always set Referrer-Policy "strict-origin-when-cross-origin"
+  Header always set Permissions-Policy "geolocation=(), microphone=(), camera=()"
+  Header always unset X-Powered-By
+  Header always unset Server
+</IfModule>
+
+# ── Protect Sensitive Files ────────────────────
+<FilesMatch "\.(env|log|md|sh|json|sql)$">
+  <IfModule mod_authz_core.c>
+    Require all denied
+  </IfModule>
+  <IfModule !mod_authz_core.c>
+    Order allow,deny
+    Deny from all
+  </IfModule>
+</FilesMatch>
+
+# Allow graphify.json (used by graphify.php)
+<Files "graphify.json">
+  <IfModule mod_authz_core.c>
+    Require all granted
+  </IfModule>
+</Files>
+
+# ── Block Hidden Files ─────────────────────────
+<FilesMatch "^\.">
+  <IfModule mod_authz_core.c>
+    Require all denied
+  </IfModule>
+  <IfModule !mod_authz_core.c>
+    Order allow,deny
+    Deny from all
+  </IfModule>
+</FilesMatch>
+
+# ── Protect Config & Scripts Directories ──────
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteRule ^config/ - [F,L]
+  RewriteRule ^scripts/ - [F,L]
+  RewriteRule ^logs/ - [F,L]
+  RewriteRule ^\.cache/ - [F,L]
+</IfModule>
+
+# ── Force HTTPS (enable when SSL is live) ─────
+# <IfModule mod_rewrite.c>
+#   RewriteEngine On
+#   RewriteCond %{HTTPS} off
+#   RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [R=301,L]
+# </IfModule>
+
+# ── ETags (disable for multi-server setups) ───
+FileETag None
+Header unset ETag
