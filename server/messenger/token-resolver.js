@@ -9,7 +9,10 @@ async function resolvePageToken({ pageId, session, db, dbConnected, fetchFn }) {
 
     if (dbConnected) {
         token = await db.getPageToken(pageId);
-        if (token) return token;
+        if (token) {
+            if (session?.pageTokens) session.pageTokens[pageId] = token;
+            return token;
+        }
     }
 
     if (!session?.accessToken || !dbConnected) return null;

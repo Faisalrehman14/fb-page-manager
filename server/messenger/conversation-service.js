@@ -78,18 +78,23 @@ class ConversationService {
         );
         const safeOffset = Math.max(parseInt(offset, 10) || 0, 0);
 
-        if (dbConnected && !this.db.isPageSyncing(pageId)) {
+        if (dbConnected && safeOffset === 0 && !this.db.isPageSyncing?.(pageId)) {
             const cached = getCached(pageId, safeLimit, safeOffset);
-            if (cached) {
+            if (cached?.conversations?.length) {
                 resolvePageToken({ pageId, session, db: this.db, dbConnected, fetchFn })
                     .then(token => {
-                        if (token && safeOffset === 0) {
-                            this.sync.ensurePageSynced(pageId, token, this.io);
-                        }
+                        if (token) this.sync.ensurePageSynced(pageId, token, this.io);
                     })
                     .catch(() => {});
                 return cached;
             }
+        }
+
+        if (!dbConnected && safeOffset === 0) {
+            return buildListResult([], safeLimit, safeOffset, {
+                syncing: false,
+                error: 'Database not connected. Check DATABASE_URL on the server.'
+            });
         }
 
         let convs = dbConnected
@@ -100,13 +105,31 @@ class ConversationService {
             pageId, session, db: this.db, dbConnected, fetchFn
         });
 
+        if (!token && safeOffset === 0) {
+            return buildListResult([], safeLimit, safeOffset, {
+                syncing: false,
+                error: 'Page token not found. Reload pages from the sidebar.'
+            });
+        }
+
+        // First connect / empty DB: pull conversation list from Facebook now (fast)
+        if (safeOffset === 0 && token && dbConnected && !convs.length) {
+            try {
+                await this.sync.coldStartSync(pageId, token, safeLimit);
+                convs = await this.db.getConversations(pageId, safeLimit, safeOffset);
+                clearPageCache(pageId);
+            } catch (err) {
+                this.logError('messenger_cold_sync', err, { pageId });
+            }
+        }
+
         if (safeOffset === 0 && token) {
             this.sync.ensurePageSynced(pageId, token, this.io);
         }
 
-        const syncing = safeOffset === 0 && (
-            this.db.isPageSyncing?.(pageId) || (!convs.length && !!token)
-        );
+        const syncing = safeOffset === 0 &&
+            !convs.length &&
+            !!this.db.isPageSyncing?.(pageId);
 
         const result = buildListResult(convs, safeLimit, safeOffset, {
             from_cache: convs.length > 0,

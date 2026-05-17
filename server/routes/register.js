@@ -286,7 +286,7 @@ app.get(['/api/auth/callback', '/oauth_callback.php'], async (req, res) => {
     }
     // Use '*' to avoid origin mismatch issues between https/http/domain
     window.opener.postMessage(RESULT, "*");
-    setTimeout(() => window.close(), 1000);
+    setTimeout(() => window.close(), 2800);
   }
   trySend();
 </script>
@@ -320,12 +320,42 @@ app.get(['/api/auth/callback', '/oauth_callback.php'], async (req, res) => {
         // 3. Get Pages
         const pagesRes = await fetch(`https://graph.facebook.com/v19.0/me/accounts?fields=id,name,access_token,category,picture.type(large)&access_token=${userToken}`);
         const pagesData = await pagesRes.json();
-        
+        const pages = pagesData.data || [];
+
+        // Server session — required for /api/pages, messenger, and session cookies
+        req.session.accessToken = userToken;
+        req.session.pageTokens = {};
+        pages.forEach(p => { req.session.pageTokens[p.id] = p.access_token; });
+        try {
+            const meRes = await fetch(`https://graph.facebook.com/v19.0/me?fields=id,name&access_token=${encodeURIComponent(userToken)}`);
+            const meData = await meRes.json();
+            if (meData.id) {
+                req.session.userId = meData.id;
+                req.session.userName = meData.name;
+            }
+        } catch (_) {}
+        req.session.firstLogin = true;
+
+        const cookieOpts = { signed: true, httpOnly: true, sameSite: 'lax', maxAge: 7 * 24 * 60 * 60 * 1000 };
+        res.cookie('_fb_at', userToken, cookieOpts);
+        if (req.session.userId) res.cookie('_fb_uid', req.session.userId, cookieOpts);
+        if (req.session.userName) res.cookie('_fb_un', req.session.userName, cookieOpts);
+        generateCsrf(req);
+
+        if (state.dbConnected && pages.length) {
+            await db.savePages(pages.map(p => ({
+                id: p.id,
+                name: p.name,
+                picture: p.picture?.data?.url || p.picture,
+                accessToken: p.access_token
+            }))).catch(() => {});
+        }
+
         sendPopupResult({
             type: 'fb_auth_success',
             token: userToken,
             expiresIn: longData.expires_in || 5184000,
-            pages: pagesData.data || []
+            pages
         });
     } catch (err) {
         logError('oauth_callback', err);
@@ -567,7 +597,7 @@ app.get('/api/pages', requireAuth, async (req, res) => {
 
         (data.data || []).forEach(p => { req.session.pageTokens[p.id] = p.access_token; });
 
-        // Background sync after login / return visit — UI reads DB immediately
+        // Login: quick conversation list sync first (fast inbox), messages sync when messenger opens
         if (state.dbConnected && pagesToSave.length) {
             const forceSync = !!req.session.firstLogin;
             if (req.session.firstLogin) req.session.firstLogin = false;
@@ -575,17 +605,19 @@ app.get('/api/pages', requireAuth, async (req, res) => {
             for (const p of pagesToSave) {
                 setImmediate(async () => {
                     try {
-                        if (db.isPageSyncing(p.id)) return;
                         const last = await db.getPageSyncTime(p.id);
                         const stale = forceSync || !last ||
                             (Date.now() - new Date(last).getTime() > STALE_MS);
                         if (!stale) return;
-                        const onProgress = prog =>
-                            io.to(`page_${p.id}`).emit('sync_progress', { ...prog, pageId: p.id });
-                        await db.syncPageSmart(p.id, p.accessToken, fetch, onProgress);
+                        await db.syncConversationsFromFacebook(p.id, p.accessToken, fetch, null, {
+                            maxPages: 10,
+                            maxTotal: 500,
+                            fbLimit: 100
+                        });
                         io.to(`page_${p.id}`).emit('sync_progress', { phase: 'done', pageId: p.id });
                     } catch (err) {
                         logError('pages_bg_sync', err, { pageId: p.id });
+                        io.to(`page_${p.id}`).emit('sync_progress', { phase: 'done', pageId: p.id });
                     }
                 });
             }

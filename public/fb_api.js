@@ -172,32 +172,39 @@ async function startFacebookLogin() {
   // Pages already fetched server-side with long-lived page tokens
   if (Array.isArray(result.pages) && result.pages.length) {
     localStorage.setItem(STORAGE_KEYS.PAGES, JSON.stringify(result.pages));
-  }
-
-  // Track user + sync quota
-  const csrfToken = await window.getCsrfToken?.() || '';
-  try {
-    const trackData = await requestJson('/api/auth/track', {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
-      body:    JSON.stringify({ user_token: result.token }),
-    }, { attempts: 2, backoffMs: 400 });
-    if (trackData.success) {
-      localStorage.setItem('fbcast_user', JSON.stringify({
-        fb_user_id: trackData.fb_user_id,
-        fb_name:    trackData.fb_name,
-      }));
-      window.dispatchEvent(new Event('fbcast:user-updated'));
-      if (window.saveQuota) {
-        window.saveQuota(trackData);
-        window.updateQuotaUI?.();
-      }
+    if (typeof window.renderPages === 'function') {
+      window.renderPages(result.pages);
     }
-  } catch (e) {
-    // Non-critical
   }
 
-  // Full history sync runs on the server when /api/pages loads (no manual sync button).
+  // Show dashboard immediately — do not wait for track/pages API
+  if (typeof window.showAppDashboard === 'function') {
+    window.showAppDashboard();
+  }
+
+  // Track user + sync quota (background)
+  const csrfToken = await window.getCsrfToken?.() || '';
+  (async () => {
+    try {
+      const trackData = await requestJson('/api/auth/track', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
+        body:    JSON.stringify({ user_token: result.token }),
+      }, { attempts: 2, backoffMs: 400 });
+      if (trackData.success) {
+        localStorage.setItem('fbcast_user', JSON.stringify({
+          fb_user_id: trackData.fb_user_id,
+          fb_name:    trackData.fb_name,
+        }));
+        window.dispatchEvent(new Event('fbcast:user-updated'));
+        if (window.saveQuota) {
+          window.saveQuota(trackData);
+          window.updateQuotaUI?.();
+        }
+      }
+    } catch (_) {}
+  })();
+
   if (Array.isArray(result.pages) && result.pages.length) {
     window.dispatchEvent(new CustomEvent('fbcast:sync-done', { detail: { total: result.pages.length } }));
   }
@@ -219,30 +226,38 @@ function openOAuthPopup() {
     }
 
     let done = false;
+    let closeGraceTimer = null;
 
-    function onMessage(event) {
-      if (event.origin !== origin) return;
-      if (!event.data || (event.data.type !== 'fb_auth_success' && event.data.type !== 'fb_auth_error')) return;
+    function finish(err, data) {
+      if (done) return;
       done = true;
       window.removeEventListener('message', onMessage);
       clearInterval(closedTimer);
+      if (closeGraceTimer) clearTimeout(closeGraceTimer);
+      if (err) reject(err);
+      else resolve(data);
+    }
+
+    function onMessage(event) {
+      if (!event.data || (event.data.type !== 'fb_auth_success' && event.data.type !== 'fb_auth_error')) return;
+      if (event.origin !== origin && event.origin !== 'null') return;
       if (event.data.type === 'fb_auth_error') {
-        reject(new Error(event.data.error || 'Facebook login failed.'));
+        finish(new Error(event.data.error || 'Facebook login failed.'));
       } else {
-        resolve(event.data); // full result: { token, expiresIn, pages }
+        finish(null, event.data);
       }
     }
 
     window.addEventListener('message', onMessage);
 
     const closedTimer = setInterval(() => {
-      if (popup.closed && !done) {
-        done = true;
-        clearInterval(closedTimer);
-        window.removeEventListener('message', onMessage);
-        reject(new Error('Facebook login was cancelled.'));
-      }
-    }, 500);
+      if (!popup.closed || done) return;
+      clearInterval(closedTimer);
+      // Popup closes ~1s after success postMessage — wait before treating as cancel
+      closeGraceTimer = setTimeout(() => {
+        if (!done) finish(new Error('Facebook login was cancelled.'));
+      }, 3500);
+    }, 400);
   });
 }
 

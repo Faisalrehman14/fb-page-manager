@@ -52,6 +52,8 @@
     _offline:  false,  // true while socket is disconnected
     _convByPsid: new Map(), // O(1) conv lookup during poll
     _joinedThread: null,    // socket.io thread room id
+    _syncPollTimer: null,
+    _syncPollAttempts: 0,
   };
 
   const POLL_MS = 3000;
@@ -1112,6 +1114,30 @@
     return safe.replace(new RegExp('(' + safeQ + ')', 'gi'), '<mark>$1</mark>');
   }
 
+  function clearSyncPoll() {
+    if (M._syncPollTimer) {
+      clearInterval(M._syncPollTimer);
+      M._syncPollTimer = null;
+    }
+    M._syncPollAttempts = 0;
+  }
+
+  /** Retry list while server sync runs — avoids infinite "Loading conversations…" */
+  function startSyncPoll(pageId) {
+    clearSyncPoll();
+    if (!pageId) return;
+    M._syncPollTimer = setInterval(() => {
+      M._syncPollAttempts += 1;
+      if (!M.ui.syncing || M.convs.length || M._syncPollAttempts > 25) {
+        if (M.ui.syncing && !M.convs.length) M.ui.syncing = false;
+        clearSyncPoll();
+        renderConvs();
+        return;
+      }
+      loadConvs(pageId, false, { background: true });
+    }, 4000);
+  }
+
   // ══════════════════════════════════════════════════════════
   // SYNC BANNER & TOAST
   // ══════════════════════════════════════════════════════════
@@ -1287,9 +1313,14 @@
       if (data.error) throw new Error(data.error);
 
       if (data.message_retention_days) M.retentionDays = data.message_retention_days;
-      M.ui.syncing = !!data.syncing && !data.conversations?.length;
+      if (data.error && !data.conversations?.length) {
+        M.ui.syncing = false;
+        clearSyncPoll();
+        throw new Error(data.error);
+      }
 
       const newConvs = _mapConvRows(data.conversations);
+      M.ui.syncing = !!data.syncing && !newConvs.length;
 
       if (isMore) {
         M.convs = [...M.convs, ...newConvs];
@@ -1310,11 +1341,20 @@
       }
 
       rebuildConvIndex();
-      if (newConvs.length) M.ui.syncing = false;
+      if (newConvs.length) {
+        M.ui.syncing = false;
+        clearSyncPoll();
+      } else if (M.ui.syncing) {
+        startSyncPoll(pageId);
+      } else {
+        clearSyncPoll();
+      }
       if (!opts.background) renderConvs();
       else if (newConvs.length) renderConvs();
     } catch (e) {
       console.error('[Messenger] loadConvs:', e);
+      M.ui.syncing = false;
+      clearSyncPoll();
       if (!isMore) {
         const listEl = $('msngConvList');
         if (listEl) listEl.innerHTML = `<div class="msng-empty">
@@ -1916,14 +1956,12 @@
       if (!pageMatch) return;
       if (prog.phase === 'done') {
         M.ui.syncing = false;
+        clearSyncPoll();
         hideSyncBanner();
         if (M.activePageId) {
           _convListCache.delete(M.activePageId);
-          loadConvs(M.activePageId, false, { background: !M.convs.length });
+          loadConvs(M.activePageId);
         }
-      } else if (!M.convs.length) {
-        M.ui.syncing = true;
-        renderConvs();
       }
     });
 
@@ -2012,6 +2050,8 @@
 
   // ── Updated msngSelectPage ──────────────────────────────────────────────────
   window.msngSelectPage = function (pageId) {
+    clearSyncPoll();
+    M.ui.syncing = false;
     M.activePageId = pageId;
     M.activeToken  = (M.pages.find(p => p.id === pageId) || {}).access_token || null;
     M.activePsid   = null;

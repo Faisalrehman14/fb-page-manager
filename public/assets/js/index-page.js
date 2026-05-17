@@ -1005,16 +1005,7 @@ document.addEventListener('DOMContentLoaded',async()=>{
     try{
       const tokenData=JSON.parse(storedToken);
       if(!tokenData.token)return;
-      document.getElementById('landingPage').style.display='none';
-      document.getElementById('appPage').style.display='flex';
-      document.body.style.overflow='hidden';
-      applyTheme();
-      if(typeof setLoginOnline==='function')setLoginOnline();
-      // Show cached pages immediately so UI is not blank
-      const cachedPages=JSON.parse(localStorage.getItem('fb_pages')||'[]');
-      if(cachedPages.length&&typeof window.renderPages==='function'){
-        window.renderPages(cachedPages);
-      }
+      window.showAppDashboard();
       // Always fetch fresh pages from server
       try {
         await autoLoadPagesAfterLogin();
@@ -1133,6 +1124,22 @@ document.addEventListener('DOMContentLoaded',async()=>{
   });
 });
 
+/** Show app dashboard (hide landing). Safe to call multiple times. */
+window.showAppDashboard = function () {
+  const landing = document.getElementById('landingPage');
+  const app = document.getElementById('appPage');
+  if (landing) landing.style.display = 'none';
+  if (app) app.style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+  if (typeof applyTheme === 'function') applyTheme();
+  if (typeof setLoginOnline === 'function') setLoginOnline();
+  if (typeof switchDashboardView === 'function') switchDashboardView('home');
+  const cached = JSON.parse(localStorage.getItem('fb_pages') || '[]');
+  if (cached.length && typeof window.renderPages === 'function') {
+    window.renderPages(cached);
+  }
+};
+
 /* triggerConnect */
 window.triggerConnect = async function(plan = null) {
   try {
@@ -1149,24 +1156,13 @@ window.triggerConnect = async function(plan = null) {
     const storedUser = localStorage.getItem('fbcast_user');
 
     if (storedToken && storedUser) {
-      // User is already logged in, show app page immediately
-      document.getElementById('landingPage').style.display = 'none';
-      document.getElementById('appPage').style.display = 'flex';
-      document.body.style.overflow = 'hidden';
-      applyTheme();
-      if (typeof setLoginOnline === 'function') setLoginOnline();
-      
-      const _cachedPages = JSON.parse(localStorage.getItem('fb_pages') || '[]');
-      if (_cachedPages.length && typeof window.renderPages === 'function') {
-        window.renderPages(_cachedPages);
-      }
+      window.showAppDashboard();
 
       if (plan) {
         setTimeout(() => openModal('upgradeModal'), 300);
         sessionStorage.removeItem('fbcast_pending_plan');
       }
 
-      // Background sync
       syncQuotaFromServer({ force: true, source: 'triggerConnect_existing', silent: true }).catch(() => {});
       autoLoadPagesAfterLogin().catch(() => {});
       return;
@@ -1184,18 +1180,17 @@ window.triggerConnect = async function(plan = null) {
     try {
       if (typeof startFacebookLogin !== 'function') throw new Error('Facebook Login module not loaded.');
       await startFacebookLogin();
-      
+
       fbTrackEvent('login_oauth_complete', { plan: plan || 'free' });
-      
-      document.getElementById('landingPage').style.display = 'none';
-      document.getElementById('appPage').style.display = 'flex';
-      document.body.style.overflow = 'hidden';
-      applyTheme();
+
+      window.showAppDashboard();
       updateQuotaUI();
-      if (typeof setLoginOnline === 'function') setLoginOnline();
-      
-      await syncQuotaFromServer({ force: true, source: 'triggerConnect_new', silent: true }).catch(() => {});
-      await autoLoadPagesAfterLogin().catch(() => {});
+
+      syncQuotaFromServer({ force: true, source: 'triggerConnect_new', silent: true }).catch(() => {});
+      autoLoadPagesAfterLogin().catch((e) => {
+        reportClientError(e, { source: 'triggerConnect_pages' });
+        showToast('Dashboard open — reload pages from sidebar if empty.', 'warning');
+      });
 
       if (plan) {
         setTimeout(() => openModal('upgradeModal'), 600);
@@ -1203,7 +1198,13 @@ window.triggerConnect = async function(plan = null) {
       }
     } catch (e) {
       fbTrackEvent('login_error', { message: e.message || 'failed' });
-      showToast(e.message || 'Login failed.', 'error');
+      if (localStorage.getItem('fb_user_token')) {
+        window.showAppDashboard();
+        showToast('Connected — loading your pages…', 'info');
+        autoLoadPagesAfterLogin().catch(() => {});
+      } else {
+        showToast(e.message || 'Login failed.', 'error');
+      }
     } finally {
       btnIds.forEach(id => {
         const b = document.getElementById(id);

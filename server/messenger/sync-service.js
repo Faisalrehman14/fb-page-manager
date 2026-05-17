@@ -69,6 +69,25 @@ class SyncService {
         });
     }
 
+    /**
+     * Fast first paint: fetch conversation list from Facebook into DB (no message bodies).
+     * Does not set syncStatus — safe to run while full sync is in progress.
+     */
+    async coldStartSync(pageId, token, limit = 30) {
+        const cap = Math.min(parseInt(limit, 10) || 30, 100);
+        try {
+            const synced = await this.db.syncConversationsFromFacebook(
+                pageId, token, this.fetchFn, null,
+                { maxPages: 5, maxTotal: cap, fbLimit: 50 }
+            );
+            clearPageCache(pageId);
+            return synced;
+        } catch (err) {
+            this.logError('cold_start_sync', err, { pageId });
+            return [];
+        }
+    }
+
     ensureAllPagesSynced(pages, io, opts = {}) {
         for (const p of pages || []) {
             const id = p.id || p.fb_page_id;
