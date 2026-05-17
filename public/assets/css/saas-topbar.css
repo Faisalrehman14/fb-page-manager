@@ -1,0 +1,467 @@
+/**
+ * FBCast Pro — SaaS Dashboard Topbar
+ */
+
+.saas-topbar {
+  --tb-h: 60px;
+  height: var(--tb-h);
+  min-height: var(--tb-h);
+  padding: 0 20px;
+  gap: 16px;
+  display: flex;
+  align-items: center;
+  position: relative;
+  background: rgba(6, 12, 24, 0.82);
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.04) inset,
+    0 8px 32px rgba(0, 0, 0, 0.35);
+  z-index: 100;
+}
+
+.saas-topbar::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 24px;
+  right: 24px;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(8, 102, 255, 0.45) 20%,
+    rgba(124, 58, 237, 0.35) 80%,
+    transparent
+  );
+  pointer-events: none;
+}
+
+/* ─── Left: brand + breadcrumb ─── */
+.saas-topbar__left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+  flex: 1;
+}
+
+.saas-topbar__left.topbar-brand {
+  margin-right: 0;
+}
+
+.saas-topbar__brand-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  color: inherit;
+  flex-shrink: 0;
+  border-radius: 10px;
+  padding: 4px 6px 4px 4px;
+  margin: -4px -6px -4px -4px;
+  transition: background 0.2s ease;
+}
+
+.saas-topbar__brand-link:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.saas-topbar .topbar-mark {
+  width: 36px;
+  height: 36px;
+  border-radius: 11px;
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.12),
+    0 4px 16px rgba(8, 102, 255, 0.35);
+}
+
+.saas-topbar .topbar-title {
+  flex: 0 1 auto;
+  min-width: 0;
+}
+
+.saas-topbar .topbar-title h1 {
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  background: linear-gradient(135deg, #fff 0%, #a8c4ff 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.saas-topbar .topbar-title p {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text3);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.saas-topbar__sep-v {
+  width: 1px;
+  height: 28px;
+  background: linear-gradient(180deg, transparent, rgba(255, 255, 255, 0.12), transparent);
+  flex-shrink: 0;
+}
+
+.saas-topbar__breadcrumb.app-topbar__breadcrumb {
+  padding: 6px 12px;
+  border-radius: 100px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  font-size: 12px;
+  min-width: 0;
+}
+
+.saas-topbar__breadcrumb strong {
+  color: var(--text);
+  font-weight: 700;
+}
+
+/* ─── Center: announcements + status ─── */
+.saas-topbar__center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-width: 0;
+  max-width: 420px;
+}
+
+.saas-topbar__center .topbar-announcement {
+  flex: 1;
+  padding: 6px 12px;
+  border-radius: 100px;
+  background: rgba(8, 102, 255, 0.08);
+  border: 1px solid rgba(8, 102, 255, 0.15);
+}
+
+.saas-topbar #statusBar {
+  position: absolute;
+  top: calc(var(--tb-h) + 4px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 99;
+  max-width: min(520px, calc(100vw - 32px));
+  padding: 8px 16px;
+  border-radius: 100px;
+  font-size: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.saas-topbar #statusBar.sb-success,
+.saas-topbar #statusBar.sb-error,
+.saas-topbar #statusBar.sb-warning,
+.saas-topbar #statusBar.sb-info {
+  display: flex;
+}
+
+/* ─── Right: usage + actions + user ─── */
+.saas-topbar__right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+.saas-topbar__right.topbar-main {
+  margin-left: 0;
+}
+
+/* Usage / quota card */
+.saas-topbar .quota-widget {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 8px 6px 14px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: none;
+  min-width: 0;
+}
+
+.saas-topbar .quota-widget:hover {
+  border-color: rgba(8, 102, 255, 0.25);
+  background: rgba(8, 102, 255, 0.06);
+}
+
+.saas-topbar__usage-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 120px;
+}
+
+.saas-topbar__usage-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.saas-topbar #planBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  border-radius: 100px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+
+.saas-topbar__usage-nums {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text2);
+  font-family: var(--ds-font-mono, 'JetBrains Mono', monospace);
+  white-space: nowrap;
+}
+
+.saas-topbar__usage-nums .quota-num {
+  font-size: 13px;
+  font-weight: 800;
+  color: #6ee7b7;
+}
+
+.saas-topbar__usage-nums .quota-num.warn { color: #fcd34d; }
+.saas-topbar__usage-nums .quota-num.danger { color: #f87171; }
+
+.saas-topbar__usage-track {
+  height: 4px;
+  border-radius: 100px;
+  background: rgba(0, 0, 0, 0.35);
+  overflow: hidden;
+}
+
+.saas-topbar__usage-fill {
+  height: 100%;
+  width: 0%;
+  border-radius: 100px;
+  background: linear-gradient(90deg, #0866ff, #7c3aed);
+  transition: width 0.45s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.saas-topbar__usage-fill.is-warning {
+  background: linear-gradient(90deg, #f59e0b, #f97316);
+}
+
+.saas-topbar__usage-fill.is-danger {
+  background: linear-gradient(90deg, #ef4444, #dc2626);
+}
+
+.saas-topbar .quota-divider,
+.saas-topbar .quota-plan-group--plan,
+.saas-topbar .quota-micro-label,
+.saas-topbar .quota-total-num,
+.saas-topbar .quota-sep {
+  display: none;
+}
+
+.saas-topbar .btn-upgrade {
+  padding: 7px 14px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  background: linear-gradient(135deg, #0866ff 0%, #6d28d9 100%);
+  box-shadow: 0 2px 12px rgba(8, 102, 255, 0.35);
+}
+
+.saas-topbar .btn-upgrade:hover {
+  box-shadow: 0 4px 20px rgba(8, 102, 255, 0.5);
+}
+
+/* Icon actions */
+.saas-topbar__actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.saas-topbar__icon-btn {
+  width: 34px;
+  height: 34px;
+  border: none;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--text2);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.saas-topbar__icon-btn:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text);
+}
+
+.saas-topbar__actions .theme-toggle {
+  margin: 0;
+}
+
+.saas-topbar__actions .tt-track {
+  width: 40px;
+  height: 22px;
+}
+
+/* User cluster */
+.saas-topbar__user-cluster {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  position: relative;
+}
+
+.saas-topbar #loginStatus {
+  padding: 5px 10px;
+  border-radius: 100px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.saas-topbar .topbar-user-btn {
+  padding: 4px 12px 4px 4px;
+  border-radius: 100px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  gap: 10px;
+}
+
+.saas-topbar .topbar-user-btn:hover {
+  background: rgba(255, 255, 255, 0.07);
+  border-color: rgba(8, 102, 255, 0.3);
+}
+
+.saas-topbar .topbar-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  font-size: 12px;
+  border: 2px solid rgba(8, 102, 255, 0.4);
+  box-shadow: 0 0 0 2px rgba(8, 102, 255, 0.15);
+}
+
+.saas-topbar .topbar-user-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+  max-width: 100px;
+}
+
+.saas-topbar__chevron {
+  font-size: 10px;
+  color: var(--text3);
+  transition: transform 0.2s ease;
+}
+
+.saas-topbar__user-cluster.is-open .saas-topbar__chevron {
+  transform: rotate(180deg);
+}
+
+/* User dropdown */
+.saas-topbar__menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  min-width: 200px;
+  padding: 6px;
+  border-radius: 14px;
+  background: rgba(12, 20, 36, 0.98);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(16px);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-6px);
+  transition: opacity 0.18s ease, transform 0.18s ease, visibility 0.18s;
+  z-index: 200;
+}
+
+.saas-topbar__user-cluster.is-open .saas-topbar__menu {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+.saas-topbar__menu-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 12px;
+  border: none;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--text2);
+  font-size: 13px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  text-align: left;
+  text-decoration: none;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.saas-topbar__menu-item:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text);
+}
+
+.saas-topbar__menu-item i {
+  width: 18px;
+  text-align: center;
+  opacity: 0.85;
+}
+
+.saas-topbar__menu-item--danger {
+  color: #f87171;
+}
+
+.saas-topbar__menu-item--danger:hover {
+  background: rgba(239, 68, 68, 0.12);
+  color: #fca5a5;
+}
+
+.saas-topbar__menu-hr {
+  height: 1px;
+  margin: 4px 8px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* Responsive */
+@media (max-width: 1100px) {
+  .saas-topbar .topbar-title p { display: none; }
+  .saas-topbar__center { display: none; }
+}
+
+@media (max-width: 900px) {
+  .saas-topbar {
+    padding: 0 12px;
+    gap: 10px;
+  }
+  .saas-topbar__sep-v,
+  .saas-topbar__breadcrumb { display: none; }
+  .saas-topbar__usage-inner { min-width: 88px; }
+  .saas-topbar .topbar-user-name { display: none; }
+  .saas-topbar__icon-btn[title="Help"] { display: none; }
+}
+
+@media (max-width: 600px) {
+  .saas-topbar .btn-upgrade span { display: none; }
+  .saas-topbar .btn-upgrade { padding: 7px 10px; }
+}

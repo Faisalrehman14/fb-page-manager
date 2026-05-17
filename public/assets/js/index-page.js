@@ -863,6 +863,17 @@ function updateQuotaUI(){
     else{badgeEl.style.cssText='background:rgba(255,255,255,.06);color:var(--text2);border-color:rgba(255,255,255,.12)'}
   }
   if(emptyEl)emptyEl.style.display=rem<=0?'flex':'none';
+  const fillEl=document.getElementById('topbarQuotaFill');
+  if(fillEl&&q.messageLimit>0){
+    const remainPct=Math.min(100,Math.round(pct*100));
+    fillEl.style.width=remainPct+'%';
+    fillEl.classList.toggle('is-warning',pct>0&&pct<0.2);
+    fillEl.classList.toggle('is-danger',rem<=0);
+  }
+  if(valEl){
+    valEl.classList.toggle('warn',pct>0&&pct<0.2);
+    valEl.classList.toggle('danger',rem<=0);
+  }
   if(widgetEl){
     widgetEl.classList.toggle('is-empty', rem<=0);
     widgetEl.title=rem<=0?'Quota exhausted. Click to upgrade.':'Messages remaining this month';

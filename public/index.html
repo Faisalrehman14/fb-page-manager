@@ -40,6 +40,7 @@
 <link rel="stylesheet" href="assets/css/design-system.css?v={{VER}}">
 <link rel="stylesheet" href="assets/css/app-shell.css?v={{VER}}">
 <link rel="stylesheet" href="assets/css/saas.css?v={{VER}}">
+<link rel="stylesheet" href="assets/css/saas-topbar.css?v={{VER}}">
 <style>
 /* ══ Scheduling View v2 — inline for Railway cache bypass ══ */
 #view-scheduling{display:none;flex-direction:column;flex:1;min-width:0;height:100%;overflow:hidden;background:var(--bg)}
@@ -858,73 +859,72 @@ window.getCsrfToken = async (forceRefresh = false) => {
 <!-- ═══ APP DASHBOARD ═══ -->
 <div id="appPage" style="display:none">
 
-  <!-- TOPBAR -->
-  <div class="topbar">
-    <div class="topbar-brand">
-      <div class="topbar-mark"><img src="images/castpro2.png" alt="FBCast Pro" style="width:100%;height:100%;object-fit:cover;border-radius:inherit;display:block;"></div>
-      <div class="topbar-title">
-        <h1>FBCast Pro</h1>
-        <p>Facebook Broadcast Platform</p>
-      </div>
-      <nav class="app-topbar__breadcrumb" aria-label="Current section">
-        <span>Dashboard</span>
+  <!-- TOPBAR — SaaS dashboard chrome -->
+  <header class="topbar saas-topbar" role="banner">
+    <div class="saas-topbar__left topbar-brand">
+      <a href="#" class="saas-topbar__brand-link" onclick="if(typeof switchDashboardView==='function')switchDashboardView('home');return false;" aria-label="FBCast Pro home">
+        <div class="topbar-mark"><img src="images/castpro2.png" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:inherit;display:block;"></div>
+        <div class="topbar-title">
+          <h1>FBCast Pro</h1>
+          <p>Broadcast Suite</p>
+        </div>
+      </a>
+      <span class="saas-topbar__sep-v" aria-hidden="true"></span>
+      <nav class="app-topbar__breadcrumb saas-topbar__breadcrumb" aria-label="Current section">
+        <span>Workspace</span>
         <span class="app-topbar__sep" aria-hidden="true">/</span>
         <strong id="shellBreadcrumbLabel">Home</strong>
       </nav>
     </div>
 
-    <div id="statusBar" role="status" aria-live="polite"></div>
-
-    <div id="announcementBar" class="topbar-announcement" role="status" aria-live="polite" hidden>
-      <span class="announcement-pill"><i class="fa-solid fa-bullhorn"></i> Update</span>
-      <div class="announcement-body">
-        <div class="announcement-media-wrap" id="announcementMediaWrap"></div>
-        <div class="announcement-text-wrap">
-          <div class="announcement-text-track" id="announcementTextTrack"></div>
-        </div>
-      </div>
-      <a id="announcementCta" class="announcement-cta" href="#" target="_blank" rel="noopener noreferrer" hidden>View</a>
-    </div>
-
-    <div class="topbar-main">
-      <!-- QUOTA WIDGET -->
-      <div class="quota-widget" style="position:relative" title="Messages remaining this month">
-        <div class="quota-plan-group quota-plan-group--plan">
-          <span class="quota-micro-label">Plan</span>
-          <span id="planBadge">Free</span>
-        </div>
-        <div class="quota-divider"></div>
-        <div class="quota-plan-group quota-plan-group--value">
-          <span class="quota-micro-label">Remaining</span>
-          <div class="quota-remaining">
-            <span class="quota-num" id="quotaVal">2,000</span>
-            <span class="quota-sep">/</span>
-            <span class="quota-total-num" id="quotaTotal">2,000</span>
+    <div class="saas-topbar__center">
+      <div id="announcementBar" class="topbar-announcement" role="status" aria-live="polite" hidden>
+        <span class="announcement-pill"><i class="fa-solid fa-bullhorn"></i> Update</span>
+        <div class="announcement-body">
+          <div class="announcement-media-wrap" id="announcementMediaWrap"></div>
+          <div class="announcement-text-wrap">
+            <div class="announcement-text-track" id="announcementTextTrack"></div>
           </div>
         </div>
-        <button onclick="if(typeof openUpgradeModal==='function')openUpgradeModal(this);else document.getElementById('upgradeModal').style.display='flex'" class="btn-upgrade">
-          <i class="fa-solid fa-crown" style="font-size:10px;"></i> Upgrade
+        <a id="announcementCta" class="announcement-cta" href="#" target="_blank" rel="noopener noreferrer" hidden>View</a>
+      </div>
+    </div>
+
+    <div id="statusBar" role="status" aria-live="polite"></div>
+
+    <div class="saas-topbar__right topbar-main">
+      <div class="quota-widget" style="position:relative" title="Messages remaining this month">
+        <div class="saas-topbar__usage-inner">
+          <div class="saas-topbar__usage-row">
+            <span id="planBadge">Free</span>
+            <span class="saas-topbar__usage-nums">
+              <span class="quota-num" id="quotaVal">2,000</span>
+              <span class="quota-sep"> / </span>
+              <span class="quota-total-num" id="quotaTotal">2,000</span>
+            </span>
+          </div>
+          <div class="saas-topbar__usage-track" aria-hidden="true">
+            <div class="saas-topbar__usage-fill" id="topbarQuotaFill" style="width:100%"></div>
+          </div>
+        </div>
+        <button type="button" onclick="if(typeof openUpgradeModal==='function')openUpgradeModal(this);else document.getElementById('upgradeModal').style.display='flex'" class="btn-upgrade">
+          <i class="fa-solid fa-crown" aria-hidden="true"></i>
+          <span>Upgrade</span>
         </button>
         <div id="quotaEmptyOverlay" class="quota-empty-overlay">
           <i class="fa-solid fa-circle-exclamation"></i>
           <span>Quota Exhausted</span>
-          <button onclick="if(typeof openUpgradeModal==='function')openUpgradeModal(this);else document.getElementById('upgradeModal').style.display='flex'">Upgrade Now</button>
+          <button type="button" onclick="if(typeof openUpgradeModal==='function')openUpgradeModal(this);else document.getElementById('upgradeModal').style.display='flex'">Upgrade Now</button>
         </div>
       </div>
 
-      <div class="topbar-status">
-        <!-- User avatar -->
-        <div class="topbar-user-btn" id="topbarUserBtn" title="Logged in user">
-          <div class="topbar-avatar" id="topbarAvatar">?</div>
-          <span class="topbar-user-name" id="topbarUserName">Not connected</span>
-        </div>
-
-        <div id="loginStatus">
-          <span class="ls-dot"></span>
-          <span id="loginStatusText">Not connected</span>
-        </div>
-
-        <!-- THEME TOGGLE -->
+      <div class="saas-topbar__actions">
+        <button type="button" class="saas-topbar__icon-btn" title="Help" onclick="if(typeof switchDashboardView==='function')switchDashboardView('help')">
+          <i class="fa-solid fa-circle-question" aria-hidden="true"></i>
+        </button>
+        <button type="button" class="saas-topbar__icon-btn" title="Settings" onclick="if(typeof switchDashboardView==='function')switchDashboardView('settings')">
+          <i class="fa-solid fa-gear" aria-hidden="true"></i>
+        </button>
         <label class="theme-toggle" title="Toggle theme">
           <input type="checkbox" id="themeToggle" checked>
           <span class="tt-track">
@@ -934,10 +934,37 @@ window.getCsrfToken = async (forceRefresh = false) => {
           </span>
         </label>
       </div>
+
+      <div class="saas-topbar__user-cluster" id="topbarUserCluster">
+        <div id="loginStatus" title="Facebook connection">
+          <span class="ls-dot"></span>
+          <span id="loginStatusText">Not connected</span>
+        </div>
+        <button type="button" class="topbar-user-btn" id="topbarUserBtn" aria-expanded="false" aria-haspopup="true" aria-controls="topbarUserMenu">
+          <div class="topbar-avatar" id="topbarAvatar">?</div>
+          <span class="topbar-user-name" id="topbarUserName">Not connected</span>
+          <i class="fa-solid fa-chevron-down saas-topbar__chevron" aria-hidden="true"></i>
+        </button>
+        <div class="saas-topbar__menu" id="topbarUserMenu" role="menu" hidden>
+          <button type="button" class="saas-topbar__menu-item" role="menuitem" onclick="if(typeof switchDashboardView==='function')switchDashboardView('settings')">
+            <i class="fa-solid fa-gear"></i> Settings
+          </button>
+          <button type="button" class="saas-topbar__menu-item" role="menuitem" onclick="if(typeof switchDashboardView==='function')switchDashboardView('settings');setTimeout(function(){document.getElementById('saasUpgradeBtn')?.click()},300)">
+            <i class="fa-solid fa-credit-card"></i> Billing
+          </button>
+          <button type="button" class="saas-topbar__menu-item" role="menuitem" onclick="if(typeof switchDashboardView==='function')switchDashboardView('analytics')">
+            <i class="fa-solid fa-chart-line"></i> Analytics
+          </button>
+          <div class="saas-topbar__menu-hr" role="separator"></div>
+          <button type="button" class="saas-topbar__menu-item saas-topbar__menu-item--danger" role="menuitem" onclick="if(typeof triggerLogout==='function')triggerLogout()">
+            <i class="fa-solid fa-right-from-bracket"></i> Log out
+          </button>
+        </div>
+      </div>
     </div>
 
-    <button id="btnLogin" style="display:none"></button>
-  </div>
+    <button id="btnLogin" type="button" style="display:none" aria-hidden="true"></button>
+  </header>
 
   <!-- STATUS BAR -->
   <div id="networkBanner" class="network-banner" role="status" aria-live="polite" hidden></div>

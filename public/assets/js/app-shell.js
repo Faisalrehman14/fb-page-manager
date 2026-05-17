@@ -312,8 +312,42 @@
   global.showLandingPage = showLandingPage;
   global.bootstrapAuthFromServer = bootstrapAuthFromServer;
 
+  function initTopbarUserMenu() {
+    const cluster = document.getElementById('topbarUserCluster');
+    const btn = document.getElementById('topbarUserBtn');
+    const menu = document.getElementById('topbarUserMenu');
+    if (!cluster || !btn || !menu) return;
+
+    function closeMenu() {
+      cluster.classList.remove('is-open');
+      btn.setAttribute('aria-expanded', 'false');
+      menu.hidden = true;
+    }
+
+    function openMenu() {
+      cluster.classList.add('is-open');
+      btn.setAttribute('aria-expanded', 'true');
+      menu.hidden = false;
+    }
+
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (cluster.classList.contains('is-open')) closeMenu();
+      else openMenu();
+    });
+
+    document.addEventListener('click', (e) => {
+      if (!cluster.contains(e.target)) closeMenu();
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') closeMenu();
+    });
+  }
+
   document.addEventListener('DOMContentLoaded', () => {
     initNav();
+    initTopbarUserMenu();
     try {
       const params = new URLSearchParams(window.location.search);
       const pendingOAuth = sessionStorage.getItem('fbcast_oauth_pending') === '1';
