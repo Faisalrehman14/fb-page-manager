@@ -857,10 +857,9 @@ function updateQuotaUI(){
     const icon=isPro?'fa-crown':(isBasic?'fa-layer-group':'fa-gem');
     const planKey=isPro?'pro':(isBasic?'basic':'free');
     badgeEl.setAttribute('data-plan', planKey);
+    badgeEl.className='saas-topbar__plan quota-plan-badge';
     badgeEl.innerHTML=`<i class="fa-solid ${icon}" aria-hidden="true"></i><span>${label}</span>`;
-    if(isPro){badgeEl.style.cssText='background:linear-gradient(135deg,rgba(79,70,229,.3),rgba(24,119,242,.2));color:#818cf8;border-color:rgba(79,70,229,.3)'}
-    else if(isBasic){badgeEl.style.cssText='background:rgba(24,119,242,.15);color:#60a5fa;border-color:rgba(24,119,242,.2)'}
-    else{badgeEl.style.cssText='background:rgba(255,255,255,.06);color:var(--text2);border-color:rgba(255,255,255,.12)'}
+    badgeEl.removeAttribute('style');
   }
   if(emptyEl)emptyEl.style.display=rem<=0?'flex':'none';
   const fillEl=document.getElementById('topbarQuotaFill');
@@ -885,7 +884,9 @@ function updateQuotaUI(){
       }
     }:null;
   }
-  valEl.className='quota-num'+(pct<.1?' danger':pct<.3?' warn':'');
+  valEl.classList.remove('warn','danger');
+  if(rem<=0) valEl.classList.add('danger');
+  else if(pct<0.2) valEl.classList.add('warn');
 }
 
 // Expose to global scope so fb_api.js can call them

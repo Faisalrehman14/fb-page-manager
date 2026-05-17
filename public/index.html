@@ -878,46 +878,46 @@ window.getCsrfToken = async (forceRefresh = false) => {
     </div>
 
     <div class="saas-topbar__center">
-      <div id="announcementBar" class="topbar-announcement" role="status" aria-live="polite" hidden>
-        <span class="announcement-pill"><i class="fa-solid fa-bullhorn"></i> Update</span>
-        <div class="announcement-body">
+      <div id="announcementBar" class="saas-topbar__announce topbar-announcement" role="status" aria-live="polite" hidden>
+        <i class="fa-solid fa-bullhorn saas-topbar__announce-icon" aria-hidden="true"></i>
+        <div class="saas-topbar__announce-content">
           <div class="announcement-media-wrap" id="announcementMediaWrap"></div>
           <div class="announcement-text-wrap">
             <div class="announcement-text-track" id="announcementTextTrack"></div>
           </div>
         </div>
-        <a id="announcementCta" class="announcement-cta" href="#" target="_blank" rel="noopener noreferrer" hidden>View</a>
+        <a id="announcementCta" class="saas-topbar__announce-link announcement-cta" href="#" target="_blank" rel="noopener noreferrer" hidden>View</a>
       </div>
     </div>
 
     <div id="statusBar" role="status" aria-live="polite"></div>
 
     <div class="saas-topbar__right topbar-main">
-      <div class="quota-widget" style="position:relative" title="Messages remaining this month">
-        <div class="saas-topbar__usage-inner">
-          <div class="saas-topbar__usage-row">
-            <span id="planBadge">Free</span>
-            <span class="saas-topbar__usage-nums">
-              <span class="quota-num" id="quotaVal">2,000</span>
-              <span class="quota-sep"> / </span>
-              <span class="quota-total-num" id="quotaTotal">2,000</span>
-            </span>
+      <div class="quota-widget saas-topbar__quota" title="Messages remaining this month">
+        <div class="saas-topbar__quota-card">
+          <div class="saas-topbar__quota-header">
+            <span id="planBadge" class="saas-topbar__plan" data-plan="free">Free</span>
+            <span class="saas-topbar__quota-label">Messages remaining</span>
+          </div>
+          <div class="saas-topbar__quota-values">
+            <span class="quota-num" id="quotaVal">2,000</span>
+            <span class="saas-topbar__quota-sep">/</span>
+            <span class="quota-total-num" id="quotaTotal">2,000</span>
           </div>
           <div class="saas-topbar__usage-track" aria-hidden="true">
             <div class="saas-topbar__usage-fill" id="topbarQuotaFill" style="width:100%"></div>
           </div>
         </div>
-        <button type="button" onclick="if(typeof openUpgradeModal==='function')openUpgradeModal(this);else document.getElementById('upgradeModal').style.display='flex'" class="btn-upgrade">
+        <button type="button" class="btn-upgrade saas-topbar__upgrade" onclick="if(typeof openUpgradeModal==='function')openUpgradeModal(this);else document.getElementById('upgradeModal').style.display='flex'">
           <i class="fa-solid fa-crown" aria-hidden="true"></i>
           <span>Upgrade</span>
         </button>
         <div id="quotaEmptyOverlay" class="quota-empty-overlay">
           <i class="fa-solid fa-circle-exclamation"></i>
-          <span>Quota Exhausted</span>
-          <button type="button" onclick="if(typeof openUpgradeModal==='function')openUpgradeModal(this);else document.getElementById('upgradeModal').style.display='flex'">Upgrade Now</button>
+          <span>Quota exhausted</span>
+          <button type="button" onclick="if(typeof openUpgradeModal==='function')openUpgradeModal(this);else document.getElementById('upgradeModal').style.display='flex'">Upgrade</button>
         </div>
       </div>
-
       <div class="saas-topbar__actions">
         <button type="button" class="saas-topbar__icon-btn" title="Help" onclick="if(typeof switchDashboardView==='function')switchDashboardView('help')">
           <i class="fa-solid fa-circle-question" aria-hidden="true"></i>
