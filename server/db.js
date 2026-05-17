@@ -231,6 +231,36 @@ async function initDatabase() {
         `);
 
         await tryCreate(`
+            CREATE TABLE IF NOT EXISTS payment_history (
+                id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                fb_user_id VARCHAR(50) NOT NULL,
+                stripe_invoice_id VARCHAR(255) NOT NULL DEFAULT '',
+                plan VARCHAR(32) NOT NULL DEFAULT 'unknown',
+                amount_cents INT UNSIGNED NOT NULL DEFAULT 0,
+                status ENUM('succeeded','failed','pending') NOT NULL DEFAULT 'pending',
+                billing_reason VARCHAR(80) NOT NULL DEFAULT '',
+                created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                INDEX idx_payment_user (fb_user_id),
+                INDEX idx_payment_created (created_at)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        `);
+
+        await tryCreate(`
+            CREATE TABLE IF NOT EXISTS webhook_events (
+                id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                event_id VARCHAR(255) NOT NULL UNIQUE,
+                event_type VARCHAR(120) NOT NULL,
+                status ENUM('processing','processed','failed') NOT NULL DEFAULT 'processing',
+                attempts INT UNSIGNED NOT NULL DEFAULT 1,
+                payload MEDIUMTEXT NULL,
+                last_error TEXT NULL,
+                received_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                processed_at DATETIME NULL DEFAULT NULL,
+                INDEX idx_webhook_status (status)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        `);
+
+        await tryCreate(`
             CREATE TABLE IF NOT EXISTS activity_log (
                 id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
                 fb_user_id VARCHAR(50) NOT NULL,
@@ -1836,6 +1866,163 @@ async function cleanupStaleConversations(pageId = null, daysOld = CONVERSATION_R
     }
 }
 
+const { getPlan, FREE_TIER } = require('./config/plans');
+
+async function ensureBillingTables() {
+    return initDatabase();
+}
+
+async function reserveWebhookEvent(eventId, eventType, payload) {
+    if (!pool) return 'failed';
+    try {
+        const [existing] = await pool.query('SELECT status FROM webhook_events WHERE event_id = ?', [eventId]);
+        if (existing.length) {
+            if (existing[0].status === 'processed') return 'processed';
+            await pool.query(
+                `UPDATE webhook_events SET attempts = attempts + 1, last_seen_at = NOW() WHERE event_id = ?`,
+                [eventId]
+            );
+            return 'processing';
+        }
+        await pool.query(
+            `INSERT INTO webhook_events (event_id, event_type, status, payload) VALUES (?, ?, 'processing', ?)`,
+            [eventId, eventType, payload]
+        );
+        return 'processing';
+    } catch (_) {
+        return 'processing';
+    }
+}
+
+async function markWebhookProcessed(eventId) {
+    if (!pool) return;
+    await pool.query(
+        `UPDATE webhook_events SET status = 'processed', processed_at = NOW(), last_error = NULL WHERE event_id = ?`,
+        [eventId]
+    ).catch(() => {});
+}
+
+async function markWebhookFailed(eventId, error) {
+    if (!pool) return;
+    await pool.query(
+        `UPDATE webhook_events SET status = 'failed', last_error = ? WHERE event_id = ?`,
+        [String(error).slice(0, 5000), eventId]
+    ).catch(() => {});
+}
+
+async function recordPayment(fbUserId, { invoiceId, plan, amountCents, status, billingReason }) {
+    if (!pool) return;
+    await pool.query(
+        `INSERT INTO payment_history (fb_user_id, stripe_invoice_id, plan, amount_cents, status, billing_reason)
+         VALUES (?, ?, ?, ?, ?, ?)`,
+        [fbUserId, invoiceId || '', plan || 'unknown', amountCents || 0, status || 'pending', billingReason || '']
+    ).catch(() => {});
+}
+
+async function applyPlan(fbUserId, planKey, { subscriptionId = '', email = '', amountCents = 0, invoiceId = '', billingReason = '' } = {}) {
+    if (!pool) return;
+    const plan = getPlan(planKey);
+    if (!plan) return;
+    const expiresExpr = plan.interval === 'year'
+        ? 'DATE_ADD(NOW(), INTERVAL 1 YEAR)'
+        : 'DATE_ADD(NOW(), INTERVAL 1 MONTH)';
+    await pool.query(
+        `INSERT IGNORE INTO users (fb_user_id, plan, messenger_messages_limit) VALUES (?, 'free', ?)`,
+        [fbUserId, FREE_TIER.limit]
+    );
+    if (email) {
+        await pool.query(
+            `UPDATE users SET plan = ?, messenger_messages_limit = ?, messenger_messages_used = 0,
+             stripe_subscription_id = ?, subscription_expires = ${expiresExpr}, email = ?
+             WHERE fb_user_id = ?`,
+            [plan.dbPlan, plan.limit, subscriptionId || null, email, fbUserId]
+        );
+    } else {
+        await pool.query(
+            `UPDATE users SET plan = ?, messenger_messages_limit = ?, messenger_messages_used = 0,
+             stripe_subscription_id = ?, subscription_expires = ${expiresExpr}
+             WHERE fb_user_id = ?`,
+            [plan.dbPlan, plan.limit, subscriptionId || null, fbUserId]
+        );
+    }
+    await pool.query(
+        'INSERT INTO activity_log (fb_user_id, action, detail) VALUES (?, ?, ?)',
+        [fbUserId, 'subscription', `Activated: ${planKey} | ${plan.limit} messages`]
+    ).catch(() => {});
+    if (amountCents || invoiceId) {
+        await recordPayment(fbUserId, { invoiceId, plan: plan.dbPlan, amountCents, status: 'succeeded', billingReason });
+    }
+}
+
+async function renewPlan(fbUserId, planKey, { invoiceId, amountCents, billingReason }) {
+    if (!pool) return;
+    const plan = getPlan(planKey);
+    if (!plan) return;
+    const expiresExpr = plan.interval === 'year'
+        ? 'DATE_ADD(NOW(), INTERVAL 1 YEAR)'
+        : 'DATE_ADD(NOW(), INTERVAL 1 MONTH)';
+    await pool.query(
+        `UPDATE users SET messenger_messages_used = 0, messenger_messages_limit = ?,
+         subscription_expires = ${expiresExpr}, plan = ?
+         WHERE fb_user_id = ?`,
+        [plan.limit, plan.dbPlan, fbUserId]
+    );
+    await recordPayment(fbUserId, { invoiceId, plan: plan.dbPlan, amountCents, status: 'succeeded', billingReason });
+}
+
+async function downgradeToFree(fbUserId) {
+    if (!pool) return;
+    await pool.query(
+        `UPDATE users SET plan = 'free', messenger_messages_limit = ?, messenger_messages_used = 0,
+         stripe_subscription_id = NULL, subscription_expires = NULL WHERE fb_user_id = ?`,
+        [FREE_TIER.limit, fbUserId]
+    );
+    await pool.query(
+        'INSERT INTO activity_log (fb_user_id, action, detail) VALUES (?, ?, ?)',
+        [fbUserId, 'subscription', 'Cancelled — reverted to free']
+    ).catch(() => {});
+}
+
+async function assertQuota(fbUserId, count = 1) {
+    if (!pool) return { ok: false, code: 'DB_UNAVAILABLE', message: 'Database unavailable' };
+    await pool.query(
+        `INSERT IGNORE INTO users (fb_user_id, plan, messenger_messages_limit) VALUES (?, 'free', ?)`,
+        [fbUserId, FREE_TIER.limit]
+    );
+    const [rows] = await pool.query(
+        `SELECT messenger_messages_used, messenger_messages_limit, plan, subscription_expires
+         FROM users WHERE fb_user_id = ?`,
+        [fbUserId]
+    );
+    if (!rows.length) return { ok: false, code: 'USER_NOT_FOUND', message: 'User not found' };
+    const r = rows[0];
+    if (r.subscription_expires && new Date(r.subscription_expires) < new Date()) {
+        return { ok: false, code: 'SUBSCRIPTION_EXPIRED', message: 'Subscription expired', plan: r.plan };
+    }
+    const remaining = r.messenger_messages_limit - r.messenger_messages_used;
+    if (remaining < count) {
+        return {
+            ok: false,
+            code: 'QUOTA_EXCEEDED',
+            message: 'Message quota exceeded',
+            remaining: Math.max(0, remaining),
+            limit: r.messenger_messages_limit,
+            plan: r.plan
+        };
+    }
+    return { ok: true, remaining, limit: r.messenger_messages_limit, plan: r.plan };
+}
+
+async function checkExpiredSubscriptions() {
+    if (!pool) return 0;
+    const [result] = await pool.query(
+        `UPDATE users SET plan = 'free', messenger_messages_limit = ?, stripe_subscription_id = NULL
+         WHERE subscription_expires IS NOT NULL AND subscription_expires < NOW() AND plan != 'free'`,
+        [FREE_TIER.limit]
+    );
+    return result.affectedRows || 0;
+}
+
 const dbModule = {
     initDatabase,
     getPool: () => pool,
@@ -1907,7 +2094,17 @@ const dbModule = {
     getSchedules,
     cancelSchedule,
     getDueSchedules,
-    updateScheduleStatus
+    updateScheduleStatus,
+    ensureBillingTables,
+    reserveWebhookEvent,
+    markWebhookProcessed,
+    markWebhookFailed,
+    recordPayment,
+    applyPlan,
+    renewPlan,
+    downgradeToFree,
+    assertQuota,
+    checkExpiredSubscriptions
 };
 
 // ── ensureConversation — INSERT IGNORE then SELECT (race-safe) ────────────────

@@ -150,6 +150,18 @@ function createMessengerRouter(deps) {
                         if (!_checkSendLimit(req.session?.userId)) {
                             return res.status(429).json({ error: 'Sending too fast — slow down a moment' });
                         }
+                        const userId = req.session?.userId;
+                        if (userId && db.assertQuota) {
+                            const quota = await db.assertQuota(userId, 1);
+                            if (!quota.ok) {
+                                return res.status(402).json({
+                                    error: quota.message || 'Quota exceeded',
+                                    code: quota.code,
+                                    remaining: quota.remaining,
+                                    limit: quota.limit
+                                });
+                            }
+                        }
                         const result = await sendService.send({
                             pageId,
                             psid,
@@ -157,6 +169,9 @@ function createMessengerRouter(deps) {
                             image_url,
                             page_token
                         });
+                        if (userId && db.updateUserQuota) {
+                            await db.updateUserQuota(userId, 1);
+                        }
                         return res.json(result);
                     }
                     case 'mark_read': {

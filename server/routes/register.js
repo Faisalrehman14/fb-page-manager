@@ -962,7 +962,7 @@ app.post('/api/messenger/upload', requireAuth, upload.single('file'), async (req
 });
 
 // ── FB Proxy ──────────────────────────────────────────────────────────────────
-app.post('/api/fb-proxy', verifyCsrf, async (req, res) => {
+app.post('/api/fb-proxy', requireAuth, verifyCsrf, async (req, res) => {
     const { method = 'GET', path: fbPath, token, params = {}, body = {}, url: fullUrl } = req.body;
     
     let url;
@@ -1023,10 +1023,24 @@ mountMessenger({ app, requireAuth, db, getDbConnected: () => state.dbConnected, 
 // ── Quota ───────────────────────────────────────────────────────────────────
 app.post(['/api/update_quota', '/api/update_quota.php'], requireAuth, verifyCsrf, async (req, res) => {
     const { fb_user_id, count } = req.body;
-    if (!fb_user_id) return res.status(400).json({ error: 'fb_user_id required' });
+    const uid = req.session.userId;
+    if (!uid) return res.status(401).json({ error: 'Not authenticated' });
+    if (fb_user_id && fb_user_id !== uid) return res.status(403).json({ error: 'Forbidden' });
     
     try {
-        const result = await db.updateUserQuota(fb_user_id, count);
+        const n = Math.max(0, parseInt(count, 10) || 0);
+        if (n > 0) {
+            const quota = await db.assertQuota(uid, n);
+            if (!quota.ok) {
+                return res.status(402).json({
+                    error: quota.message,
+                    code: quota.code,
+                    remaining: quota.remaining,
+                    limit: quota.limit
+                });
+            }
+        }
+        const result = await db.updateUserQuota(uid, n);
         if (result) res.json(result);
         else res.status(404).json({ error: 'User not found' });
     } catch (err) {

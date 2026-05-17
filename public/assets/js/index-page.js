@@ -908,15 +908,17 @@ window.showPaymentPopup=async function(plan){
   try{
     const csrfToken=await getCsrfToken();
     const data=await runWithRetryUI(async function() {
-      return fetchJsonWithRetry('create_checkout.php',{
+      return fetchJsonWithRetry('/api/billing/checkout',{
         method:'POST',headers:{'Content-Type':'application/json','X-CSRF-Token':csrfToken},
-        body:JSON.stringify({plan,fb_user_id:userData.fb_user_id,csrf_token:csrfToken}),
+        body:JSON.stringify({plan,fb_user_id:userData.fb_user_id}),
       },{attempts:2,backoffMs:500});
     }, { label: 'Checkout session', maxAttempts: 2 });
-    if(data.error)throw new Error(data.error);
-    if(data.url){
+    const checkout = data.data || data;
+    if(data.error)throw new Error(typeof data.error === 'string' ? data.error : data.error?.message);
+    if(checkout.url || data.url){
+      const url = checkout.url || data.url;
       fbTrackEvent('checkout_redirect', { plan: plan || 'unknown' });
-      window.location.assign(data.url);
+      window.location.assign(url);
       return;
     }
     throw new Error('Payment session creation failed');

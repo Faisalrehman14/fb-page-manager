@@ -29,6 +29,9 @@ function startServer(httpServer, { startBroadcastScheduler, io }) {
             if (typeof startBroadcastScheduler === 'function') {
                 startBroadcastScheduler();
             }
+            setInterval(() => {
+                db.checkExpiredSubscriptions?.().catch(() => {});
+            }, 60 * 60 * 1000);
         } else {
             console.warn('⚠️  Running without DB:', db.getLastError());
         }

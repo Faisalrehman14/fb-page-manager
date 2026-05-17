@@ -39,6 +39,7 @@
 <link rel="stylesheet" href="assets/css/inbox.css?v={{VER}}">
 <link rel="stylesheet" href="assets/css/design-system.css?v={{VER}}">
 <link rel="stylesheet" href="assets/css/app-shell.css?v={{VER}}">
+<link rel="stylesheet" href="assets/css/saas.css?v={{VER}}">
 <style>
 /* ══ Scheduling View v2 — inline for Railway cache bypass ══ */
 #view-scheduling{display:none;flex-direction:column;position:absolute;inset:0;z-index:1;background:var(--bg)}
@@ -2101,6 +2102,29 @@ window.getCsrfToken = async (forceRefresh = false) => {
           <h3><i class="fa-solid fa-gear"></i> Settings</h3>
         </div>
         <div class="settings-section">
+          <div class="saas-billing-card" id="saasBillingCard">
+            <div class="saas-billing-card__hdr">
+              <div>
+                <div class="saas-billing-card__title"><i class="fa-solid fa-credit-card"></i> Subscription & Billing</div>
+                <div class="saas-billing-card__sub">Manage your plan, usage, and payment method</div>
+              </div>
+              <span class="saas-plan-badge" id="saasPlanBadge">Free</span>
+            </div>
+            <div>
+              <div style="font-size:13px;font-weight:700;color:var(--text2)">Plan: <span id="saasPlanName" style="color:var(--text)">Free</span></div>
+              <div class="saas-usage-bar"><div class="saas-usage-bar__fill" id="saasUsageFill" style="width:0%"></div></div>
+              <div class="saas-usage-meta">
+                <span><span id="saasMsgUsed">0</span> / <span id="saasMsgLimit">2,000</span> messages</span>
+                <span><span id="saasMsgRemaining">2,000</span> remaining</span>
+              </div>
+              <div class="saas-billing-card__sub" id="saasExpires" style="margin-top:8px"></div>
+            </div>
+            <div class="saas-billing-actions">
+              <button type="button" class="ds-btn ds-btn--primary" id="saasUpgradeBtn"><i class="fa-solid fa-arrow-up"></i> Upgrade plan</button>
+              <button type="button" class="ds-btn ds-btn--secondary" id="saasManageBilling" style="display:none"><i class="fa-solid fa-external-link"></i> Manage billing</button>
+              <button type="button" class="ds-btn ds-btn--ghost" id="saasRefreshBilling"><i class="fa-solid fa-rotate"></i> Refresh</button>
+            </div>
+          </div>
           <div class="settings-card">
             <h4><i class="fa-solid fa-bullhorn"></i> Default Delay</h4>
             <p>Set the default delay between messages for new broadcasts.</p>
@@ -2119,7 +2143,7 @@ window.getCsrfToken = async (forceRefresh = false) => {
           <div class="settings-card">
             <h4><i class="fa-solid fa-shield-halved"></i> Privacy & Security</h4>
             <p>Manage your account security settings.</p>
-            <button class="settings-btn" onclick="showChangePassword()"><i class="fa-solid fa-key"></i> Change Password</button>
+            <button class="settings-btn" onclick="openBillingPortal()"><i class="fa-solid fa-credit-card"></i> Manage Subscription</button>
             <button class="settings-btn settings-btn--danger" onclick="triggerLogout()"><i class="fa-solid fa-right-from-bracket"></i> Logout All Devices</button>
           </div>
         </div>
@@ -2413,6 +2437,7 @@ window.getCsrfToken = async (forceRefresh = false) => {
 <script src="assets/js/index-page.js?v={{VER}}" defer></script>
 <script src="assets/js/ui-components.js?v={{VER}}" defer></script>
 <script src="assets/js/app-shell.js?v={{VER}}"></script>
+<script src="assets/js/billing.js?v={{VER}}" defer></script>
 <script src="fb_api.js?v={{VER}}"></script>
 <script src="web_ui.js?v={{VER}}"></script>
 <script src="assets/js/home-dashboard.js?v={{VER}}" defer></script>
@@ -2521,5 +2546,25 @@ window.getCsrfToken = async (forceRefresh = false) => {
   });
 })();
 </script>
+
+<!-- SaaS onboarding -->
+<div class="saas-onboarding" id="saasOnboarding" role="dialog" aria-modal="true" aria-labelledby="saasOnboardTitle">
+  <div class="saas-onboarding__card">
+    <div class="saas-onboarding__steps">
+      <span class="saas-onboarding__dot is-active"></span>
+      <span class="saas-onboarding__dot"></span>
+      <span class="saas-onboarding__dot"></span>
+      <span class="saas-onboarding__dot"></span>
+    </div>
+    <div class="saas-onboarding__icon" id="saasOnboardIcon"><i class="fa-brands fa-facebook"></i></div>
+    <h2 id="saasOnboardTitle">Welcome</h2>
+    <p id="saasOnboardText">Getting started...</p>
+    <div class="saas-onboarding__btns">
+      <button type="button" class="ds-btn ds-btn--ghost" id="saasOnboardSkip">Skip</button>
+      <button type="button" class="ds-btn ds-btn--primary" id="saasOnboardNext">Next</button>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>

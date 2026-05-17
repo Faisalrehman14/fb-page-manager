@@ -77,7 +77,7 @@ function createApp() {
     app.use(rateLimit({
         windowMs: 60000,
         max: 200,
-        skip: req => req.url.includes('webhook')
+        skip: req => req.url.includes('webhook') || req.url.includes('/api/billing/webhook')
     }));
     app.use((req, res, next) => { trackRequest(req); next(); });
 
