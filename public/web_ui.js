@@ -245,10 +245,21 @@ function updateSendHint() {
   updateCampaignIntel();
 }
 
+function pagePictureUrl(p) {
+  if (!p) return '';
+  if (typeof p.picture === 'string') return p.picture;
+  if (p.picture && p.picture.data && p.picture.data.url) return p.picture.data.url;
+  return '';
+}
+
 function renderPages(pages) {
   const container = $('pageCards');
   const select = $('pageSelect');
   if (!container || !select) return;
+
+  const previousPageId = select.value || null;
+  const scrollTop = container.scrollTop;
+
   container.innerHTML = '';
   select.innerHTML = '';
 
@@ -256,6 +267,7 @@ function renderPages(pages) {
   if (!pages || pages.length === 0) {
     container.innerHTML = `<div class="pages-empty"><i class="fa-brands fa-facebook"></i><p>No pages found.</p></div>`;
     if (pgCount) pgCount.style.display = 'none';
+    window.loadedPages = [];
     return;
   }
   if (pgCount) { pgCount.textContent = pages.length; pgCount.style.display = ''; }
@@ -266,14 +278,14 @@ function renderPages(pages) {
     opt.value = p.id;
     select.appendChild(opt);
 
-    const picUrl = p.picture?.data?.url || '';
+    const picUrl = pagePictureUrl(p);
     const initial = (p.name || '?').charAt(0).toUpperCase();
     const card = document.createElement('div');
     card.className = 'page-card';
     card.dataset.id = p.id;
     card.innerHTML = `
       ${picUrl
-        ? `<img class="page-avatar" src="${escHtml(picUrl)}" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`
+        ? `<img class="page-avatar" src="${escHtml(picUrl)}" alt="">`
         : ''}
       <div class="page-avatar-fallback" style="${picUrl ? 'display:none' : ''}">${escHtml(initial)}</div>
       <div class="page-info">
@@ -302,9 +314,23 @@ function renderPages(pages) {
       updateSendHint();
       updateCampaignIntel();
     });
+    const imgEl = card.querySelector('.page-avatar');
+    const fbEl = card.querySelector('.page-avatar-fallback');
+    if (imgEl && fbEl) {
+      imgEl.addEventListener('error', () => {
+        imgEl.style.display = 'none';
+        fbEl.style.display = 'flex';
+      });
+    }
     container.appendChild(card);
   });
-  if (pages.length > 0) container.querySelector('.page-card')?.click();
+  const targetId = (previousPageId && pages.some(p => p.id === previousPageId))
+    ? previousPageId
+    : pages[0].id;
+  const targetCard = container.querySelector('.page-card[data-id="' + targetId + '"]');
+  if (targetCard) targetCard.click();
+  container.scrollTop = scrollTop;
+  if (typeof svPopulatePages === 'function') svPopulatePages();
 }
 
 function getFilteredRecipients() {
@@ -653,6 +679,7 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   btnFetchPages?.addEventListener('click', async () => {
+    if (btnFetchPages.disabled) return;
     setLoading(btnFetchPages, true);
     btnFetchPages.classList.add('spinning');
     uiTrackEvent('pages_refresh_click', { source: 'manual' });
@@ -665,9 +692,10 @@ document.addEventListener('DOMContentLoaded', () => {
       if (typeof window.showToast === 'function') {
         window.showToast('Refresh failed: ' + msg, 'error');
       }
+    } finally {
+      btnFetchPages.classList.remove('spinning');
+      setLoading(btnFetchPages, false);
     }
-    btnFetchPages.classList.remove('spinning');
-    setLoading(btnFetchPages, false);
   });
 
   btnStart?.addEventListener('click', async () => {

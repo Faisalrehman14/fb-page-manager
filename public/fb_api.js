@@ -401,45 +401,81 @@ async function fbPost(path, token, body) {
   }, { attempts: 3, backoffMs: 420 });
 }
 
+function normalizePageRecord(page) {
+  if (!page || !page.id) return null;
+  let picture = '';
+  if (typeof page.picture === 'string') picture = page.picture;
+  else if (page.picture && page.picture.data && page.picture.data.url) picture = page.picture.data.url;
+  return {
+    id: page.id,
+    name: page.name || page.id,
+    access_token: page.access_token || page.accessToken || '',
+    category: page.category || '',
+    picture
+  };
+}
+
+function normalizePagesList(pages) {
+  return (pages || []).map(normalizePageRecord).filter(Boolean);
+}
+
 // ── Fetch user's Pages (with thumbnails) ──────────────
-// Uses server-side exchange to get long-lived page tokens (~60 days).
 async function fetchUserPages() {
   const userToken = getStoredToken();
+
+  // Prefer server session (refresh button / post-OAuth)
+  try {
+    const res = await fetch('/api/pages', { credentials: 'same-origin' });
+    if (res.ok) {
+      const data = await res.json();
+      if (Array.isArray(data.pages)) {
+        const pages = normalizePagesList(data.pages);
+        localStorage.setItem(STORAGE_KEYS.PAGES, JSON.stringify(pages));
+        return pages;
+      }
+    }
+    if (res.status === 401) {
+      throw new Error('Session expired. Please connect with Facebook again.');
+    }
+  } catch (e) {
+    if (e.message && e.message.includes('Session expired')) throw e;
+  }
+
   if (!userToken?.token) throw new Error('Session expired. Please login again.');
 
-  // Try server-side exchange first (long-lived tokens)
+  // Token exchange (long-lived page tokens)
   try {
     const csrfToken = await window.getCsrfToken?.() || '';
-    const xData = await requestJson('/api/exchange_token.php', {
+    const xData = await requestJson('/api/auth/exchange', {
       method:      'POST',
       credentials: 'same-origin',
-      headers:     { 
+      headers:     {
         'Content-Type': 'application/json',
         'X-CSRF-Token': csrfToken
       },
       body:        JSON.stringify({ user_token: userToken.token }),
     }, { attempts: 2, backoffMs: 450 });
-    if (xData.success && xData.pages) {
-      localStorage.setItem(STORAGE_KEYS.PAGES, JSON.stringify(xData.pages));
+    if (xData.success && Array.isArray(xData.pages)) {
+      const pages = normalizePagesList(xData.pages);
+      localStorage.setItem(STORAGE_KEYS.PAGES, JSON.stringify(pages));
       if (xData.long_lived_token) {
         localStorage.setItem(STORAGE_KEYS.USER_TOKEN, JSON.stringify({
           token: xData.long_lived_token,
           expiresAt: Date.now() + 58 * 24 * 60 * 60 * 1000
         }));
       }
-      return xData.pages;
+      return pages;
     }
     if (xData.error) throw new Error(xData.error);
   } catch (e) {
-    if (e.message && !e.message.includes('fetch')) throw e;
-    // Network error — fall through to direct API call
+    if (e.message && !e.message.includes('fetch') && !e.message.includes('Failed to fetch')) throw e;
   }
 
-  // Fallback: direct Graph API call (short-lived tokens)
+  // Fallback: Graph API via proxy
   const data  = await fbGet('me/accounts', userToken.token, {
     fields: 'id,name,access_token,category,picture.type(large)'
   });
-  const pages = data.data || [];
+  const pages = normalizePagesList(data.data || []);
   localStorage.setItem(STORAGE_KEYS.PAGES, JSON.stringify(pages));
   return pages;
 }

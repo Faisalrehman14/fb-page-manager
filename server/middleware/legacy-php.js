@@ -6,7 +6,7 @@ function legacyPhpRedirect(req, res, next) {
         'index.php': '/',
         'get_csrf.php': '/api/csrf-token',
         'fb_proxy.php': '/api/fb-proxy',
-        'exchange_token.php': '/api/auth/fb-token',
+        'exchange_token.php': '/api/auth/exchange',
         'track_user.php': '/api/auth/track',
         'upload_image.php': '/api/upload-image',
         'messenger_api.php': '/api/messenger',
