@@ -1,0 +1,353 @@
+/**
+ * FBCast Pro — Global Theme v2
+ * Senior SaaS design system: tokens, canvas, surfaces, light/dark
+ * Load after index.css — overrides & unifies the full product
+ */
+
+/* ─── Core tokens (dark default) ─── */
+:root {
+  --fbc-brand: #0866ff;
+  --fbc-brand-hover: #1877f2;
+  --fbc-brand-deep: #0048cc;
+  --fbc-brand-dim: rgba(8, 102, 255, 0.14);
+  --fbc-brand-glow: rgba(8, 102, 255, 0.32);
+  --fbc-accent: #7c3aed;
+  --fbc-accent-dim: rgba(124, 58, 237, 0.14);
+  --fbc-accent-soft: #b37feb;
+
+  /* Sync legacy aliases used across the app */
+  --primary: var(--fbc-brand);
+  --primary-light: #4f9fff;
+  --primary-dim: var(--fbc-brand-dim);
+  --primary-glow: var(--fbc-brand-glow);
+  --cyan: var(--fbc-accent-soft);
+  --cyan-light: #d4adff;
+  --cyan-dim: rgba(179, 127, 235, 0.12);
+
+  --bg: #030c1a;
+  --bg2: #060f22;
+  --bg3: #0a152e;
+  --surface: #0d1b38;
+  --surface2: #112042;
+  --surface3: #162850;
+
+  --text: #edf3ff;
+  --text2: #7b8fb5;
+  --text3: #485878;
+
+  --border: rgba(255, 255, 255, 0.065);
+  --border2: rgba(255, 255, 255, 0.11);
+  --border3: rgba(255, 255, 255, 0.19);
+
+  --green: #10b981;
+  --green-light: #34d399;
+  --red: #ef4444;
+  --amber: #f59e0b;
+
+  --radius: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
+
+  --shadow-sm: 0 1px 4px rgba(0, 0, 0, 0.55);
+  --shadow: 0 4px 24px rgba(0, 0, 0, 0.45);
+  --shadow-lg: 0 16px 56px rgba(0, 0, 0, 0.55);
+  --shadow-violet: 0 4px 28px rgba(8, 102, 255, 0.35);
+
+  --gradient-brand: linear-gradient(135deg, var(--fbc-brand) 0%, var(--fbc-brand-deep) 100%);
+  --gradient-hero: linear-gradient(135deg, var(--fbc-brand) 0%, var(--fbc-accent) 55%, var(--fbc-accent-soft) 100%);
+  --gradient-surface: linear-gradient(180deg, rgba(255, 255, 255, 0.04) 0%, transparent 100%);
+  --messenger: linear-gradient(135deg, var(--fbc-brand), var(--fbc-accent-soft));
+
+  --fbc-canvas:
+    radial-gradient(ellipse 90% 70% at 8% -15%, rgba(8, 102, 255, 0.14), transparent 52%),
+    radial-gradient(ellipse 70% 55% at 95% 5%, rgba(124, 58, 237, 0.11), transparent 48%),
+    radial-gradient(ellipse 50% 40% at 50% 100%, rgba(8, 102, 255, 0.06), transparent 50%),
+    var(--bg);
+
+  color-scheme: dark;
+}
+
+/* ─── Global base ─── */
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--fbc-canvas);
+  background-attachment: fixed;
+  color: var(--text);
+}
+
+::selection {
+  background: rgba(8, 102, 255, 0.35);
+  color: #fff;
+}
+
+/* ─── Landing page canvas ─── */
+#landingPage {
+  background: var(--fbc-canvas);
+  background-attachment: fixed;
+}
+
+.nav {
+  background: rgba(3, 12, 26, 0.78) !important;
+  border-bottom-color: var(--border) !important;
+  backdrop-filter: blur(24px) saturate(180%);
+}
+
+.nav.scrolled {
+  background: rgba(3, 12, 26, 0.94) !important;
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.4);
+}
+
+.hero {
+  background:
+    radial-gradient(ellipse 80% 60% at 50% -10%, rgba(8, 102, 255, 0.14) 0%, transparent 60%),
+    radial-gradient(ellipse 50% 40% at 80% 20%, rgba(124, 58, 237, 0.1) 0%, transparent 50%),
+    transparent !important;
+}
+
+.nav-cta,
+.mobile-menu-cta,
+.hv-hero-cta,
+.btn-upgrade,
+.ds-btn--primary {
+  background: var(--gradient-brand) !important;
+}
+
+/* ─── App dashboard canvas ─── */
+#appPage {
+  background: var(--fbc-canvas) !important;
+  background-attachment: fixed;
+}
+
+.app-body {
+  background: transparent !important;
+  position: relative;
+}
+
+/* ─── Unified surfaces (cards, rails, panels) ─── */
+.theme-surface,
+.nav-sidebar,
+.sidebar,
+.compose-col,
+.compose,
+.broadcast-col,
+.quota-widget,
+.saas-topbar,
+#view-messenger,
+.hv-kpi,
+.hv-qa-card,
+.hv-plan-card,
+.modal-box,
+.upgrade-modal-box,
+#upgradeModal .modal-box,
+.settings-section,
+.price-card,
+.feature-card,
+.step-item {
+  border-color: var(--border) !important;
+}
+
+.nav-sidebar,
+.sidebar,
+.compose-col,
+.compose {
+  background: linear-gradient(180deg, var(--surface) 0%, var(--bg2) 100%) !important;
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.03) inset,
+    var(--shadow) !important;
+}
+
+.nav-side-item.active {
+  background: var(--fbc-brand-dim) !important;
+  color: var(--primary-light) !important;
+}
+
+.nav-side-item.active i {
+  color: var(--primary-light);
+}
+
+/* Home dashboard polish */
+#view-home {
+  background: transparent;
+}
+
+.hv-hero {
+  background:
+    linear-gradient(135deg, rgba(8, 102, 255, 0.12) 0%, rgba(124, 58, 237, 0.08) 100%),
+    var(--surface) !important;
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow), 0 0 0 1px rgba(255, 255, 255, 0.03) inset;
+}
+
+.hv-kpi {
+  background: var(--surface) !important;
+  border: 1px solid var(--border) !important;
+  transition: border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.hv-kpi:hover {
+  border-color: rgba(8, 102, 255, 0.28) !important;
+  box-shadow: var(--shadow-violet);
+}
+
+.hv-qa-card,
+.hv-plan-card {
+  background: var(--surface) !important;
+  border: 1px solid var(--border) !important;
+}
+
+.hv-hero-cta {
+  background: var(--gradient-brand) !important;
+  box-shadow: var(--shadow-violet) !important;
+}
+
+.hv-hero-cta2:hover {
+  border-color: rgba(8, 102, 255, 0.35) !important;
+  color: var(--primary-light) !important;
+}
+
+/* Broadcast / compose */
+.compose-section,
+.broadcast-panel {
+  background: var(--surface) !important;
+}
+
+/* Settings & modals */
+.settings-section,
+.modal-content {
+  background: var(--surface) !important;
+  border: 1px solid var(--border) !important;
+}
+
+/* Topbar — match theme glass */
+.saas-topbar {
+  background: rgba(6, 12, 24, 0.82) !important;
+  border-bottom-color: var(--border) !important;
+}
+
+/* Messenger inherits tokens; subtle panel lift */
+.msng-root {
+  background:
+    radial-gradient(ellipse 100% 60% at 0% 0%, var(--fbc-brand-dim), transparent 50%),
+    radial-gradient(ellipse 80% 50% at 100% 0%, var(--fbc-accent-dim), transparent 45%),
+    var(--bg2) !important;
+}
+
+/* Scrollbars */
+::-webkit-scrollbar-thumb {
+  background: rgba(8, 102, 255, 0.22);
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(8, 102, 255, 0.38);
+}
+
+/* Focus ring */
+:focus-visible {
+  outline-color: var(--primary-light);
+}
+
+/* ─── Light theme ─── */
+body.light,
+html[data-theme='light'] {
+  color-scheme: light;
+
+  --bg: #eff4ff;
+  --bg2: #e5edff;
+  --bg3: #d8e6ff;
+  --surface: #ffffff;
+  --surface2: #f3f7ff;
+  --surface3: #eaf1ff;
+
+  --text: #061640;
+  --text2: #3a5080;
+  --text3: #7090b8;
+
+  --border: rgba(8, 102, 255, 0.1);
+  --border2: rgba(8, 102, 255, 0.15);
+  --border3: rgba(8, 102, 255, 0.22);
+
+  --shadow-sm: 0 1px 4px rgba(8, 102, 255, 0.08);
+  --shadow: 0 4px 20px rgba(8, 102, 255, 0.12);
+  --shadow-lg: 0 12px 40px rgba(8, 102, 255, 0.15);
+  --shadow-violet: 0 4px 20px rgba(8, 102, 255, 0.2);
+
+  --fbc-brand-dim: rgba(8, 102, 255, 0.1);
+  --fbc-accent-dim: rgba(124, 58, 237, 0.08);
+
+  --fbc-canvas:
+    radial-gradient(ellipse 90% 70% at 10% -10%, rgba(8, 102, 255, 0.08), transparent 50%),
+    radial-gradient(ellipse 70% 50% at 90% 0%, rgba(124, 58, 237, 0.06), transparent 45%),
+    var(--bg);
+}
+
+body.light {
+  background: var(--fbc-canvas);
+  background-attachment: fixed;
+}
+
+body.light #appPage,
+body.light #landingPage {
+  background: var(--fbc-canvas) !important;
+  background-attachment: fixed;
+}
+
+body.light .nav {
+  background: rgba(240, 244, 255, 0.88) !important;
+}
+
+body.light .saas-topbar {
+  background: rgba(255, 255, 255, 0.88) !important;
+  border-bottom-color: var(--border) !important;
+  box-shadow: 0 1px 0 rgba(8, 102, 255, 0.06);
+}
+
+body.light .saas-topbar .topbar-title h1 {
+  background: linear-gradient(135deg, #061640 0%, #0866ff 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+
+body.light .nav-sidebar,
+body.light .sidebar,
+body.light .compose-col,
+body.light .compose {
+  background: linear-gradient(180deg, #ffffff 0%, var(--surface2) 100%) !important;
+  box-shadow: var(--shadow-sm) !important;
+}
+
+body.light .hv-hero {
+  background: linear-gradient(135deg, rgba(8, 102, 255, 0.08), rgba(124, 58, 237, 0.05)), #fff !important;
+}
+
+body.light .hv-kpi,
+body.light .hv-qa-card,
+body.light .hv-plan-card {
+  background: #fff !important;
+}
+
+body.light .msng-root {
+  background: var(--bg2) !important;
+}
+
+body.light ::-webkit-scrollbar-thumb {
+  background: rgba(8, 102, 255, 0.15);
+}
+
+body.light ::-webkit-scrollbar-thumb:hover {
+  background: rgba(8, 102, 255, 0.28);
+}
+
+/* Pricing cards — brand accent on featured tier */
+.price-card.featured {
+  border-color: rgba(8, 102, 255, 0.35) !important;
+  box-shadow: var(--shadow-violet) !important;
+}
+
+.price-btn--pro,
+.price-btn--basic {
+  background: var(--gradient-brand) !important;
+}

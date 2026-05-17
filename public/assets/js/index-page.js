@@ -1005,6 +1005,7 @@ window.showPaymentPopup=async function(plan){
 
 /* DOM READY */
 document.addEventListener('DOMContentLoaded',async()=>{
+  applyTheme();
   startAnnouncementPolling();
   updateHeroAvatars();
   restoreComposerDraft();
@@ -1300,14 +1301,17 @@ function applyTheme(){
   const toggle=document.getElementById('themeToggle');
   const isLight=saved!=='dark';
   document.body.classList.toggle('light',isLight);
+  document.documentElement.setAttribute('data-theme', isLight ? 'light' : 'dark');
   if(toggle)toggle.checked=!isLight;
 }
 (function(){
   const toggle=document.getElementById('themeToggle');
   if(!toggle)return;
   toggle.addEventListener('change',function(){
-    document.body.classList.toggle('light',!this.checked);
-    localStorage.setItem('promo_theme',this.checked?'dark':'light');
+    const isDark=this.checked;
+    document.body.classList.toggle('light',!isDark);
+    document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+    localStorage.setItem('promo_theme',isDark?'dark':'light');
   });
 })();
 

@@ -249,15 +249,24 @@
 .ds-empty__title { font-size: var(--ds-text-lg); font-weight: var(--ds-weight-bold); color: var(--ds-text-muted); }
 .ds-empty__text { font-size: var(--ds-text-sm); max-width: 280px; line-height: 1.5; }
 
-/* ─── Light theme overrides ─── */
+/* ─── Light theme (synced with fbc-theme.css) ─── */
 html[data-theme="light"] {
-  --bg: #f4f7fc;
-  --bg2: #eef2f9;
+  --bg: #eff4ff;
+  --bg2: #e5edff;
+  --bg3: #d8e6ff;
   --surface: #ffffff;
-  --surface2: #f8fafc;
-  --text: #0f172a;
-  --text2: #475569;
-  --text3: #94a3b8;
-  --border: rgba(15, 23, 42, 0.08);
-  --border2: rgba(15, 23, 42, 0.14);
+  --surface2: #f3f7ff;
+  --surface3: #eaf1ff;
+  --text: #061640;
+  --text2: #3a5080;
+  --text3: #7090b8;
+  --border: rgba(8, 102, 255, 0.1);
+  --border2: rgba(8, 102, 255, 0.15);
+  --ds-bg: var(--bg);
+  --ds-surface: var(--surface);
+  --ds-surface-raised: var(--surface2);
+  --ds-text: var(--text);
+  --ds-text-muted: var(--text2);
+  --ds-text-subtle: var(--text3);
+  --ds-border: var(--border);
 }
