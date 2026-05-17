@@ -173,13 +173,7 @@ body {
   background: transparent;
 }
 
-.hv-hero {
-  background:
-    linear-gradient(135deg, rgba(8, 102, 255, 0.12) 0%, rgba(124, 58, 237, 0.08) 100%),
-    var(--surface) !important;
-  border: 1px solid var(--border);
-  box-shadow: var(--shadow), 0 0 0 1px rgba(255, 255, 255, 0.03) inset;
-}
+/* Home welcome banner: see home-dashboard.css */
 
 .hv-kpi {
   background: var(--surface) !important;
@@ -319,9 +313,7 @@ body.light .compose {
   box-shadow: var(--shadow-sm) !important;
 }
 
-body.light .hv-hero {
-  background: linear-gradient(135deg, rgba(8, 102, 255, 0.08), rgba(124, 58, 237, 0.05)), #fff !important;
-}
+/* Home hero light: home-dashboard.css */
 
 body.light .hv-kpi,
 body.light .hv-qa-card,

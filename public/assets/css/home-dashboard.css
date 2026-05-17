@@ -18,7 +18,7 @@
   display: flex;
   flex-direction: column;
   gap: 24px;
-  padding: 28px 32px 36px;
+  padding: 28px 32px 36px !important;
   max-width: 1440px;
   margin: 0 auto;
   width: 100%;
@@ -31,70 +31,134 @@
   to { opacity: 1; transform: translateY(0); }
 }
 
-/* ─── Hero welcome strip ─── */
+/* ─── Welcome banner (hero) ─── */
 #view-home .hv-hero {
   position: relative;
   overflow: hidden;
+  flex-shrink: 0;
+  width: 100%;
+  box-sizing: border-box;
   border-radius: 20px;
-  padding: 36px 40px;
-  border: 1px solid var(--hd-border);
+  padding: 32px 36px;
+  border: 1px solid var(--hd-border) !important;
   background:
-    linear-gradient(135deg, rgba(8, 102, 255, 0.14) 0%, rgba(124, 58, 237, 0.08) 42%, transparent 70%),
-    linear-gradient(180deg, rgba(13, 27, 56, 0.95) 0%, rgba(8, 18, 38, 0.98) 100%);
-  box-shadow: var(--hd-shadow);
+    linear-gradient(135deg, rgba(8, 102, 255, 0.16) 0%, rgba(124, 58, 237, 0.09) 45%, transparent 72%),
+    linear-gradient(180deg, rgba(11, 22, 46, 0.98) 0%, rgba(7, 16, 34, 0.99) 100%) !important;
+  box-shadow: var(--hd-shadow) !important;
+  backdrop-filter: blur(12px);
 }
 
-#view-home .hv-hero-glows,
+#view-home .hv-hero-glows {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 0;
+}
+
 #view-home .hv-hero-dots {
-  opacity: 0.35;
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.4;
 }
 
 #view-home .hv-hero-orb1 {
-  background: rgba(8, 102, 255, 0.2);
+  background: rgba(8, 102, 255, 0.22);
 }
 #view-home .hv-hero-orb2 {
-  background: rgba(124, 58, 237, 0.15);
+  background: rgba(124, 58, 237, 0.16);
 }
 #view-home .hv-hero-orb3 {
   display: none;
 }
 
 #view-home .hv-hero-content {
-  align-items: stretch;
-  gap: 32px;
+  position: relative;
+  z-index: 1;
+  display: flex !important;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px 28px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+#view-home .hv-hero-left {
+  flex: 1 1 300px;
+  min-width: 0;
+  max-width: 100%;
+}
+
+#view-home .hv-hero-right {
+  flex: 0 1 320px;
+  min-width: 0;
+  max-width: 100%;
+  display: flex;
+  justify-content: flex-end;
+  align-self: center;
 }
 
 #view-home .hv-hero-badges {
-  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
   gap: 8px;
+  margin-bottom: 14px;
 }
 
-#view-home .hv-hero-status,
-#view-home .hv-hero-badge-fb {
+#view-home .hv-hero-status {
+  display: inline-flex !important;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 0 !important;
   padding: 5px 12px;
   border-radius: 100px;
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.02em;
-  backdrop-filter: blur(8px);
+  background: rgba(16, 185, 129, 0.12) !important;
+  border: 1px solid rgba(16, 185, 129, 0.28) !important;
+  color: var(--green-light) !important;
 }
 
 #view-home .hv-hero-badge-fb {
-  background: var(--primary-dim);
-  border: 1px solid rgba(8, 102, 255, 0.28);
-  color: var(--primary-light);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: 100px;
+  font-size: 11px;
+  font-weight: 700;
+  background: var(--primary-dim) !important;
+  border: 1px solid rgba(8, 102, 255, 0.28) !important;
+  color: var(--primary-light) !important;
+}
+
+#view-home .hv-hero-dot {
+  width: 7px;
+  height: 7px;
+  flex-shrink: 0;
 }
 
 #view-home .hv-hero-title {
-  font-size: clamp(26px, 3.2vw, 34px);
-  font-weight: 800;
-  letter-spacing: -0.04em;
-  line-height: 1.15;
-  color: var(--text);
-  margin-bottom: 10px;
+  font-size: clamp(24px, 2.8vw, 32px) !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.04em !important;
+  line-height: 1.2 !important;
+  color: var(--text) !important;
+  margin: 0 0 10px !important;
+  word-wrap: break-word;
+  overflow-wrap: anywhere;
 }
 
 #view-home .hv-hero-name {
+  display: inline;
   background: linear-gradient(135deg, #6ab4ff 0%, #c4b5fd 100%);
   -webkit-background-clip: text;
   background-clip: text;
@@ -102,55 +166,94 @@
 }
 
 #view-home .hv-hero-sub {
-  font-size: 15px;
-  line-height: 1.65;
-  color: var(--text2);
-  max-width: 480px;
-  margin-bottom: 24px;
+  font-size: 14px !important;
+  line-height: 1.65 !important;
+  color: var(--text2) !important;
+  max-width: 520px;
+  margin: 0 0 20px !important;
 }
 
 #view-home .hv-hero-btns {
-  gap: 12px;
+  display: flex !important;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+#view-home .hv-hero-cta,
+#view-home .hv-hero-cta2 {
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  flex-shrink: 0;
+  white-space: nowrap;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease, border-color 0.18s ease;
 }
 
 #view-home .hv-hero-cta {
-  padding: 12px 22px;
-  border-radius: 10px;
-  font-size: 13px;
-  font-weight: 700;
-  background: linear-gradient(135deg, #0866ff 0%, #0052cc 100%);
-  box-shadow: 0 4px 20px rgba(8, 102, 255, 0.4);
+  padding: 11px 20px !important;
+  border-radius: 10px !important;
+  font-size: 13px !important;
+  font-weight: 700 !important;
+  color: #fff !important;
+  background: linear-gradient(135deg, #0866ff 0%, #0052cc 100%) !important;
+  box-shadow: 0 4px 18px rgba(8, 102, 255, 0.4) !important;
+}
+
+#view-home .hv-hero-cta:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 24px rgba(8, 102, 255, 0.5) !important;
 }
 
 #view-home .hv-hero-cta2 {
-  padding: 12px 18px;
-  border-radius: 10px;
-  font-size: 13px;
-  font-weight: 600;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid var(--hd-border);
-  color: var(--text);
+  padding: 11px 16px !important;
+  border-radius: 10px !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  color: var(--text) !important;
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid var(--hd-border) !important;
 }
 
 #view-home .hv-hero-cta2:hover {
-  background: rgba(8, 102, 255, 0.1);
-  border-color: rgba(8, 102, 255, 0.3);
-  color: var(--primary-light);
+  background: rgba(8, 102, 255, 0.12) !important;
+  border-color: rgba(8, 102, 255, 0.32) !important;
+  color: var(--primary-light) !important;
+  transform: translateY(-2px);
 }
 
-/* Hero schedule widget */
+/* Schedule widget in banner */
 #view-home .hv-hero-sched-card {
-  min-width: 300px;
-  max-width: 340px;
-  padding: 20px;
-  border-radius: 16px;
-  background: rgba(0, 0, 0, 0.25);
-  border: 1px solid var(--hd-border);
-  backdrop-filter: blur(16px);
+  width: 100%;
+  min-width: 0;
+  max-width: 320px;
+  box-sizing: border-box;
+  padding: 18px;
+  border-radius: 14px;
+  background: rgba(0, 0, 0, 0.28) !important;
+  border: 1px solid var(--hd-border) !important;
+  backdrop-filter: blur(14px);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+#view-home .hv-hero-sched-hdr {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
 }
 
 #view-home .hv-hero-sched-title {
+  display: flex;
+  align-items: center;
+  gap: 7px;
   font-size: 13px;
   font-weight: 800;
   color: var(--text);
@@ -167,18 +270,41 @@
   border-color: rgba(8, 102, 255, 0.3);
 }
 
+#view-home .hv-hero-sched-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 52px;
+}
+
 #view-home .hv-hero-sched-empty {
-  border-color: var(--hd-border);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px dashed var(--hd-border);
   color: var(--text3);
   font-size: 12px;
 }
 
 #view-home .hv-hero-sched-btn {
-  background: var(--primary-dim);
-  border: 1px solid rgba(8, 102, 255, 0.35);
-  color: var(--primary-light);
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  width: 100%;
+  margin-top: auto;
+  padding: 10px 14px;
+  background: var(--primary-dim) !important;
+  border: 1px solid rgba(8, 102, 255, 0.35) !important;
+  color: var(--primary-light) !important;
   border-radius: 10px;
+  font-size: 12px;
   font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
 }
 
 #view-home .hv-hero-sched-btn:hover {
@@ -249,23 +375,50 @@
   }
 }
 
+@media (max-width: 960px) {
+  #view-home .hv-hero-content {
+    flex-direction: column !important;
+    align-items: stretch !important;
+  }
+
+  #view-home .hv-hero-left,
+  #view-home .hv-hero-right {
+    flex: 1 1 auto;
+    width: 100%;
+    max-width: none;
+  }
+
+  #view-home .hv-hero-right {
+    justify-content: stretch;
+  }
+
+  #view-home .hv-hero-sched-card {
+    max-width: none;
+  }
+}
+
 @media (max-width: 640px) {
   #view-home .hv-kpi-row {
     grid-template-columns: repeat(2, 1fr);
   }
+
   #view-home {
     padding: 20px 16px 28px;
   }
+
   #view-home .hv-hero {
-    padding: 24px 20px;
+    padding: 22px 18px;
   }
-  #view-home .hv-hero-content {
+
+  #view-home .hv-hero-btns {
     flex-direction: column;
+    align-items: stretch;
   }
-  #view-home .hv-hero-sched-card {
-    min-width: 0;
-    max-width: none;
+
+  #view-home .hv-hero-cta,
+  #view-home .hv-hero-cta2 {
     width: 100%;
+    justify-content: center;
   }
 }
 
@@ -728,7 +881,26 @@ body.light #view-home {
 }
 
 body.light #view-home .hv-hero {
-  background: linear-gradient(135deg, rgba(8, 102, 255, 0.08), #fff 60%);
+  background:
+    linear-gradient(135deg, rgba(8, 102, 255, 0.1) 0%, rgba(124, 58, 237, 0.05) 45%, transparent 70%),
+    linear-gradient(180deg, #fff 0%, #f8fafc 100%) !important;
+  border-color: rgba(8, 102, 255, 0.14) !important;
+}
+
+body.light #view-home .hv-hero-status {
+  background: rgba(16, 185, 129, 0.1) !important;
+  border-color: rgba(16, 185, 129, 0.25) !important;
+  color: #059669 !important;
+}
+
+body.light #view-home .hv-hero-sub {
+  color: var(--text2) !important;
+}
+
+body.light #view-home .hv-hero-cta2 {
+  background: rgba(8, 102, 255, 0.06) !important;
+  border-color: rgba(8, 102, 255, 0.15) !important;
+  color: var(--text) !important;
 }
 
 body.light #view-home .hv-hero-sched-card {

@@ -467,7 +467,7 @@ body {
 /* ═══════════════════════════════════════
    DASHBOARD — Home view
 ═══════════════════════════════════════ */
-.hv {
+.hv:not(#view-home) {
   padding: 24px !important;
   gap: 24px !important;
   max-width: 1400px;
@@ -475,31 +475,7 @@ body {
   width: 100%;
 }
 
-.hv-hero {
-  border-radius: 20px !important;
-  background: var(--premium-glass) !important;
-  backdrop-filter: blur(20px);
-  border: 1px solid var(--premium-glass-border) !important;
-  box-shadow: var(--premium-shadow-card) !important;
-  padding: 36px 40px !important;
-}
-
-.hv-hero-title {
-  font-size: clamp(22px, 3vw, 28px) !important;
-  letter-spacing: -0.03em !important;
-  color: var(--text) !important;
-}
-
-.hv-hero-sub {
-  color: var(--text2) !important;
-  font-size: 14px !important;
-}
-
-.hv-hero-stat-box {
-  background: rgba(255, 255, 255, 0.04) !important;
-  border: 1px solid var(--premium-glass-border) !important;
-  border-radius: 14px !important;
-}
+/* Home welcome banner: styled in home-dashboard.css (#view-home) */
 
 /* KPI cards — refined, not toy-like */
 .hv-kpi-row {
@@ -645,8 +621,7 @@ body.light .feat,
 body.light .step,
 body.light .price-card,
 body.light .hv-kpi,
-body.light .hv-panel,
-body.light .hv-hero {
+body.light .hv-panel {
   background: #fff !important;
 }
 
