@@ -37,6 +37,8 @@
 <!-- UI Assets -->
 <link rel="stylesheet" href="assets/css/messenger.css?v={{VER}}">
 <link rel="stylesheet" href="assets/css/inbox.css?v={{VER}}">
+<link rel="stylesheet" href="assets/css/design-system.css?v={{VER}}">
+<link rel="stylesheet" href="assets/css/app-shell.css?v={{VER}}">
 <style>
 /* ══ Scheduling View v2 — inline for Railway cache bypass ══ */
 #view-scheduling{display:none;flex-direction:column;position:absolute;inset:0;z-index:1;background:var(--bg)}
@@ -854,6 +856,11 @@ window.getCsrfToken = async (forceRefresh = false) => {
         <h1>FBCast Pro</h1>
         <p>Facebook Broadcast Platform</p>
       </div>
+      <nav class="app-topbar__breadcrumb" aria-label="Current section">
+        <span>Dashboard</span>
+        <span class="app-topbar__sep" aria-hidden="true">/</span>
+        <strong id="shellBreadcrumbLabel">Home</strong>
+      </nav>
     </div>
 
     <div id="statusBar" role="status" aria-live="polite"></div>
@@ -935,21 +942,34 @@ window.getCsrfToken = async (forceRefresh = false) => {
         <span>Menu</span>
       </div>
       <div class="nav-sidebar-items">
-        <a class="nav-side-item active" href="#" onclick="switchDashboardView('home');return false;" id="navItemHome">
+        <a class="nav-side-item active" href="#" data-view="home" id="navItemHome" title="Home">
           <i class="fa-solid fa-house"></i>
           <span>Home</span>
         </a>
-        <a class="nav-side-item" href="#" onclick="switchDashboardView('broadcast');return false;" id="navItemBroadcast">
+        <a class="nav-side-item" href="#" data-view="broadcast" id="navItemBroadcast" title="Broadcast">
           <i class="fa-solid fa-bullhorn"></i>
           <span>Broadcast</span>
         </a>
-        <a class="nav-side-item" href="#" onclick="switchDashboardView('messenger');return false;" id="navItemMessenger">
+        <a class="nav-side-item" href="#" data-view="messenger" id="navItemMessenger" title="Messenger">
           <i class="fa-brands fa-facebook-messenger"></i>
           <span>Messenger</span>
         </a>
-        <a class="nav-side-item" href="#" onclick="switchDashboardView('scheduling');return false;" id="navItemScheduling">
+        <a class="nav-side-item" href="#" data-view="scheduling" id="navItemScheduling" title="Scheduling">
           <i class="fa-solid fa-clock"></i>
           <span>Scheduling</span>
+        </a>
+        <div class="nav-sidebar-divider" role="separator"></div>
+        <a class="nav-side-item" href="#" data-view="analytics" id="navItemAnalytics" title="Analytics">
+          <i class="fa-solid fa-chart-line"></i>
+          <span>Analytics</span>
+        </a>
+        <a class="nav-side-item" href="#" data-view="settings" id="navItemSettings" title="Settings">
+          <i class="fa-solid fa-gear"></i>
+          <span>Settings</span>
+        </a>
+        <a class="nav-side-item" href="#" data-view="help" id="navItemHelp" title="Help">
+          <i class="fa-solid fa-circle-question"></i>
+          <span>Help</span>
         </a>
       </div>
       <div class="nav-sidebar-footer">
@@ -2394,6 +2414,7 @@ window.getCsrfToken = async (forceRefresh = false) => {
 <script src="assets/js/ui-components.js?v={{VER}}" defer></script>
 <script src="fb_api.js?v={{VER}}"></script>
 <script src="web_ui.js?v={{VER}}"></script>
+<script src="assets/js/app-shell.js?v={{VER}}"></script>
 <script src="assets/js/home-dashboard.js?v={{VER}}" defer></script>
 <script src="/socket.io/socket.io.js"></script>
 <script src="assets/js/inbox.js?v={{VER}}"></script>

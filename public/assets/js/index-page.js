@@ -1134,6 +1134,7 @@ window.showAppDashboard = function () {
   if (typeof applyTheme === 'function') applyTheme();
   if (typeof setLoginOnline === 'function') setLoginOnline();
   if (typeof switchDashboardView === 'function') switchDashboardView('home');
+  else if (window.AppShell) window.AppShell.navigate('home');
   const cached = JSON.parse(localStorage.getItem('fb_pages') || '[]');
   if (cached.length && typeof window.renderPages === 'function') {
     window.renderPages(cached);

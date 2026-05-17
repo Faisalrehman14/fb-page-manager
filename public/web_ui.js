@@ -1092,59 +1092,7 @@ setInterval(() => {
   if (document.getElementById('view-scheduling')?.style.display !== 'none') svLoadSchedules();
 }, 30_000);
 
-// Switch between dashboard views
-// NOTE: #view-scheduling lives INSIDE #view-broadcast (broadcast-view), same as
-// view-analytics/settings/help. To show scheduling, we must show broadcast-view
-// and hide compose/broadcast-col/stats-panel, then show view-scheduling.
-function switchDashboardView(view) {
-  // Update nav active state
-  document.querySelectorAll('.nav-side-item').forEach(item => item.classList.remove('active'));
-  const activeItem = document.getElementById('navItem' + view.charAt(0).toUpperCase() + view.slice(1));
-  if (activeItem) activeItem.classList.add('active');
-
-  // Top-level views: home, messenger, broadcast
-  // 'scheduling' shows broadcast-view as its container
-  const topSections = ['home', 'messenger', 'broadcast'];
-  topSections.forEach(s => {
-    const el = document.getElementById('view-' + s);
-    if (!el) return;
-    const show = s === view || (s === 'broadcast' && view === 'scheduling');
-    if (show) {
-      el.style.display = s === 'messenger' ? 'flex' : '';
-    } else {
-      el.style.display = 'none';
-    }
-  });
-
-  // Inside broadcast-view: compose, broadcast-col, stats-panel visible only for 'broadcast'
-  const compose   = document.querySelector('#view-broadcast .compose');
-  const bcastCol  = document.querySelector('#view-broadcast .broadcast-col');
-  const statsPanel = document.querySelector('.stats-panel');
-  const isBroadcast = view === 'broadcast';
-  if (compose)    compose.style.display    = isBroadcast ? '' : 'none';
-  if (bcastCol)   bcastCol.style.display   = isBroadcast ? '' : 'none';
-  if (statsPanel) statsPanel.style.display = isBroadcast ? '' : 'none';
-
-  // Inside broadcast-view: scheduling panel
-  const schedEl = document.getElementById('view-scheduling');
-  if (schedEl) schedEl.style.display = view === 'scheduling' ? 'flex' : 'none';
-
-  // Hide the main nav sidebar when in scheduling view (full-width layout)
-  const mainSidebar = document.querySelector('.sidebar');
-  if (mainSidebar) mainSidebar.style.display = view === 'scheduling' ? 'none' : '';
-
-  // Load data
-  if (view === 'home') {
-    updateHomeViewStats();
-    if (window.homeDashboard) window.homeDashboard.start();
-  } else if (window.homeDashboard) {
-    window.homeDashboard.stop();
-  }
-  if (view === 'messenger')  loadMessengerConversations();
-  if (view === 'scheduling') { svPopulatePages(); svSetMinDatetime(); svLoadSchedules(); }
-
-  if (view !== 'broadcast') showStatus('Viewing ' + view + '...', 'info');
-}
+// View routing: see assets/js/app-shell.js (AppShell.navigate / switchDashboardView)
 
 // Update home view stats with real data
 function updateHomeViewStats() {

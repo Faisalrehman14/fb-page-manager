@@ -1,5 +1,6 @@
 const express = require('express');
 const compression = require('compression');
+const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const cookieParser = require('cookie-parser');
 const multer = require('multer');
@@ -20,7 +21,8 @@ const { legacyPhpRedirect } = require('./middleware/legacy-php');
 const { setupSocket } = require('./socket');
 const db = require('./db');
 const { mountMessenger } = require('./messenger');
-const registerRoutes = require('./routes/register');
+const composeRoutes = require('./routes/composer');
+const { notFoundHandler, errorHandler } = require('./middleware/errorHandler');
 
 function createUploadDisk() {
     const diskStorage = multer.diskStorage({
@@ -67,6 +69,10 @@ function createApp() {
     });
 
     app.set('trust proxy', 1);
+    app.use(helmet({
+        contentSecurityPolicy: false,
+        crossOriginEmbedderPolicy: false
+    }));
     app.use(compression());
     app.use(rateLimit({
         windowMs: 60000,
@@ -108,7 +114,10 @@ function createApp() {
         startBroadcastScheduler: null
     };
 
-    registerRoutes(app, deps);
+    composeRoutes(app, deps);
+
+    app.use(notFoundHandler);
+    app.use(errorHandler);
 
     return {
         app,
