@@ -348,12 +348,54 @@ window.openUpgradeModal = function (triggerEl) {
   fbTrackEvent('upgrade_modal_open', { source: 'manual' });
 };
 
-var triggerLogout = function(){
-  ['fb_user_token','fbcast_user','fbcast_quota','promo_theme'].forEach(k=>localStorage.removeItem(k));
-  sessionStorage.clear();
+async function triggerLogout() {
   hideAnnouncementBar();
-  window.location.assign(window.location.origin+window.location.pathname);
-};
+
+  if (window.AppShell && typeof window.AppShell.showLandingPage === 'function') {
+    window.AppShell.showLandingPage();
+  } else if (typeof window.showLandingPage === 'function') {
+    window.showLandingPage();
+  } else {
+    const landing = document.getElementById('landingPage');
+    const app = document.getElementById('appPage');
+    if (landing) landing.style.display = 'flex';
+    if (app) app.style.display = 'none';
+    document.body.style.overflow = '';
+  }
+
+  try {
+    const csrfToken = typeof getCsrfToken === 'function' ? await getCsrfToken() : (window.APP_CONFIG?.csrfToken || '');
+    await fetch('/api/auth/logout', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-Token': csrfToken
+      }
+    });
+  } catch (_) {}
+
+  if (typeof window.clearClientAuth === 'function') {
+    window.clearClientAuth();
+  } else {
+    ['fb_user_token', 'fbcast_user', 'fbcast_quota', 'fb_pages', 'fb_thread_by_psid', 'send_queue'].forEach((k) => {
+      try { localStorage.removeItem(k); } catch (_) {}
+    });
+    try { sessionStorage.setItem('fbcast_logged_out', '1'); } catch (_) {}
+  }
+
+  try { sessionStorage.removeItem('fbcast_pending_plan'); } catch (_) {}
+
+  window.dispatchEvent(new Event('fbcast:logout'));
+
+  if (typeof showToast === 'function') showToast('Logged out successfully.', 'success');
+
+  setTimeout(() => {
+    window.location.assign(window.location.origin + window.location.pathname);
+  }, 300);
+}
+
+window.triggerLogout = triggerLogout;
 
 var showToast=function(msg,type='error'){
   if(!msg||typeof msg!=='string')return;
@@ -1000,6 +1042,13 @@ document.addEventListener('DOMContentLoaded',async()=>{
 
   // Auto-restore session after page refresh (localStorage or server session)
   await (async function(){
+    if (sessionStorage.getItem('fbcast_logged_out') === '1') {
+      sessionStorage.removeItem('fbcast_logged_out');
+      if (window.AppShell && typeof window.AppShell.showLandingPage === 'function') {
+        window.AppShell.showLandingPage();
+      }
+      return;
+    }
     let hasAuth = false;
     const storedToken=localStorage.getItem('fb_user_token');
     if (storedToken) {

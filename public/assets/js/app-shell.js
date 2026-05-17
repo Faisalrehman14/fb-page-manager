@@ -202,9 +202,37 @@
     } catch (_) {}
   }
 
+  /** Hide dashboard and return to marketing landing page. */
+  function showLandingPage() {
+    const landing = $('landingPage');
+    const app = $('appPage');
+    if (app) {
+      app.style.display = 'none';
+      app.setAttribute('aria-hidden', 'true');
+    }
+    if (landing) {
+      landing.style.display = 'flex';
+      landing.removeAttribute('aria-hidden');
+    }
+    document.body.style.overflow = '';
+    document.body.classList.remove('app-dashboard-active', 'shell-scheduling', 'shell-messenger', 'in-messenger');
+
+    if (global.homeDashboard && typeof global.homeDashboard.stop === 'function') {
+      global.homeDashboard.stop();
+    }
+
+    const ls = document.getElementById('loginStatus');
+    if (ls) ls.classList.remove('online');
+    const lt = document.getElementById('loginStatusText');
+    if (lt) lt.textContent = 'Not connected';
+    const topName = document.getElementById('topbarUserName');
+    if (topName) topName.textContent = 'Not connected';
+  }
+
   global.AppShell = {
     navigate,
     showDashboard,
+    showLandingPage,
     getCurrentView: () => currentView,
     init() {
       initNav();
@@ -213,6 +241,7 @@
 
   global.switchDashboardView = navigate;
   global.showAppDashboard = showDashboard;
+  global.showLandingPage = showLandingPage;
 
   document.addEventListener('DOMContentLoaded', () => {
     initNav();

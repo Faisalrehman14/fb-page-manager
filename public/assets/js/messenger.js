@@ -2135,6 +2135,19 @@
     };
   }
 
+  window.addEventListener('fbcast:logout', () => {
+    try {
+      if (_socket) {
+        _socket.disconnect();
+        _socket = null;
+      }
+    } catch (_) {}
+    stopPolling();
+    M.pages = [];
+    M.activePageId = null;
+    M.activePsid = null;
+  });
+
   // ── After Facebook login: reload inbox from DB (server sync runs in background) ─
   window.addEventListener('fbcast:sync-done', () => {
     _convListCache.clear();

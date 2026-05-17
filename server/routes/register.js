@@ -605,7 +605,16 @@ app.get('/api/auth/status', (req, res) => {
     else res.json({ authenticated: false });
 });
 
-app.post('/api/auth/logout', verifyCsrf, (req, res) => { req.session.destroy(); res.json({ redirect: '/' }); });
+app.post('/api/auth/logout', verifyCsrf, (req, res) => {
+    const cookieOpts = { path: '/', signed: true, httpOnly: true, sameSite: 'lax' };
+    res.clearCookie('_fb_at', cookieOpts);
+    res.clearCookie('_fb_uid', cookieOpts);
+    res.clearCookie('_fb_un', cookieOpts);
+    req.session.destroy(err => {
+        if (err) logError('auth_logout', err);
+        res.json({ success: true, redirect: '/' });
+    });
+});
 
 // ── Pages ─────────────────────────────────────────────────────────────────────
 app.get('/api/pages', requireAuth, async (req, res) => {

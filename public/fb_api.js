@@ -666,9 +666,27 @@ function getStoredToken() {
   }
 })();
 
+/** Clear all client-side auth data (call on logout). */
+function clearClientAuth() {
+  [
+    STORAGE_KEYS.USER_TOKEN,
+    STORAGE_KEYS.PAGES,
+    STORAGE_KEYS.THREAD_MAP,
+    STORAGE_KEYS.QUEUE,
+    'fbcast_user',
+    'fbcast_quota',
+    'fbcast_message_draft',
+    'fbcast_delay_draft'
+  ].forEach((k) => {
+    try { localStorage.removeItem(k); } catch (_) {}
+  });
+  try { sessionStorage.setItem('fbcast_logged_out', '1'); } catch (_) {}
+}
+
 // Expose API for browser usage
 window.startFacebookLogin = startFacebookLogin;
 window.openDashboardAfterLogin = openDashboardAfterLogin;
+window.clearClientAuth = clearClientAuth;
 window.getStoredToken = getStoredToken;
 window.fetchUserPages = fetchUserPages;
 window.fetchConversations = fetchConversations;
