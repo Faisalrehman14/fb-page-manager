@@ -280,37 +280,41 @@ app.get(['/api/auth/callback', '/oauth_callback.php'], async (req, res) => {
 </div>
 <script>
   const RESULT = ${JSON.stringify(data)};
-  let attempts = 0;
-  function trySend() {
-    if (!window.opener) {
-      if (++attempts < 20) {
-        setTimeout(trySend, 150);
-      } else {
-        document.getElementById('loader').style.display = 'none';
-        document.getElementById('title').textContent = "Connection complete!";
-        document.getElementById('sub').textContent = "Please go back to the main window.";
-        document.getElementById('closeBtn').style.display = 'inline-block';
+  function notifyParent() {
+    try {
+      localStorage.setItem('fb_oauth_result', JSON.stringify(Object.assign({ ts: Date.now() }, RESULT)));
+    } catch (e) {}
+    try {
+      var ch = new BroadcastChannel('fb_oauth');
+      ch.postMessage(RESULT);
+      ch.close();
+    } catch (e) {}
+    try {
+      if (window.opener && !window.opener.closed) {
+        window.opener.postMessage(RESULT, '*');
+        if (RESULT.type === 'fb_auth_success') {
+          if (window.opener.showAppDashboard) window.opener.showAppDashboard();
+          else if (window.opener.AppShell && window.opener.AppShell.showDashboard) window.opener.AppShell.showDashboard();
+        }
       }
+    } catch (e) {}
+    setTimeout(function() { try { window.close(); } catch (_) {} }, 450);
+  }
+  var attempts = 0;
+  function trySend() {
+    if (window.opener && !window.opener.closed) {
+      notifyParent();
       return;
     }
-    function persistAndNotify() {
-      if (RESULT.type === 'fb_auth_success') {
-        try {
-          var exp = (RESULT.expiresIn || 5184000) * 1000;
-          localStorage.setItem('fb_user_token', JSON.stringify({ token: RESULT.token, expiresAt: Date.now() + exp }));
-          if (RESULT.pages && RESULT.pages.length) localStorage.setItem('fb_pages', JSON.stringify(RESULT.pages));
-          if (RESULT.userId) localStorage.setItem('fbcast_user', JSON.stringify({ fb_user_id: RESULT.userId, fb_name: RESULT.userName || '' }));
-        } catch (e) {}
-      }
-      try { window.opener.postMessage(RESULT, "*"); } catch (e) {}
-      try {
-        if (RESULT.type === 'fb_auth_success' && window.opener.showAppDashboard) window.opener.showAppDashboard();
-        else if (RESULT.type === 'fb_auth_success' && window.opener.AppShell && window.opener.AppShell.showDashboard) window.opener.AppShell.showDashboard();
-      } catch (e) {}
-      setTimeout(function() { window.close(); }, 500);
+    if (++attempts < 25) {
+      setTimeout(trySend, 120);
+      return;
     }
-    persistAndNotify();
-    return;
+    notifyParent();
+    document.getElementById('loader').style.display = 'none';
+    document.getElementById('title').textContent = RESULT.error ? 'Connection failed' : 'Connected!';
+    document.getElementById('sub').textContent = 'You can close this window — your dashboard should open automatically.';
+    document.getElementById('closeBtn').style.display = 'inline-block';
   }
   trySend();
 </script>
@@ -569,17 +573,17 @@ app.post('/api/auth/fb-token', async (req, res) => {
 app.get('/api/auth/login', (req, res) => {
     const state = crypto.randomBytes(16).toString('hex');
     req.session.oauthState = state;
-    const redirectUri = `${BASE_URL}/api/auth/callback`;
+    const redirectUri = `${BASE_URL}/api/auth/redirect-callback`;
     const scope = 'pages_show_list,pages_messaging,pages_read_engagement,pages_manage_metadata';
     res.json({ authUrl: `https://www.facebook.com/v19.0/dialog/oauth?client_id=${FB_APP_ID}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${scope}&state=${state}&response_type=code` });
 });
 
-app.get('/api/auth/callback', async (req, res) => {
+app.get('/api/auth/redirect-callback', async (req, res) => {
     const { code, state, error } = req.query;
     if (error)  return res.redirect('/?error=' + encodeURIComponent(error));
     if (!state || state !== req.session.oauthState) return res.redirect('/?error=invalid_state');
     try {
-        const redirectUri = `${BASE_URL}/api/auth/callback`;
+        const redirectUri = `${BASE_URL}/api/auth/redirect-callback`;
         const tRes  = await fetch(`https://graph.facebook.com/v19.0/oauth/access_token?client_id=${FB_APP_ID}&redirect_uri=${encodeURIComponent(redirectUri)}&client_secret=${FB_APP_SECRET}&code=${code}`);
         const tData = await tRes.json();
         if (tData.error) throw new Error(tData.error.message);

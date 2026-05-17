@@ -242,6 +242,24 @@ function openDashboardAfterLogin() {
   document.body.style.overflow = 'hidden';
 }
 
+const OAUTH_RESULT_KEY = 'fb_oauth_result';
+
+function readOAuthHandoff() {
+  try {
+    const raw = localStorage.getItem(OAUTH_RESULT_KEY);
+    if (!raw) return null;
+    const data = JSON.parse(raw);
+    if (data.ts && Date.now() - data.ts > 120000) {
+      localStorage.removeItem(OAUTH_RESULT_KEY);
+      return null;
+    }
+    localStorage.removeItem(OAUTH_RESULT_KEY);
+    return data;
+  } catch (_) {
+    return null;
+  }
+}
+
 function openOAuthPopup() {
   return new Promise((resolve, reject) => {
     const origin   = window.location.origin;
@@ -257,16 +275,28 @@ function openOAuthPopup() {
 
     let done = false;
     let closeGraceTimer = null;
+    let oauthChannel = null;
 
     function finish(err, data) {
       if (done) return;
       done = true;
       window.removeEventListener('message', onMessage);
+      window.removeEventListener('storage', onStorage);
       clearInterval(closedTimer);
       if (closeGraceTimer) clearTimeout(closeGraceTimer);
+      try { oauthChannel && oauthChannel.close(); } catch (_) {}
       try { popup.close(); } catch (_) {}
       if (err) reject(err);
       else resolve(data);
+    }
+
+    function handleOAuthPayload(data) {
+      if (!data || done) return;
+      if (data.type === 'fb_auth_error') {
+        finish(new Error(data.error || 'Facebook login failed.'));
+      } else if (data.type === 'fb_auth_success') {
+        finish(null, data);
+      }
     }
 
     function originAllowed(eventOrigin) {
@@ -284,27 +314,40 @@ function openOAuthPopup() {
       if (!event.data || (event.data.type !== 'fb_auth_success' && event.data.type !== 'fb_auth_error')) return;
       if (popup && event.source && event.source !== popup) return;
       if (!originAllowed(event.origin)) return;
-      if (event.data.type === 'fb_auth_error') {
-        finish(new Error(event.data.error || 'Facebook login failed.'));
-      } else {
-        finish(null, event.data);
-      }
+      handleOAuthPayload(event.data);
     }
 
+    function onStorage(event) {
+      if (event.key !== OAUTH_RESULT_KEY || !event.newValue) return;
+      try {
+        handleOAuthPayload(JSON.parse(event.newValue));
+      } catch (_) {}
+    }
+
+    try {
+      oauthChannel = new BroadcastChannel('fb_oauth');
+      oauthChannel.onmessage = (ev) => handleOAuthPayload(ev.data);
+    } catch (_) {}
+
     window.addEventListener('message', onMessage);
+    window.addEventListener('storage', onStorage);
 
     const closedTimer = setInterval(() => {
       if (!popup.closed || done) return;
       clearInterval(closedTimer);
-      // Popup may close after postMessage — wait before treating as cancel
       closeGraceTimer = setTimeout(() => {
         if (done) return;
+        const handoff = readOAuthHandoff();
+        if (handoff) {
+          handleOAuthPayload(handoff);
+          return;
+        }
         if (localStorage.getItem(STORAGE_KEYS.USER_TOKEN)) {
           finish(null, { type: 'fb_auth_success', token: null, pages: [] });
           return;
         }
         finish(new Error('Facebook login was cancelled.'));
-      }, 6000);
+      }, 2500);
     }, 400);
   });
 }

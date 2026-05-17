@@ -171,10 +171,17 @@
   const _origShow = global.showAppDashboard;
   if (typeof _origShow === 'function') {
     global.showAppDashboard = function () {
-      _origShow.apply(this, arguments);
+      try {
+        _origShow.apply(this, arguments);
+      } catch (err) {
+        console.error('[billing] showAppDashboard failed:', err);
+        if (global.AppShell && typeof global.AppShell.showDashboard === 'function') {
+          global.AppShell.showDashboard();
+        }
+      }
       setTimeout(() => {
-        refreshBillingUI();
-        showOnboarding();
+        refreshBillingUI().catch(() => {});
+        try { showOnboarding(); } catch (_) {}
       }, 400);
     };
   }

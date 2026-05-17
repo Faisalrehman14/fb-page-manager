@@ -71,7 +71,9 @@ function createApp() {
     app.set('trust proxy', 1);
     app.use(helmet({
         contentSecurityPolicy: false,
-        crossOriginEmbedderPolicy: false
+        crossOriginEmbedderPolicy: false,
+        // Facebook OAuth popup must keep window.opener after cross-origin redirect
+        crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' }
     }));
     app.use(compression());
     app.use(rateLimit({
