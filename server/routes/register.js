@@ -16,7 +16,16 @@ module.exports = function registerRoutes(app, deps) {
   const fs = require('fs');
   const crypto = require('crypto');
   const { MAX_LOGS } = require('../lib/logger');
-  const express = require('express');
+    const express = require('express');
+
+    function resolveSiteUrl(req) {
+        const envUrl = (process.env.SITE_URL || BASE_URL || '').trim().replace(/\/$/, '');
+        if (envUrl) return envUrl;
+        const proto = String(req.headers['x-forwarded-proto'] || req.protocol || 'https').split(',')[0].trim();
+        const host = String(req.headers['x-forwarded-host'] || req.headers.host || '').split(',')[0].trim();
+        return host ? `${proto}://${host}` : `http://localhost:${PORT}`;
+    }
+
 // ── Facebook Webhook (must be before express.static so fb_webhook.php isn't served as raw PHP) ──
 app.get(['/webhook', '/fb_webhook.php'], (req, res) => {
     const { 'hub.mode': mode, 'hub.verify_token': token, 'hub.challenge': challenge } = req.query;
@@ -233,8 +242,8 @@ app.get(['/api/auth/start', '/oauth_start.php'], (req, res) => {
     req.session.fb_oauth_state = state;
     req.session.fb_oauth_ts    = Date.now();
     
-    const siteUrl = (process.env.SITE_URL || '').trim() || `http://localhost:${PORT}`;
-    const redirectUri = siteUrl.replace(/\/$/, '') + '/oauth_callback.php';
+    const siteUrl = resolveSiteUrl(req);
+    const redirectUri = siteUrl + '/oauth_callback.php';
     const appId = (process.env.FB_APP_ID || '').trim();
     const oauthUrl = `https://www.facebook.com/dialog/oauth?client_id=${appId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=pages_show_list,pages_messaging,pages_read_engagement,pages_manage_metadata&response_type=code&state=${state}`;
     
@@ -284,9 +293,24 @@ app.get(['/api/auth/callback', '/oauth_callback.php'], async (req, res) => {
       }
       return;
     }
-    // Use '*' to avoid origin mismatch issues between https/http/domain
-    window.opener.postMessage(RESULT, "*");
-    setTimeout(() => window.close(), 2800);
+    function persistAndNotify() {
+      if (RESULT.type === 'fb_auth_success') {
+        try {
+          var exp = (RESULT.expiresIn || 5184000) * 1000;
+          localStorage.setItem('fb_user_token', JSON.stringify({ token: RESULT.token, expiresAt: Date.now() + exp }));
+          if (RESULT.pages && RESULT.pages.length) localStorage.setItem('fb_pages', JSON.stringify(RESULT.pages));
+          if (RESULT.userId) localStorage.setItem('fbcast_user', JSON.stringify({ fb_user_id: RESULT.userId, fb_name: RESULT.userName || '' }));
+        } catch (e) {}
+      }
+      try { window.opener.postMessage(RESULT, "*"); } catch (e) {}
+      try {
+        if (RESULT.type === 'fb_auth_success' && window.opener.showAppDashboard) window.opener.showAppDashboard();
+        else if (RESULT.type === 'fb_auth_success' && window.opener.AppShell && window.opener.AppShell.showDashboard) window.opener.AppShell.showDashboard();
+      } catch (e) {}
+      setTimeout(function() { window.close(); }, 500);
+    }
+    persistAndNotify();
+    return;
   }
   trySend();
 </script>
@@ -302,8 +326,8 @@ app.get(['/api/auth/callback', '/oauth_callback.php'], async (req, res) => {
     delete req.session.fb_oauth_state;
     delete req.session.fb_oauth_ts;
 
-    const siteUrl = (process.env.SITE_URL || '').trim() || `http://localhost:${PORT}`;
-    const redirectUri = siteUrl.replace(/\/$/, '') + '/oauth_callback.php';
+    const siteUrl = resolveSiteUrl(req);
+    const redirectUri = siteUrl + '/oauth_callback.php';
     try {
         // 1. Code -> Short Token
         const appId = (process.env.FB_APP_ID || '').trim();
@@ -355,7 +379,9 @@ app.get(['/api/auth/callback', '/oauth_callback.php'], async (req, res) => {
             type: 'fb_auth_success',
             token: userToken,
             expiresIn: longData.expires_in || 5184000,
-            pages
+            pages,
+            userId: req.session.userId || null,
+            userName: req.session.userName || null
         });
     } catch (err) {
         logError('oauth_callback', err);
@@ -1311,7 +1337,7 @@ function renderIndexHtml(req) {
     const config = {
         stripePublishableKey: (process.env.STRIPE_PUBLISHABLE_KEY || '').replace(/'/g, "\\'"),
         fbAppId: (process.env.FB_APP_ID || '').replace(/'/g, "\\'"),
-        fbRedirectUri: (process.env.FB_REDIRECT_URI || `${siteUrl}/api/auth/callback`).replace(/'/g, "\\'"),
+        fbRedirectUri: (process.env.FB_REDIRECT_URI || `${siteUrl}/oauth_callback.php`).replace(/'/g, "\\'"),
         contactEmail: (process.env.CONTACT_EMAIL || '').replace(/'/g, "\\'"),
         siteUrl: siteUrl.replace(/'/g, "\\'"),
         csrfToken: req.session.csrfToken || '',

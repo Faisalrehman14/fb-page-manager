@@ -998,13 +998,25 @@ document.addEventListener('DOMContentLoaded',async()=>{
 
   updateQuotaUI();
 
-  // Auto-restore session after page refresh
+  // Auto-restore session after page refresh (localStorage or server session)
   await (async function(){
+    let hasAuth = false;
     const storedToken=localStorage.getItem('fb_user_token');
-    if(!storedToken)return;
+    if (storedToken) {
+      try {
+        const tokenData = JSON.parse(storedToken);
+        if (tokenData && tokenData.token) hasAuth = true;
+      } catch (_) {}
+    }
+    if (!hasAuth) {
+      try {
+        const st = await fetch('/api/auth/status', { credentials: 'same-origin' });
+        const data = await st.json();
+        if (data && data.authenticated) hasAuth = true;
+      } catch (_) {}
+    }
+    if (!hasAuth) return;
     try{
-      const tokenData=JSON.parse(storedToken);
-      if(!tokenData.token)return;
       window.showAppDashboard();
       // Always fetch fresh pages from server
       try {
@@ -1124,45 +1136,14 @@ document.addEventListener('DOMContentLoaded',async()=>{
   });
 });
 
-/** Show app dashboard (hide landing). Safe to call multiple times. */
+/** Show app dashboard — delegates to AppShell (loaded before fb_api.js). */
 window.showAppDashboard = function () {
-  const landing = document.getElementById('landingPage');
-  const app = document.getElementById('appPage');
-  if (landing) {
-    landing.style.display = 'none';
-    landing.setAttribute('aria-hidden', 'true');
+  if (window.AppShell && typeof window.AppShell.showDashboard === 'function') {
+    window.AppShell.showDashboard();
+    return;
   }
-  if (app) {
-    app.style.display = 'flex';
-    app.removeAttribute('aria-hidden');
-  }
-  document.body.style.overflow = 'hidden';
-
-  if (typeof applyTheme === 'function') applyTheme();
-  if (typeof setLoginOnline === 'function') setLoginOnline();
-
-  try {
-    if (typeof window.switchDashboardView === 'function') {
-      window.switchDashboardView('home');
-    } else if (window.AppShell && typeof window.AppShell.navigate === 'function') {
-      window.AppShell.navigate('home');
-    } else {
-      ['view-messenger', 'view-broadcast', 'view-scheduling', 'view-analytics', 'view-settings', 'view-help'].forEach((id) => {
-        const el = document.getElementById(id);
-        if (el) el.style.display = 'none';
-      });
-      const home = document.getElementById('view-home');
-      if (home) home.style.display = 'flex';
-    }
-  } catch (err) {
-    console.error('[showAppDashboard] navigation failed:', err);
-    const home = document.getElementById('view-home');
-    if (home) home.style.display = 'flex';
-  }
-
-  const cached = JSON.parse(localStorage.getItem('fb_pages') || '[]');
-  if (cached.length && typeof window.renderPages === 'function') {
-    window.renderPages(cached);
+  if (typeof window.openDashboardAfterLogin === 'function') {
+    window.openDashboardAfterLogin();
   }
 };
 

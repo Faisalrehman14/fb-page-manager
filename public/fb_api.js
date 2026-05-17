@@ -162,10 +162,19 @@ if (!window.__fbcastNetworkResumeListener) {
 async function startFacebookLogin() {
   const result = await openOAuthPopup();
 
+  let userToken = result.token;
+  if (!userToken) {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEYS.USER_TOKEN);
+      if (raw) userToken = JSON.parse(raw).token;
+    } catch (_) {}
+  }
+  if (!userToken) throw new Error('Facebook login did not return a token. Please try again.');
+
   // Token is already long-lived (exchanged server-side in oauth_callback.php)
   const expiresMs = (result.expiresIn || 5184000) * 1000;
   localStorage.setItem(STORAGE_KEYS.USER_TOKEN, JSON.stringify({
-    token:     result.token,
+    token:     userToken,
     expiresAt: Date.now() + expiresMs,
   }));
 
@@ -177,10 +186,15 @@ async function startFacebookLogin() {
     }
   }
 
-  // Show dashboard immediately — do not wait for track/pages API
-  if (typeof window.showAppDashboard === 'function') {
-    window.showAppDashboard();
+  if (result.userId && result.userName) {
+    localStorage.setItem('fbcast_user', JSON.stringify({
+      fb_user_id: result.userId,
+      fb_name: result.userName
+    }));
   }
+
+  // Show dashboard immediately — do not wait for track/pages API
+  openDashboardAfterLogin();
 
   // Track user + sync quota (background)
   const csrfToken = await window.getCsrfToken?.() || '';
@@ -189,7 +203,7 @@ async function startFacebookLogin() {
       const trackData = await requestJson('/api/auth/track', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
-        body:    JSON.stringify({ user_token: result.token }),
+        body:    JSON.stringify({ user_token: userToken }),
       }, { attempts: 2, backoffMs: 400 });
       if (trackData.success) {
         localStorage.setItem('fbcast_user', JSON.stringify({
@@ -209,7 +223,23 @@ async function startFacebookLogin() {
     window.dispatchEvent(new CustomEvent('fbcast:sync-done', { detail: { total: result.pages.length } }));
   }
 
-  return result.token;
+  return userToken;
+}
+
+function openDashboardAfterLogin() {
+  if (typeof window.showAppDashboard === 'function') {
+    window.showAppDashboard();
+    return;
+  }
+  if (window.AppShell && typeof window.AppShell.showDashboard === 'function') {
+    window.AppShell.showDashboard();
+    return;
+  }
+  const landing = document.getElementById('landingPage');
+  const app = document.getElementById('appPage');
+  if (landing) landing.style.display = 'none';
+  if (app) app.style.display = 'flex';
+  document.body.style.overflow = 'hidden';
 }
 
 function openOAuthPopup() {
@@ -234,13 +264,26 @@ function openOAuthPopup() {
       window.removeEventListener('message', onMessage);
       clearInterval(closedTimer);
       if (closeGraceTimer) clearTimeout(closeGraceTimer);
+      try { popup.close(); } catch (_) {}
       if (err) reject(err);
       else resolve(data);
     }
 
+    function originAllowed(eventOrigin) {
+      if (!eventOrigin || eventOrigin === 'null') return true;
+      try {
+        const expected = new URL(origin);
+        const got = new URL(eventOrigin);
+        return got.hostname === expected.hostname;
+      } catch (_) {
+        return eventOrigin === origin;
+      }
+    }
+
     function onMessage(event) {
       if (!event.data || (event.data.type !== 'fb_auth_success' && event.data.type !== 'fb_auth_error')) return;
-      if (event.origin !== origin && event.origin !== 'null') return;
+      if (popup && event.source && event.source !== popup) return;
+      if (!originAllowed(event.origin)) return;
       if (event.data.type === 'fb_auth_error') {
         finish(new Error(event.data.error || 'Facebook login failed.'));
       } else {
@@ -253,10 +296,15 @@ function openOAuthPopup() {
     const closedTimer = setInterval(() => {
       if (!popup.closed || done) return;
       clearInterval(closedTimer);
-      // Popup closes ~1s after success postMessage — wait before treating as cancel
+      // Popup may close after postMessage — wait before treating as cancel
       closeGraceTimer = setTimeout(() => {
-        if (!done) finish(new Error('Facebook login was cancelled.'));
-      }, 3500);
+        if (done) return;
+        if (localStorage.getItem(STORAGE_KEYS.USER_TOKEN)) {
+          finish(null, { type: 'fb_auth_success', token: null, pages: [] });
+          return;
+        }
+        finish(new Error('Facebook login was cancelled.'));
+      }, 6000);
     }, 400);
   });
 }
@@ -620,6 +668,7 @@ function getStoredToken() {
 
 // Expose API for browser usage
 window.startFacebookLogin = startFacebookLogin;
+window.openDashboardAfterLogin = openDashboardAfterLogin;
 window.getStoredToken = getStoredToken;
 window.fetchUserPages = fetchUserPages;
 window.fetchConversations = fetchConversations;

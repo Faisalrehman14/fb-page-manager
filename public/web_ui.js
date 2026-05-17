@@ -640,6 +640,7 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
       uiTrackEvent('login_attempt', { source: 'web_ui_btnLogin' });
       await startFacebookLogin();
+      if (typeof window.openDashboardAfterLogin === 'function') window.openDashboardAfterLogin();
       setLoginOnline();
       uiTrackEvent('login_success', { source: 'web_ui_btnLogin' });
       showStatus('Logged in. Loading your pages…', 'success');

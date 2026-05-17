@@ -168,8 +168,43 @@
     });
   }
 
+  /** Show dashboard — must work before deferred index-page.js loads (OAuth popup). */
+  function showDashboard() {
+    const landing = $('landingPage');
+    const app = $('appPage');
+    if (landing) {
+      landing.style.display = 'none';
+      landing.setAttribute('aria-hidden', 'true');
+    }
+    if (app) {
+      app.style.display = 'flex';
+      app.removeAttribute('aria-hidden');
+    }
+    document.body.style.overflow = 'hidden';
+    document.body.classList.add('app-dashboard-active');
+
+    try {
+      navigate('home');
+    } catch (err) {
+      console.error('[AppShell] navigate failed:', err);
+      const home = $('view-home');
+      if (home) home.style.display = 'flex';
+    }
+
+    if (typeof global.applyTheme === 'function') global.applyTheme();
+    if (typeof global.setLoginOnline === 'function') global.setLoginOnline();
+
+    try {
+      const cached = JSON.parse(localStorage.getItem('fb_pages') || '[]');
+      if (cached.length && typeof global.renderPages === 'function') {
+        global.renderPages(cached);
+      }
+    } catch (_) {}
+  }
+
   global.AppShell = {
     navigate,
+    showDashboard,
     getCurrentView: () => currentView,
     init() {
       initNav();
@@ -177,8 +212,20 @@
   };
 
   global.switchDashboardView = navigate;
+  global.showAppDashboard = showDashboard;
 
   document.addEventListener('DOMContentLoaded', () => {
     initNav();
+    try {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('fb_connected') === '1') {
+        window.history.replaceState({}, document.title, window.location.pathname);
+        showDashboard();
+      }
+      const err = params.get('error');
+      if (err && typeof global.showToast === 'function') {
+        global.showToast(decodeURIComponent(err), 'error');
+      }
+    } catch (_) {}
   });
 })(window);
