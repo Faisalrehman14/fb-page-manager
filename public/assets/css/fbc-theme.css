@@ -24,20 +24,20 @@
   --cyan-light: #d4adff;
   --cyan-dim: rgba(179, 127, 235, 0.12);
 
-  --bg: #030c1a;
-  --bg2: #060f22;
-  --bg3: #0a152e;
-  --surface: #0d1b38;
-  --surface2: #112042;
-  --surface3: #162850;
+  --bg: #020a14;
+  --bg2: #050e1c;
+  --bg3: #091528;
+  --surface: #0c1830;
+  --surface2: #101f3d;
+  --surface3: #152748;
 
-  --text: #edf3ff;
-  --text2: #7b8fb5;
-  --text3: #485878;
+  --text: #f4f7ff;
+  --text2: #8fa3c7;
+  --text3: #5a6f94;
 
-  --border: rgba(255, 255, 255, 0.065);
-  --border2: rgba(255, 255, 255, 0.11);
-  --border3: rgba(255, 255, 255, 0.19);
+  --border: rgba(255, 255, 255, 0.07);
+  --border2: rgba(255, 255, 255, 0.12);
+  --border3: rgba(255, 255, 255, 0.2);
 
   --green: #10b981;
   --green-light: #34d399;
