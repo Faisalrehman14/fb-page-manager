@@ -60,14 +60,20 @@
       icon: 'fa-chart-line',
       top: 'broadcast',
       broadcastSub: 'analytics',
-      hideSidebar: false
+      hideSidebar: false,
+      onEnter() {
+        if (typeof global.refreshAnalyticsDashboard === 'function') global.refreshAnalyticsDashboard();
+      }
     },
     settings: {
       label: 'Settings',
       icon: 'fa-gear',
       top: 'broadcast',
       broadcastSub: 'settings',
-      hideSidebar: false
+      hideSidebar: false,
+      onEnter() {
+        if (typeof global.refreshBillingUI === 'function') global.refreshBillingUI();
+      }
     },
     help: {
       label: 'Help',

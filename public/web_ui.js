@@ -780,8 +780,14 @@ document.addEventListener('DOMContentLoaded', () => {
           $('progressBar')?.classList.remove('progress-bar--active');
           setLoading(btnStart, false);
           if ($('etaText')) $('etaText').textContent = '';
+          const sent = allRecipients.filter(r => r.status === 'sent').length;
+          const failed = allRecipients.filter(r => r.status === 'failed').length;
+          const total = allRecipients.length;
           showStatus('All messages processed.', 'success');
-          uiTrackEvent('broadcast_complete', { mode: 'manual', pageId });
+          uiTrackEvent('broadcast_complete', { mode: 'manual', pageId, total, sent, failed });
+          if (typeof window.maybeNotifyBroadcast === 'function') {
+            window.maybeNotifyBroadcast('complete', `Broadcast complete: ${sent.toLocaleString()} sent${failed ? ', ' + failed + ' failed' : ''}.`);
+          }
           if(window.updateQuotaUI) window.updateQuotaUI();
         }
       });

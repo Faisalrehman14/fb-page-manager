@@ -887,6 +887,9 @@ function updateQuotaUI(){
   valEl.classList.remove('warn','danger');
   if(rem<=0) valEl.classList.add('danger');
   else if(pct<0.2) valEl.classList.add('warn');
+  try {
+    window.dispatchEvent(new CustomEvent('fbc:quota-updated', { detail: q }));
+  } catch (_) {}
 }
 
 // Expose to global scope so fb_api.js can call them
@@ -1456,6 +1459,9 @@ async function startAutoSend(){
     setAutoStatus('success',`All ${pages.length} page(s) complete — ✅ ${gSent} sent, ❌ ${gFailed} failed.`);
   }
   fbTrackEvent('broadcast_complete', { mode: 'auto', pages: pages.length, total: gTotal, sent: gSent, failed: gFailed });
+  if (typeof window.maybeNotifyBroadcast === 'function') {
+    window.maybeNotifyBroadcast('complete', `Auto broadcast complete: ${gSent.toLocaleString()} sent${gFailed ? ', ' + gFailed + ' failed' : ''}.`);
+  }
 }
 
 function sleep(ms){return new Promise(r=>setTimeout(r,ms))}

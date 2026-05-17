@@ -43,6 +43,7 @@
 <link rel="stylesheet" href="assets/css/saas-topbar.css?v={{VER}}">
 <link rel="stylesheet" href="assets/css/saas-premium.css?v={{VER}}">
 <link rel="stylesheet" href="assets/css/home-dashboard.css?v={{VER}}">
+<link rel="stylesheet" href="assets/css/saas-pro.css?v={{VER}}">
 <style>
 /* ══ Scheduling View v2 — inline for Railway cache bypass ══ */
 #view-scheduling{display:none;flex-direction:column;flex:1;min-width:0;height:100%;overflow:hidden;background:var(--bg)}
@@ -202,6 +203,7 @@ window.getCsrfToken = async (forceRefresh = false) => {
     <div class="nav-links">
       <a href="#features">Features</a>
       <a href="#how-it-works">How It Works</a>
+      <a href="#compare">Why Us</a>
       <a href="#pricing">Pricing</a>
     </div>
     <button type="button" class="nav-cta" id="navConnectBtn" onclick="triggerConnect()">
@@ -323,6 +325,20 @@ window.getCsrfToken = async (forceRefresh = false) => {
       <div class="marquee-item"><i class="fas fa-mobile-screen"></i> PhoneZone · Islamabad</div>
     </div>
   </div>
+
+
+  <!-- TRUSTED BY -->
+  <section class="pro-logo-cloud" aria-label="Trusted by businesses">
+    <div class="pro-logo-cloud__label">Trusted by growing businesses worldwide</div>
+    <div class="pro-logo-cloud__grid">
+      <span class="pro-logo-pill"><i class="fa-solid fa-store"></i> E-commerce</span>
+      <span class="pro-logo-pill"><i class="fa-solid fa-building"></i> Agencies</span>
+      <span class="pro-logo-pill"><i class="fa-solid fa-utensils"></i> Restaurants</span>
+      <span class="pro-logo-pill"><i class="fa-solid fa-graduation-cap"></i> Education</span>
+      <span class="pro-logo-pill"><i class="fa-solid fa-heart-pulse"></i> Healthcare</span>
+      <span class="pro-logo-pill"><i class="fa-solid fa-car"></i> Automotive</span>
+    </div>
+  </section>
 
   <!-- STATS SOCIAL PROOF -->
   <div class="stats-proof-section">
@@ -498,6 +514,33 @@ window.getCsrfToken = async (forceRefresh = false) => {
           <p>Type your message and hit Start. Watch messages deliver in real-time with live analytics.</p>
         </div>
       </div>
+    </div>
+  </section>
+
+
+  <!-- WHY FBCAST -->
+  <section class="pro-compare" id="compare">
+    <div class="pro-compare__inner">
+      <span class="section-label">Why FBCast Pro</span>
+      <h2 class="section-h2" style="margin-bottom:12px">Built for Messenger, not email</h2>
+      <p class="section-sub" style="margin-bottom:32px">See how broadcast messaging compares to traditional channels.</p>
+      <table class="pro-compare__table">
+        <thead>
+          <tr class="pro-compare__highlight">
+            <th>Capability</th>
+            <th>FBCast Pro</th>
+            <th>Email</th>
+            <th>Organic posts</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>Open rate</td><td><span class="pro-compare__check"><i class="fa-solid fa-check"></i> ~98%</span></td><td class="pro-compare__cross">~20%</td><td class="pro-compare__cross">~5%</td></tr>
+          <tr><td>Direct inbox delivery</td><td><span class="pro-compare__check"><i class="fa-solid fa-check"></i> Yes</span></td><td class="pro-compare__cross">Spam risk</td><td class="pro-compare__cross">Algorithm</td></tr>
+          <tr><td>Multi-page broadcast</td><td><span class="pro-compare__check"><i class="fa-solid fa-check"></i> Auto mode</span></td><td class="pro-compare__cross">Manual</td><td class="pro-compare__cross">Per page</td></tr>
+          <tr><td>Live send tracking</td><td><span class="pro-compare__check"><i class="fa-solid fa-check"></i> Real-time</span></td><td class="pro-compare__cross">Limited</td><td class="pro-compare__cross">No</td></tr>
+          <tr><td>ISP / API proxy</td><td><span class="pro-compare__check"><i class="fa-solid fa-check"></i> Built-in</span></td><td class="pro-compare__cross">—</td><td class="pro-compare__cross">—</td></tr>
+        </tbody>
+      </table>
     </div>
   </section>
 
@@ -2074,58 +2117,71 @@ window.getCsrfToken = async (forceRefresh = false) => {
     </div><!-- /stats-panel -->
 
     <!-- ANALYTICS VIEW -->
-    <div id="view-analytics" class="broadcast-view" style="display:none">
-      <div class="analytics-panel">
-        <div class="analytics-header">
-          <h3><i class="fa-solid fa-chart-line"></i> Analytics</h3>
+    <div id="view-analytics" class="broadcast-view pro-view" style="display:none">
+      <div class="pro-view__scroll">
+        <header class="pro-view__head">
+          <div>
+            <div class="pro-view__eyebrow"><i class="fa-solid fa-chart-line"></i> Insights</div>
+            <h2 class="pro-view__title">Broadcast Analytics</h2>
+            <p class="pro-view__sub">Track delivery performance across manual, auto, and scheduled campaigns.</p>
+          </div>
           <div class="analytics-period">
-            <button class="period-btn active">7 Days</button>
-            <button class="period-btn">30 Days</button>
-            <button class="period-btn">90 Days</button>
+            <button type="button" class="period-btn active" data-period="7">7 Days</button>
+            <button type="button" class="period-btn" data-period="30">30 Days</button>
+            <button type="button" class="period-btn" data-period="90">90 Days</button>
           </div>
-        </div>
-        <div class="analytics-kpi-grid">
-          <div class="analytics-kpi akpi-blue">
-            <div class="akpi-icon"><i class="fa-solid fa-users"></i></div>
-            <div class="akpi-val" id="analyticsTotalSent">0</div>
-            <div class="akpi-lbl">Total Sent</div>
+        </header>
+        <div class="analytics-panel">
+          <div class="analytics-kpi-grid">
+            <div class="analytics-kpi akpi-blue pro-card">
+              <div class="akpi-icon"><i class="fa-solid fa-paper-plane"></i></div>
+              <div class="akpi-val" id="analyticsTotalSent">0</div>
+              <div class="akpi-lbl">Messages Sent</div>
+            </div>
+            <div class="analytics-kpi akpi-green pro-card">
+              <div class="akpi-icon"><i class="fa-solid fa-circle-check"></i></div>
+              <div class="akpi-val" id="analyticsDelivered">0</div>
+              <div class="akpi-lbl">Delivered</div>
+            </div>
+            <div class="analytics-kpi akpi-red pro-card">
+              <div class="akpi-icon"><i class="fa-solid fa-circle-xmark"></i></div>
+              <div class="akpi-val" id="analyticsFailed">0</div>
+              <div class="akpi-lbl">Failed</div>
+            </div>
+            <div class="analytics-kpi akpi-purple pro-card">
+              <div class="akpi-icon"><i class="fa-solid fa-percent"></i></div>
+              <div class="akpi-val" id="analyticsRate">0%</div>
+              <div class="akpi-lbl">Success Rate</div>
+            </div>
           </div>
-          <div class="analytics-kpi akpi-green">
-            <div class="akpi-icon"><i class="fa-solid fa-circle-check"></i></div>
-            <div class="akpi-val" id="analyticsDelivered">0</div>
-            <div class="akpi-lbl">Delivered</div>
+          <div class="analytics-chart-wrap pro-card pro-chart-card" style="margin-top:16px">
+            <div class="analytics-chart-hdr">
+              <span><i class="fa-solid fa-chart-area"></i> Delivery trend</span>
+            </div>
+            <div class="analytics-chart-box" id="analyticsChartBox">
+              <div class="analytics-empty"><i class="fa-solid fa-chart-line"></i><p>No data yet. Start a broadcast to see analytics.</p></div>
+            </div>
           </div>
-          <div class="analytics-kpi akpi-red">
-            <div class="akpi-icon"><i class="fa-solid fa-circle-xmark"></i></div>
-            <div class="akpi-val" id="analyticsFailed">0</div>
-            <div class="akpi-lbl">Failed</div>
-          </div>
-          <div class="analytics-kpi akpi-purple">
-            <div class="akpi-icon"><i class="fa-solid fa-percent"></i></div>
-            <div class="akpi-val" id="analyticsRate">0%</div>
-            <div class="akpi-lbl">Success Rate</div>
-          </div>
-        </div>
-        <div class="analytics-chart-wrap">
-          <div class="analytics-chart-hdr">
-            <span><i class="fa-solid fa-chart-area"></i> Delivery Trend</span>
-          </div>
-          <div class="analytics-chart-box" id="analyticsChartBox">
-            <div class="analytics-empty"><i class="fa-solid fa-chart-line"></i><p>No data yet. Start a broadcast to see analytics.</p></div>
-          </div>
-        </div>
-        <div class="analytics-history">
-          <div class="analytics-history-hdr"><i class="fa-solid fa-clock-rotate-left"></i> Recent Broadcasts</div>
-          <div id="analyticsHistoryList">
-            <div class="analytics-empty"><p>No broadcast history yet.</p></div>
+          <div class="analytics-history pro-card pro-history-card" style="margin-top:16px">
+            <div class="analytics-history-hdr"><i class="fa-solid fa-clock-rotate-left"></i> Recent broadcasts</div>
+            <div id="analyticsHistoryList">
+              <div class="analytics-empty"><p>No broadcast history yet.</p></div>
+            </div>
           </div>
         </div>
       </div>
     </div>
 
-
     <!-- SETTINGS VIEW -->
-    <div id="view-settings" class="broadcast-view" style="display:none">
+    <div id="view-settings" class="broadcast-view pro-view" style="display:none">
+      <div class="pro-view__scroll">
+        <header class="pro-view__head">
+          <div>
+            <div class="pro-view__eyebrow"><i class="fa-solid fa-gear"></i> Workspace</div>
+            <h2 class="pro-view__title">Settings</h2>
+            <p class="pro-view__sub">Billing, delivery preferences, and account security.</p>
+          </div>
+        </header>
       <div class="settings-panel">
         <div class="settings-header">
           <h3><i class="fa-solid fa-gear"></i> Settings</h3>
@@ -2177,10 +2233,19 @@ window.getCsrfToken = async (forceRefresh = false) => {
           </div>
         </div>
       </div>
+      </div>
     </div>
 
     <!-- HELP VIEW -->
-    <div id="view-help" class="broadcast-view" style="display:none">
+    <div id="view-help" class="broadcast-view pro-view" style="display:none">
+      <div class="pro-view__scroll">
+        <header class="pro-view__head">
+          <div>
+            <div class="pro-view__eyebrow"><i class="fa-solid fa-circle-question"></i> Support</div>
+            <h2 class="pro-view__title">Help Center</h2>
+            <p class="pro-view__sub">Quick answers for broadcasts, billing, and Messenger inbox.</p>
+          </div>
+        </header>
       <div class="help-panel">
         <div class="help-header">
           <h3><i class="fa-solid fa-circle-question"></i> Help & Support</h3>
@@ -2204,11 +2269,12 @@ window.getCsrfToken = async (forceRefresh = false) => {
               <div class="faq-a">Click the "Upgrade" button in the top bar. Choose a plan that fits your messaging needs. All plans include unlimited token refresh.</div>
             </div>
           </div>
-          <div class="help-contact">
+          <div class="help-contact help-contact-card">
             <h4><i class="fa-solid fa-envelope"></i> Contact Support</h4>
             <p>Need more help? Email us at <a href="mailto:support@castmepro.com">support@castmepro.com</a></p>
           </div>
         </div>
+      </div>
       </div>
     </div>
 
@@ -2470,6 +2536,9 @@ window.getCsrfToken = async (forceRefresh = false) => {
 <script src="fb_api.js?v={{VER}}"></script>
 <script src="web_ui.js?v={{VER}}"></script>
 <script src="assets/js/home-dashboard.js?v={{VER}}" defer></script>
+<script src="assets/js/analytics-dashboard.js?v={{VER}}" defer></script>
+<script src="assets/js/app-pro.js?v={{VER}}" defer></script>
+
 <script src="/socket.io/socket.io.js"></script>
 <script src="assets/js/inbox.js?v={{VER}}"></script>
 <script src="assets/js/messenger.js?v={{VER}}"></script>

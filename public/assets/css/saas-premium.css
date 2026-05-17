@@ -31,6 +31,13 @@ body {
   padding: 0 clamp(20px, 5vw, 56px);
   background: rgba(3, 12, 26, 0.65) !important;
   border-bottom: 1px solid var(--premium-glass-border) !important;
+  transition: background 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+}
+
+.nav.nav--scrolled {
+  background: rgba(3, 12, 26, 0.92) !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
+  border-bottom-color: rgba(8, 102, 255, 0.15) !important;
 }
 
 .nav-brand-mark {
