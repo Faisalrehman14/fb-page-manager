@@ -152,6 +152,16 @@
 </style>
 </head>
 <body>
+<script>
+(function () {
+  try {
+    var p = new URLSearchParams(window.location.search);
+    if (p.get('fb_connected') === '1' || sessionStorage.getItem('fbcast_oauth_pending') === '1') {
+      document.documentElement.classList.add('auth-booting');
+    }
+  } catch (_) {}
+})();
+</script>
 <a class="skip-link" href="#appPage">Skip To Dashboard</a>
 <script id="app-config-loader">
 // __APP_CONFIG_INJECT__

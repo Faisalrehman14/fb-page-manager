@@ -159,7 +159,14 @@ if (!window.__fbcastNetworkResumeListener) {
 // Popup opens oauth_start.php → Facebook OAuth dialog → oauth_callback.php
 // oauth_callback.php exchanges code server-side and posts result back here.
 
-async function startFacebookLogin() {
+async function startFacebookLogin(options) {
+  const mode = (options && options.mode) || 'redirect';
+  if (mode === 'redirect') {
+    try { sessionStorage.setItem('fbcast_oauth_pending', '1'); } catch (_) {}
+    window.location.assign(window.location.origin + '/oauth_start.php?mode=redirect');
+    return new Promise(function () {});
+  }
+
   const result = await openOAuthPopup();
 
   let userToken = result.token;
@@ -240,6 +247,8 @@ function openDashboardAfterLogin() {
   if (landing) landing.style.display = 'none';
   if (app) app.style.display = 'flex';
   document.body.style.overflow = 'hidden';
+  document.body.classList.add('app-dashboard-active');
+  document.documentElement.classList.remove('auth-booting');
 }
 
 const OAUTH_RESULT_KEY = 'fb_oauth_result';

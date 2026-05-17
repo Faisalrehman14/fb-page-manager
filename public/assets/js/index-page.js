@@ -656,7 +656,7 @@ function initDelayPresetControls() {
   });
 }
 
-async function autoLoadPagesAfterLogin() {
+window.autoLoadPagesAfterLogin = async function autoLoadPagesAfterLogin() {
   // First preference: shared loader from web_ui.js
   if (typeof window.loadPagesFromFacebook === 'function') {
     return window.loadPagesFromFacebook({ silent: false });
@@ -672,7 +672,7 @@ async function autoLoadPagesAfterLogin() {
   }
 
   return [];
-}
+};
 
 document.addEventListener('DOMContentLoaded', function () {
   const navHamburger = document.getElementById('navHamburger');
@@ -1044,6 +1044,9 @@ document.addEventListener('DOMContentLoaded',async()=>{
 
   // Auto-restore session after page refresh (localStorage or server session)
   await (async function(){
+    if (sessionStorage.getItem('fbcast_oauth_pending') === '1') {
+      return;
+    }
     if (sessionStorage.getItem('fbcast_logged_out') === '1') {
       sessionStorage.removeItem('fbcast_logged_out');
       if (window.AppShell && typeof window.AppShell.showLandingPage === 'function') {

@@ -9,6 +9,20 @@
   --shell-topbar: var(--ds-topbar-height, 56px);
 }
 
+/* OAuth return — show dashboard immediately (inline script sets auth-booting) */
+html.auth-booting #landingPage {
+  display: none !important;
+}
+html.auth-booting #appPage {
+  display: flex !important;
+}
+body.app-dashboard-active #landingPage {
+  display: none !important;
+}
+body.app-dashboard-active #appPage {
+  display: flex !important;
+}
+
 /* ─── Topbar polish ─── */
 .app-topbar {
   height: var(--ds-topbar-height, 56px);

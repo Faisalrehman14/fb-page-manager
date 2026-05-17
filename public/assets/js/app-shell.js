@@ -168,10 +168,36 @@
     });
   }
 
+  function persistBootstrapData(data) {
+    if (!data || !data.authenticated) return false;
+    try {
+      if (data.token) {
+        localStorage.setItem('fb_user_token', JSON.stringify({
+          token: data.token,
+          expiresAt: Date.now() + (data.expiresIn || 5184000) * 1000
+        }));
+      }
+      if (data.userId) {
+        localStorage.setItem('fbcast_user', JSON.stringify({
+          fb_user_id: data.userId,
+          fb_name: data.userName || ''
+        }));
+      }
+      if (Array.isArray(data.pages) && data.pages.length) {
+        localStorage.setItem('fb_pages', JSON.stringify(data.pages));
+        if (typeof global.renderPages === 'function') global.renderPages(data.pages);
+      }
+    } catch (err) {
+      console.warn('[AppShell] persistBootstrapData failed', err);
+    }
+    return true;
+  }
+
   /** Show dashboard — must work before deferred index-page.js loads (OAuth popup). */
   function showDashboard() {
     const landing = $('landingPage');
     const app = $('appPage');
+    document.documentElement.classList.remove('auth-booting');
     if (landing) {
       landing.style.display = 'none';
       landing.setAttribute('aria-hidden', 'true');
@@ -206,6 +232,7 @@
   function showLandingPage() {
     const landing = $('landingPage');
     const app = $('appPage');
+    document.documentElement.classList.remove('auth-booting');
     if (app) {
       app.style.display = 'none';
       app.setAttribute('aria-hidden', 'true');
@@ -229,10 +256,51 @@
     if (topName) topName.textContent = 'Not connected';
   }
 
+  async function bootstrapAuthFromServer() {
+    try {
+      const res = await fetch('/api/auth/bootstrap', { credentials: 'same-origin' });
+      const body = await res.json();
+      return persistBootstrapData(body);
+    } catch (err) {
+      console.warn('[AppShell] bootstrapAuthFromServer failed', err);
+      return false;
+    }
+  }
+
+  async function completeOAuthReturn() {
+    try { sessionStorage.removeItem('fbcast_oauth_pending'); } catch (_) {}
+    const ok = await bootstrapAuthFromServer();
+    if (!ok) {
+      try {
+        const st = await fetch('/api/auth/status', { credentials: 'same-origin' });
+        const data = await st.json();
+        if (!data.authenticated) {
+          if (typeof global.showToast === 'function') {
+            global.showToast('Facebook connected but session was not saved. Please try again.', 'error');
+          }
+          return;
+        }
+      } catch (_) {}
+    }
+    showDashboard();
+    if (typeof global.autoLoadPagesAfterLogin === 'function') {
+      global.autoLoadPagesAfterLogin().catch(() => {});
+    }
+    if (typeof global.syncQuotaFromServer === 'function') {
+      global.syncQuotaFromServer({ force: true, source: 'oauth_return', silent: true }).catch(() => {});
+    }
+    if (typeof global.showToast === 'function') {
+      global.showToast('Facebook connected — welcome to your dashboard!', 'success');
+    }
+  }
+
   global.AppShell = {
     navigate,
     showDashboard,
     showLandingPage,
+    bootstrapAuthFromServer,
+    completeOAuthReturn,
+    persistBootstrapData,
     getCurrentView: () => currentView,
     init() {
       initNav();
@@ -242,18 +310,24 @@
   global.switchDashboardView = navigate;
   global.showAppDashboard = showDashboard;
   global.showLandingPage = showLandingPage;
+  global.bootstrapAuthFromServer = bootstrapAuthFromServer;
 
   document.addEventListener('DOMContentLoaded', () => {
     initNav();
     try {
       const params = new URLSearchParams(window.location.search);
-      if (params.get('fb_connected') === '1') {
+      const pendingOAuth = sessionStorage.getItem('fbcast_oauth_pending') === '1';
+      if (params.get('fb_connected') === '1' || pendingOAuth) {
         window.history.replaceState({}, document.title, window.location.pathname);
-        showDashboard();
+        completeOAuthReturn();
+        return;
       }
       const err = params.get('error');
-      if (err && typeof global.showToast === 'function') {
-        global.showToast(decodeURIComponent(err), 'error');
+      if (err) {
+        window.history.replaceState({}, document.title, window.location.pathname);
+        if (typeof global.showToast === 'function') {
+          global.showToast(decodeURIComponent(err), 'error');
+        }
       }
     } catch (_) {}
   });

@@ -237,10 +237,40 @@ app.post(['/api/auth/track', '/api/track_user.php', '/track_user.php'], async (r
 });
 
 // ── Facebook OAuth Flow ───────────────────────────────────────────────────
+    const oauthCookieOpts = { signed: true, httpOnly: true, sameSite: 'lax', maxAge: 10 * 60 * 1000, path: '/' };
+
+    function readOAuthContext(req) {
+        return {
+            storedState: req.session.fb_oauth_state || req.signedCookies._fb_oauth_state || '',
+            oauthTs: Number(req.session.fb_oauth_ts || req.signedCookies._fb_oauth_ts || 0),
+            oauthMode: req.session.fb_oauth_mode || req.signedCookies._fb_oauth_mode || 'redirect'
+        };
+    }
+
+    function clearOAuthFlowCookies(res) {
+        res.clearCookie('_fb_oauth_state', oauthCookieOpts);
+        res.clearCookie('_fb_oauth_ts', oauthCookieOpts);
+        res.clearCookie('_fb_oauth_mode', oauthCookieOpts);
+    }
+
+    function clearOAuthSession(req) {
+        delete req.session.fb_oauth_state;
+        delete req.session.fb_oauth_ts;
+        delete req.session.fb_oauth_mode;
+    }
+
 app.get(['/api/auth/start', '/oauth_start.php'], (req, res) => {
     const state = crypto.randomBytes(16).toString('hex');
+    const ts = Date.now();
+    const mode = req.query.mode === 'popup' ? 'popup' : 'redirect';
+
     req.session.fb_oauth_state = state;
-    req.session.fb_oauth_ts    = Date.now();
+    req.session.fb_oauth_ts = ts;
+    req.session.fb_oauth_mode = mode;
+
+    res.cookie('_fb_oauth_state', state, oauthCookieOpts);
+    res.cookie('_fb_oauth_ts', String(ts), oauthCookieOpts);
+    res.cookie('_fb_oauth_mode', mode, oauthCookieOpts);
     
     const siteUrl = resolveSiteUrl(req);
     const redirectUri = siteUrl + '/oauth_callback.php';
@@ -252,8 +282,7 @@ app.get(['/api/auth/start', '/oauth_start.php'], (req, res) => {
 
 app.get(['/api/auth/callback', '/oauth_callback.php'], async (req, res) => {
     const { state: oauthState, code, error, error_description } = req.query;
-    const storedState = req.session.fb_oauth_state;
-    const oauthTs     = req.session.fb_oauth_ts;
+    const { storedState, oauthTs, oauthMode } = readOAuthContext(req);
     
     const sendPopupResult = (data) => {
         res.send(`
@@ -310,10 +339,14 @@ app.get(['/api/auth/callback', '/oauth_callback.php'], async (req, res) => {
       setTimeout(trySend, 120);
       return;
     }
+    if (RESULT.type === 'fb_auth_success') {
+      window.location.replace('/?fb_connected=1');
+      return;
+    }
     notifyParent();
     document.getElementById('loader').style.display = 'none';
     document.getElementById('title').textContent = RESULT.error ? 'Connection failed' : 'Connected!';
-    document.getElementById('sub').textContent = 'You can close this window — your dashboard should open automatically.';
+    document.getElementById('sub').textContent = RESULT.error ? 'Close this window and try again.' : 'Redirecting…';
     document.getElementById('closeBtn').style.display = 'inline-block';
   }
   trySend();
@@ -322,13 +355,25 @@ app.get(['/api/auth/callback', '/oauth_callback.php'], async (req, res) => {
 </html>`);
     };
 
-    if (error) return sendPopupResult({ type: 'fb_auth_error', error: error_description || 'Authorization denied' });
-    if (!oauthState || !storedState || oauthState !== storedState || (Date.now() - oauthTs) > 600000) {
-        return sendPopupResult({ type: 'fb_auth_error', error: 'Security check failed. Please retry.' });
+    const authErrMsg = (msg) => {
+        clearOAuthFlowCookies(res);
+        clearOAuthSession(req);
+        if (oauthMode === 'redirect') {
+            return res.redirect('/?error=' + encodeURIComponent(msg));
+        }
+        return sendPopupResult({ type: 'fb_auth_error', error: msg });
+    };
+
+    if (error) return authErrMsg(error_description || error || 'Authorization denied');
+    if (!oauthState || !storedState || oauthState !== storedState) {
+        return authErrMsg('Security check failed. Please retry login.');
+    }
+    if (oauthTs && (Date.now() - oauthTs) > 600000) {
+        return authErrMsg('Login session expired. Please try again.');
     }
     
-    delete req.session.fb_oauth_state;
-    delete req.session.fb_oauth_ts;
+    clearOAuthFlowCookies(res);
+    clearOAuthSession(req);
 
     const siteUrl = resolveSiteUrl(req);
     const redirectUri = siteUrl + '/oauth_callback.php';
@@ -379,16 +424,33 @@ app.get(['/api/auth/callback', '/oauth_callback.php'], async (req, res) => {
             }))).catch(() => {});
         }
 
-        sendPopupResult({
+        const authPayload = {
             type: 'fb_auth_success',
             token: userToken,
             expiresIn: longData.expires_in || 5184000,
             pages,
             userId: req.session.userId || null,
             userName: req.session.userName || null
-        });
+        };
+
+        req.session.clientPagesCache = pages.map(p => ({
+            id: p.id,
+            name: p.name,
+            access_token: p.access_token,
+            category: p.category,
+            picture: p.picture?.data?.url || p.picture || null
+        }));
+
+        if (oauthMode === 'redirect') {
+            return res.redirect('/?fb_connected=1');
+        }
+
+        sendPopupResult(authPayload);
     } catch (err) {
         logError('oauth_callback', err);
+        if (oauthMode === 'redirect') {
+            return res.redirect('/?error=' + encodeURIComponent(err.message || 'Facebook login failed'));
+        }
         sendPopupResult({ type: 'fb_auth_error', error: err.message });
     }
 });
@@ -607,6 +669,22 @@ app.get('/api/auth/redirect-callback', async (req, res) => {
 app.get('/api/auth/status', (req, res) => {
     if (req.session.accessToken) res.json({ authenticated: true, userName: req.session.userName, userId: req.session.userId });
     else res.json({ authenticated: false });
+});
+
+/** After redirect OAuth — sync browser localStorage from server session */
+app.get('/api/auth/bootstrap', (req, res) => {
+    if (!req.session.accessToken) {
+        return res.json({ authenticated: false });
+    }
+    const pages = Array.isArray(req.session.clientPagesCache) ? req.session.clientPagesCache : [];
+    res.json({
+        authenticated: true,
+        token: req.session.accessToken,
+        expiresIn: 5184000,
+        userId: req.session.userId || null,
+        userName: req.session.userName || null,
+        pages
+    });
 });
 
 app.post('/api/auth/logout', verifyCsrf, (req, res) => {
