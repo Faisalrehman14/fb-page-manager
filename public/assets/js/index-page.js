@@ -857,7 +857,7 @@ function updateQuotaUI(){
     const icon=isPro?'fa-crown':(isBasic?'fa-layer-group':'fa-gem');
     const planKey=isPro?'pro':(isBasic?'basic':'free');
     badgeEl.setAttribute('data-plan', planKey);
-    badgeEl.className='saas-topbar__plan quota-plan-badge';
+    badgeEl.className='saas-topbar__plan-btn';
     badgeEl.innerHTML=`<i class="fa-solid ${icon}" aria-hidden="true"></i><span>${label}</span>`;
     badgeEl.removeAttribute('style');
   }

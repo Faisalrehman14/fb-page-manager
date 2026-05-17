@@ -877,36 +877,20 @@ window.getCsrfToken = async (forceRefresh = false) => {
       </nav>
     </div>
 
-    <div class="saas-topbar__center">
-      <div id="announcementBar" class="saas-topbar__announce topbar-announcement" role="status" aria-live="polite" hidden>
-        <i class="fa-solid fa-bullhorn saas-topbar__announce-icon" aria-hidden="true"></i>
-        <div class="saas-topbar__announce-content">
-          <div class="announcement-media-wrap" id="announcementMediaWrap"></div>
-          <div class="announcement-text-wrap">
-            <div class="announcement-text-track" id="announcementTextTrack"></div>
-          </div>
-        </div>
-        <a id="announcementCta" class="saas-topbar__announce-link announcement-cta" href="#" target="_blank" rel="noopener noreferrer" hidden>View</a>
-      </div>
-    </div>
+    <div id="announcementBar" hidden aria-hidden="true" style="display:none!important"></div>
+    <div id="announcementMediaWrap" hidden></div>
+    <div id="announcementTextTrack" hidden></div>
+    <a id="announcementCta" hidden></a>
 
     <div id="statusBar" role="status" aria-live="polite"></div>
 
     <div class="saas-topbar__right topbar-main">
       <div class="quota-widget saas-topbar__quota" title="Messages remaining this month">
-        <div class="saas-topbar__quota-card">
-          <div class="saas-topbar__quota-header">
-            <span id="planBadge" class="saas-topbar__plan" data-plan="free">Free</span>
-            <span class="saas-topbar__quota-label">Messages remaining</span>
-          </div>
-          <div class="saas-topbar__quota-values">
-            <span class="quota-num" id="quotaVal">2,000</span>
-            <span class="saas-topbar__quota-sep">/</span>
-            <span class="quota-total-num" id="quotaTotal">2,000</span>
-          </div>
-          <div class="saas-topbar__usage-track" aria-hidden="true">
-            <div class="saas-topbar__usage-fill" id="topbarQuotaFill" style="width:100%"></div>
-          </div>
+        <span id="planBadge" class="saas-topbar__plan-btn" data-plan="free" role="status">Free</span>
+        <div class="saas-topbar__quota-values" aria-label="Messages remaining">
+          <span class="quota-num" id="quotaVal">2,000</span>
+          <span class="saas-topbar__quota-sep">/</span>
+          <span class="quota-total-num" id="quotaTotal">2,000</span>
         </div>
         <button type="button" class="btn-upgrade saas-topbar__upgrade" onclick="if(typeof openUpgradeModal==='function')openUpgradeModal(this);else document.getElementById('upgradeModal').style.display='flex'">
           <i class="fa-solid fa-crown" aria-hidden="true"></i>
