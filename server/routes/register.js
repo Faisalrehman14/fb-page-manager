@@ -242,7 +242,7 @@ app.get(['/api/auth/start', '/oauth_start.php'], (req, res) => {
 });
 
 app.get(['/api/auth/callback', '/oauth_callback.php'], async (req, res) => {
-    const { state, code, error, error_description } = req.query;
+    const { state: oauthState, code, error, error_description } = req.query;
     const storedState = req.session.fb_oauth_state;
     const oauthTs     = req.session.fb_oauth_ts;
     
@@ -295,7 +295,7 @@ app.get(['/api/auth/callback', '/oauth_callback.php'], async (req, res) => {
     };
 
     if (error) return sendPopupResult({ type: 'fb_auth_error', error: error_description || 'Authorization denied' });
-    if (!state || !storedState || state !== storedState || (Date.now() - oauthTs) > 600000) {
+    if (!oauthState || !storedState || oauthState !== storedState || (Date.now() - oauthTs) > 600000) {
         return sendPopupResult({ type: 'fb_auth_error', error: 'Security check failed. Please retry.' });
     }
     

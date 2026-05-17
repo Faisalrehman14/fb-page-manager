@@ -1128,13 +1128,38 @@ document.addEventListener('DOMContentLoaded',async()=>{
 window.showAppDashboard = function () {
   const landing = document.getElementById('landingPage');
   const app = document.getElementById('appPage');
-  if (landing) landing.style.display = 'none';
-  if (app) app.style.display = 'flex';
+  if (landing) {
+    landing.style.display = 'none';
+    landing.setAttribute('aria-hidden', 'true');
+  }
+  if (app) {
+    app.style.display = 'flex';
+    app.removeAttribute('aria-hidden');
+  }
   document.body.style.overflow = 'hidden';
+
   if (typeof applyTheme === 'function') applyTheme();
   if (typeof setLoginOnline === 'function') setLoginOnline();
-  if (typeof switchDashboardView === 'function') switchDashboardView('home');
-  else if (window.AppShell) window.AppShell.navigate('home');
+
+  try {
+    if (typeof window.switchDashboardView === 'function') {
+      window.switchDashboardView('home');
+    } else if (window.AppShell && typeof window.AppShell.navigate === 'function') {
+      window.AppShell.navigate('home');
+    } else {
+      ['view-messenger', 'view-broadcast', 'view-scheduling', 'view-analytics', 'view-settings', 'view-help'].forEach((id) => {
+        const el = document.getElementById(id);
+        if (el) el.style.display = 'none';
+      });
+      const home = document.getElementById('view-home');
+      if (home) home.style.display = 'flex';
+    }
+  } catch (err) {
+    console.error('[showAppDashboard] navigation failed:', err);
+    const home = document.getElementById('view-home');
+    if (home) home.style.display = 'flex';
+  }
+
   const cached = JSON.parse(localStorage.getItem('fb_pages') || '[]');
   if (cached.length && typeof window.renderPages === 'function') {
     window.renderPages(cached);

@@ -816,7 +816,8 @@ window.renderRecipients = renderRecipients;
 window.updateStats = updateStats;
 window.buildFilterOptions = buildFilterOptions;
 window.allRecipients = allRecipients;
-window.switchDashboardView = switchDashboardView;
+// switchDashboardView is defined in assets/js/app-shell.js (do not assign here)
+window.updateHomeViewStats = updateHomeViewStats;
 // Image URL getter for auto-send (index-page.js)
 Object.defineProperty(window, '_imgAttachUrl', { get: () => currentImageUrl, configurable: true });
 

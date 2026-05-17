@@ -99,10 +99,10 @@
   function showTopView(name, display) {
     const el = $('view-' + name);
     if (!el) return;
-    if (name === 'messenger') {
+    if (name === 'messenger' || name === 'home') {
       el.style.display = display ? 'flex' : 'none';
     } else {
-      el.style.display = display ? '' : 'none';
+      el.style.display = display ? 'flex' : 'none';
     }
   }
 
