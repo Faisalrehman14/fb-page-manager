@@ -671,20 +671,145 @@ app.get('/api/auth/status', (req, res) => {
     else res.json({ authenticated: false });
 });
 
-/** After redirect OAuth — sync browser localStorage from server session */
-app.get('/api/auth/bootstrap', (req, res) => {
+/** After redirect OAuth — sync browser from server session + DB user data */
+app.get('/api/auth/bootstrap', async (req, res) => {
     if (!req.session.accessToken) {
         return res.json({ authenticated: false });
     }
     const pages = Array.isArray(req.session.clientPagesCache) ? req.session.clientPagesCache : [];
-    res.json({
+    const payload = {
         authenticated: true,
         token: req.session.accessToken,
         expiresIn: 5184000,
         userId: req.session.userId || null,
         userName: req.session.userName || null,
         pages
-    });
+    };
+    if (state.dbConnected && req.session.userId) {
+        try {
+            const profile = await db.getUserProfile(req.session.userId);
+            if (profile.quota) {
+                payload.quota = {
+                    subscriptionStatus: profile.quota.subscriptionStatus || 'free',
+                    messageLimit: profile.quota.messageLimit ?? 2000,
+                    messagesUsed: profile.quota.messenger_messagesUsed ?? 0,
+                    plan: profile.quota.subscriptionStatus || 'free'
+                };
+            }
+            payload.preferences = profile.preferences;
+        } catch (err) {
+            logError('auth_bootstrap_profile', err);
+        }
+    }
+    res.json(payload);
+});
+
+/** User profile: quota + preferences from DB (session auth) */
+app.get('/api/user/profile', requireAuth, async (req, res) => {
+    try {
+        res.setHeader('Cache-Control', 'no-store');
+        const uid = req.session.userId;
+        if (!uid) return res.status(401).json({ error: 'Not authenticated' });
+        if (!state.dbConnected) {
+            return res.json({
+                quota: { subscriptionStatus: 'free', messageLimit: 2000, messagesUsed: 0 },
+                preferences: { notif_broadcast: true, notif_failed: true, default_delay_ms: 1200, message_draft: '' }
+            });
+        }
+        const profile = await db.getUserProfile(uid);
+        res.json({
+            fb_user_id: uid,
+            fb_name: req.session.userName || null,
+            quota: profile.quota ? {
+                subscriptionStatus: profile.quota.subscriptionStatus || 'free',
+                messageLimit: profile.quota.messageLimit ?? 2000,
+                messagesUsed: profile.quota.messenger_messagesUsed ?? 0,
+                plan: profile.quota.subscriptionStatus || 'free'
+            } : null,
+            preferences: profile.preferences
+        });
+    } catch (err) {
+        logError('user_profile', err);
+        res.status(500).json({ error: 'Failed to load profile' });
+    }
+});
+
+app.get('/api/user/preferences', requireAuth, async (req, res) => {
+    try {
+        const uid = req.session.userId;
+        if (!uid) return res.status(401).json({ error: 'Not authenticated' });
+        const preferences = state.dbConnected
+            ? await db.getUserPreferences(uid)
+            : { notif_broadcast: true, notif_failed: true, default_delay_ms: 1200, message_draft: '' };
+        res.json({ preferences });
+    } catch (err) {
+        logError('get_preferences', err);
+        res.status(500).json({ error: 'Failed to load preferences' });
+    }
+});
+
+app.put('/api/user/preferences', requireAuth, verifyCsrf, async (req, res) => {
+    try {
+        const uid = req.session.userId;
+        if (!uid) return res.status(401).json({ error: 'Not authenticated' });
+        const body = req.body || {};
+        const patch = {};
+        if (body.notif_broadcast !== undefined) patch.notif_broadcast = !!body.notif_broadcast;
+        if (body.notif_failed !== undefined) patch.notif_failed = !!body.notif_failed;
+        if (body.default_delay_ms !== undefined) patch.default_delay_ms = body.default_delay_ms;
+        if (body.message_draft !== undefined) patch.message_draft = body.message_draft;
+        const preferences = state.dbConnected
+            ? await db.upsertUserPreferences(uid, patch)
+            : { ...patch, notif_broadcast: true, notif_failed: true, default_delay_ms: 1200, message_draft: '' };
+        res.json({ success: true, preferences });
+    } catch (err) {
+        logError('put_preferences', err);
+        res.status(500).json({ error: 'Failed to save preferences' });
+    }
+});
+
+app.get('/api/broadcasts/history', requireAuth, async (req, res) => {
+    try {
+        res.setHeader('Cache-Control', 'no-store');
+        const uid = req.session.userId;
+        if (!uid) return res.status(401).json({ error: 'Not authenticated' });
+        const days = Math.min(365, Math.max(1, parseInt(req.query.days, 10) || 90));
+        const history = state.dbConnected ? await db.getBroadcastHistory(uid, days) : [];
+        res.json({ history, days });
+    } catch (err) {
+        logError('get_broadcast_history', err);
+        res.status(500).json({ error: 'Failed to load history' });
+    }
+});
+
+app.post('/api/broadcasts/history', requireAuth, verifyCsrf, async (req, res) => {
+    try {
+        const uid = req.session.userId;
+        if (!uid) return res.status(401).json({ error: 'Not authenticated' });
+        const body = req.body || {};
+        const sent = Math.max(0, parseInt(body.sent, 10) || 0);
+        const failed = Math.max(0, parseInt(body.failed, 10) || 0);
+        const total = Math.max(0, parseInt(body.total, 10) || sent + failed);
+        if (sent + failed === 0 && total === 0) {
+            return res.status(400).json({ error: 'No broadcast stats to save' });
+        }
+        let id = null;
+        if (state.dbConnected) {
+            id = await db.insertBroadcastHistory(uid, {
+                mode: body.mode || 'manual',
+                pageId: body.pageId || body.page_id,
+                pages: body.pages || body.pages_count || 1,
+                total,
+                sent,
+                failed,
+                message_preview: body.message_preview || body.label
+            });
+        }
+        res.json({ success: true, id });
+    } catch (err) {
+        logError('post_broadcast_history', err);
+        res.status(500).json({ error: 'Failed to save history' });
+    }
 });
 
 app.post('/api/auth/logout', verifyCsrf, (req, res) => {

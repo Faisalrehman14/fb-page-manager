@@ -378,7 +378,7 @@ async function triggerLogout() {
   if (typeof window.clearClientAuth === 'function') {
     window.clearClientAuth();
   } else {
-    ['fb_user_token', 'fbcast_user', 'fbcast_quota', 'fb_pages', 'fb_thread_by_psid', 'send_queue'].forEach((k) => {
+    ['fb_user_token', 'fbcast_user', 'fbcast_quota', 'fb_pages', 'fb_thread_by_psid', 'send_queue', 'fbcast_broadcast_history', 'fbcast_notif_prefs', 'fbcast_message_draft', 'fbcast_delay_draft', 'fbcast_analytics_queue'].forEach((k) => {
       try { localStorage.removeItem(k); } catch (_) {}
     });
     try { sessionStorage.setItem('fbcast_logged_out', '1'); } catch (_) {}
@@ -593,18 +593,25 @@ function closeMobileMenu() {
 })();
 
 function restoreComposerDraft() {
+  restoreComposerDraftFromServer();
+}
+
+function restoreComposerDraftFromServer() {
   const messageEl = document.getElementById('messageText');
   const delayEl = document.getElementById('delayMs');
-  if (messageEl) {
-    const savedMessage = localStorage.getItem(MESSAGE_DRAFT_KEY);
-    if (savedMessage && !messageEl.value) messageEl.value = savedMessage;
+  const prefs = window.fbcastUserData ? window.fbcastUserData.getPreferences() : null;
+  if (messageEl && prefs && prefs.message_draft && !messageEl.value) {
+    messageEl.value = prefs.message_draft;
     updateCharBar(messageEl.value.length);
   }
-  if (delayEl) {
-    const savedDelay = parseInt(localStorage.getItem(DELAY_DRAFT_KEY) || '', 10);
-    if (!Number.isNaN(savedDelay) && savedDelay >= 500) delayEl.value = String(savedDelay);
+  if (delayEl && prefs && prefs.default_delay_ms >= 500) {
+    delayEl.value = String(prefs.default_delay_ms);
+  }
+  if (typeof applyDelayPreset === 'function' && delayEl) {
+    applyDelayPreset(delayEl.value || '1200');
   }
 }
+window.restoreComposerDraftFromServer = restoreComposerDraftFromServer;
 
 function updateCharBar(len) {
   const countEl = document.getElementById('charCount');
@@ -617,17 +624,19 @@ function updateCharBar(len) {
   }
 }
 
+let _draftSaveTimer = null;
 function persistComposerDraft() {
   const messageEl = document.getElementById('messageText');
   const delayEl = document.getElementById('delayMs');
-  if (messageEl) {
-    localStorage.setItem(MESSAGE_DRAFT_KEY, messageEl.value.slice(0, 2000));
-    updateCharBar(messageEl.value.length);
-  }
-  if (delayEl) {
-    const delay = Math.max(500, parseInt(delayEl.value || '1200', 10) || 1200);
-    localStorage.setItem(DELAY_DRAFT_KEY, String(delay));
-  }
+  if (messageEl) updateCharBar(messageEl.value.length);
+  if (!window.fbcastUserData) return;
+  clearTimeout(_draftSaveTimer);
+  _draftSaveTimer = setTimeout(() => {
+    const patch = {};
+    if (messageEl) patch.message_draft = messageEl.value.slice(0, 2000);
+    if (delayEl) patch.default_delay_ms = Math.max(500, parseInt(delayEl.value || '1200', 10) || 1200);
+    window.fbcastUserData.savePreferences(patch);
+  }, 600);
 }
 
 function applyDelayPreset(delay) {
@@ -644,7 +653,8 @@ function initDelayPresetControls() {
   const presetButtons = document.querySelectorAll('.delay-preset');
   if (!delayInput || !presetButtons.length) return;
 
-  const current = delayInput.value || localStorage.getItem(DELAY_DRAFT_KEY) || '1200';
+  const prefs = window.fbcastUserData ? window.fbcastUserData.getPreferences() : null;
+  const current = delayInput.value || (prefs && prefs.default_delay_ms) || '1200';
   applyDelayPreset(current);
 
   presetButtons.forEach(function (btn) {
@@ -745,30 +755,43 @@ document.addEventListener('DOMContentLoaded', function () {
 /* ════════════════════════════════
    QUOTA SYSTEM
 ════════════════════════════════ */
-const QUOTA_KEY='fbcast_quota';
 const FREE_LIMIT=2000;
+let _quotaMemory={subscriptionStatus:'free',messageLimit:FREE_LIMIT,messagesUsed:0};
 
 function getQuota(){
-  try{
-    const raw=localStorage.getItem(QUOTA_KEY);
-    if(!raw)return{subscriptionStatus:'free',messageLimit:FREE_LIMIT,messagesUsed:0};
-    const q=JSON.parse(raw);
-    return{
-      subscriptionStatus:q.subscriptionStatus||q.plan||'free',
-      messageLimit:typeof q.messageLimit==='number'?q.messageLimit:typeof q.limit==='number'?q.limit:typeof q.messages_limit==='number'?q.messages_limit:FREE_LIMIT,
-      messagesUsed:typeof q.messagesUsed==='number'?q.messagesUsed:typeof q.used==='number'?q.used:typeof q.messages_used==='number'?q.messages_used:0,
-    };
-  }catch(_){return{subscriptionStatus:'free',messageLimit:FREE_LIMIT,messagesUsed:0}}
+  if(window.fbcastUserData&&typeof window.fbcastUserData.getQuota==='function'){
+    const q=window.fbcastUserData.getQuota();
+    _quotaMemory=q;
+    return q;
+  }
+  return{..._quotaMemory};
 }
 
 function saveQuota(raw){
-  const q={
+  _quotaMemory={
     subscriptionStatus:raw.subscriptionStatus||raw.plan||'free',
     messageLimit:typeof raw.messageLimit==='number'?raw.messageLimit:typeof raw.limit==='number'?raw.limit:typeof raw.messages_limit==='number'?raw.messages_limit:FREE_LIMIT,
     messagesUsed:typeof raw.messagesUsed==='number'?raw.messagesUsed:typeof raw.used==='number'?raw.used:typeof raw.messages_used==='number'?raw.messages_used:0,
   };
-  localStorage.setItem(QUOTA_KEY,JSON.stringify(q));
+  if(window.fbcastUserData&&window.fbcastUserData.applyServerPayload){
+    window.fbcastUserData.applyServerPayload({quota:{
+      subscriptionStatus:_quotaMemory.subscriptionStatus,
+      messageLimit:_quotaMemory.messageLimit,
+      messagesUsed:_quotaMemory.messagesUsed,
+      plan:_quotaMemory.subscriptionStatus
+    }});
+  }
 }
+
+window.__setQuotaMemory=function(q){
+  if(!q)return;
+  _quotaMemory={
+    subscriptionStatus:q.subscriptionStatus||q.plan||'free',
+    messageLimit:typeof q.messageLimit==='number'?q.messageLimit:FREE_LIMIT,
+    messagesUsed:typeof q.messagesUsed==='number'?q.messagesUsed:0
+  };
+  updateQuotaUI();
+};
 
 function getRemaining(){
   const q=getQuota();
@@ -800,6 +823,17 @@ async function syncQuotaFromServer(options = {}){
     if(data.success){
       saveQuota(data);
       localStorage.setItem('fbcast_user',JSON.stringify({fb_user_id:data.fb_user_id,fb_name:data.fb_name}));
+      if(typeof applyServerUserData==='function'){
+        applyServerUserData({quota:{
+          subscriptionStatus:data.subscriptionStatus||data.plan||'free',
+          messageLimit:data.messageLimit,
+          messagesUsed:data.messagesUsed
+        }});
+      }
+      if(window.fbcastUserData&&typeof window.fbcastUserData.fetchProfile==='function'){
+        await window.fbcastUserData.fetchProfile();
+        restoreComposerDraftFromServer();
+      }
       updateQuotaUI();
       updateHeroAvatars();
       _lastTrackUserSyncAt = Date.now();
@@ -1103,6 +1137,11 @@ document.addEventListener('DOMContentLoaded',async()=>{
 
   // Ensure quota is fresh from server on load
   await syncQuotaFromServer({ force: true, source: 'dom_ready_sync' });
+  if (window.fbcastUserData) {
+    await window.fbcastUserData.fetchProfile();
+    await window.fbcastUserData.migrateLocalHistoryOnce();
+    restoreComposerDraftFromServer();
+  }
 
   fbTrackEvent('page_view', { page: 'landing_or_app' });
 

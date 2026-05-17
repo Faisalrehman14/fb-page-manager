@@ -1,49 +1,13 @@
 /**
- * FBCast Pro — Analytics dashboard (client history + schedules)
+ * FBCast Pro — Analytics dashboard (DB-backed history + schedules)
  */
 (function (global) {
   'use strict';
 
-  const HISTORY_KEY = 'fbcast_broadcast_history';
-  const MAX_HISTORY = 80;
   let currentPeriod = 7;
 
   function $(id) {
     return document.getElementById(id);
-  }
-
-  function loadHistory() {
-    try {
-      const raw = localStorage.getItem(HISTORY_KEY);
-      return raw ? JSON.parse(raw) : [];
-    } catch (_) {
-      return [];
-    }
-  }
-
-  function saveHistory(list) {
-    try {
-      localStorage.setItem(HISTORY_KEY, JSON.stringify(list.slice(-MAX_HISTORY)));
-    } catch (_) {}
-  }
-
-  function recordBroadcast(entry) {
-    if (!entry) return;
-    const sent = Number(entry.sent) || 0;
-    const failed = Number(entry.failed) || 0;
-    if (sent + failed === 0 && !entry.total) return;
-    const list = loadHistory();
-    list.push({
-      id: 'b_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7),
-      ts: new Date().toISOString(),
-      mode: entry.mode || 'manual',
-      pageId: entry.pageId || '',
-      pages: entry.pages || 1,
-      total: Number(entry.total) || 0,
-      sent: Number(entry.sent) || 0,
-      failed: Number(entry.failed) || 0
-    });
-    saveHistory(list);
   }
 
   function filterByPeriod(items, days) {
@@ -70,7 +34,7 @@
         id: 'sched_' + s.id,
         ts: s.updated_at || s.scheduled_at || s.created_at,
         mode: 'scheduled',
-        pages: Array.isArray(s.pages) ? s.pages.length : (Array.isArray(s.pages_data) ? s.pages_data.length : 1),
+        pages: Array.isArray(s.pages) ? s.pages.length : 1,
         total: (Number(s.sent_count) || 0) + (Number(s.failed_count) || 0),
         sent: Number(s.sent_count) || 0,
         failed: Number(s.failed_count) || 0,
@@ -88,6 +52,20 @@
       if (!res.ok) return [];
       const data = await res.json();
       return data.schedules || [];
+    } catch (_) {
+      return [];
+    }
+  }
+
+  async function fetchDbHistory(days) {
+    if (global.fbcastUserData && typeof global.fbcastUserData.fetchBroadcastHistory === 'function') {
+      return global.fbcastUserData.fetchBroadcastHistory(days);
+    }
+    try {
+      const res = await fetch(`/api/broadcasts/history?days=${days || 90}`, { credentials: 'same-origin' });
+      if (!res.ok) return [];
+      const data = await res.json();
+      return data.history || [];
     } catch (_) {
       return [];
     }
@@ -130,7 +108,7 @@
         const bh = Math.max(4, (b.sent / max) * chartH);
         const x = pad.l + i * (chartW / buckets.length) + 3;
         const y = pad.t + chartH - bh;
-        return `<rect class="pro-chart-bar" x="${x}" y="${y}" width="${barW}" height="${bh}" rx="4" data-sent="${b.sent}" data-label="${b.label}"><title>${b.label}: ${b.sent.toLocaleString()} sent</title></rect>`;
+        return `<rect class="pro-chart-bar" x="${x}" y="${y}" width="${barW}" height="${bh}" rx="4"><title>${b.label}: ${b.sent.toLocaleString()} sent</title></rect>`;
       })
       .join('');
     const labels = buckets
@@ -163,12 +141,21 @@
     return 'fa-bullhorn';
   }
 
+  function escapeHtml(s) {
+    return String(s)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
   function renderHistory(items) {
     const list = $('analyticsHistoryList');
     if (!list) return;
     const sorted = [...items].sort((a, b) => new Date(b.ts) - new Date(a.ts)).slice(0, 25);
     if (!sorted.length) {
-      list.innerHTML = '<div class="analytics-empty"><p>No broadcast history yet. Your sends will appear here.</p></div>';
+      list.innerHTML =
+        '<div class="analytics-empty"><p>No broadcast history yet. Your sends are saved to your account.</p></div>';
       return;
     }
     list.innerHTML = sorted
@@ -201,14 +188,6 @@
       .join('');
   }
 
-  function escapeHtml(s) {
-    return String(s)
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;');
-  }
-
   function setKpis(agg) {
     const elSent = $('analyticsTotalSent');
     const elDel = $('analyticsDelivered');
@@ -231,10 +210,12 @@
     if (periodDays) currentPeriod = periodDays;
     setPeriodActive(currentPeriod);
 
-    const local = loadHistory();
-    const schedules = await fetchSchedules();
+    const [dbHistory, schedules] = await Promise.all([
+      fetchDbHistory(currentPeriod),
+      fetchSchedules()
+    ]);
     const fromSched = scheduleToHistory(schedules);
-    const merged = [...local, ...fromSched];
+    const merged = [...dbHistory, ...fromSched];
     const filtered = filterByPeriod(merged, currentPeriod);
     const agg = aggregate(filtered);
 
@@ -250,6 +231,12 @@
         refresh(days);
       });
     });
+  }
+
+  function recordBroadcast(entry) {
+    if (global.fbcastUserData && typeof global.fbcastUserData.recordBroadcast === 'function') {
+      global.fbcastUserData.recordBroadcast(entry);
+    }
   }
 
   function listenBroadcastEvents() {
@@ -282,5 +269,5 @@
     init();
   }
 
-  global.analyticsDashboard = { refresh, recordBroadcast, loadHistory };
+  global.analyticsDashboard = { refresh, recordBroadcast };
 })(window);

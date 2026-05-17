@@ -319,6 +319,33 @@ async function initDatabase() {
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
         `);
 
+        await tryCreate(`
+            CREATE TABLE IF NOT EXISTS broadcast_history (
+                id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                fb_user_id VARCHAR(50) NOT NULL,
+                mode ENUM('manual','auto','scheduled') NOT NULL DEFAULT 'manual',
+                page_id VARCHAR(64) DEFAULT NULL,
+                pages_count INT UNSIGNED NOT NULL DEFAULT 1,
+                total_recipients INT UNSIGNED NOT NULL DEFAULT 0,
+                sent_count INT UNSIGNED NOT NULL DEFAULT 0,
+                failed_count INT UNSIGNED NOT NULL DEFAULT 0,
+                message_preview VARCHAR(160) DEFAULT NULL,
+                created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                INDEX idx_bh_user_time (fb_user_id, created_at)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        `);
+
+        await tryCreate(`
+            CREATE TABLE IF NOT EXISTS user_preferences (
+                fb_user_id VARCHAR(50) PRIMARY KEY,
+                notif_broadcast TINYINT(1) NOT NULL DEFAULT 1,
+                notif_failed TINYINT(1) NOT NULL DEFAULT 1,
+                default_delay_ms INT NOT NULL DEFAULT 1200,
+                message_draft TEXT DEFAULT NULL,
+                updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        `);
+
         connection.release();
         console.log('Database tables verified');
         pool.lastError = null;
@@ -2095,6 +2122,11 @@ const dbModule = {
     cancelSchedule,
     getDueSchedules,
     updateScheduleStatus,
+    insertBroadcastHistory,
+    getBroadcastHistory,
+    getUserPreferences,
+    upsertUserPreferences,
+    getUserProfile,
     ensureBillingTables,
     reserveWebhookEvent,
     markWebhookProcessed,
@@ -2213,6 +2245,113 @@ async function updateScheduleStatus(id, status, stats = {}) {
          WHERE id = ?`,
         [status, stats.total || null, stats.sent || null, stats.failed || null, stats.error || null, id]
     );
+}
+
+// ── Broadcast history (per user, survives logout) ───────────────────────────
+async function insertBroadcastHistory(fb_user_id, row = {}) {
+    if (!pool || !fb_user_id) return null;
+    const mode = ['manual', 'auto', 'scheduled'].includes(row.mode) ? row.mode : 'manual';
+    const sent = Math.max(0, parseInt(row.sent, 10) || 0);
+    const failed = Math.max(0, parseInt(row.failed, 10) || 0);
+    const total = Math.max(0, parseInt(row.total, 10) || sent + failed);
+    if (sent + failed === 0 && total === 0) return null;
+    const [result] = await pool.query(
+        `INSERT INTO broadcast_history
+         (fb_user_id, mode, page_id, pages_count, total_recipients, sent_count, failed_count, message_preview)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+            fb_user_id,
+            mode,
+            row.pageId || row.page_id || null,
+            Math.max(1, parseInt(row.pages || row.pages_count, 10) || 1),
+            total,
+            sent,
+            failed,
+            (row.message_preview || row.label) ? String(row.message_preview || row.label).slice(0, 160) : null
+        ]
+    );
+    return result.insertId;
+}
+
+async function getBroadcastHistory(fb_user_id, days = 90) {
+    if (!pool || !fb_user_id) return [];
+    const d = Math.min(365, Math.max(1, parseInt(days, 10) || 90));
+    const [rows] = await pool.query(
+        `SELECT id, mode, page_id, pages_count, total_recipients, sent_count, failed_count,
+                message_preview, created_at
+         FROM broadcast_history
+         WHERE fb_user_id = ? AND created_at >= DATE_SUB(NOW(), INTERVAL ? DAY)
+         ORDER BY created_at DESC
+         LIMIT 200`,
+        [fb_user_id, d]
+    );
+    return rows.map((r) => ({
+        id: 'bh_' + r.id,
+        ts: r.created_at,
+        mode: r.mode,
+        pageId: r.page_id,
+        pages: r.pages_count,
+        total: r.total_recipients,
+        sent: r.sent_count,
+        failed: r.failed_count,
+        label: r.message_preview
+    }));
+}
+
+// ── User preferences (per user, survives logout) ──────────────────────────────
+const DEFAULT_PREFS = {
+    notif_broadcast: true,
+    notif_failed: true,
+    default_delay_ms: 1200,
+    message_draft: ''
+};
+
+async function getUserPreferences(fb_user_id) {
+    if (!pool || !fb_user_id) return { ...DEFAULT_PREFS };
+    const [rows] = await pool.query(
+        'SELECT notif_broadcast, notif_failed, default_delay_ms, message_draft FROM user_preferences WHERE fb_user_id = ?',
+        [fb_user_id]
+    );
+    if (!rows.length) return { ...DEFAULT_PREFS };
+    const r = rows[0];
+    return {
+        notif_broadcast: !!r.notif_broadcast,
+        notif_failed: !!r.notif_failed,
+        default_delay_ms: Math.max(500, parseInt(r.default_delay_ms, 10) || 1200),
+        message_draft: r.message_draft || ''
+    };
+}
+
+async function upsertUserPreferences(fb_user_id, patch = {}) {
+    if (!pool || !fb_user_id) return { ...DEFAULT_PREFS };
+    const current = await getUserPreferences(fb_user_id);
+    const next = {
+        notif_broadcast: patch.notif_broadcast !== undefined ? !!patch.notif_broadcast : current.notif_broadcast,
+        notif_failed: patch.notif_failed !== undefined ? !!patch.notif_failed : current.notif_failed,
+        default_delay_ms: patch.default_delay_ms !== undefined
+            ? Math.max(500, parseInt(patch.default_delay_ms, 10) || 1200)
+            : current.default_delay_ms,
+        message_draft: patch.message_draft !== undefined
+            ? String(patch.message_draft || '').slice(0, 2000)
+            : current.message_draft
+    };
+    await pool.query(
+        `INSERT INTO user_preferences (fb_user_id, notif_broadcast, notif_failed, default_delay_ms, message_draft)
+         VALUES (?, ?, ?, ?, ?)
+         ON DUPLICATE KEY UPDATE
+           notif_broadcast = VALUES(notif_broadcast),
+           notif_failed = VALUES(notif_failed),
+           default_delay_ms = VALUES(default_delay_ms),
+           message_draft = VALUES(message_draft)`,
+        [fb_user_id, next.notif_broadcast ? 1 : 0, next.notif_failed ? 1 : 0, next.default_delay_ms, next.message_draft || null]
+    );
+    return next;
+}
+
+async function getUserProfile(fb_user_id) {
+    const quota = await updateUserQuota(fb_user_id, 0);
+    const preferences = await getUserPreferences(fb_user_id);
+    return { quota, preferences };
 }
 
 // Getter so server.js can access db.pool after initDatabase() assigns it

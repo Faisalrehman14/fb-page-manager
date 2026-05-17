@@ -1,50 +1,69 @@
 /**
- * FBCast Pro — Pro SaaS UX (settings prefs, landing polish)
+ * FBCast Pro — Pro SaaS UX (settings prefs from DB)
  */
 (function (global) {
   'use strict';
 
-  const NOTIF_KEY = 'fbcast_notif_prefs';
-
-  function loadNotifPrefs() {
-    try {
-      return JSON.parse(localStorage.getItem(NOTIF_KEY) || '{}');
-    } catch (_) {
-      return {};
-    }
-  }
-
-  function saveNotifPrefs(prefs) {
-    try {
-      localStorage.setItem(NOTIF_KEY, JSON.stringify(prefs));
-    } catch (_) {}
-  }
-
   function initSettings() {
-    const prefs = Object.assign({ broadcast: true, failed: true }, loadNotifPrefs());
     const cbBroadcast = document.getElementById('notifBroadcast');
     const cbFailed = document.getElementById('notifFailed');
-    if (cbBroadcast) {
-      cbBroadcast.checked = prefs.broadcast !== false;
-      cbBroadcast.addEventListener('change', () => {
-        prefs.broadcast = cbBroadcast.checked;
-        saveNotifPrefs(prefs);
-      });
+
+    function applyPrefs(prefs) {
+      if (!prefs) return;
+      if (cbBroadcast) cbBroadcast.checked = prefs.notif_broadcast !== false;
+      if (cbFailed) cbFailed.checked = prefs.notif_failed !== false;
     }
-    if (cbFailed) {
-      cbFailed.checked = prefs.failed !== false;
-      cbFailed.addEventListener('change', () => {
-        prefs.failed = cbFailed.checked;
-        saveNotifPrefs(prefs);
+
+    if (global.fbcastUserData) {
+      applyPrefs(global.fbcastUserData.getPreferences());
+    }
+
+    global.addEventListener('fbc:preferences-loaded', (e) => {
+      applyPrefs(e.detail);
+    });
+
+    function onPrefChange() {
+      if (!global.fbcastUserData) return;
+      global.fbcastUserData.savePreferences({
+        notif_broadcast: cbBroadcast ? cbBroadcast.checked : true,
+        notif_failed: cbFailed ? cbFailed.checked : true
       });
     }
 
-    global.getNotifPrefs = () => Object.assign({ broadcast: true, failed: true }, loadNotifPrefs());
+    cbBroadcast?.addEventListener('change', onPrefChange);
+    cbFailed?.addEventListener('change', onPrefChange);
+
+    document.querySelectorAll('#view-settings .delay-opt').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const delay = parseInt(btn.getAttribute('data-delay') || '1200', 10);
+        document.querySelectorAll('#view-settings .delay-opt').forEach((b) => b.classList.remove('active'));
+        btn.classList.add('active');
+        const delayInput = document.getElementById('delayMs');
+        if (delayInput) delayInput.value = String(delay);
+        if (global.fbcastUserData) {
+          global.fbcastUserData.savePreferences({ default_delay_ms: delay });
+        }
+      });
+    });
+
+    global.addEventListener('fbc:preferences-loaded', (e) => {
+      const d = e.detail;
+      if (!d) return;
+      const active = String(d.default_delay_ms || 1200);
+      document.querySelectorAll('#view-settings .delay-opt').forEach((b) => {
+        b.classList.toggle('active', b.getAttribute('data-delay') === active);
+      });
+    });
+
+    global.getNotifPrefs = function () {
+      if (global.fbcastUserData) return global.fbcastUserData.getPreferences();
+      return { notif_broadcast: true, notif_failed: true };
+    };
 
     global.maybeNotifyBroadcast = function (type, message) {
       const p = global.getNotifPrefs();
-      if (type === 'complete' && !p.broadcast) return;
-      if (type === 'failed' && !p.failed) return;
+      if (type === 'complete' && !p.notif_broadcast) return;
+      if (type === 'failed' && !p.notif_failed) return;
       if (typeof global.showToast === 'function') global.showToast(message, type === 'failed' ? 'warning' : 'success');
       if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
         try {
@@ -54,7 +73,7 @@
     };
 
     if (typeof Notification !== 'undefined' && Notification.permission === 'default') {
-      document.getElementById('notifBroadcast')?.addEventListener('change', function requestOnce() {
+      cbBroadcast?.addEventListener('change', function requestOnce() {
         if (this.checked) Notification.requestPermission().catch(() => {});
         this.removeEventListener('change', requestOnce);
       });
@@ -102,7 +121,7 @@
     initSettings();
     initLandingNav();
     initSmoothAnchors();
-    document.addEventListener('fbc:quota-updated', unlockPlanFeatures);
+    global.addEventListener('fbc:quota-updated', unlockPlanFeatures);
     setTimeout(unlockPlanFeatures, 1500);
   }
 

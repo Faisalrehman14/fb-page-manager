@@ -764,7 +764,10 @@ function clearClientAuth() {
     'fbcast_user',
     'fbcast_quota',
     'fbcast_message_draft',
-    'fbcast_delay_draft'
+    'fbcast_delay_draft',
+    'fbcast_broadcast_history',
+    'fbcast_notif_prefs',
+    'fbcast_analytics_queue'
   ].forEach((k) => {
     try { localStorage.removeItem(k); } catch (_) {}
   });

@@ -193,6 +193,18 @@
         localStorage.setItem('fb_pages', JSON.stringify(data.pages));
         if (typeof global.renderPages === 'function') global.renderPages(data.pages);
       }
+      if (typeof global.applyServerUserData === 'function') {
+        global.applyServerUserData({
+          quota: data.quota,
+          preferences: data.preferences
+        });
+      }
+      if (typeof global.restoreComposerDraftFromServer === 'function') {
+        global.restoreComposerDraftFromServer();
+      }
+      if (global.fbcastUserData && typeof global.fbcastUserData.migrateLocalHistoryOnce === 'function') {
+        global.fbcastUserData.migrateLocalHistoryOnce();
+      }
     } catch (err) {
       console.warn('[AppShell] persistBootstrapData failed', err);
     }
@@ -266,7 +278,14 @@
     try {
       const res = await fetch('/api/auth/bootstrap', { credentials: 'same-origin' });
       const body = await res.json();
-      return persistBootstrapData(body);
+      const ok = persistBootstrapData(body);
+      if (ok && global.fbcastUserData && typeof global.fbcastUserData.fetchProfile === 'function') {
+        await global.fbcastUserData.fetchProfile();
+        if (typeof global.restoreComposerDraftFromServer === 'function') {
+          global.restoreComposerDraftFromServer();
+        }
+      }
+      return ok;
     } catch (err) {
       console.warn('[AppShell] bootstrapAuthFromServer failed', err);
       return false;
