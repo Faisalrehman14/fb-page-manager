@@ -47,7 +47,7 @@
       icon: 'fa-clock',
       top: 'broadcast',
       broadcastSub: 'scheduling',
-      hideSidebar: true,
+      hideSidebar: false,
       bodyClass: 'shell-scheduling',
       onEnter() {
         if (typeof svPopulatePages === 'function') svPopulatePages();

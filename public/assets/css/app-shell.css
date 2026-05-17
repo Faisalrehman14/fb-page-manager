@@ -175,9 +175,14 @@ body.app-dashboard-active #appPage {
   margin-top: 2px;
 }
 
-/* ─── Scheduling full-width mode ─── */
-body.shell-scheduling .sidebar { display: none !important; }
-body.shell-scheduling .nav-sidebar { display: none !important; }
+/* ─── Scheduling — keep nav + pages sidebar visible ─── */
+body.shell-scheduling #view-scheduling {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  position: relative;
+  inset: auto;
+}
 body.shell-messenger .nav-sidebar { display: flex !important; }
 
 /* ─── Responsive ─── */
