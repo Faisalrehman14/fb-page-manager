@@ -527,7 +527,7 @@ async function saveConversation(conversation) {
                     VALUES(updated_at),
                     updated_at
                 ),
-                is_unread = GREATEST(is_unread, VALUES(is_unread)),
+                is_unread = VALUES(is_unread),
                 can_reply = VALUES(can_reply),
                 last_from_me = VALUES(last_from_me)
         `, [pageId, participantId, id, participantName, snippet, updatedTime ? new Date(updatedTime) : null, fbUnreadCount, canReplyVal, lastFromMeVal]);
@@ -580,7 +580,7 @@ async function saveConversations(messenger_conversations) {
                         VALUES(updated_at),
                         updated_at
                     ),
-                    is_unread = GREATEST(is_unread, VALUES(is_unread)),
+                    is_unread = VALUES(is_unread),
                     can_reply = VALUES(can_reply),
                     last_from_me = VALUES(last_from_me)
             `, params);
