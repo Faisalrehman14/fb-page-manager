@@ -3,7 +3,7 @@ const {
     retentionCutoffUnix,
     isWithinRetention
 } = require('./config');
-const { parseFbAttachments, normalizeMessengerMessage, FB_MESSAGE_ATTACHMENT_FIELDS } = require('./message-content');
+const { graphMessageAttachments, normalizeMessengerMessage, FB_MESSAGE_ATTACHMENT_FIELDS } = require('./message-content');
 
 const FB_TIMEOUT_MS = 12_000;
 
@@ -51,7 +51,7 @@ class FacebookClient {
     messagesUrl(fbConvId, pageToken, { limit = 50, sinceUnix = null, untilUnix = null } = {}) {
         const since = sinceUnix ?? retentionCutoffUnix();
         let url = `${FB_GRAPH_BASE}/${fbConvId}/messages` +
-            `?fields=id,message,from,created_time,${FB_MESSAGE_ATTACHMENT_FIELDS}` +
+            `?fields=id,message,from,created_time,sticker,${FB_MESSAGE_ATTACHMENT_FIELDS}` +
             `&limit=${limit}&since=${since}&access_token=${pageToken}`;
         if (untilUnix) url += `&until=${untilUnix}`;
         return url;
@@ -75,7 +75,7 @@ class FacebookClient {
                 message: m.message || '',
                 from_me: m.from?.id === pageId ? 1 : 0,
                 created_at: m.created_time,
-                attachments: parseFbAttachments(m.attachments)
+                attachments: graphMessageAttachments(m)
             }));
     }
 

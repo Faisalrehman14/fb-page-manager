@@ -935,7 +935,7 @@ async function saveMessage(message) {
                 (conversation_id, page_id, user_id, message_id, message, from_me, created_at, attachment_url, attachment_type, metadata)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON DUPLICATE KEY UPDATE
-                message = VALUES(message),
+                message = COALESCE(NULLIF(TRIM(VALUES(message)), ''), message),
                 from_me = VALUES(from_me),
                 attachment_url = COALESCE(VALUES(attachment_url), attachment_url),
                 attachment_type = COALESCE(VALUES(attachment_type), attachment_type),
@@ -992,7 +992,7 @@ async function saveMessages(messenger_messages) {
                     (conversation_id, page_id, user_id, message_id, message, from_me, created_at, attachment_url, attachment_type, metadata)
                 VALUES ${placeholders}
                 ON DUPLICATE KEY UPDATE
-                    message = VALUES(message),
+                    message = COALESCE(NULLIF(TRIM(VALUES(message)), ''), message),
                     from_me = VALUES(from_me),
                     attachment_url = COALESCE(VALUES(attachment_url), attachment_url),
                     attachment_type = COALESCE(VALUES(attachment_type), attachment_type),
@@ -1073,15 +1073,15 @@ async function syncConversationsFromFacebook(pageId, pageToken, fetchFn, since =
     });
 }
 
-function parseAttachments(fbAttachments) {
-    const { parseFbAttachments } = require('./messenger/message-content');
-    return parseFbAttachments(fbAttachments);
+function parseAttachments(msg) {
+    const { graphMessageAttachments } = require('./messenger/message-content');
+    return graphMessageAttachments(typeof msg === 'object' && msg && !Array.isArray(msg) ? msg : { attachments: msg });
 }
 
 async function syncMessagesFromFacebook(threadId, pageId, pageToken, fetchFn, limit = 20) {
     try {
         const response = await fetchFn(
-            `https://graph.facebook.com/v19.0/${threadId}/messages?fields=id,message,from,created_time,${require('./messenger/message-content').FB_MESSAGE_ATTACHMENT_FIELDS}&limit=${limit}&access_token=${pageToken}`
+            `https://graph.facebook.com/v19.0/${threadId}/messages?fields=id,message,from,created_time,sticker,${require('./messenger/message-content').FB_MESSAGE_ATTACHMENT_FIELDS}&limit=${limit}&access_token=${pageToken}`
         );
         const data = await response.json();
 
@@ -1094,7 +1094,7 @@ async function syncMessagesFromFacebook(threadId, pageId, pageToken, fetchFn, li
             senderId: msg.from?.id,
             senderType: msg.from?.id === pageId ? 'page' : 'customer',
             text: msg.message || '',
-            attachments: parseAttachments(msg.attachments),
+            attachments: parseAttachments(msg),
             isFromPage: msg.from?.id === pageId,
             createdTime: msg.created_time
         })).filter(m => isWithinMessageRetention(m.createdTime));
@@ -1355,7 +1355,7 @@ async function syncConversationsAll(pageId, pageToken, fetchFn, since = null, op
 }
 
 async function syncMessagesAll(threadId, pageId, pageToken, fetchFn) {
-    let nextUrl = `https://graph.facebook.com/v19.0/${threadId}/messages?fields=id,message,from,created_time,${require('./messenger/message-content').FB_MESSAGE_ATTACHMENT_FIELDS}&limit=100&access_token=${pageToken}`;
+    let nextUrl = `https://graph.facebook.com/v19.0/${threadId}/messages?fields=id,message,from,created_time,sticker,${require('./messenger/message-content').FB_MESSAGE_ATTACHMENT_FIELDS}&limit=100&access_token=${pageToken}`;
 
     while (nextUrl) {
         const response = await fetchFn(nextUrl);
@@ -1369,7 +1369,7 @@ async function syncMessagesAll(threadId, pageId, pageToken, fetchFn) {
             senderId: msg.from?.id,
             senderType: msg.from?.id === pageId ? 'page' : 'customer',
             text: msg.message || '',
-            attachments: parseAttachments(msg.attachments),
+            attachments: parseAttachments(msg),
             isFromPage: msg.from?.id === pageId,
             createdTime: msg.created_time
         }));
@@ -1496,7 +1496,7 @@ async function syncThreadMessages(threadId, pageId, pageToken, fetchFn, cutoffMs
         } catch (e) { /* use fallback */ }
     }
 
-    let nextUrl = `https://graph.facebook.com/v19.0/${threadId}/messages?fields=id,message,from,created_time,${require('./messenger/message-content').FB_MESSAGE_ATTACHMENT_FIELDS}&limit=100&access_token=${pageToken}`;
+    let nextUrl = `https://graph.facebook.com/v19.0/${threadId}/messages?fields=id,message,from,created_time,sticker,${require('./messenger/message-content').FB_MESSAGE_ATTACHMENT_FIELDS}&limit=100&access_token=${pageToken}`;
     let saved = 0;
 
     while (nextUrl) {
@@ -1517,7 +1517,7 @@ async function syncThreadMessages(threadId, pageId, pageToken, fetchFn, cutoffMs
             senderId: msg.from?.id || '',
             senderType: msg.from?.id === pageId ? 'page' : 'customer',
             text: msg.message || '',
-            attachments: parseAttachments(msg.attachments),
+            attachments: parseAttachments(msg),
             isFromPage: msg.from?.id === pageId,
             createdTime: msg.created_time
         })).filter(m => isWithinMessageRetention(m.createdTime));
