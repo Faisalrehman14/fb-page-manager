@@ -1593,17 +1593,25 @@ window.getCsrfToken = async (forceRefresh = false) => {
 
               <div id="msngCannedPanel" class="msng-canned-panel" style="display:none">
                 <div class="msng-canned-hdr">
-                  <i class="fa-solid fa-bolt"></i> Quick Replies
-                  <button type="button" class="msng-canned-close" onclick="msngToggleCanned()" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
+                  <span class="msng-canned-hdr-title"><i class="fa-solid fa-bookmark"></i> Saved replies</span>
+                  <button type="button" class="msng-canned-add" onclick="msngOpenCannedModal()"><i class="fa-solid fa-plus"></i> New</button>
+                  <button type="button" class="msng-canned-close" onclick="msngHideCannedPanel()" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
                 </div>
-                <div id="msngCannedList" class="msng-canned-list">
-                  <div class="msng-canned-item" onclick="msngUseCanned(this)">Thank you for reaching out! How can I help you today?</div>
-                  <div class="msng-canned-item" onclick="msngUseCanned(this)">I'll look into this and get back to you shortly.</div>
-                  <div class="msng-canned-item" onclick="msngUseCanned(this)">Our team will respond within 24 hours. Thank you for your patience!</div>
-                  <div class="msng-canned-item" onclick="msngUseCanned(this)">Please share more details so we can assist you better.</div>
-                  <div class="msng-canned-item" onclick="msngUseCanned(this)">We appreciate your feedback! We'll work on improving this.</div>
-                  <div class="msng-canned-item" onclick="msngUseCanned(this)">Your order has been processed. You'll receive a confirmation shortly.</div>
+                <div class="msng-canned-search-wrap">
+                  <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+                  <input type="text" id="msngCannedSearch" class="msng-canned-search" placeholder="Search saved replies…" autocomplete="off"
+                    oninput="msngCannedSearch(this.value)">
                 </div>
+                <div id="msngCannedList" class="msng-canned-list"></div>
+              </div>
+              <div id="msngSavedReplyPreview" class="msng-srp" style="display:none" role="button" tabindex="0"
+                   onclick="msngUseSavedPreview()" onkeydown="if(event.key==='Enter')msngUseSavedPreview()">
+                <i class="fa-solid fa-bookmark msng-srp-icon" aria-hidden="true"></i>
+                <div class="msng-srp-text">
+                  <span class="msng-srp-label">Saved reply</span>
+                  <span id="msngSrpBody" class="msng-srp-body"></span>
+                </div>
+                <button type="button" class="msng-srp-close" onclick="event.stopPropagation();msngHideSavedPreview()" aria-label="Dismiss"><i class="fa-solid fa-xmark"></i></button>
               </div>
 
               <!-- Emoji panel — injected by JS, anchor point -->
@@ -1617,10 +1625,10 @@ window.getCsrfToken = async (forceRefresh = false) => {
               </div>
               <footer class="msng-input-bar">
                 <button type="button" class="msng-input-btn" title="Attach image" onclick="document.getElementById('msngFileInput').click()"><i class="fa-solid fa-image"></i></button>
-                <button type="button" class="msng-input-btn" title="Quick replies" onclick="msngToggleCanned()" id="msngCannedBtn"><i class="fa-solid fa-bolt"></i></button>
+                <button type="button" class="msng-input-btn" title="Saved replies" onclick="msngToggleCanned()" id="msngCannedBtn"><i class="fa-solid fa-bookmark"></i></button>
                 <button type="button" class="msng-input-btn" title="Emoji" onclick="msngToggleEmoji()" id="msngEmojiBtn"><i class="fa-regular fa-face-smile"></i></button>
                 <div class="msng-input-wrap">
-                  <textarea id="msngMsgTextarea" class="msng-textarea" placeholder="Write a reply… (Ctrl+V image, then Send)" rows="1"
+                  <textarea id="msngMsgTextarea" class="msng-textarea" placeholder="Write a reply… Type / for saved replies" rows="1"
                     oninput="msngTextareaInput(this);msngUpdateCharCount(this)"
                     onkeydown="msngKeydown(event)"
                     onpaste="msngOnPaste(event)"></textarea>
@@ -1636,6 +1644,25 @@ window.getCsrfToken = async (forceRefresh = false) => {
           </main>
         </div>
       </div>
+      
+      <div id="msngCannedModal" class="msng-modal" style="display:none" aria-hidden="true">
+        <div class="msng-modal-backdrop" onclick="msngCloseCannedModal()"></div>
+        <div class="msng-modal-card" role="dialog" aria-labelledby="msngCannedModalTitle">
+          <div class="msng-modal-hdr">
+            <h3 id="msngCannedModalTitle">Save reply</h3>
+            <button type="button" class="msng-modal-x" onclick="msngCloseCannedModal()" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
+          </div>
+          <label class="msng-modal-label" for="msngCrTitle">Shortcut name</label>
+          <input type="text" id="msngCrTitle" class="msng-modal-input" placeholder="e.g. welcome" maxlength="80">
+          <label class="msng-modal-label" for="msngCrBody">Message</label>
+          <textarea id="msngCrBody" class="msng-modal-textarea" rows="5" placeholder="Reply text to insert in the composer…" maxlength="2000"></textarea>
+          <div class="msng-modal-actions">
+            <button type="button" class="msng-modal-btn msng-modal-btn--ghost" onclick="msngCloseCannedModal()">Cancel</button>
+            <button type="button" class="msng-modal-btn msng-modal-btn--primary" id="msngCrSaveBtn" onclick="msngSaveCanned()">Save reply</button>
+          </div>
+        </div>
+      </div>
+
       <div id="msngToast" class="msng-toast" role="status" aria-live="polite"></div>
     </div>
 

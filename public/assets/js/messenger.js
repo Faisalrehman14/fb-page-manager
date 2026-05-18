@@ -69,6 +69,9 @@
     _readLocked: new Set(),
     _lastNotifKey: '',
     _lastNotifAt: 0,
+    cannedReplies: [],
+    _editingCannedId: null,
+    _srpBody: '',
     pendingImage: null, // { file, previewUrl }
   };
 
@@ -2558,7 +2561,41 @@
   };
 
   window.msngKeydown = function (e) {
-    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); window.msngSend(); }
+    const panel = $('msngCannedPanel');
+    const panelOpen = panel && panel.style.display !== 'none';
+
+    if (e.key === 'Escape') {
+      if (panelOpen) { msngHideCannedPanel(); e.preventDefault(); return; }
+      msngHideSavedPreview();
+      return;
+    }
+
+    if ((e.key === 'ArrowDown' || e.key === 'ArrowUp') && panelOpen) {
+      e.preventDefault();
+      const items = panel.querySelectorAll('.msng-canned-row');
+      if (!items.length) return;
+      const active = panel.querySelector('.msng-canned-row.focused');
+      let idx = Array.from(items).indexOf(active);
+      if (active) active.classList.remove('focused');
+      idx = e.key === 'ArrowDown' ? Math.min(idx + 1, items.length - 1) : Math.max(idx - 1, 0);
+      items[idx].classList.add('focused');
+      items[idx].scrollIntoView({ block: 'nearest' });
+      return;
+    }
+
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      if (panelOpen) {
+        const focused = panel.querySelector('.msng-canned-row.focused');
+        if (focused) { focused.click(); return; }
+      }
+      const srp = $('msngSavedReplyPreview');
+      if (srp && srp.style.display !== 'none') {
+        msngUseSavedPreview();
+        return;
+      }
+      window.msngSend();
+    }
   };
 
   // Typing emit state — throttled: start fires once, stop fires after 3s idle
@@ -2578,6 +2615,23 @@
     ta.style.height = 'auto';
     ta.style.height = Math.min(ta.scrollHeight, 120) + 'px';
     updateLikeBtnVisibility();
+
+    const val = ta.value;
+    if (val === '/' || (val.startsWith('/') && !val.includes(' '))) {
+      msngShowCannedPanel(val.slice(1));
+      msngHideSavedPreview();
+    } else {
+      msngHideCannedPanel();
+      const q = val.trim().toLowerCase();
+      if (q.length >= 1) {
+        const match = M.cannedReplies.find(r => r.title.toLowerCase().startsWith(q));
+        if (match) msngShowSavedPreview(match);
+        else msngHideSavedPreview();
+      } else {
+        msngHideSavedPreview();
+      }
+    }
+
     // Emit typing_start to socket once per burst
     if (_socket?.connected && M._joinedThread && !_typingActive) {
       _typingActive = true;
@@ -2602,24 +2656,238 @@
     if (len >= 2000) ta.value = ta.value.slice(0, 2000);
   };
 
-  window.msngToggleCanned = function () {
+  async function apiCanned(method, url, body) {
+    const headers = { 'Content-Type': 'application/json' };
+    const csrf = typeof window.getCsrfToken === 'function' ? await window.getCsrfToken() : '';
+    if (csrf) headers['X-CSRF-Token'] = csrf;
+    const opts = { method, headers, credentials: 'same-origin' };
+    if (body != null) opts.body = JSON.stringify(body);
+    const r = await fetch(url, opts);
+    if (!r.ok) {
+      try { return await r.json(); } catch { return { error: 'Request failed (' + r.status + ')' }; }
+    }
+    return r.json();
+  }
+
+  async function loadCannedReplies() {
+    try {
+      const data = await apiCanned('GET', '/api/canned-replies');
+      M.cannedReplies = data?.replies || [];
+    } catch {
+      M.cannedReplies = [];
+    }
+    renderCannedListPanel($('msngCannedSearch')?.value || '');
+  }
+
+  function renderCannedListPanel(query) {
+    const list = $('msngCannedList');
+    if (!list) return;
+    const q = String(query || '').trim().toLowerCase();
+    const filtered = q
+      ? M.cannedReplies.filter(r =>
+          r.title.toLowerCase().includes(q) || String(r.body || '').toLowerCase().includes(q))
+      : M.cannedReplies;
+
+    if (!filtered.length) {
+      list.innerHTML = `<div class="msng-canned-empty">${q
+        ? 'No results for “' + esc(q) + '”'
+        : 'No saved replies yet.<br><button type="button" class="msng-canned-add" style="margin-top:10px" onclick="msngOpenCannedModal()"><i class="fa-solid fa-plus"></i> Create one</button>'}</div>`;
+      return;
+    }
+
+    list.innerHTML = filtered.map(r => `
+      <div class="msng-canned-row" data-id="${r.id}" onclick="msngInsertCannedById(${r.id})">
+        <div class="msng-canned-row-icon"><i class="fa-solid fa-bookmark"></i></div>
+        <div class="msng-canned-row-body">
+          <div class="msng-canned-row-title"><code>/${esc(r.title)}</code></div>
+          <div class="msng-canned-row-text">${esc(r.body)}</div>
+        </div>
+        <div class="msng-canned-row-actions">
+          <button type="button" class="msng-canned-more" title="More"
+            onclick="event.stopPropagation();msngToggleCannedMenu(${r.id})">···</button>
+          <div class="msng-canned-dd" id="msngCannedDd_${r.id}" style="display:none">
+            <button type="button" onclick="event.stopPropagation();msngEditCanned(${r.id})">Edit</button>
+            <button type="button" class="danger" onclick="event.stopPropagation();msngDeleteCanned(${r.id})">Delete</button>
+          </div>
+        </div>
+      </div>`).join('');
+  }
+
+  function msngInsertCannedText(body) {
+    const ta = $('msngMsgTextarea');
+    if (!ta) return;
+    ta.value = String(body || '');
+    ta.focus();
+    window.msngTextareaInput(ta);
+    window.msngUpdateCharCount(ta);
+    msngHideCannedPanel();
+    msngHideSavedPreview();
+  }
+
+  window.msngInsertCannedById = function (id) {
+    const row = M.cannedReplies.find(r => r.id === id);
+    if (row) msngInsertCannedText(row.body);
+  };
+
+  window.msngShowCannedPanel = function (query) {
     const panel = $('msngCannedPanel');
     const btn   = $('msngCannedBtn');
     if (!panel) return;
-    const open = panel.style.display !== 'none';
-    panel.style.display = open ? 'none' : 'flex';
-    btn?.classList.toggle('active', !open);
+    panel.style.display = 'flex';
+    btn?.classList.add('active');
+    const search = $('msngCannedSearch');
+    if (search && typeof query === 'string') {
+      search.value = query;
+    }
+    renderCannedListPanel(search?.value || query || '');
+    setTimeout(() => search?.focus(), 40);
+  };
+
+  window.msngHideCannedPanel = function () {
+    const panel = $('msngCannedPanel');
+    const btn   = $('msngCannedBtn');
+    if (panel) panel.style.display = 'none';
+    btn?.classList.remove('active');
+    document.querySelectorAll('.msng-canned-dd').forEach(d => { d.style.display = 'none'; });
+  };
+
+  window.msngToggleCanned = function () {
+    const panel = $('msngCannedPanel');
+    if (!panel) return;
+    if (panel.style.display !== 'none') {
+      msngHideCannedPanel();
+    } else {
+      loadCannedReplies().then(() => msngShowCannedPanel(''));
+    }
+  };
+
+  window.msngCannedSearch = function (q) {
+    renderCannedListPanel(q);
+  };
+
+  window.msngToggleCannedMenu = function (id) {
+    document.querySelectorAll('.msng-canned-dd').forEach(d => {
+      if (d.id !== 'msngCannedDd_' + id) d.style.display = 'none';
+    });
+    const dd = $('msngCannedDd_' + id);
+    if (dd) dd.style.display = dd.style.display === 'none' ? 'block' : 'none';
+  };
+
+  window.msngShowSavedPreview = function (reply) {
+    const bar = $('msngSavedReplyPreview');
+    const bodyEl = $('msngSrpBody');
+    if (!bar || !bodyEl) return;
+    M._srpBody = reply.body || '';
+    bodyEl.textContent = (reply.title ? '/' + reply.title + ' · ' : '') + (reply.body || '');
+    bar.style.display = 'flex';
+  };
+
+  window.msngHideSavedPreview = function () {
+    const bar = $('msngSavedReplyPreview');
+    if (bar) bar.style.display = 'none';
+    M._srpBody = '';
+  };
+
+  window.msngUseSavedPreview = function () {
+    if (M._srpBody) msngInsertCannedText(M._srpBody);
+  };
+
+  window.msngOpenCannedModal = function (editId) {
+    const modal = $('msngCannedModal');
+    if (!modal) return;
+    msngHideCannedPanel();
+    const titleEl = $('msngCrTitle');
+    const bodyEl  = $('msngCrBody');
+    const saveBtn = $('msngCrSaveBtn');
+    const hdr     = $('msngCannedModalTitle');
+
+    if (editId) {
+      const row = M.cannedReplies.find(r => r.id === editId);
+      if (!row) return;
+      M._editingCannedId = editId;
+      if (titleEl) titleEl.value = row.title;
+      if (bodyEl) bodyEl.value = row.body;
+      if (saveBtn) saveBtn.textContent = 'Update reply';
+      if (hdr) hdr.textContent = 'Edit saved reply';
+    } else {
+      M._editingCannedId = null;
+      if (titleEl) titleEl.value = '';
+      if (bodyEl) bodyEl.value = '';
+      if (saveBtn) saveBtn.textContent = 'Save reply';
+      if (hdr) hdr.textContent = 'Save reply';
+    }
+
+    modal.style.display = 'flex';
+    modal.setAttribute('aria-hidden', 'false');
+    setTimeout(() => titleEl?.focus(), 50);
+  };
+
+  window.msngCloseCannedModal = function () {
+    const modal = $('msngCannedModal');
+    if (modal) {
+      modal.style.display = 'none';
+      modal.setAttribute('aria-hidden', 'true');
+    }
+    M._editingCannedId = null;
+  };
+
+  window.msngEditCanned = function (id) {
+    document.querySelectorAll('.msng-canned-dd').forEach(d => { d.style.display = 'none'; });
+    msngOpenCannedModal(id);
+  };
+
+  window.msngSaveCanned = async function () {
+    const title = ($('msngCrTitle')?.value || '').trim();
+    const body  = ($('msngCrBody')?.value || '').trim();
+    if (!title || !body) {
+      showToast('Title and message are required', 'warning');
+      return;
+    }
+
+    try {
+      let data;
+      if (M._editingCannedId) {
+        data = await apiCanned('PUT', '/api/canned-replies/' + M._editingCannedId, { title, body });
+        if (data?.reply) {
+          const i = M.cannedReplies.findIndex(r => r.id === M._editingCannedId);
+          if (i >= 0) M.cannedReplies[i] = data.reply;
+        }
+      } else {
+        data = await apiCanned('POST', '/api/canned-replies', { title, body });
+        if (data?.reply) M.cannedReplies.push(data.reply);
+      }
+      if (data?.error) throw new Error(data.error);
+
+      const wasEdit = !!M._editingCannedId;
+      M.cannedReplies.sort((a, b) => String(a.title).localeCompare(String(b.title)));
+      msngCloseCannedModal();
+      renderCannedListPanel($('msngCannedSearch')?.value || '');
+      showToast(wasEdit ? 'Reply updated' : 'Reply saved', 'success');
+    } catch (e) {
+      showToast('Failed to save: ' + e.message, 'error');
+    }
+  };
+
+  window.msngDeleteCanned = async function (id) {
+    document.querySelectorAll('.msng-canned-dd').forEach(d => { d.style.display = 'none'; });
+    if (!confirm('Delete this saved reply?')) return;
+    try {
+      const data = await apiCanned('DELETE', '/api/canned-replies/' + id);
+      if (data?.error) throw new Error(data.error);
+      M.cannedReplies = M.cannedReplies.filter(r => r.id !== id);
+      renderCannedListPanel($('msngCannedSearch')?.value || '');
+      showToast('Deleted', 'success');
+    } catch (e) {
+      showToast('Delete failed: ' + e.message, 'error');
+    }
   };
 
   window.msngUseCanned = function (el) {
-    const ta = $('msngMsgTextarea');
-    if (ta) {
-      ta.value = el.textContent.trim();
-      ta.focus();
-      window.msngTextareaInput(ta);
-      window.msngUpdateCharCount(ta);
+    if (el?.dataset?.body != null) {
+      msngInsertCannedText(el.dataset.body);
+    } else if (el?.textContent) {
+      msngInsertCannedText(el.textContent.trim());
     }
-    window.msngToggleCanned();
   };
 
   function msngClearPendingImage() {
@@ -3275,6 +3543,7 @@
     get('poll_pages', {}).then((data) => {
       if (data?.unread_by_page) applyUnreadByPage(data.unread_by_page);
     }).catch(() => {});
+    loadCannedReplies().catch(() => {});
     if (!M.pages.length) {
       if (retries < 10) { setTimeout(() => window.msngInit(retries + 1), 500); return; }
       const listEl = $('msngConvList');
@@ -3473,6 +3742,12 @@
         M.msgs = [];
         showChatEmpty();
       }
+    }
+  });
+
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('.msng-canned-row-actions')) {
+      document.querySelectorAll('.msng-canned-dd').forEach(d => { d.style.display = 'none'; });
     }
   });
 

@@ -1293,6 +1293,21 @@ async function saveCannedReply(userId, title, body) {
     }
 }
 
+async function updateCannedReply(userId, replyId, title, body) {
+    if (!pool) return null;
+    try {
+        const [result] = await pool.query(
+            'UPDATE canned_replies SET title = ?, body = ? WHERE id = ? AND user_id = ?',
+            [title.substring(0, 255), body, replyId, userId]
+        );
+        if (!result.affectedRows) return null;
+        return { id: Number(replyId), title, body };
+    } catch (err) {
+        addDbError(`updateCannedReply: ${err.message}`);
+        return null;
+    }
+}
+
 async function deleteCannedReply(userId, replyId) {
     if (!pool) return;
     try {
@@ -2613,6 +2628,7 @@ const dbModule = {
     deleteNote,
     getCannedReplies,
     saveCannedReply,
+    updateCannedReply,
     deleteCannedReply,
     cleanupOldMessages,
     cleanupStaleConversations,

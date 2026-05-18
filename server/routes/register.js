@@ -1235,6 +1235,15 @@ app.post('/api/canned-replies', requireAuth, verifyCsrf, async (req, res) => {
     try { res.json({ reply: await db.saveCannedReply(req.session.userId, title.trim(), body.trim()) }); }
     catch (err) { res.status(500).json({ error: err.message }); }
 });
+app.put('/api/canned-replies/:id', requireAuth, verifyCsrf, async (req, res) => {
+    const { title, body } = req.body;
+    if (!title?.trim() || !body?.trim()) return res.status(400).json({ error: 'Title and body required' });
+    try {
+        const reply = await db.updateCannedReply(req.session.userId, req.params.id, title.trim(), body.trim());
+        if (!reply) return res.status(404).json({ error: 'Reply not found' });
+        res.json({ reply });
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
 app.delete('/api/canned-replies/:id', requireAuth, verifyCsrf, async (req, res) => {
     try { await db.deleteCannedReply(req.session.userId, req.params.id); res.json({ success: true }); }
     catch (err) { res.status(500).json({ error: err.message }); }
