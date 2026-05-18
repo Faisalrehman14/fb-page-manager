@@ -290,7 +290,7 @@
           <div class="admin-page-hero">
             <div>
               <h2>User management</h2>
-              <p>IP, pages, plan, expiry, messages left — click any user for full profile.</p>
+              <p>Per-user LTV, renewals, pages (name + URL), billing timeline — click Analyze on any user.</p>
             </div>
           </div>
           <div class="panel">
@@ -327,6 +327,8 @@
                     <th class="sortable" onclick="App.users.sort('fb_name')">User<span class="sort-indicator"><span class="up"></span><span class="dn"></span></span></th>
                     <th>IP</th>
                     <th>Pages</th>
+                    <th>LTV</th>
+                    <th>Renewals</th>
                     <th class="sortable" onclick="App.users.sort('plan')">Plan<span class="sort-indicator"><span class="up"></span><span class="dn"></span></span></th>
                     <th>Messages</th>
                     <th>Expires</th>
@@ -335,7 +337,7 @@
                   </tr>
                 </thead>
                 <tbody id="usersBody">
-                  <tr><td colspan="9"><div class="loading-center"><span class="spinner spinner-lg"></span></div></td></tr>
+                  <tr><td colspan="11"><div class="loading-center"><span class="spinner spinner-lg"></span></div></td></tr>
                 </tbody>
               </table>
             </div>
@@ -388,7 +390,7 @@
 
 <!-- ══ USER DETAIL DRAWER ══ -->
 <div class="drawer-backdrop" id="userDrawerBackdrop" onclick="App.users.closeDetail()"></div>
-<div class="user-drawer" id="userDrawer">
+<div class="user-drawer user-drawer-wide" id="userDrawer">
   <div class="drawer-head">
     <div>
       <div class="drawer-title" id="detailTitle">User</div>
@@ -992,7 +994,7 @@ const App = {
       if(page) App.state.users.page = page;
       const s = App.state.users;
       const body = $('usersBody');
-      if (!silent) body.innerHTML = '<tr><td colspan="9"><div class="loading-center"><span class="spinner spinner-lg"></span></div></td></tr>';
+      if (!silent) body.innerHTML = '<tr><td colspan="11"><div class="loading-center"><span class="spinner spinner-lg"></span></div></td></tr>';
       try {
         const p = new URLSearchParams({ p: s.page });
         if(s.search) p.set('q', s.search);
@@ -1015,7 +1017,7 @@ const App = {
         }
         this.updateBulkBar();
       } catch(e) {
-        body.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:32px;color:var(--red);font-size:13px">Failed to load users</td></tr>';
+        body.innerHTML = '<tr><td colspan="11" style="text-align:center;padding:32px;color:var(--red);font-size:13px">Failed to load users</td></tr>';
       }
     },
 
@@ -1024,7 +1026,7 @@ const App = {
       const body = $('usersBody');
       $('usersCount').textContent = s.total ? `${fmt(s.total)} users` : '';
       if(!d.users?.length){
-        body.innerHTML = `<tr><td colspan="9"><div class="empty">
+        body.innerHTML = `<tr><td colspan="11"><div class="empty">
           <div class="empty-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></div>
           <h3>No users found</h3><p>Try a different search or filter</p>
         </div></td></tr>`;
@@ -1043,6 +1045,8 @@ const App = {
         const ip = u.last_login_ip || '—';
         const pages = Number(u.page_count) || 0;
         const remain = u.messages_remaining != null ? u.messages_remaining : Math.max(0, (limit||0) - used);
+        const ltv = Number(u.total_revenue_cents) || 0;
+        const renewals = Number(u.renewal_count) || 0;
         return `<tr class="${sel?'selected':''}" id="row-${esc(u.fb_user_id)}">
           <td class="td-check"><input type="checkbox" ${sel?'checked':''} onchange="App.users.toggleRow('${esc(u.fb_user_id)}',this)"/></td>
           <td><div class="user-cell" style="cursor:pointer" onclick="App.users.openDetail('${esc(u.fb_user_id)}')">
@@ -1051,6 +1055,8 @@ const App = {
           </div></td>
           <td class="mono-cell" title="${esc(ip)}">${esc(ip)}</td>
           <td><span class="page-pill">${pages} page${pages!==1?'s':''}</span></td>
+          <td style="font-size:12px;font-weight:700;color:var(--green)">${ltv ? fmtMoney(ltv) : '—'}</td>
+          <td style="font-size:12px;font-weight:600">${renewals || '—'}</td>
           <td><span class="${planBadgeClass(u)}">${esc(planAdminLabel(u))}</span></td>
           <td class="quota-cell">
             <div class="quota-bar"><div class="quota-fill ${cls}" style="width:${pct}%"></div></div>
@@ -1060,7 +1066,7 @@ const App = {
           <td style="font-size:12px;color:var(--muted);white-space:nowrap">${u.last_login_at ? fmtTime(u.last_login_at) : '—'}</td>
           <td>
             <div class="actions">
-              <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();App.users.openDetail('${esc(u.fb_user_id)}')" title="Details">👁</button>
+              <button class="btn btn-primary btn-sm" onclick="event.stopPropagation();App.users.openDetail('${esc(u.fb_user_id)}')" title="Analyze user">Analyze</button>
               <button class="btn btn-ghost btn-sm" onclick='event.stopPropagation();App.users.openEdit(${ud})' title="Edit">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
               </button>
@@ -1260,36 +1266,177 @@ const App = {
       $('userDrawerBackdrop').classList.remove('open');
     },
 
+    billingLabel(reason) {
+      const r = String(reason || '').toLowerCase();
+      const map = {
+        subscription_cycle: 'Renewal',
+        subscription_create: 'New subscription',
+        checkout_session_completed: 'Checkout',
+        admin_activation: 'Admin grant',
+        manual_sync: 'Stripe sync',
+        subscription_sync: 'Subscription sync'
+      };
+      if (map[r]) return map[r];
+      if (r.includes('renew') || r.includes('cycle')) return 'Renewal';
+      if (r.includes('create')) return 'New subscription';
+      return reason || '—';
+    },
+
+    copyText(txt) {
+      navigator.clipboard?.writeText(txt).then(() => App.toast.show('Copied', 'success')).catch(() => App.toast.show('Copy failed', 'error'));
+    },
+
+    async syncPages(id) {
+      App.toast.show('Fetching pages from Facebook…', 'info');
+      try {
+        const r = await fetch('/api/admin/users/' + encodeURIComponent(id) + '/sync-pages', { method: 'POST' });
+        const d = await r.json();
+        if (r.ok) {
+          App.toast.show('Synced ' + (d.count || 0) + ' page(s)', 'success');
+          this.openDetail(id);
+        } else App.toast.show(d.error || 'Sync failed', 'error');
+      } catch (e) { App.toast.show('Sync failed', 'error'); }
+    },
+
+
     renderDetail(d) {
       const u = d.user || {};
+      const a = d.analytics || {};
       const pages = d.pages || [];
+      const uid = u.fb_user_id || '';
+      const self = this;
       const remain = u.messages_remaining != null ? u.messages_remaining : Math.max(0, (u.messenger_messages_limit||0) - (u.messenger_messages_used||0));
       $('detailTitle').textContent = userDisplayName(u);
-      $('detailSub').textContent = 'ID ' + (u.fb_user_id || '');
+      $('detailSub').innerHTML = '<span class="mono">' + esc(uid) + '</span>' + (u.email ? ' · ' + esc(u.email) : '');
+
       const exp = u.subscription_expires || u.free_trial_expires_at;
       const activated = u.plan_activated_at || u.created_at;
-      const payRows = (d.payments || []).map(p => '<tr><td>' + fmtDate(p.created_at) + '</td><td>' + esc(p.plan) + '</td><td>' + fmtMoney(p.amount_cents) + '</td><td>' + esc(p.status) + '</td></tr>').join('');
-      const pageHtml = pages.length ? pages.map(p => '<a class="page-chip" href="' + esc(p.url) + '" target="_blank" rel="noopener"><span class="page-chip-name">' + esc(p.name) + '</span><span class="page-chip-id">' + esc(p.id) + '</span></a>').join('') : '<p class="detail-empty">No pages linked yet — user must log in and load pages.</p>';
-      const actHtml = (d.activity || []).map(a => '<div class="detail-act-row"><span class="act-badge ab-default">' + esc(a.action) + '</span><span>' + esc(a.detail || '') + '</span><span class="detail-act-time">' + fmtTime(a.created_at) + '</span></div>').join('') || '<p class="detail-empty">No activity</p>';
-      $('detailBody').innerHTML =
-        '<div class="detail-grid">' +
-        '<div class="detail-card"><div class="detail-label">Facebook ID</div><div class="detail-val mono">' + esc(u.fb_user_id) + '</div></div>' +
-        '<div class="detail-card"><div class="detail-label">Last IP</div><div class="detail-val mono">' + esc(u.last_login_ip || '—') + '</div></div>' +
-        '<div class="detail-card"><div class="detail-label">Plan</div><div class="detail-val"><span class="' + planBadgeClass(u) + '">' + esc(planAdminLabel(u)) + '</span></div></div>' +
-        '<div class="detail-card"><div class="detail-label">Activated</div><div class="detail-val">' + fmtDate(activated) + '</div></div>' +
-        '<div class="detail-card"><div class="detail-label">Expires</div><div class="detail-val">' + (exp ? fmtDate(exp) : '—') + '</div></div>' +
-        '<div class="detail-card"><div class="detail-label">Messages left</div><div class="detail-val" style="color:var(--green);font-weight:800">' + fmt(remain) + '</div></div>' +
-        '<div class="detail-card"><div class="detail-label">Usage</div><div class="detail-val">' + fmt(u.messenger_messages_used||0) + ' / ' + fmt(u.messenger_messages_limit||0) + '</div></div>' +
-        '<div class="detail-card"><div class="detail-label">Last login</div><div class="detail-val">' + (u.last_login_at ? fmtTime(u.last_login_at) : '—') + '</div></div>' +
-        '<div class="detail-card"><div class="detail-label">Email</div><div class="detail-val">' + esc(u.email || '—') + '</div></div>' +
-        '<div class="detail-card"><div class="detail-label">Stripe</div><div class="detail-val mono" style="font-size:11px">' + esc(u.stripe_subscription_id || '—') + '</div></div>' +
-        '</div>' +
-        '<h4 class="detail-section-title">Connected Pages (' + pages.length + ')</h4><div class="page-list">' + pageHtml + '</div>' +
-        '<h4 class="detail-section-title">Recent Payments</h4><div class="detail-table-wrap">' + (payRows ? '<table><thead><tr><th>Date</th><th>Plan</th><th>Amount</th><th>Status</th></tr></thead><tbody>' + payRows + '</tbody></table>' : '<p class="detail-empty">No payments recorded</p>') + '</div>' +
-        '<h4 class="detail-section-title">Recent Activity</h4><div class="detail-activity">' + actHtml + '</div>' +
-        '<div style="margin-top:20px;display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-primary btn-md" id="detailEditBtn">Edit plan</button><button class="btn btn-ghost btn-md" onclick="App.users.resetQuota(\'' + esc(u.fb_user_id) + '\')">Reset quota</button></div>';
+
+      let pageTable = '<p class="detail-empty">No pages on file. Use <strong>Sync pages from Facebook</strong> below.</p>';
+      if (pages.length) {
+        pageTable = '<table class="pages-table"><thead><tr><th>Page name</th><th>Page ID</th><th>Facebook URL</th><th></th></tr></thead><tbody>';
+        for (const pg of pages) {
+          const url = pg.url || ('https://www.facebook.com/' + pg.id);
+          pageTable += '<tr><td><strong>' + esc(pg.name) + '</strong></td><td class="mono">' + esc(pg.id) + '</td>';
+          pageTable += '<td class="page-url-cell"><a href="' + esc(url) + '" target="_blank" rel="noopener" class="page-url-link">' + esc(url) + '</a></td>';
+          pageTable += '<td><button type="button" class="btn btn-ghost btn-sm" onclick="App.users.copyText(\'' + esc(url).replace(/'/g, "\\'") + '\')">Copy</button></td></tr>';
+        }
+        pageTable += '</tbody></table>';
+      }
+
+      let payRows = '';
+      for (const pay of (d.payments || [])) {
+        payRows += '<tr><td>' + fmtDate(pay.created_at) + '</td><td>' + esc(pay.plan) + '</td><td>' + esc(self.billingLabel(pay.billing_reason)) + '</td>';
+        payRows += '<td style="font-weight:700;color:var(--green)">' + fmtMoney(pay.amount_cents) + '</td>';
+        payRows += '<td><span class="pay-status pay-' + esc(pay.status) + '">' + esc(pay.status) + '</span></td></tr>';
+      }
+
+      let timelineHtml = '<p class="detail-empty">No timeline events</p>';
+      if ((d.timeline || []).length) {
+        timelineHtml = '<div class="tl-list">';
+        for (const ev of (d.timeline || []).slice(0, 30)) {
+          const isPay = ev.type === 'payment';
+          const icon = isPay ? '💳' : (ev.plan === 'login' ? '🔐' : '📋');
+          const amt = isPay && ev.amountCents ? ' · ' + fmtMoney(ev.amountCents) : '';
+          const sub = isPay ? self.billingLabel(ev.detail) + ' · ' + (ev.plan || '') : (ev.detail || ev.plan || '');
+          timelineHtml += '<div class="tl-item"><div class="tl-dot">' + icon + '</div><div class="tl-body"><div class="tl-title">' + esc(sub) + amt + '</div><div class="tl-time">' + fmtTime(ev.at) + '</div></div></div>';
+        }
+        timelineHtml += '</div>';
+      }
+
+      let actHtml = '<p class="detail-empty">No activity</p>';
+      if ((d.activity || []).length) {
+        actHtml = '';
+        for (const act of (d.activity || []).slice(0, 20)) {
+          actHtml += '<div class="detail-act-row"><span class="act-badge ab-default">' + esc(act.action) + '</span><span>' + esc(act.detail || '') + '</span><span class="detail-act-time">' + fmtTime(act.created_at) + '</span></div>';
+        }
+      }
+
+      const html = [
+        '<div class="ua-hero">',
+        '<div class="ua-av">' + userInitial(u) + '</div>',
+        '<div class="ua-meta"><div class="ua-name">' + esc(userDisplayName(u)) + '</div>',
+        '<div class="ua-badges"><span class="' + planBadgeClass(u) + '">' + esc(planAdminLabel(u)) + '</span>',
+        u.stripe_subscription_id ? '<span class="ua-pill ok">Stripe active</span>' : '<span class="ua-pill">No Stripe</span>',
+        u.has_fb_token ? '<span class="ua-pill ok">FB token</span>' : '<span class="ua-pill warn">No token</span>',
+        '</div></div></div>',
+
+        '<div class="ua-kpi-grid">',
+        '<div class="ua-kpi highlight"><span class="ua-kpi-l">Lifetime revenue</span><span class="ua-kpi-v">' + fmtMoney(a.lifetimeValueCents || 0) + '</span></div>',
+        '<div class="ua-kpi"><span class="ua-kpi-l">Renewals</span><span class="ua-kpi-v">' + fmt(a.renewalCount || 0) + '</span></div>',
+        '<div class="ua-kpi"><span class="ua-kpi-l">New subs</span><span class="ua-kpi-v">' + fmt(a.newSubscriptionCount || 0) + '</span></div>',
+        '<div class="ua-kpi"><span class="ua-kpi-l">Payments</span><span class="ua-kpi-v">' + fmt(a.succeededCount || 0) + '</span></div>',
+        '<div class="ua-kpi"><span class="ua-kpi-l">Avg order</span><span class="ua-kpi-v">' + fmtMoney(a.avgOrderCents || 0) + '</span></div>',
+        '<div class="ua-kpi"><span class="ua-kpi-l">Logins</span><span class="ua-kpi-v">' + fmt(a.loginCount || 0) + '</span></div>',
+        '<div class="ua-kpi"><span class="ua-kpi-l">Msgs sent</span><span class="ua-kpi-v">' + fmt(a.sendCount || 0) + '</span></div>',
+        '<div class="ua-kpi"><span class="ua-kpi-l">Customer</span><span class="ua-kpi-v">' + fmt(a.daysAsCustomer || 0) + 'd</span></div>',
+        '</div>',
+
+        '<div class="detail-tabs">',
+        '<button type="button" class="dtab active" onclick="App.users.switchDetailTab(event,\'overview\')">Overview</button>',
+        '<button type="button" class="dtab" onclick="App.users.switchDetailTab(event,\'pages\')">Pages (' + pages.length + ')</button>',
+        '<button type="button" class="dtab" onclick="App.users.switchDetailTab(event,\'billing\')">Billing</button>',
+        '<button type="button" class="dtab" onclick="App.users.switchDetailTab(event,\'timeline\')">Timeline</button>',
+        '</div>',
+
+        '<div class="dtab-panel active" id="dtab-overview">',
+        '<div class="detail-grid">',
+        '<div class="detail-card"><div class="detail-label">Last IP</div><div class="detail-val mono">' + esc(u.last_login_ip || '—') + '</div></div>',
+        '<div class="detail-card"><div class="detail-label">Activated</div><div class="detail-val">' + fmtDate(activated) + '</div></div>',
+        '<div class="detail-card"><div class="detail-label">Expires</div><div class="detail-val">' + (exp ? fmtDate(exp) : '—') + '</div></div>',
+        '<div class="detail-card"><div class="detail-label">Messages left</div><div class="detail-val" style="color:var(--green);font-weight:800">' + fmt(remain) + '</div></div>',
+        '<div class="detail-card"><div class="detail-label">Usage</div><div class="detail-val">' + fmt(u.messenger_messages_used||0) + ' / ' + fmt(u.messenger_messages_limit||0) + '</div></div>',
+        '<div class="detail-card"><div class="detail-label">First payment</div><div class="detail-val">' + (a.firstPaymentAt ? fmtDate(a.firstPaymentAt) : '—') + '</div></div>',
+        '<div class="detail-card"><div class="detail-label">Last payment</div><div class="detail-val">' + (a.lastPaymentAt ? fmtDate(a.lastPaymentAt) : '—') + '</div></div>',
+        '<div class="detail-card"><div class="detail-label">Plan changes</div><div class="detail-val">' + fmt(a.planChangeCount || 0) + '</div></div>',
+        '</div>',
+        '<h4 class="detail-section-title">Recent activity</h4><div class="detail-activity">' + actHtml + '</div>',
+        '</div>',
+
+        '<div class="dtab-panel" id="dtab-pages">',
+        '<div class="dtab-toolbar"><button type="button" class="btn btn-primary btn-sm" onclick="App.users.syncPages(\'' + esc(uid) + '\')">Sync pages from Facebook</button></div>',
+        '<div class="detail-table-wrap pages-table-wrap">' + pageTable + '</div>',
+        '</div>',
+
+        '<div class="dtab-panel" id="dtab-billing">',
+        '<div class="ua-billing-summary">Renewals: <strong>' + fmt(a.renewalCount||0) + '</strong> · Failed: <strong>' + fmt(a.failedPayments||0) + '</strong> · LTV: <strong>' + fmtMoney(a.lifetimeValueCents||0) + '</strong></div>',
+        '<div class="detail-table-wrap">' + (payRows ? '<table><thead><tr><th>Date</th><th>Plan</th><th>Type</th><th>Amount</th><th>Status</th></tr></thead><tbody>' + payRows + '</tbody></table>' : '<p class="detail-empty">No payment records</p>') + '</div>',
+        '</div>',
+
+        '<div class="dtab-panel" id="dtab-timeline">' + timelineHtml + '</div>',
+
+        '<div class="detail-actions">',
+        '<button type="button" class="btn btn-primary btn-md" id="detailEditBtn">Edit plan</button>',
+        '<button type="button" class="btn btn-ghost btn-md" onclick="App.users.resetQuota(\'' + esc(uid) + '\')">Reset quota</button>',
+        '<button type="button" class="btn btn-ghost btn-md" onclick="App.users.exportUserReport(\'' + esc(uid) + '\')">Export JSON report</button>',
+        '</div>'
+      ].join('');
+
+      $('detailBody').innerHTML = html.replace(/<\/?motion[^>]*>/g, '');
       const editBtn = $('detailEditBtn');
       if (editBtn) editBtn.onclick = () => { App.users.closeDetail(); App.users.openEdit(u); };
+    },
+
+    switchDetailTab(ev, name) {
+      document.querySelectorAll('.dtab').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.dtab-panel').forEach(p => p.classList.remove('active'));
+      ev.target.classList.add('active');
+      const panel = document.getElementById('dtab-' + name);
+      if (panel) panel.classList.add('active');
+    },
+
+    exportUserReport(id) {
+      fetch('/api/admin/users/' + encodeURIComponent(id))
+        .then(r => r.json())
+        .then(d => {
+          const blob = new Blob([JSON.stringify(d, null, 2)], { type: 'application/json' });
+          const a = document.createElement('a');
+          a.href = URL.createObjectURL(blob);
+          a.download = 'user-' + id + '-report.json';
+          a.click();
+          App.toast.show('Report exported', 'success');
+        })
+        .catch(() => App.toast.show('Export failed', 'error'));
     },
 
     _confirm(title, msg, onConfirm) {

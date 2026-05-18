@@ -649,6 +649,16 @@ app.get('/api/admin/users/:id', requireAdminAuth, async (req, res) => {
     }
 });
 
+app.post('/api/admin/users/:id/sync-pages', requireAdminAuth, async (req, res) => {
+    try {
+        const result = await db.syncUserPagesFromFacebook(req.params.id, fetch);
+        if (!result.ok) return res.status(400).json(result);
+        res.json({ success: true, ...result });
+    } catch (e) {
+        res.status(500).json({ error: e.message || 'Sync failed' });
+    }
+});
+
 // Sync Facebook names for users missing fb_name (admin)
 app.post('/api/admin/users/sync-names', requireAdminAuth, async (req, res) => {
     try {
@@ -685,7 +695,13 @@ app.get('/api/admin/users', requireAdminAuth, async (req, res) => {
         const [users] = await pool.query(
             `SELECT u.*,
               (SELECT COUNT(*) FROM user_fb_pages p WHERE p.fb_user_id = u.fb_user_id) AS page_count,
-              GREATEST(0, COALESCE(u.messenger_messages_limit,0) - COALESCE(u.messenger_messages_used,0)) AS messages_remaining
+              GREATEST(0, COALESCE(u.messenger_messages_limit,0) - COALESCE(u.messenger_messages_used,0)) AS messages_remaining,
+              (SELECT COALESCE(SUM(amount_cents),0) FROM payment_history ph
+               WHERE ph.fb_user_id = u.fb_user_id AND ph.status = 'succeeded') AS total_revenue_cents,
+              (SELECT COUNT(*) FROM payment_history ph
+               WHERE ph.fb_user_id = u.fb_user_id AND ph.status = 'succeeded'
+               AND (ph.billing_reason IN ('subscription_cycle','invoice.payment_succeeded')
+                    OR ph.billing_reason LIKE '%renew%')) AS renewal_count
              FROM users u ${where} ORDER BY u.created_at DESC LIMIT ? OFFSET ?`,
             listParams
         );

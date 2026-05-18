@@ -2704,26 +2704,159 @@ async function getAdminRevenueSeries(period) {
     }
 }
 
+async function getAdminUserAnalytics(fbUserId) {
+    const empty = {
+        totalRevenueCents: 0, paymentCount: 0, succeededCount: 0,
+        renewalCount: 0, newSubscriptionCount: 0, failedPayments: 0,
+        firstPaymentAt: null, lastPaymentAt: null, avgOrderCents: 0,
+        loginCount: 0, planChangeCount: 0, sendCount: 0,
+        customerSince: null, daysAsCustomer: 0, lifetimeValueCents: 0
+    };
+    if (!pool || !fbUserId) return empty;
+    try {
+        const [[pay]] = await pool.query(
+            `SELECT
+              COUNT(*) AS payment_count,
+              SUM(CASE WHEN status = 'succeeded' THEN 1 ELSE 0 END) AS succeeded_count,
+              SUM(CASE WHEN status = 'failed' THEN 1 ELSE 0 END) AS failed_count,
+              COALESCE(SUM(CASE WHEN status = 'succeeded' THEN amount_cents END), 0) AS total_revenue,
+              SUM(CASE WHEN status = 'succeeded' AND billing_reason IN ('subscription_cycle', 'invoice.payment_succeeded')
+                  OR (status = 'succeeded' AND billing_reason LIKE '%renew%') THEN 1 ELSE 0 END) AS renewal_count,
+              SUM(CASE WHEN status = 'succeeded' AND billing_reason IN ('subscription_create', 'checkout.session.completed')
+                  THEN 1 ELSE 0 END) AS new_sub_count,
+              MIN(CASE WHEN status = 'succeeded' THEN created_at END) AS first_payment,
+              MAX(CASE WHEN status = 'succeeded' THEN created_at END) AS last_payment,
+              COALESCE(AVG(CASE WHEN status = 'succeeded' THEN amount_cents END), 0) AS avg_order
+             FROM payment_history WHERE fb_user_id = ?`,
+            [fbUserId]
+        );
+        const [[act]] = await pool.query(
+            `SELECT
+              SUM(CASE WHEN action = 'login' THEN 1 ELSE 0 END) AS login_count,
+              SUM(CASE WHEN action = 'subscription' THEN 1 ELSE 0 END) AS plan_changes,
+              SUM(CASE WHEN action = 'send' THEN 1 ELSE 0 END) AS send_count
+             FROM activity_log WHERE fb_user_id = ?`,
+            [fbUserId]
+        );
+        const [[userRow]] = await pool.query(
+            'SELECT created_at, plan_activated_at FROM users WHERE fb_user_id = ?',
+            [fbUserId]
+        );
+        const customerSince = pay.first_payment || userRow?.plan_activated_at || userRow?.created_at || null;
+        let daysAsCustomer = 0;
+        if (customerSince) {
+            daysAsCustomer = Math.max(0, Math.floor((Date.now() - new Date(customerSince).getTime()) / 86400000));
+        }
+        return {
+            totalRevenueCents: Number(pay.total_revenue) || 0,
+            paymentCount: Number(pay.payment_count) || 0,
+            succeededCount: Number(pay.succeeded_count) || 0,
+            renewalCount: Number(pay.renewal_count) || 0,
+            newSubscriptionCount: Number(pay.new_sub_count) || 0,
+            failedPayments: Number(pay.failed_count) || 0,
+            firstPaymentAt: pay.first_payment || null,
+            lastPaymentAt: pay.last_payment || null,
+            avgOrderCents: Math.round(Number(pay.avg_order) || 0),
+            loginCount: Number(act.login_count) || 0,
+            planChangeCount: Number(act.plan_changes) || 0,
+            sendCount: Number(act.send_count) || 0,
+            customerSince,
+            daysAsCustomer,
+            lifetimeValueCents: Number(pay.total_revenue) || 0
+        };
+    } catch (_) {
+        return empty;
+    }
+}
+
+async function getAdminUserTimeline(fbUserId) {
+    if (!pool || !fbUserId) return [];
+    try {
+        const [payments] = await pool.query(
+            `SELECT 'payment' AS type, created_at, plan, amount_cents, status, billing_reason, stripe_invoice_id AS ref
+             FROM payment_history WHERE fb_user_id = ?`,
+            [fbUserId]
+        );
+        const [acts] = await pool.query(
+            `SELECT 'activity' AS type, created_at, action AS plan, NULL AS amount_cents, 'info' AS status, detail AS billing_reason, NULL AS ref
+             FROM activity_log WHERE fb_user_id = ? AND action IN ('subscription', 'login')`,
+            [fbUserId]
+        );
+        const merged = [...payments, ...acts]
+            .map(r => ({
+                type: r.type,
+                at: r.created_at,
+                plan: r.plan,
+                amountCents: r.amount_cents,
+                status: r.status,
+                detail: r.billing_reason,
+                ref: r.ref
+            }))
+            .sort((a, b) => new Date(b.at) - new Date(a.at));
+        return merged.slice(0, 80);
+    } catch (_) {
+        return [];
+    }
+}
+
+async function syncUserPagesFromFacebook(fbUserId, fetchFn) {
+    if (!pool || !fbUserId) return { ok: false, error: 'Invalid user' };
+    try {
+        const [rows] = await pool.query(
+            'SELECT fb_access_token FROM users WHERE fb_user_id = ? LIMIT 1',
+            [fbUserId]
+        );
+        const token = rows[0]?.fb_access_token;
+        if (!token) return { ok: false, error: 'No Facebook token stored for this user' };
+        const res = await fetchFn(
+            `https://graph.facebook.com/v19.0/me/accounts?fields=id,name,link,picture&access_token=${encodeURIComponent(token)}`
+        );
+        const data = await res.json();
+        if (data.error) return { ok: false, error: data.error.message };
+        const pages = (data.data || []).map(p => ({
+            id: p.id,
+            name: p.name,
+            link: p.link,
+            picture: p.picture?.data?.url
+        }));
+        if (pages.length) await linkUserPages(fbUserId, pages);
+        const linked = await getUserFbPages(fbUserId);
+        return { ok: true, count: linked.length, pages: linked };
+    } catch (e) {
+        return { ok: false, error: e.message || 'Sync failed' };
+    }
+}
+
 async function getAdminUserDetail(fbUserId) {
     if (!pool || !fbUserId) return null;
     try {
         const [rows] = await pool.query('SELECT * FROM users WHERE fb_user_id = ? LIMIT 1', [fbUserId]);
         const user = rows[0];
         if (!user) return null;
+        const hasToken = !!user.fb_access_token;
         delete user.fb_access_token;
-        user.page_count = (await getUserFbPages(fbUserId)).length;
-        user.pages = await getUserFbPages(fbUserId);
+        const pages = await getUserFbPages(fbUserId);
+        user.page_count = pages.length;
+        user.pages = pages;
+        user.has_fb_token = hasToken;
         user.messages_remaining = Math.max(0, (user.messenger_messages_limit || 0) - (user.messenger_messages_used || 0));
+        const analytics = await getAdminUserAnalytics(fbUserId);
         const [payments] = await pool.query(
-            `SELECT plan, amount_cents, status, billing_reason, created_at FROM payment_history
-             WHERE fb_user_id = ? ORDER BY created_at DESC LIMIT 20`,
+            `SELECT id, plan, amount_cents, status, billing_reason, stripe_invoice_id, created_at
+             FROM payment_history WHERE fb_user_id = ? ORDER BY created_at DESC LIMIT 100`,
             [fbUserId]
         );
         const [acts] = await pool.query(
-            `SELECT action, detail, created_at FROM activity_log WHERE fb_user_id = ? ORDER BY created_at DESC LIMIT 15`,
+            `SELECT action, detail, created_at FROM activity_log WHERE fb_user_id = ? ORDER BY created_at DESC LIMIT 40`,
             [fbUserId]
         );
-        return { user, payments, activity: acts };
+        const timeline = await getAdminUserTimeline(fbUserId);
+        const [planHistory] = await pool.query(
+            `SELECT plan, amount_cents, billing_reason, created_at FROM payment_history
+             WHERE fb_user_id = ? AND status = 'succeeded' ORDER BY created_at ASC`,
+            [fbUserId]
+        );
+        return { user, pages, analytics, payments, activity: acts, timeline, planHistory };
     } catch (_) {
         return null;
     }
@@ -2849,6 +2982,9 @@ const dbModule = {
     getAdminRevenueTotals,
     getAdminRevenueSeries,
     getAdminUserDetail,
+    getAdminUserAnalytics,
+    getAdminUserTimeline,
+    syncUserPagesFromFacebook,
     getAdminExpiringUsers,
     fbPageUrl
 };
