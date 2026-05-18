@@ -657,29 +657,46 @@
   /** API already normalizes content — client only maps fields + pending send state. */
   function normalizeMsg(raw) {
     if (!raw) return raw;
+    const like = looksLikeThumbsMsg(raw);
     return {
       message_id: raw.message_id || raw.mid || null,
-      message: raw.message || raw.text || '',
+      message: like ? '👍' : (raw.message || raw.text || ''),
       from_me: raw.from_me == 1 || raw.from_me === true ? 1 : 0,
       created_at: raw.created_at || raw.createdTime || null,
-      attachment_url: raw.attachment_url || null,
-      attachment_type: raw.attachment_type || null,
-      is_like: !!(raw.is_like || raw._isLike || raw.attachment_type === 'like'),
+      attachment_url: like ? null : (raw.attachment_url || null),
+      attachment_type: like ? 'like' : (raw.attachment_type || null),
+      is_like: like,
       _tempId: raw._tempId,
       _pending: raw._pending,
       _failed: raw._failed,
-      _isLike: raw._isLike
+      _isLike: like || raw._isLike
     };
   }
 
-  function isLikeMessage(msg) {
-    if (!msg) return false;
-    if (msg.is_like || msg._isLike || msg.attachment_type === 'like') return true;
-    const t = String(msg.message || '').trim();
-    if (!t) return false;
-    if (t === '👍' || /^[\u{1F44D}\u{1F3FB}-\u{1F3FF}]/u.test(t)) return true;
-    if (/^\[(sticker|like)\]$/i.test(t)) return true;
+  function isThumbsUpUrl(url) {
+    const u = String(url || '').toLowerCase();
+    if (!u) return false;
+    if (/36923926\d{6,}/.test(u)) return true;
+    if (/sticker[_-]?id[=\/]36923926/.test(u)) return true;
+    if (/sticker.*thumbs|thumbs.*sticker|like_sticker/i.test(u)) return true;
     return false;
+  }
+
+  function looksLikeThumbsMsg(raw) {
+    if (!raw) return false;
+    const attType = String(raw.attachment_type || '').toLowerCase();
+    const attUrl  = raw.attachment_url || '';
+    const text    = String(raw.message || raw.text || '').trim();
+    if (raw.is_like || raw._isLike || attType === 'like' || attType === 'thumbs_up') return true;
+    if (text === '👍' || /^[\u{1F44D}\u{1F3FB}-\u{1F3FF}]/u.test(text)) return true;
+    if (/^\[(sticker|like|attachment)\]$/i.test(text)) return true;
+    if (isThumbsUpUrl(attUrl)) return true;
+    if (attType === 'sticker' && !text) return true;
+    return false;
+  }
+
+  function isLikeMessage(msg) {
+    return looksLikeThumbsMsg(msg);
   }
 
   function msgPreviewText(msg) {
@@ -703,22 +720,35 @@
     const attType = String(msg.attachment_type || '').toLowerCase();
     const tempId  = msg._tempId  || '';
 
+    const isLike  = isLikeMessage(msg);
+    const likeHtml = '<span class="msng-like-bubble" aria-label="Thumbs up">👍</span>';
+    const likeImgFallback = "this.outerHTML='<span class=\\'msng-like-bubble\\' aria-label=\\'Thumbs up\\'>👍</span>'";
+
     let content = '';
-    if (isLikeMessage(msg)) {
-      content = '<span class="msng-like-bubble" aria-label="Thumbs up">👍</span>';
-    } else if (attUrl && (attType === 'image' || attType === 'photo')) {
-      content = `<img class="msng-att-img" src="${esc(attUrl)}" alt="Photo" role="button" tabindex="0" loading="lazy">`;
-      if (txt) content += `<div style="margin-top:4px">${esc(txt)}</div>`;
+    if (isLike) {
+      content = likeHtml;
+    } else if (attUrl && (attType === 'image' || attType === 'photo' || attType === 'sticker')) {
+      if (isThumbsUpUrl(attUrl)) {
+        content = likeHtml;
+      } else {
+        content = `<img class="msng-att-img" src="${esc(attUrl)}" alt="Photo" role="button" tabindex="0" loading="lazy" onerror="${likeImgFallback}">`;
+        if (txt) content += `<div style="margin-top:4px">${esc(txt)}</div>`;
+      }
     } else if (txt) {
       content = esc(txt).replace(/\n/g, '<br>');
     } else if (attUrl) {
-      const label = attType === 'video' ? '🎬 Video' : attType === 'audio' ? '🎵 Audio' : '📷 Photo';
-      content = `<a class="msng-media-link" href="${esc(attUrl)}" target="_blank" rel="noopener">${label}</a>`;
+      content = isThumbsUpUrl(attUrl)
+        ? likeHtml
+        : `<a class="msng-media-link" href="${esc(attUrl)}" target="_blank" rel="noopener">${attType === 'video' ? '🎬 Video' : attType === 'audio' ? '🎵 Audio' : '📷 Photo'}</a>`;
     } else if (attType === 'image' || attType === 'video' || attType === 'audio') {
       const label = attType === 'video' ? '🎬 Video' : attType === 'audio' ? '🎵 Audio' : '📷 Photo';
       content = `<span class="msng-media-placeholder">${label}</span>`;
-    } else if (isLikeMessage(msg)) {
-      content = '<span class="msng-like-bubble" aria-label="Thumbs up">👍</span>';
+    } else if (attType === 'sticker' || attType === 'like') {
+      content = likeHtml;
+    }
+
+    if (!content && (isLike || attType === 'sticker' || attType === 'like' || isThumbsUpUrl(attUrl))) {
+      content = likeHtml;
     }
 
     const avatar = !fromMe
