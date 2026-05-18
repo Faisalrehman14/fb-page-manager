@@ -829,8 +829,8 @@ body.in-messenger .sidebar { display: none !important; }
 
 /* ── Toast ───────────────────────────────────────────────── */
 .msng-toast {
-  position: fixed; bottom: 24px; left: 50%;
-  transform: translateX(-50%) translateY(20px);
+  position: fixed; top: 24px; left: 50%;
+  transform: translateX(-50%) translateY(-20px);
   background: var(--surface); color: var(--text);
   padding: 10px 18px 10px 14px; border-radius: 10px;
   font-size: 13px; font-weight: 500; opacity: 0;
