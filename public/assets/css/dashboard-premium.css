@@ -14,9 +14,9 @@
 #appPage {
   --prem-edge: rgba(255, 255, 255, 0.1);
   --prem-edge-soft: rgba(255, 255, 255, 0.05);
-  --prem-surface: #121a32;
-  --prem-surface-2: #161f3d;
-  --prem-surface-3: #1c2648;
+  --prem-surface: #0a1020;
+  --prem-surface-2: #0e1530;
+  --prem-surface-3: #121c3c;
   --prem-inset: inset 0 1px 0 rgba(255, 255, 255, 0.09);
   --prem-shadow:
     0 0 0 1px rgba(255, 255, 255, 0.06),
@@ -92,8 +92,19 @@
 /* ═══════════════════════════════════════
    HOME DASHBOARD — sharp premium
 ═══════════════════════════════════════ */
+html[data-theme='dark'] #landingPage,
+html[data-theme='dark'] #appPage {
+  background: var(--fbc-canvas, #030508) !important;
+  color-scheme: dark;
+}
+
+html[data-theme='dark'] body {
+  background: var(--bg, #030508);
+  color: var(--text, #fff);
+}
+
 #view-home {
-  --hd-glass: #121a32;
+  --hd-glass: #0a1020;
   --hd-border: rgba(255, 255, 255, 0.1);
   --hd-shadow: var(--prem-shadow);
   --hd-shadow-hover: var(--prem-shadow-hover);

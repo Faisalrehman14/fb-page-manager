@@ -1,8 +1,23 @@
 
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
 <meta charset="UTF-8">
+<meta name="color-scheme" content="dark light">
+<script>
+(function () {
+  try {
+    var saved = localStorage.getItem('promo_theme');
+    var isLight = saved === 'light';
+    document.documentElement.setAttribute('data-theme', isLight ? 'light' : 'dark');
+    document.documentElement.style.colorScheme = isLight ? 'light' : 'dark';
+    if (!isLight) document.documentElement.classList.add('theme-dark');
+  } catch (e) {
+    document.documentElement.setAttribute('data-theme', 'dark');
+    document.documentElement.style.colorScheme = 'dark';
+  }
+})();
+</script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>FBCast Pro — Facebook Broadcast Platform</title>
 <meta name="description" content="Broadcast messages to all your Facebook Page followers instantly. Real-time tracking, ISP bypass, built for businesses worldwide.">
@@ -15,7 +30,8 @@
 <meta property="og:image" content="{{SITE_URL_NO_SLASH}}/images/cp.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<meta name="theme-color" content="#1877f2">
+<meta name="theme-color" content="#060a16" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#eef2ff" media="(prefers-color-scheme: light)">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="FBCast Pro — Facebook Broadcast Platform">
 <meta name="twitter:description" content="Broadcast messages to all your Facebook Page followers instantly.">

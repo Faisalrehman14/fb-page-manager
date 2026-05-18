@@ -1399,27 +1399,39 @@ window.triggerConnect = async function(plan = null) {
   }
 };
 
-/* Theme */
+/* Theme — default: dark mode */
 function applyTheme(){
-  let saved=localStorage.getItem('promo_theme');
-  if(!saved){
-    saved='dark';
-    localStorage.setItem('promo_theme',saved);
+  const THEME_VERSION = '2-dark';
+  if (localStorage.getItem('theme_v') !== THEME_VERSION) {
+    localStorage.setItem('promo_theme', 'dark');
+    localStorage.setItem('theme_v', THEME_VERSION);
   }
-  const toggle=document.getElementById('themeToggle');
-  const isLight=saved!=='dark';
-  document.body.classList.toggle('light',isLight);
+  let saved = localStorage.getItem('promo_theme') || 'dark';
+  if (saved !== 'light' && saved !== 'dark') saved = 'dark';
+  const toggle = document.getElementById('themeToggle');
+  const isLight = saved === 'light';
+  document.body.classList.toggle('light', isLight);
   document.documentElement.setAttribute('data-theme', isLight ? 'light' : 'dark');
-  if(toggle)toggle.checked=!isLight;
+  document.documentElement.style.colorScheme = isLight ? 'light' : 'dark';
+  document.documentElement.classList.toggle('theme-dark', !isLight);
+  document.documentElement.classList.toggle('theme-light', isLight);
+  const metaTheme = document.querySelector('meta[name="theme-color"]:not([media])');
+  if (metaTheme) metaTheme.setAttribute('content', isLight ? '#eef2ff' : '#060a16');
+  if (toggle) toggle.checked = !isLight;
 }
 (function(){
   const toggle=document.getElementById('themeToggle');
   if(!toggle)return;
   toggle.addEventListener('change',function(){
-    const isDark=this.checked;
-    document.body.classList.toggle('light',!isDark);
+    const isDark = this.checked;
+    document.body.classList.toggle('light', !isDark);
     document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
-    localStorage.setItem('promo_theme',isDark?'dark':'light');
+    document.documentElement.style.colorScheme = isDark ? 'dark' : 'light';
+    document.documentElement.classList.toggle('theme-dark', isDark);
+    document.documentElement.classList.toggle('theme-light', !isDark);
+    localStorage.setItem('promo_theme', isDark ? 'dark' : 'light');
+    const metaTheme = document.querySelector('meta[name="theme-color"]:not([media])');
+    if (metaTheme) metaTheme.setAttribute('content', isDark ? '#060a16' : '#eef2ff');
   });
 })();
 
