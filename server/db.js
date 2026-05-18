@@ -211,11 +211,19 @@ async function initDatabase() {
             // Speeds up stale-conversation cleanup scan (no page_id filter needed)
             "ALTER TABLE messenger_conversations ADD INDEX idx_conv_updated_at (updated_at)",
             "ALTER TABLE users ADD COLUMN fb_name VARCHAR(255) DEFAULT NULL",
-            "ALTER TABLE users ADD COLUMN fb_access_token TEXT DEFAULT NULL"
+            "ALTER TABLE users ADD COLUMN fb_access_token TEXT DEFAULT NULL",
+            "ALTER TABLE users ADD COLUMN free_trial_expires_at DATETIME NULL"
         ];
         for (const sql of migrations) {
             try { await connection.query(sql); } catch (_) { /* column already exists */ }
         }
+        try {
+            await connection.query(
+                `UPDATE users SET free_trial_expires_at = DATE_ADD(COALESCE(created_at, NOW()), INTERVAL ? DAY)
+                 WHERE plan = 'free' AND free_trial_expires_at IS NULL`,
+                [FREE_TRIAL_DAYS]
+            );
+        } catch (_) { /* column may not exist yet on very old DBs */ }
 
         await tryCreate(`
             CREATE TABLE IF NOT EXISTS users (
@@ -1587,6 +1595,27 @@ async function getStats() {
  * Uses a single pool checkout for the two independent inbox queries so we
  * don't pay three connection-acquire round-trips on every 3-second poll.
  */
+/** Recently active threads for live Graph refresh while inbox is open. */
+async function getHotConversationsForSync(pageId, limit = 10) {
+    if (!pool || !pageId) return [];
+    const cap = Math.min(Math.max(parseInt(limit, 10) || 10, 1), 25);
+    try {
+        const [rows] = await pool.query(
+            `SELECT id, fb_conv_id, fb_user_id, updated_at
+             FROM messenger_conversations
+             WHERE page_id = ? AND fb_conv_id IS NOT NULL AND fb_conv_id != ''
+               AND COALESCE(can_reply, 1) = 1
+             ORDER BY updated_at DESC
+             LIMIT ${cap}`,
+            [pageId]
+        );
+        return rows;
+    } catch (err) {
+        addDbError(`getHotConversationsForSync: ${err.message}`);
+        return [];
+    }
+}
+
 async function pollInboxUpdates(pageId, psid, since, maxConvs = 40) {
     if (!pool) return { newMessages: [], updatedConvs: [], totalUnread: 0 };
 
@@ -1771,47 +1800,133 @@ async function upsertUserFacebookName(fbUserId, name, accessToken = null) {
     }
 }
 
+/** First login: 7-day free trial with 2000 messages */
+async function ensureUserExists(fbUserId) {
+    if (!pool || !fbUserId) return false;
+    const [result] = await pool.query(
+        `INSERT INTO users (fb_user_id, plan, messenger_messages_limit, messenger_messages_used, free_trial_expires_at)
+         VALUES (?, 'free', ?, 0, DATE_ADD(NOW(), INTERVAL ? DAY))
+         ON DUPLICATE KEY UPDATE fb_user_id = fb_user_id`,
+        [fbUserId, FREE_TIER.limit, FREE_TRIAL_DAYS]
+    );
+    return result.affectedRows === 1;
+}
+
+async function getUserQuotaRow(fbUserId) {
+    if (!pool || !fbUserId) return null;
+    await ensureUserExists(fbUserId);
+    const [rows] = await pool.query(
+        `SELECT messenger_messages_used, messenger_messages_limit, plan, subscription_expires,
+                free_trial_expires_at, stripe_subscription_id, created_at
+         FROM users WHERE fb_user_id = ?`,
+        [fbUserId]
+    );
+    return rows[0] || null;
+}
+
+function resolveEffectiveQuota(row) {
+    if (!row) {
+        return {
+            effectiveLimit: 0, used: 0, remaining: 0, trialDaysLeft: 0, trialExpired: true,
+            onTrial: false, plan: 'free', freeTrialExpiresAt: null
+        };
+    }
+    const plan = String(row.plan || 'free').toLowerCase();
+    const used = Number(row.messenger_messages_used) || 0;
+    const isPaid = plan !== 'free' && plan !== 'unknown';
+    const paidExpired = isPaid && row.subscription_expires && new Date(row.subscription_expires) < new Date();
+
+    if (isPaid && !paidExpired) {
+        const limit = Number(row.messenger_messages_limit) || 0;
+        const clampedUsed = Math.min(used, limit);
+        return {
+            effectiveLimit: limit,
+            used: clampedUsed,
+            remaining: Math.max(0, limit - clampedUsed),
+            trialDaysLeft: null,
+            trialExpired: false,
+            onTrial: false,
+            plan,
+            freeTrialExpiresAt: null
+        };
+    }
+
+    const trialEnd = row.free_trial_expires_at ? new Date(row.free_trial_expires_at) : null;
+    const now = new Date();
+    const trialExpired = !trialEnd || now >= trialEnd;
+    let trialDaysLeft = 0;
+    if (trialEnd && !trialExpired) {
+        trialDaysLeft = Math.max(0, Math.ceil((trialEnd.getTime() - now.getTime()) / 86400000));
+    }
+    const effectiveLimit = trialExpired ? 0 : (Number(row.messenger_messages_limit) || FREE_TIER.limit);
+    const clampedUsed = Math.min(used, effectiveLimit || used);
+    return {
+        effectiveLimit,
+        used: clampedUsed,
+        remaining: Math.max(0, effectiveLimit - clampedUsed),
+        trialDaysLeft,
+        trialExpired,
+        onTrial: !trialExpired && !!trialEnd,
+        plan: 'free',
+        freeTrialExpiresAt: trialEnd ? trialEnd.toISOString() : null
+    };
+}
+
+async function syncExpiredFreeTrial(fbUserId, row, effective) {
+    if (!pool || !fbUserId || !row || !effective.trialExpired) return;
+    if (String(row.plan || '').toLowerCase() !== 'free') return;
+    if (Number(row.messenger_messages_limit) === 0) return;
+    await pool.query(
+        'UPDATE users SET messenger_messages_limit = 0 WHERE fb_user_id = ? AND plan = ?',
+        [fbUserId, 'free']
+    );
+}
+
+function formatQuotaApiResponse(row, effective, extra = {}) {
+    return {
+        success: true,
+        messenger_messagesUsed: effective.used,
+        messageLimit: effective.effectiveLimit,
+        subscriptionStatus: row?.plan || 'free',
+        plan: row?.plan || 'free',
+        remaining: effective.remaining,
+        trialDaysLeft: effective.trialDaysLeft,
+        trialExpired: effective.trialExpired,
+        onFreeTrial: effective.onTrial,
+        freeTrialExpiresAt: effective.freeTrialExpiresAt,
+        ...extra
+    };
+}
+
 async function updateUserQuota(fbUserId, count) {
     if (!pool) return null;
     try {
-        // Ensure user exists (default to free)
-        await pool.query(`
-            INSERT IGNORE INTO users (fb_user_id, plan, messenger_messages_limit)
-            VALUES (?, 'free', 2000)
-        `, [fbUserId]);
+        await ensureUserExists(fbUserId);
 
-        // Atomic update
-        await pool.query(`
-            UPDATE users
-            SET messenger_messages_used = LEAST(messenger_messages_limit, messenger_messages_used + ?)
-            WHERE fb_user_id = ?
-        `, [count, fbUserId]);
+        const rowBefore = await getUserQuotaRow(fbUserId);
+        let effective = resolveEffectiveQuota(rowBefore);
 
-        // Fetch updated info
-        const [rows] = await pool.query(
-            'SELECT messenger_messages_used, messenger_messages_limit, plan FROM users WHERE fb_user_id = ?',
-            [fbUserId]
-        );
-        
-        if (rows.length > 0) {
-            const row = rows[0];
-            const remaining = Math.max(0, row.messenger_messages_limit - row.messenger_messages_used);
-            
-            // Log activity
+        if (count > 0 && effective.remaining >= count) {
+            await pool.query(
+                `UPDATE users
+                 SET messenger_messages_used = messenger_messages_used + ?
+                 WHERE fb_user_id = ?`,
+                [count, fbUserId]
+            );
+        }
+
+        const row = await getUserQuotaRow(fbUserId);
+        effective = resolveEffectiveQuota(row);
+        await syncExpiredFreeTrial(fbUserId, row, effective);
+
+        if (count > 0) {
             await pool.query(
                 'INSERT INTO activity_log (fb_user_id, action, detail) VALUES (?, "send", ?)',
-                [fbUserId, `Sent: ${count} | Remaining: ${remaining}`]
-            ).catch(() => {}); // non-critical
-
-            return {
-                success: true,
-                messenger_messagesUsed: row.messenger_messages_used,
-                messageLimit: row.messenger_messages_limit,
-                subscriptionStatus: row.plan,
-                remaining
-            };
+                [fbUserId, `Sent: ${count} | Remaining: ${effective.remaining}`]
+            ).catch(() => {});
         }
-        return null;
+
+        return formatQuotaApiResponse(row, effective);
     } catch (err) {
         addDbError(`updateUserQuota: ${err.message}`);
         return null;
@@ -1925,7 +2040,7 @@ async function cleanupStaleConversations(pageId = null, daysOld = CONVERSATION_R
     }
 }
 
-const { getPlan, FREE_TIER, resolvePlanKey } = require('./config/plans');
+const { getPlan, FREE_TIER, FREE_TRIAL_DAYS, resolvePlanKey } = require('./config/plans');
 
 async function ensureBillingTables() {
     return initDatabase();
@@ -1985,21 +2100,20 @@ async function applyPlan(fbUserId, planKey, { subscriptionId = '', email = '', a
     const expiresExpr = plan.interval === 'year'
         ? 'DATE_ADD(NOW(), INTERVAL 1 YEAR)'
         : 'DATE_ADD(NOW(), INTERVAL 1 MONTH)';
-    await pool.query(
-        `INSERT IGNORE INTO users (fb_user_id, plan, messenger_messages_limit) VALUES (?, 'free', ?)`,
-        [fbUserId, FREE_TIER.limit]
-    );
+    await ensureUserExists(fbUserId);
     if (email) {
         await pool.query(
             `UPDATE users SET plan = ?, messenger_messages_limit = ?, messenger_messages_used = 0,
-             stripe_subscription_id = ?, subscription_expires = ${expiresExpr}, email = ?
+             stripe_subscription_id = ?, subscription_expires = ${expiresExpr}, email = ?,
+             free_trial_expires_at = NULL
              WHERE fb_user_id = ?`,
             [plan.dbPlan, plan.limit, subscriptionId || null, email, fbUserId]
         );
     } else {
         await pool.query(
             `UPDATE users SET plan = ?, messenger_messages_limit = ?, messenger_messages_used = 0,
-             stripe_subscription_id = ?, subscription_expires = ${expiresExpr}
+             stripe_subscription_id = ?, subscription_expires = ${expiresExpr},
+             free_trial_expires_at = NULL
              WHERE fb_user_id = ?`,
             [plan.dbPlan, plan.limit, subscriptionId || null, fbUserId]
         );
@@ -2031,10 +2145,12 @@ async function renewPlan(fbUserId, planKey, { invoiceId, amountCents, billingRea
 
 async function downgradeToFree(fbUserId) {
     if (!pool) return;
+    // Paid ended — no new free trial; quota stays at 0 until upgrade
     await pool.query(
-        `UPDATE users SET plan = 'free', messenger_messages_limit = ?, messenger_messages_used = 0,
-         stripe_subscription_id = NULL, subscription_expires = NULL WHERE fb_user_id = ?`,
-        [FREE_TIER.limit, fbUserId]
+        `UPDATE users SET plan = 'free', messenger_messages_limit = 0, messenger_messages_used = 0,
+         stripe_subscription_id = NULL, subscription_expires = NULL
+         WHERE fb_user_id = ?`,
+        [fbUserId]
     );
     await pool.query(
         'INSERT INTO activity_log (fb_user_id, action, detail) VALUES (?, ?, ?)',
@@ -2092,55 +2208,68 @@ async function adminActivatePlan(fbUserId, planInput, { messages_used, messages_
     };
 }
 
+/** Single source for entitlement state (trial sync, paid expiry downgrade). */
+async function computeEntitlements(fbUserId) {
+    if (!pool || !fbUserId) return null;
+    await ensureUserExists(fbUserId);
+    let row = await getUserQuotaRow(fbUserId);
+    if (!row) return null;
+
+    const dbPlan = String(row.plan || 'free').toLowerCase();
+    if (row.subscription_expires && new Date(row.subscription_expires) < new Date() && dbPlan !== 'free') {
+        await downgradeToFree(fbUserId);
+        row = await getUserQuotaRow(fbUserId);
+        if (!row) return null;
+    }
+
+    let effective = resolveEffectiveQuota(row);
+    await syncExpiredFreeTrial(fbUserId, row, effective);
+    if (effective.trialExpired) {
+        row = await getUserQuotaRow(fbUserId);
+        effective = resolveEffectiveQuota(row);
+    }
+    return { row, effective };
+}
+
 async function assertQuota(fbUserId, count = 1) {
     if (!pool) return { ok: false, code: 'DB_UNAVAILABLE', message: 'Database unavailable' };
-    await pool.query(
-        `INSERT IGNORE INTO users (fb_user_id, plan, messenger_messages_limit) VALUES (?, 'free', ?)`,
-        [fbUserId, FREE_TIER.limit]
-    );
-    let [rows] = await pool.query(
-        `SELECT messenger_messages_used, messenger_messages_limit, plan, subscription_expires
-         FROM users WHERE fb_user_id = ?`,
-        [fbUserId]
-    );
-    if (!rows.length) return { ok: false, code: 'USER_NOT_FOUND', message: 'User not found' };
-    let r = rows[0];
+    const computed = await computeEntitlements(fbUserId);
+    if (!computed) return { ok: false, code: 'USER_NOT_FOUND', message: 'User not found' };
+    const { row, effective } = computed;
 
-    // Expired paid plan → revert to free (fresh 2000) instead of hard-blocking sends
-    if (r.subscription_expires && new Date(r.subscription_expires) < new Date() && r.plan !== 'free') {
-        await downgradeToFree(fbUserId);
-        [rows] = await pool.query(
-            `SELECT messenger_messages_used, messenger_messages_limit, plan, subscription_expires
-             FROM users WHERE fb_user_id = ?`,
-            [fbUserId]
-        );
-        r = rows[0] || r;
-    }
-
-    const limit = Number(r.messenger_messages_limit) || FREE_TIER.limit;
-    const used = Math.min(Number(r.messenger_messages_used) || 0, limit);
-    const remaining = Math.max(0, limit - used);
-
-    if (remaining < count) {
+    if (effective.remaining < count) {
+        const msg = effective.trialExpired && effective.plan === 'free'
+            ? 'Your 7-day free trial has ended. Please upgrade to continue sending.'
+            : 'Message quota exceeded. Upgrade your plan to continue.';
         return {
             ok: false,
-            code: 'QUOTA_EXCEEDED',
-            message: 'Message quota exceeded. Upgrade your plan or wait for quota reset.',
-            remaining,
-            limit,
-            used,
-            plan: r.plan
+            code: effective.trialExpired ? 'TRIAL_EXPIRED' : 'QUOTA_EXCEEDED',
+            message: msg,
+            remaining: effective.remaining,
+            limit: effective.effectiveLimit,
+            used: effective.used,
+            plan: effective.plan,
+            trialDaysLeft: effective.trialDaysLeft,
+            trialExpired: effective.trialExpired
         };
     }
-    return { ok: true, remaining, limit, used, plan: r.plan };
+    return {
+        ok: true,
+        remaining: effective.remaining,
+        limit: effective.effectiveLimit,
+        used: effective.used,
+        plan: effective.plan,
+        trialDaysLeft: effective.trialDaysLeft,
+        trialExpired: effective.trialExpired
+    };
 }
 
 async function checkExpiredSubscriptions() {
     if (!pool) return 0;
     const [result] = await pool.query(
-        `UPDATE users SET plan = 'free', messenger_messages_limit = ?, stripe_subscription_id = NULL
-         WHERE subscription_expires IS NOT NULL AND subscription_expires < NOW() AND plan != 'free'`,
-        [FREE_TIER.limit]
+        `UPDATE users SET plan = 'free', messenger_messages_limit = 0, messenger_messages_used = 0,
+         stripe_subscription_id = NULL, subscription_expires = NULL
+         WHERE subscription_expires IS NOT NULL AND subscription_expires < NOW() AND plan != 'free'`
     );
     return result.affectedRows || 0;
 }
@@ -2191,6 +2320,7 @@ const dbModule = {
     markAsUnread,
     markAllAsRead,
     pollInboxUpdates,
+    getHotConversationsForSync,
     getNewMessagesSince,
     getUpdatedConvsSince,
     getTotalUnread,
@@ -2232,6 +2362,7 @@ const dbModule = {
     adminActivatePlan,
     renewPlan,
     downgradeToFree,
+    computeEntitlements,
     assertQuota,
     checkExpiredSubscriptions
 };

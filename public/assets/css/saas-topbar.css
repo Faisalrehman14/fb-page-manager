@@ -236,6 +236,23 @@
 }
 
 /* Large readable numbers */
+.saas-topbar__quota-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  min-width: 0;
+}
+
+.saas-topbar__trial-days {
+  font-size: 10px;
+  font-weight: 700;
+  color: #93c5fd;
+  letter-spacing: 0.02em;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
 .saas-topbar__quota-values {
   display: flex;
   align-items: baseline;

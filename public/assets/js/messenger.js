@@ -270,6 +270,7 @@
   }
 
   function nextPollDelayMs() {
+    if (M.activePsid) return Math.min(POLL_MS, POLL_SOCKET_MS);
     if (_socket?.connected && !M._offline) return POLL_SOCKET_MS;
     return POLL_MS;
   }
@@ -370,8 +371,7 @@
 
     let content = '';
     if (attType === 'image' && attUrl) {
-      content = `<img class="msng-att-img" src="${esc(attUrl)}" alt="Image"
-                      onclick="window.open('${esc(attUrl)}','_blank')">`;
+      content = `<img class="msng-att-img" src="${esc(attUrl)}" alt="Image" role="button" tabindex="0">`;
       if (txt && txt !== '[Image]') content += `<div style="margin-top:4px">${esc(txt)}</div>`;
     } else if (txt) {
       content = esc(txt).replace(/\n/g, '<br>');
@@ -802,8 +802,8 @@
       M.poll.failures = 0;
       if (wasOffline) { hideConnBanner(); showToast('Back online', 'success', 2500); }
 
-      // Server short-circuit: skip all DOM work when nothing changed
-      if (data.has_changes === false) {
+      // Server short-circuit: skip DOM work when quiet (always process open thread)
+      if (data.has_changes === false && !M.activePsid) {
         schedulePoll(nextPollDelayMs());
         return;
       }
@@ -2107,7 +2107,10 @@
     // Image lightbox — delegate on document so it works for dynamically added images
     document.addEventListener('click', (e) => {
       const img = e.target.closest('.msng-att-img');
-      if (img && img.src) openLightbox(img.src);
+      if (!img || !img.src) return;
+      e.preventDefault();
+      e.stopPropagation();
+      openLightbox(img.src);
     });
 
     // Search input handler

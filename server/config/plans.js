@@ -58,7 +58,8 @@ const PLANS = {
     }
 };
 
-const FREE_TIER = { limit: 2000, dbPlan: 'free' };
+const FREE_TRIAL_DAYS = 7;
+const FREE_TIER = { limit: 2000, dbPlan: 'free', trialDays: FREE_TRIAL_DAYS };
 
 function getPlan(key) {
     return PLANS[key] || null;
@@ -124,6 +125,7 @@ function getDisplayForDbPlan(dbPlan, messageLimit) {
 
 module.exports = {
     PLANS,
+    FREE_TRIAL_DAYS,
     FREE_TIER,
     getPlan,
     listPlanKeys,

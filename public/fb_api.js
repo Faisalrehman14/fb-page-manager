@@ -564,7 +564,11 @@ function _applyQuotaPayload(data) {
   window.saveQuota({
     subscriptionStatus: data.subscriptionStatus || data.plan || 'free',
     messageLimit: typeof limit === 'number' ? limit : undefined,
-    messagesUsed: typeof used === 'number' ? used : (typeof limit === 'number' && typeof data.remaining === 'number' ? limit - data.remaining : undefined)
+    messagesUsed: typeof used === 'number' ? used : (typeof limit === 'number' && typeof data.remaining === 'number' ? limit - data.remaining : undefined),
+    trialDaysLeft: data.trialDaysLeft != null ? data.trialDaysLeft : null,
+    trialExpired: !!data.trialExpired,
+    onFreeTrial: !!data.onFreeTrial,
+    freeTrialExpiresAt: data.freeTrialExpiresAt || null
   });
   window.updateQuotaUI?.();
 }
@@ -585,8 +589,27 @@ async function _syncQuotaBeforeSend(fbUserId) {
     if (typeof window.syncQuotaFromServer === 'function') {
       await window.syncQuotaFromServer({ force: true, source: 'pre_send', silent: true });
     }
+    let data = null;
+    if (window.FBCastBillingStatus && typeof window.FBCastBillingStatus.fetch === 'function') {
+      try {
+        data = await window.FBCastBillingStatus.fetch();
+        _applyQuotaPayload(data);
+        if (data.entitlements && data.entitlements.canSend === false) {
+          _handleQuotaBlocked({ ...data, code: data.code || data.entitlements.blockCode, error: data.entitlements.blockMessage });
+          return false;
+        }
+        if (data.canSend === false) {
+          _handleQuotaBlocked(data);
+          return false;
+        }
+        return true;
+      } catch (e) {
+        if (e.status === 401) { /* session-only; fall through */ }
+        else { /* try quota API */ }
+      }
+    }
     const res = await fetch('/api/user/quota', { credentials: 'same-origin' });
-    const data = await res.json().catch(() => ({}));
+    data = await res.json().catch(() => ({}));
     if (res.ok && data.success) {
       _applyQuotaPayload(data);
       if (data.canSend === false) {

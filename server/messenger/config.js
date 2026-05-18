@@ -24,8 +24,13 @@ const SEARCH_MSG_LIMIT = parseInt(process.env.MESSENGER_SEARCH_MSG_LIMIT || '30'
 const SEARCH_CACHE_MS = parseInt(process.env.MESSENGER_SEARCH_CACHE_MS || '8000', 10);
 const MESSAGE_PAGE_SIZE_MAX = 100;
 const CONVERSATION_RETENTION_DAYS = parseInt(process.env.MESSENGER_CONV_RETENTION_DAYS || '180', 10);
-/** Re-login / return visit: full sync if last sync older than this (default 2h). */
-const RELOGIN_SYNC_GAP_MS = parseInt(process.env.MESSENGER_RELOGIN_SYNC_MS || String(2 * 60 * 60 * 1000), 10);
+/** Re-login / return visit: full sync if last sync older than this (default 15 min). */
+const RELOGIN_SYNC_GAP_MS = parseInt(process.env.MESSENGER_RELOGIN_SYNC_MS || String(15 * 60 * 1000), 10);
+/** While inbox is open: refresh open thread from Graph (Business Suite / external replies). */
+const ACTIVE_THREAD_SYNC_MS = parseInt(process.env.MESSENGER_ACTIVE_THREAD_SYNC_MS || '8000', 10);
+/** While inbox is open (no thread): refresh hottest convs from Graph. */
+const ACTIVE_PAGE_SYNC_MS = parseInt(process.env.MESSENGER_ACTIVE_PAGE_SYNC_MS || '30000', 10);
+const HOT_CONV_SYNC_LIMIT = parseInt(process.env.MESSENGER_HOT_CONV_SYNC || '10', 10);
 const FB_GRAPH_VERSION = process.env.FB_GRAPH_VERSION || 'v19.0';
 const FB_GRAPH_BASE = `https://graph.facebook.com/${FB_GRAPH_VERSION}`;
 
@@ -68,6 +73,9 @@ module.exports = {
     MESSAGE_PAGE_SIZE_MAX,
     CONVERSATION_RETENTION_DAYS,
     RELOGIN_SYNC_GAP_MS,
+    ACTIVE_THREAD_SYNC_MS,
+    ACTIVE_PAGE_SYNC_MS,
+    HOT_CONV_SYNC_LIMIT,
     FB_GRAPH_VERSION,
     FB_GRAPH_BASE,
     retentionCutoff,

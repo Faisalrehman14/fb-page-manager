@@ -17,6 +17,7 @@ module.exports = function registerRoutes(app, deps) {
   const crypto = require('crypto');
   const { MAX_LOGS } = require('../lib/logger');
   const fbNames = require('../services/facebook-user-names');
+  const entitlementsSvc = require('../services/entitlements.service');
     const express = require('express');
 
   function stripUserTokens(users) {
@@ -225,19 +226,25 @@ app.post(['/api/auth/track', '/api/track_user.php', '/track_user.php'], async (r
         const meData = await meRes.json();
         if (meData.error) return res.status(401).json({ error: meData.error.message });
 
-        // Initialize/Fetch user quota from DB
-        const quota = await db.updateUserQuota(meData.id, 0); // 0 = just fetch
         await db.upsertUserFacebookName(meData.id, meData.name || '', userToken);
-        
-        // Return format expected by index-page.js + web_ui.js
-        res.json({ 
-            success: true, 
-            fb_user_id: meData.id, 
+        const ent = await entitlementsSvc.resolveEntitlements(db, meData.id);
+        res.json({
+            success: true,
+            fb_user_id: meData.id,
             fb_name: meData.name,
-            subscriptionStatus: quota?.subscriptionStatus || 'free',
-            messageLimit: quota?.messageLimit || 2000,
-            messagesUsed: quota?.messenger_messagesUsed || 0,
-            plan: quota?.subscriptionStatus || 'free'
+            subscriptionStatus: ent.subscriptionStatus,
+            messageLimit: ent.messageLimit,
+            messagesUsed: ent.messagesUsed,
+            plan: ent.plan,
+            trialDaysLeft: ent.trialDaysLeft,
+            trialExpired: ent.trialExpired,
+            onFreeTrial: ent.onFreeTrial,
+            freeTrialExpiresAt: ent.freeTrialExpiresAt,
+            canSend: ent.canSend,
+            remaining: ent.remaining,
+            display: ent.display,
+            trial: ent.trial,
+            subscription: ent.subscription
         });
     } catch (err) {
         logError('track_user', err);
@@ -732,14 +739,14 @@ app.get('/api/auth/bootstrap', async (req, res) => {
                 req.session.accessToken || null
             );
             const profile = await db.getUserProfile(req.session.userId);
-            if (profile.quota) {
-                payload.quota = {
-                    subscriptionStatus: profile.quota.subscriptionStatus || 'free',
-                    messageLimit: profile.quota.messageLimit ?? 2000,
-                    messagesUsed: profile.quota.messenger_messagesUsed ?? 0,
-                    plan: profile.quota.subscriptionStatus || 'free'
-                };
-            }
+            const ent = await entitlementsSvc.resolveEntitlements(db, req.session.userId);
+            payload.quota = entitlementsSvc.toQuotaClientPayload(ent);
+            payload.billing = {
+                entitlements: ent.entitlements,
+                trial: ent.trial,
+                subscription: ent.subscription,
+                display: ent.display
+            };
             payload.preferences = profile.preferences;
         } catch (err) {
             logError('auth_bootstrap_profile', err);
@@ -761,15 +768,17 @@ app.get('/api/user/profile', requireAuth, async (req, res) => {
             });
         }
         const profile = await db.getUserProfile(uid);
+        const ent = await entitlementsSvc.resolveEntitlements(db, uid);
         res.json({
             fb_user_id: uid,
             fb_name: req.session.userName || null,
-            quota: profile.quota ? {
-                subscriptionStatus: profile.quota.subscriptionStatus || 'free',
-                messageLimit: profile.quota.messageLimit ?? 2000,
-                messagesUsed: profile.quota.messenger_messagesUsed ?? 0,
-                plan: profile.quota.subscriptionStatus || 'free'
-            } : null,
+            quota: entitlementsSvc.toQuotaClientPayload(ent),
+            billing: {
+                entitlements: ent.entitlements,
+                trial: ent.trial,
+                subscription: ent.subscription,
+                display: ent.display
+            },
             preferences: profile.preferences
         });
     } catch (err) {
@@ -887,7 +896,7 @@ app.get('/api/pages', requireAuth, async (req, res) => {
         if (state.dbConnected && pagesToSave.length) {
             const forceSync = !!req.session.firstLogin;
             if (req.session.firstLogin) req.session.firstLogin = false;
-            const STALE_MS = 2 * 60 * 60 * 1000;
+            const STALE_MS = 15 * 60 * 1000;
             for (const p of pagesToSave) {
                 setImmediate(async () => {
                     try {
@@ -1276,17 +1285,13 @@ app.get('/api/user/quota', requireAuth, async (req, res) => {
     const uid = req.session.userId;
     if (!uid) return res.status(401).json({ error: 'Not authenticated' });
     try {
-        const result = await db.updateUserQuota(uid, 0);
-        if (!result) return res.status(404).json({ error: 'User not found' });
+        const ent = await entitlementsSvc.resolveEntitlements(db, uid);
         const check = await db.assertQuota(uid, 1);
         res.json({
-            success: true,
-            subscriptionStatus: result.subscriptionStatus || 'free',
-            messageLimit: result.messageLimit,
-            messagesUsed: result.messenger_messagesUsed,
-            remaining: check.remaining ?? Math.max(0, result.messageLimit - result.messenger_messagesUsed),
+            ...ent,
+            remaining: check.remaining ?? ent.remaining,
             canSend: !!check.ok,
-            code: check.ok ? null : check.code
+            code: check.ok ? null : (check.code || ent.code)
         });
     } catch (err) {
         logError('user_quota', err);
@@ -1305,16 +1310,21 @@ app.post(['/api/update_quota', '/api/update_quota.php'], requireAuth, verifyCsrf
         if (n > 0) {
             const quota = await db.assertQuota(uid, n);
             if (!quota.ok) {
+                const ent = await entitlementsSvc.resolveEntitlements(db, uid);
                 return res.status(402).json({
                     success: false,
                     error: quota.message,
                     code: quota.code,
                     remaining: quota.remaining,
                     limit: quota.limit,
-                    messagesUsed: quota.used ?? null,
-                    messageLimit: quota.limit ?? null,
-                    subscriptionStatus: quota.plan || 'free',
-                    plan: quota.plan || 'free'
+                    messagesUsed: quota.used ?? ent.messagesUsed,
+                    messageLimit: quota.limit ?? ent.messageLimit,
+                    subscriptionStatus: quota.plan || ent.plan || 'free',
+                    plan: quota.plan || ent.plan || 'free',
+                    trialDaysLeft: ent.trialDaysLeft,
+                    trialExpired: ent.trialExpired,
+                    onFreeTrial: ent.onFreeTrial,
+                    display: ent.display
                 });
             }
         }

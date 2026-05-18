@@ -7,10 +7,34 @@ module.exports = function mountBilling(app, deps) {
 
     const router = express.Router();
 
+    /** Canonical billing + entitlement state (single source for clients) */
+    router.get('/status', requireAuth, async (req, res) => {
+        try {
+            const uid = req.session.userId;
+            if (!uid) return fail(res, 'Not authenticated', 401);
+            const status = await billing.getBillingStatus(db, uid);
+            ok(res, status);
+        } catch (err) {
+            fail(res, err.message, err.status || 500);
+        }
+    });
+
     router.get('/subscription', requireAuth, async (req, res) => {
         try {
             const summary = await billing.getSubscriptionSummary(db, req.session.userId);
             ok(res, summary);
+        } catch (err) {
+            fail(res, err.message, err.status || 500);
+        }
+    });
+
+    router.post('/sync', requireAuth, verifyCsrf, async (req, res) => {
+        try {
+            const uid = req.session.userId;
+            if (!uid) return fail(res, 'Not authenticated', 401);
+            const syncResult = await billing.syncBillingFromStripe(db, uid);
+            const status = await billing.getBillingStatus(db, uid);
+            ok(res, { sync: syncResult, ...status });
         } catch (err) {
             fail(res, err.message, err.status || 500);
         }

@@ -7,13 +7,21 @@
   const ONBOARDING_KEY = 'fbcast_onboarding_done';
 
   async function fetchSubscription() {
+    if (global.FBCastBillingStatus && typeof global.FBCastBillingStatus.fetch === 'function') {
+      try {
+        return await global.FBCastBillingStatus.fetch();
+      } catch (_) { /* fallback */ }
+    }
     const res = await fetch('/api/billing/subscription', { credentials: 'same-origin' });
     const body = await res.json();
     if (body.success === false) throw new Error(body.error?.message || 'Failed to load subscription');
     return body.data || body;
   }
 
-  function formatPlanName(plan) {
+  function formatPlanName(data) {
+    if (data?.display?.badge) return data.display.badge;
+    if (data?.planName) return data.planName;
+    const plan = data?.plan || data?.subscription?.dbPlan || 'free';
     const names = {
       free: 'Free',
       basic: 'Bronze',
@@ -36,24 +44,35 @@
 
     if (!planEl) return;
 
-    const used = data.messagesUsed ?? 0;
-    const limit = data.messageLimit ?? 2000;
-    const remaining = data.remaining ?? Math.max(0, limit - used);
+    const used = data.messagesUsed ?? data.entitlements?.messagesUsed ?? 0;
+    const limit = data.messageLimit ?? data.entitlements?.messagesLimit ?? 2000;
+    const remaining = data.remaining ?? data.entitlements?.messagesRemaining ?? Math.max(0, limit - used);
     const pct = limit > 0 ? Math.min(100, Math.round((used / limit) * 100)) : 0;
+    const planLabel = formatPlanName(data);
 
-    planEl.textContent = formatPlanName(data.plan);
+    planEl.textContent = planLabel;
     if (badgeEl) {
-      badgeEl.textContent = formatPlanName(data.plan);
-      badgeEl.className = 'saas-plan-badge' + (data.plan && data.plan !== 'free' ? ' saas-plan-badge--pro' : '');
+      badgeEl.textContent = planLabel;
+      const isPaid = data.subscription?.status === 'active' || (data.plan && data.plan !== 'free');
+      badgeEl.className = 'saas-plan-badge' + (isPaid ? ' saas-plan-badge--pro' : '');
     }
     if (usedEl) usedEl.textContent = used.toLocaleString();
     if (limitEl) limitEl.textContent = limit.toLocaleString();
     if (remainEl) remainEl.textContent = remaining.toLocaleString();
     if (fillEl) fillEl.style.width = pct + '%';
     if (expiresEl) {
-      if (data.subscriptionExpires) {
-        const d = new Date(data.subscriptionExpires);
+      const renews = data.subscriptionExpires || data.subscription?.renewsAt;
+      if (renews) {
+        const d = new Date(renews);
         expiresEl.textContent = 'Renews ' + d.toLocaleDateString();
+        expiresEl.style.display = '';
+      } else if (data.trial?.active && data.trial.daysLeft != null) {
+        expiresEl.textContent = data.trial.daysLeft === 1
+          ? '1 day left in free trial'
+          : `${data.trial.daysLeft} days left in free trial`;
+        expiresEl.style.display = '';
+      } else if (data.trial?.expired) {
+        expiresEl.textContent = 'Free trial ended — upgrade to send';
         expiresEl.style.display = '';
       } else {
         expiresEl.textContent = data.plan === 'free' ? 'Upgrade for more messages' : '';
@@ -61,18 +80,25 @@
     }
 
     const portalBtn = document.getElementById('saasManageBilling');
-    if (portalBtn) portalBtn.style.display = data.hasSubscription ? '' : 'none';
+    const hasSub = data.hasSubscription ?? data.subscription?.hasStripeSubscription;
+    if (portalBtn) portalBtn.style.display = hasSub ? '' : 'none';
   }
 
   async function refreshBillingUI() {
     try {
       const data = await fetchSubscription();
       renderBillingCard(data);
-      if (typeof global.saveQuota === 'function') {
+      if (global.FBCastBillingStatus && typeof global.FBCastBillingStatus.apply === 'function') {
+        global.FBCastBillingStatus.apply(data);
+      } else if (typeof global.saveQuota === 'function') {
         global.saveQuota({
-          messages_used: data.messagesUsed,
-          message_limit: data.messageLimit,
-          subscription_status: data.plan
+          subscriptionStatus: data.subscriptionStatus || data.plan || 'free',
+          messageLimit: data.messageLimit ?? data.entitlements?.messagesLimit,
+          messagesUsed: data.messagesUsed ?? data.entitlements?.messagesUsed,
+          trialDaysLeft: data.trialDaysLeft ?? data.trial?.daysLeft,
+          trialExpired: data.trialExpired ?? data.trial?.expired,
+          onFreeTrial: data.onFreeTrial ?? data.trial?.active,
+          freeTrialExpiresAt: data.freeTrialExpiresAt || data.trial?.expiresAt
         });
       }
       if (typeof global.updateQuotaUI === 'function') global.updateQuotaUI();
@@ -164,6 +190,9 @@
 
   document.addEventListener('DOMContentLoaded', bindBillingUI);
   window.addEventListener('fbcast:user-updated', refreshBillingUI);
+  window.addEventListener('fbc:billing-status', (e) => {
+    if (e.detail) renderBillingCard(e.detail);
+  });
 
   global.SaaSBilling = { refresh: refreshBillingUI, showOnboarding };
   global.refreshBillingUI = refreshBillingUI;

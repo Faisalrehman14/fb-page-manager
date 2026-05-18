@@ -931,11 +931,14 @@ window.getCsrfToken = async (forceRefresh = false) => {
 
     <div class="saas-topbar__right topbar-main">
       <div class="quota-widget saas-topbar__quota" title="Messages remaining this month">
-        <span id="planBadge" class="saas-topbar__plan-btn" data-plan="free" role="status">Free</span>
-        <div class="saas-topbar__quota-values" aria-label="Messages remaining">
-          <span class="quota-num" id="quotaVal">2,000</span>
-          <span class="saas-topbar__quota-sep">/</span>
-          <span class="quota-total-num" id="quotaTotal">2,000</span>
+        <span id="planBadge" class="saas-topbar__plan-btn" data-plan="free" role="status">Free Trial</span>
+        <div class="saas-topbar__quota-stack">
+          <div class="saas-topbar__quota-values" aria-label="Messages remaining">
+            <span class="quota-num" id="quotaVal">2,000</span>
+            <span class="saas-topbar__quota-sep">/</span>
+            <span class="quota-total-num" id="quotaTotal">2,000</span>
+          </div>
+          <span id="quotaTrialDays" class="saas-topbar__trial-days" hidden></span>
         </div>
         <button type="button" class="btn-upgrade saas-topbar__upgrade" onclick="if(typeof openUpgradeModal==='function')openUpgradeModal(this);else document.getElementById('upgradeModal').style.display='flex'">
           <i class="fa-solid fa-crown" aria-hidden="true"></i>
@@ -2533,6 +2536,7 @@ window.getCsrfToken = async (forceRefresh = false) => {
 <script src="assets/js/index-page.js?v={{VER}}" defer></script>
 <script src="assets/js/ui-components.js?v={{VER}}" defer></script>
 <script src="assets/js/app-shell.js?v={{VER}}"></script>
+<script src="assets/js/billing-status.js?v={{VER}}" defer></script>
 <script src="assets/js/billing.js?v={{VER}}" defer></script>
 <script src="fb_api.js?v={{VER}}"></script>
 <script src="web_ui.js?v={{VER}}"></script>

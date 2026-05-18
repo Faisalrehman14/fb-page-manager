@@ -6,6 +6,7 @@ const { MessageService } = require('./message-service');
 const { SendService } = require('./send-service');
 const { PollService } = require('./poll-service');
 const { SearchService } = require('./search-service');
+const { resolvePageToken } = require('./token-resolver');
 
 /**
  * Build messenger HTTP handlers (action-based API for backward compatibility).
@@ -118,10 +119,23 @@ function createMessengerRouter(deps) {
                     }
                     case 'poll': {
                         if (!pageId) return res.status(400).json({ error: 'page_id required' });
+                        const psid = req.query.psid || null;
                         const since = req.query.since || new Date(Date.now() - 30000).toISOString();
+                        if (dbConnected) {
+                            const pageToken = await resolvePageToken({
+                                pageId,
+                                session: req.session,
+                                db,
+                                dbConnected,
+                                fetchFn
+                            });
+                            if (pageToken) {
+                                await syncService.syncOnPoll(pageId, pageToken, { psid });
+                            }
+                        }
                         const result = await pollService.poll({
                             pageId,
-                            psid: req.query.psid,
+                            psid,
                             since,
                             dbConnected
                         });

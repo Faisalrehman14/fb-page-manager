@@ -962,7 +962,7 @@ function appendMessage(msg) {
     if (msg.attachments && msg.attachments.length > 0) {
         attachmentsHtml = msg.attachments.map(a => {
             if (a.t === 'image') {
-                return `<div class="msg-attachment"><img src="${escapeHtml(a.u)}" class="msg-img" loading="lazy" onerror="this.style.display='none'" onclick="window.open('${escapeHtml(a.u)}','_blank')"></div>`;
+                return `<div class="msg-attachment"><img src="${escapeHtml(a.u)}" class="msg-img" loading="lazy" onerror="this.style.display='none'" onclick="Inbox.openLightbox('${escapeHtml(a.u)}'); return false;"></div>`;
             }
             if (a.t === 'video') {
                 return `<div class="msg-attachment"><video src="${escapeHtml(a.u)}" controls class="msg-video" preload="metadata"></video></div>`;

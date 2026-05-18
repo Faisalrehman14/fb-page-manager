@@ -2,6 +2,9 @@ const {
     SYNC_COOLDOWN_MS,
     MESSAGE_RETENTION_DAYS,
     RELOGIN_SYNC_GAP_MS,
+    ACTIVE_THREAD_SYNC_MS,
+    ACTIVE_PAGE_SYNC_MS,
+    HOT_CONV_SYNC_LIMIT,
     retentionCutoffUnix
 } = require('./config');
 const { clearPageCache } = require('./conversation-service');
@@ -16,6 +19,8 @@ class SyncService {
         this.syncCooldown = syncCooldown;
         this.logError = logError;
         this._ensureKick = new Map(); // pageId → last kick timestamp
+        this._activeThreadSync = new Map(); // pageId:psid → last Graph pull
+        this._activePageSync = new Map(); // pageId → last hot-conv pull
     }
 
     shouldRunBackgroundSync(pageId) {
@@ -53,6 +58,7 @@ class SyncService {
 
                 if (!needsFull) {
                     this.scheduleConversationSync(pageId, token);
+                    this.syncOnPoll(pageId, token, { psid: null }).catch(() => {});
                     return;
                 }
 
@@ -106,6 +112,61 @@ class SyncService {
         })
             .then(() => clearPageCache(pageId))
             .catch(err => this.logError('messenger_bg_sync', err, { pageId }));
+    }
+
+    /**
+     * Pull latest messages from Facebook while the inbox is open.
+     * Catches replies sent from Meta Business Suite (often missing webhooks).
+     */
+    async syncOnPoll(pageId, pageToken, { psid = null } = {}) {
+        if (!pageId || !pageToken) return;
+        if (this.db.isPageSyncing?.(pageId)) return;
+
+        const now = Date.now();
+
+        if (psid) {
+            const key = `${pageId}:${psid}`;
+            const last = this._activeThreadSync.get(key) || 0;
+            if (now - last < ACTIVE_THREAD_SYNC_MS) return;
+            this._activeThreadSync.set(key, now);
+
+            try {
+                let conv = await this.db.getConversationIdByParticipant(pageId, psid);
+                if (!conv?.fbConvId) {
+                    await this.db.syncConversationsFromFacebook(pageId, pageToken, this.fetchFn, null, {
+                        maxPages: 2,
+                        maxTotal: 40,
+                        fbLimit: 40
+                    });
+                    conv = await this.db.getConversationIdByParticipant(pageId, psid);
+                }
+                if (conv?.fbConvId) {
+                    await this.db.syncThreadMessages(conv.fbConvId, pageId, pageToken, this.fetchFn, null);
+                    clearPageCache(pageId);
+                }
+            } catch (err) {
+                this.logError('sync_on_poll_thread', err, { pageId, psid });
+            }
+            return;
+        }
+
+        const lastPage = this._activePageSync.get(pageId) || 0;
+        if (now - lastPage < ACTIVE_PAGE_SYNC_MS) return;
+        this._activePageSync.set(pageId, now);
+
+        try {
+            const hot = await this.db.getHotConversationsForSync(pageId, HOT_CONV_SYNC_LIMIT);
+            const withFb = hot.filter((c) => c.fb_conv_id);
+            if (!withFb.length) return;
+
+            const tasks = withFb.map((c) => async () => {
+                await this.db.syncThreadMessages(c.fb_conv_id, pageId, pageToken, this.fetchFn, null);
+            });
+            await this.db.parallelLimit(tasks, 4);
+            clearPageCache(pageId);
+        } catch (err) {
+            this.logError('sync_on_poll_page', err, { pageId });
+        }
     }
 
     async runManualSync(pageId, pageToken, onProgress) {

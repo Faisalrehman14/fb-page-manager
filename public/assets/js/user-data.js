@@ -29,7 +29,11 @@
     state.quota = {
       subscriptionStatus: raw.subscriptionStatus || raw.plan || 'free',
       messageLimit: typeof raw.messageLimit === 'number' ? raw.messageLimit : 2000,
-      messagesUsed: typeof raw.messagesUsed === 'number' ? raw.messagesUsed : 0
+      messagesUsed: typeof raw.messagesUsed === 'number' ? raw.messagesUsed : 0,
+      trialDaysLeft: raw.trialDaysLeft != null ? raw.trialDaysLeft : null,
+      trialExpired: !!raw.trialExpired,
+      onFreeTrial: !!raw.onFreeTrial,
+      freeTrialExpiresAt: raw.freeTrialExpiresAt || null
     };
     if (typeof global.__setQuotaMemory === 'function') {
       global.__setQuotaMemory(state.quota);

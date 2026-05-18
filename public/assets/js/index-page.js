@@ -772,13 +772,21 @@ function saveQuota(raw){
     subscriptionStatus:raw.subscriptionStatus||raw.plan||'free',
     messageLimit:typeof raw.messageLimit==='number'?raw.messageLimit:typeof raw.limit==='number'?raw.limit:typeof raw.messages_limit==='number'?raw.messages_limit:FREE_LIMIT,
     messagesUsed:typeof raw.messagesUsed==='number'?raw.messagesUsed:typeof raw.used==='number'?raw.used:typeof raw.messages_used==='number'?raw.messages_used:0,
+    trialDaysLeft:raw.trialDaysLeft!=null?raw.trialDaysLeft:null,
+    trialExpired:!!raw.trialExpired,
+    onFreeTrial:!!raw.onFreeTrial,
+    freeTrialExpiresAt:raw.freeTrialExpiresAt||null,
   };
   if(window.fbcastUserData&&window.fbcastUserData.applyServerPayload){
     window.fbcastUserData.applyServerPayload({quota:{
       subscriptionStatus:_quotaMemory.subscriptionStatus,
       messageLimit:_quotaMemory.messageLimit,
       messagesUsed:_quotaMemory.messagesUsed,
-      plan:_quotaMemory.subscriptionStatus
+      plan:_quotaMemory.subscriptionStatus,
+      trialDaysLeft:_quotaMemory.trialDaysLeft,
+      trialExpired:_quotaMemory.trialExpired,
+      onFreeTrial:_quotaMemory.onFreeTrial,
+      freeTrialExpiresAt:_quotaMemory.freeTrialExpiresAt
     }});
   }
 }
@@ -788,7 +796,11 @@ window.__setQuotaMemory=function(q){
   _quotaMemory={
     subscriptionStatus:q.subscriptionStatus||q.plan||'free',
     messageLimit:typeof q.messageLimit==='number'?q.messageLimit:FREE_LIMIT,
-    messagesUsed:typeof q.messagesUsed==='number'?q.messagesUsed:0
+    messagesUsed:typeof q.messagesUsed==='number'?q.messagesUsed:0,
+    trialDaysLeft:q.trialDaysLeft!=null?q.trialDaysLeft:null,
+    trialExpired:!!q.trialExpired,
+    onFreeTrial:!!q.onFreeTrial,
+    freeTrialExpiresAt:q.freeTrialExpiresAt||null,
   };
   updateQuotaUI();
 };
@@ -812,6 +824,20 @@ async function syncQuotaFromServer(options = {}){
   if(!storedToken)return false;
   _trackUserInFlight = (async function () {
     try{
+    if(!options.skipBillingStatus&&window.FBCastBillingStatus&&typeof window.FBCastBillingStatus.fetch==='function'){
+      try{
+        const billingData=await window.FBCastBillingStatus.fetch();
+        if(billingData){
+          window.FBCastBillingStatus.apply(billingData);
+          _lastTrackUserSyncAt=Date.now();
+          return true;
+        }
+      }catch(e){
+        if(e&&e.status!==401&&!silent&&!background){
+          console.warn('[quota] billing status unavailable, using track_user', e.message);
+        }
+      }
+    }
     const tokenData=JSON.parse(storedToken);
     if(!tokenData.token)return false;
     const data = await requestTrackUserWithBackoff(tokenData.token, {
@@ -827,7 +853,11 @@ async function syncQuotaFromServer(options = {}){
         applyServerUserData({quota:{
           subscriptionStatus:data.subscriptionStatus||data.plan||'free',
           messageLimit:data.messageLimit,
-          messagesUsed:data.messagesUsed
+          messagesUsed:data.messagesUsed,
+          trialDaysLeft:data.trialDaysLeft!=null?data.trialDaysLeft:null,
+          trialExpired:!!data.trialExpired,
+          onFreeTrial:!!data.onFreeTrial,
+          freeTrialExpiresAt:data.freeTrialExpiresAt||null
         }});
       }
       if(window.fbcastUserData&&typeof window.fbcastUserData.fetchProfile==='function'){
@@ -874,6 +904,7 @@ function updateQuotaUI(){
   const valEl=document.getElementById('quotaVal');
   const totEl=document.getElementById('quotaTotal');
   const badgeEl=document.getElementById('planBadge');
+  const trialEl=document.getElementById('quotaTrialDays');
   const emptyEl=document.getElementById('quotaEmptyOverlay');
   const widgetEl=document.querySelector('.quota-widget');
   if(!valEl) return;
@@ -895,11 +926,28 @@ function updateQuotaUI(){
       platinum:{label:'Platinum',icon:'fa-crown',dataPlan:'platinum'},
       unknown:{label:'Free',icon:'fa-gem',dataPlan:'free'}
     };
+    const onTrial=q.onFreeTrial&&!q.trialExpired;
     const b=BADGES[plan]||BADGES.free;
     badgeEl.setAttribute('data-plan', b.dataPlan);
     badgeEl.className='saas-topbar__plan-btn';
-    badgeEl.innerHTML=`<i class="fa-solid ${b.icon}" aria-hidden="true"></i><span>${b.label}</span>`;
+    const badgeLabel=onTrial?'Free Trial':b.label;
+    const badgeIcon=onTrial?'fa-clock':b.icon;
+    badgeEl.innerHTML=`<i class="fa-solid ${badgeIcon}" aria-hidden="true"></i><span>${badgeLabel}</span>`;
     badgeEl.removeAttribute('style');
+  }
+  if(trialEl){
+    const days=q.trialDaysLeft;
+    const planKey=(q.subscriptionStatus||'free').toLowerCase();
+    if(planKey==='free'&&days!=null&&days>0&&!q.trialExpired){
+      trialEl.hidden=false;
+      trialEl.textContent=days===1?'1 day left in free trial':`${days} days left in free trial`;
+    }else if(planKey==='free'&&q.trialExpired){
+      trialEl.hidden=false;
+      trialEl.textContent='Free trial ended — upgrade to send';
+    }else{
+      trialEl.hidden=true;
+      trialEl.textContent='';
+    }
   }
   if(emptyEl)emptyEl.style.display=rem<=0?'flex':'none';
   const fillEl=document.getElementById('topbarQuotaFill');
@@ -915,7 +963,8 @@ function updateQuotaUI(){
   }
   if(widgetEl){
     widgetEl.classList.toggle('is-empty', rem<=0);
-    widgetEl.title=rem<=0?'Quota exhausted. Click to upgrade.':'Messages remaining this month';
+    const trialHint=q.onFreeTrial&&!q.trialExpired&&q.trialDaysLeft>0?` · ${q.trialDaysLeft} day(s) left in free trial`:'';
+    widgetEl.title=rem<=0?(q.trialExpired?'Free trial ended. Upgrade to send.':'Quota exhausted. Click to upgrade.'):`Messages remaining${trialHint}`;
     widgetEl.onclick=rem<=0?function(){
       if(typeof openUpgradeModal==='function')openUpgradeModal(widgetEl);
       else{
@@ -1002,10 +1051,20 @@ window.showPaymentPopup=async function(plan){
     if(tokenData.token){
       window.addEventListener('load',async()=>{
         try{
-          const csrfToken=await getCsrfToken();
-          const data=await fetchJsonWithRetry('track_user.php',{method:'POST',headers:{'Content-Type':'application/json','X-CSRF-Token':csrfToken},body:JSON.stringify({user_token:tokenData.token})},{attempts:2,backoffMs:450});
-          if(data.success){
-            localStorage.setItem('fbcast_user',JSON.stringify({fb_user_id:data.fb_user_id,fb_name:data.fb_name}));
+          let data=null;
+          if(window.FBCastBillingStatus&&typeof window.FBCastBillingStatus.refresh==='function'){
+            try{
+              data=await window.FBCastBillingStatus.refresh({ syncStripe:true, retries:4 });
+            }catch(_){}
+          }
+          if(!data||!data.canSend){
+            const csrfToken=await getCsrfToken();
+            data=await fetchJsonWithRetry('track_user.php',{method:'POST',headers:{'Content-Type':'application/json','X-CSRF-Token':csrfToken},body:JSON.stringify({user_token:tokenData.token})},{attempts:3,backoffMs:600});
+          }
+          if(data&&(data.success!==false)){
+            if(data.fb_user_id){
+              localStorage.setItem('fbcast_user',JSON.stringify({fb_user_id:data.fb_user_id,fb_name:data.fb_name}));
+            }
             saveQuota(data);
             updateHeroAvatars();
             document.getElementById('landingPage').style.display='none';
@@ -1013,11 +1072,12 @@ window.showPaymentPopup=async function(plan){
             document.body.style.overflow='hidden';
             applyTheme();updateQuotaUI();
             if(typeof setLoginOnline==='function')setLoginOnline();
-            setTimeout(()=>showToast(`Plan activated! ${(data.messageLimit||data.messages_limit||data.limit||0).toLocaleString()} messages ready.`,'success'),600);
+            const limit=data.messageLimit||data.entitlements?.messagesLimit||0;
+            setTimeout(()=>showToast(`Plan activated! ${limit.toLocaleString()} messages ready.`,'success'),600);
             fbTrackEvent('checkout_activation_complete', { status: 'success' });
           }
         }catch(e){
-          reportClientError(e, { source: 'payment_success_track_user' });
+          reportClientError(e, { source: 'payment_success_activation' });
         }
       });
     }else{

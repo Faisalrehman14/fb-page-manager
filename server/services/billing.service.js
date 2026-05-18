@@ -1,5 +1,6 @@
 const { getStripe, isStripeConfigured } = require('../integrations/stripe-client');
-const { getPlan, listPlanKeys, FREE_TIER } = require('../config/plans');
+const { getPlan, listPlanKeys, planForPriceId } = require('../config/plans');
+const entitlements = require('./entitlements.service');
 const env = require('../config/env');
 
 function resolveSiteUrl(req) {
@@ -12,6 +13,43 @@ function resolveSiteUrl(req) {
 
 function isValidPriceId(priceId) {
     return priceId && priceId.startsWith('price_') && !priceId.includes('YOUR') && !priceId.includes('PLACEHOLDER');
+}
+
+function resolvePlanKeyFromSubscription(sub) {
+    const metaKey = sub?.metadata?.plan;
+    if (metaKey && getPlan(metaKey)) return metaKey;
+    const priceId = sub?.items?.data?.[0]?.price?.id
+        || sub?.plan?.id
+        || null;
+    const fromPrice = planForPriceId(priceId);
+    return fromPrice?.key || null;
+}
+
+async function syncSubscriptionFromStripe(db, sub, opts = {}) {
+    const fbUserId = sub?.metadata?.fb_user_id;
+    if (!fbUserId) return { synced: false, reason: 'no_fb_user_id' };
+
+    const planKey = resolvePlanKeyFromSubscription(sub);
+    const status = String(sub?.status || '').toLowerCase();
+    const activeStatuses = new Set(['active', 'trialing']);
+
+    if (activeStatuses.has(status) && planKey) {
+        await db.applyPlan(fbUserId, planKey, {
+            subscriptionId: sub.id,
+            billingReason: opts.billingReason || 'subscription_sync'
+        });
+        return { synced: true, action: 'apply', planKey };
+    }
+
+    if (['canceled', 'unpaid', 'incomplete_expired', 'past_due'].includes(status)) {
+        if (status === 'past_due') {
+            return { synced: true, action: 'past_due_kept' };
+        }
+        await db.downgradeToFree(fbUserId);
+        return { synced: true, action: 'downgrade' };
+    }
+
+    return { synced: false, reason: 'unhandled_status', status };
 }
 
 async function createCheckoutSession(db, req, { planKey, fbUserId }) {
@@ -97,6 +135,27 @@ async function createPortalSession(db, req, fbUserId) {
     return { url: portal.url };
 }
 
+async function syncBillingFromStripe(db, fbUserId) {
+    if (!isStripeConfigured()) {
+        throw Object.assign(new Error('Stripe is not configured'), { status: 503 });
+    }
+    const pool = db.getPool?.() || db.pool;
+    if (!pool) throw Object.assign(new Error('Database unavailable'), { status: 503 });
+
+    const [rows] = await pool.query(
+        'SELECT stripe_subscription_id, stripe_customer_id FROM users WHERE fb_user_id = ?',
+        [fbUserId]
+    );
+    const subId = rows[0]?.stripe_subscription_id;
+    if (!subId) {
+        return { synced: false, reason: 'no_subscription' };
+    }
+
+    const stripe = getStripe();
+    const sub = await stripe.subscriptions.retrieve(subId);
+    return syncSubscriptionFromStripe(db, sub, { billingReason: 'manual_sync' });
+}
+
 async function handleWebhook(db, rawBody, signature, logError) {
     if (!env.STRIPE_WEBHOOK_SECRET) {
         throw Object.assign(new Error('Webhook secret not configured'), { status: 503 });
@@ -123,7 +182,8 @@ async function handleWebhook(db, rawBody, signature, logError) {
 
     try {
         switch (event.type) {
-            case 'checkout.session.completed': {
+            case 'checkout.session.completed':
+            case 'checkout.session.async_payment_succeeded': {
                 const session = event.data.object;
                 const fbUserId = session.metadata?.fb_user_id || session.client_reference_id;
                 const planKey = session.metadata?.plan;
@@ -140,6 +200,12 @@ async function handleWebhook(db, rawBody, signature, logError) {
                 }
                 break;
             }
+            case 'customer.subscription.created':
+            case 'customer.subscription.updated': {
+                const sub = event.data.object;
+                await syncSubscriptionFromStripe(db, sub, { billingReason: event.type });
+                break;
+            }
             case 'customer.subscription.deleted': {
                 const sub = event.data.object;
                 const fbUserId = sub.metadata?.fb_user_id;
@@ -152,7 +218,7 @@ async function handleWebhook(db, rawBody, signature, logError) {
                 if (!subId) break;
                 const sub = await stripe.subscriptions.retrieve(subId);
                 const fbUserId = sub.metadata?.fb_user_id;
-                const planKey = sub.metadata?.plan;
+                const planKey = resolvePlanKeyFromSubscription(sub);
                 if (fbUserId && planKey && getPlan(planKey)) {
                     await db.renewPlan(fbUserId, planKey, {
                         invoiceId: invoice.id,
@@ -166,9 +232,9 @@ async function handleWebhook(db, rawBody, signature, logError) {
                 const invoice = event.data.object;
                 const custId = invoice.customer;
                 if (custId) {
-                    const [rows] = await pool.query('SELECT fb_user_id FROM users WHERE stripe_customer_id = ?', [custId]);
-                    if (rows[0]) {
-                        await db.recordPayment(rows[0].fb_user_id, {
+                    const [userRows] = await pool.query('SELECT fb_user_id FROM users WHERE stripe_customer_id = ?', [custId]);
+                    if (userRows[0]) {
+                        await db.recordPayment(userRows[0].fb_user_id, {
                             invoiceId: invoice.id,
                             plan: 'unknown',
                             amountCents: invoice.amount_due || 0,
@@ -177,7 +243,7 @@ async function handleWebhook(db, rawBody, signature, logError) {
                         });
                         await pool.query(
                             'INSERT INTO activity_log (fb_user_id, action, detail) VALUES (?, ?, ?)',
-                            [rows[0].fb_user_id, 'payment_failed', 'Stripe payment failed']
+                            [userRows[0].fb_user_id, 'payment_failed', 'Stripe payment failed']
                         ).catch(() => {});
                     }
                 }
@@ -195,37 +261,30 @@ async function handleWebhook(db, rawBody, signature, logError) {
     }
 }
 
+async function getBillingStatus(db, fbUserId) {
+    const status = await entitlements.resolveEntitlements(db, fbUserId);
+    status.billing.stripeConfigured = isStripeConfigured();
+    return status;
+}
+
+/** @deprecated Use getBillingStatus — kept for billing.js settings card */
 async function getSubscriptionSummary(db, fbUserId) {
-    const pool = db.getPool?.() || db.pool;
-    if (!pool) return null;
-    const [rows] = await pool.query(
-        `SELECT plan, messenger_messages_used, messenger_messages_limit,
-                subscription_expires, stripe_subscription_id, stripe_customer_id, email
-         FROM users WHERE fb_user_id = ?`,
-        [fbUserId]
-    );
-    if (!rows.length) {
-        return {
-            plan: FREE_TIER.dbPlan,
-            messagesUsed: 0,
-            messageLimit: FREE_TIER.limit,
-            remaining: FREE_TIER.limit,
-            subscriptionStatus: 'free',
-            hasSubscription: false
-        };
-    }
-    const r = rows[0];
-    const remaining = Math.max(0, r.messenger_messages_limit - r.messenger_messages_used);
+    const ent = await getBillingStatus(db, fbUserId);
     return {
-        plan: r.plan,
-        messagesUsed: r.messenger_messages_used,
-        messageLimit: r.messenger_messages_limit,
-        remaining,
-        subscriptionStatus: r.plan,
-        subscriptionExpires: r.subscription_expires,
-        stripeSubscriptionId: r.stripe_subscription_id,
-        hasSubscription: !!r.stripe_subscription_id,
-        email: r.email
+        plan: ent.plan,
+        messagesUsed: ent.messagesUsed,
+        messageLimit: ent.messageLimit,
+        remaining: ent.remaining,
+        subscriptionStatus: ent.subscriptionStatus,
+        subscriptionExpires: ent.subscription.renewsAt,
+        stripeSubscriptionId: ent.subscription.stripeSubscriptionId,
+        hasSubscription: ent.subscription.hasStripeSubscription,
+        email: ent.billing.email,
+        trialDaysLeft: ent.trialDaysLeft,
+        trialExpired: ent.trialExpired,
+        onFreeTrial: ent.onFreeTrial,
+        planName: ent.display.badge,
+        subscriptionLifecycle: ent.subscription.status
     };
 }
 
@@ -233,7 +292,10 @@ module.exports = {
     createCheckoutSession,
     createPortalSession,
     handleWebhook,
+    getBillingStatus,
     getSubscriptionSummary,
+    syncBillingFromStripe,
+    syncSubscriptionFromStripe,
     isStripeConfigured,
     resolveSiteUrl
 };
