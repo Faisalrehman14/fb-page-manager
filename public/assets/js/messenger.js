@@ -60,7 +60,7 @@
   const POLL_SOCKET_MS = 8000;
   const CONV_PAGE_SIZE = 30;
   const CONV_LIST_CACHE_MS = 30_000;
-  const SEARCH_MIN_CHARS = 2;
+  const SEARCH_MIN_CHARS = 1;
   const SEARCH_DEBOUNCE_MS = 250;
   const SEARCH_CACHE_MS = 15_000;
   const _convListCache = new Map();
@@ -265,8 +265,20 @@
     return d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
   }
 
+  /** Unique per page — same customer can message multiple pages. */
+  function convKey(pageId, psid) {
+    return `${String(pageId || M.activePageId || '')}:${String(psid || '')}`;
+  }
+
+  function getConv(pageId, psid) {
+    return M._convByPsid.get(convKey(pageId, psid))
+      || M.convs.find(c => String(c.page_id) === String(pageId) && String(c.psid) === String(psid));
+  }
+
   function rebuildConvIndex() {
-    M._convByPsid = new Map(M.convs.map(c => [String(c.psid), c]));
+    M._convByPsid = new Map(
+      M.convs.map(c => [convKey(c.page_id || M.activePageId, c.psid), c])
+    );
   }
 
   function nextPollDelayMs() {
@@ -602,7 +614,7 @@
 
     if (mode === 'replace') {
       msgsEl.innerHTML = html;
-      scrollToBottom(false);
+      scrollToBottom(false, true);
     } else {
       // Preserve scroll position (load-more prepend)
       const prevHeight = msgsEl.scrollHeight;
@@ -644,7 +656,8 @@
       setTimeout(() => newEl.classList.remove('msng-msg-new'), 350);
     }
     trackMsgId(msg);
-    scrollToBottom(true);
+    const stick = isMsgsNearBottom(msgsEl) || msg.from_me == 1;
+    if (stick) scrollToBottom(true, true);
   }
 
   function trackMsgId(msg) {
@@ -694,9 +707,15 @@
     return true;
   }
 
-  function scrollToBottom(smooth = false) {
+  function isMsgsNearBottom(msgsEl, threshold = 96) {
+    if (!msgsEl) return true;
+    return msgsEl.scrollHeight - msgsEl.scrollTop - msgsEl.clientHeight <= threshold;
+  }
+
+  function scrollToBottom(smooth = false, force = false) {
     const msgsEl = $('msngMsgs');
     if (!msgsEl) return;
+    if (!force && !isMsgsNearBottom(msgsEl)) return;
     msgsEl.scrollTo({ top: msgsEl.scrollHeight, behavior: smooth ? 'smooth' : 'instant' });
     $('msngScrollBtn')?.classList.remove('visible');
   }
@@ -818,7 +837,10 @@
           gotNewMsg = true;
         }
       });
-      if (gotNewMsg) scrollToBottom(true);
+      if (gotNewMsg) {
+        const msgsEl = $('msngMsgs');
+        if (isMsgsNearBottom(msgsEl)) scrollToBottom(true, true);
+      }
 
       // Graph sync ran but poll missed rows (stale cache / clock skew) — reload open thread
       if (M.activePsid && data.graph_synced && !gotNewMsg && !(data.new_messages || []).length) {
@@ -829,7 +851,10 @@
       let convListDirty = false;
       if (data.updated_convs?.length) {
         data.updated_convs.forEach(uc => {
-          const key = String(uc.fb_user_id);
+          const ucPage = String(uc.page_id || M.activePageId || '');
+          if (ucPage !== String(M.activePageId)) return;
+
+          const key = convKey(M.activePageId, uc.fb_user_id);
           const existing = M._convByPsid.get(key);
           if (existing) {
             if (uc.fb_user_id !== M.activePsid) {
@@ -849,7 +874,7 @@
               lastFromMe: uc.last_from_me == 1,
               lastMsgAt: uc.updated_at || uc.last_msg_at,
               unread: parseInt(uc.is_unread) || 0,
-              page_id: uc.page_id || M.activePageId,
+              page_id: M.activePageId,
             };
             M.convs.unshift(row);
             M._convByPsid.set(key, row);
@@ -947,7 +972,7 @@
     M.msgs.push(tempMsg);
     M.renderedMsgIds.add(tempId);
     appendBubble(tempMsg);
-    scrollToBottom(true); // Always scroll when sending — user just typed this message
+    scrollToBottom(true, true); // Always scroll when sending — user just typed this message
 
     try {
       const res = await post({
@@ -1010,6 +1035,30 @@
   // SEARCH
   // ══════════════════════════════════════════════════════════
 
+  function filterLocalConvs(q) {
+    const ql = String(q || '').trim().toLowerCase();
+    if (!ql) return [];
+    const words = ql.split(/\s+/).filter(Boolean);
+    return M.convs.filter(c => {
+      const name = (c.name || 'User').toLowerCase();
+      const psid = String(c.psid || '');
+      const last = (c.lastMsg || '').toLowerCase();
+      return words.every(w => name.includes(w) || psid.includes(w) || last.includes(w));
+    });
+  }
+
+  function renderLocalSearchResults(q, list) {
+    const listEl = $('msngConvList');
+    if (!listEl) return;
+    if (!list.length) {
+      showSearchHint(`No names matching "<strong>${esc(q)}</strong>" on this page`);
+      return;
+    }
+    let html = `<div class="msng-search-meta">${list.length} match(es) in loaded chats</div>`;
+    list.forEach(c => { html += convItemHtml(c, M.activePsid); });
+    listEl.innerHTML = html;
+  }
+
   function showSearchHint(msg) {
     const listEl = $('msngConvList');
     if (!listEl) return;
@@ -1067,6 +1116,12 @@
     if (!listEl) return;
 
     M.search.active = true;
+    const localMatches = filterLocalConvs(q);
+    if (q.length < 2) {
+      renderLocalSearchResults(q, localMatches);
+      return;
+    }
+
     const key = `${M.activePageId}:${q.toLowerCase()}`;
     const cached = M.search.cache.get(key);
     if (cached && Date.now() - cached.ts < SEARCH_CACHE_MS) {
@@ -1078,9 +1133,13 @@
     const controller = new AbortController();
     M.search.abort = controller;
 
-    listEl.innerHTML = `<div class="msng-empty">
-      <i class="fa-solid fa-magnifying-glass fa-bounce"></i><p>Searching database…</p>
-    </div>`;
+    if (localMatches.length) {
+      renderLocalSearchResults(q, localMatches);
+    } else {
+      listEl.innerHTML = `<div class="msng-empty">
+        <i class="fa-solid fa-magnifying-glass fa-bounce"></i><p>Searching database…</p>
+      </div>`;
+    }
 
     try {
       const qs = new URLSearchParams({ action: 'search', page_id: M.activePageId, q }).toString();
@@ -1088,16 +1147,25 @@
       if (M.search.query !== q) return;
 
       const data = r.ok ? await r.json() : { conversations: [], messages: [], error: 'Search failed' };
-      if (data.hint && !data.conversations?.length && !data.messages?.length) {
-        showSearchHint(data.hint);
-        return;
-      }
-
       const convMatches = data.conversations || [];
       const msgMatches  = data.messages || [];
 
+      if (data.hint && !convMatches.length && !msgMatches.length) {
+        if (localMatches.length) {
+          renderLocalSearchResults(q, localMatches);
+        } else {
+          showSearchHint(data.hint);
+        }
+        return;
+      }
+
       M.search.cache.set(key, { conversations: convMatches, messages: msgMatches, ts: Date.now() });
       if (M.search.cache.size > 40) M.search.cache.delete(M.search.cache.keys().next().value);
+
+      if (!convMatches.length && !msgMatches.length && localMatches.length) {
+        renderLocalSearchResults(q, localMatches);
+        return;
+      }
 
       renderSearchResults(q, convMatches, msgMatches);
     } catch (e) {
@@ -1514,7 +1582,7 @@
       M.activeToken  = (M.pages.find(p => p.id === pageId) || {}).access_token || M.activeToken;
     }
 
-    const conv = M._convByPsid.get(String(psid)) || M.convs.find(c => c.psid === psid);
+    const conv = getConv(pageId || M.activePageId, psid);
     if (conv) conv.unread = 0;
     renderConvs();
 
@@ -1544,7 +1612,7 @@
       M.renderedMsgIds = new Set();
       M.oldestMsgTime  = cached.oldestMsgTime;
       renderMessages('replace');
-      scrollToBottom(false);
+      scrollToBottom(false, true);
       // Silent background refresh to pick up any new messages since cached
       loadMessages().catch(() => {});
     } else {
@@ -1693,10 +1761,9 @@
     }
 
     M.search.active = true;
-    if (q.length < SEARCH_MIN_CHARS) {
-      showSearchHint(`Type at least ${SEARCH_MIN_CHARS} characters to search all chats`);
-      return;
-    }
+    renderLocalSearchResults(q, filterLocalConvs(q));
+
+    if (q.length < 2) return;
 
     M.search.timer = setTimeout(() => doSearch(q), SEARCH_DEBOUNCE_MS);
   };
@@ -1867,15 +1934,13 @@
         if (!confirmedPending && !isDuplicate(normalized)) {
           M.msgs.push(normalized);
           appendBubble(normalized);
-          scrollToBottom(true);
         }
       }
 
-      // Update sidebar conversation entry
-      const conv = M.convs.find(c =>
-        String(c.psid) === msgPsid &&
-        (String(c.page_id) === msgPageId || String(M.activePageId) === msgPageId)
-      );
+      // Sidebar: only update conversations for the page currently shown
+      if (msgPageId !== String(M.activePageId)) return;
+
+      const conv = getConv(M.activePageId, msgPsid);
       if (conv) {
         conv.lastMsg    = msg.text || '[Attachment]';
         conv.lastFromMe = !!msg.isFromPage;
@@ -1886,13 +1951,15 @@
         M.convs.sort((a, b) => new Date(b.lastMsgAt || 0) - new Date(a.lastMsgAt || 0));
         renderConvs();
       } else if (!msg.isFromPage && msg.participantId) {
-        M.convs.unshift({
+        const row = {
           id: msg.threadId, psid: msg.participantId,
           name: 'New User', picture: null,
           lastMsg: msg.text || '[Attachment]', lastFromMe: false,
           lastMsgAt: msg.createdTime || new Date().toISOString(),
-          unread: 1, page_id: msg.pageId
-        });
+          unread: 1, page_id: M.activePageId
+        };
+        M.convs.unshift(row);
+        M._convByPsid.set(convKey(M.activePageId, msg.participantId), row);
         renderConvs();
       }
 
@@ -1929,7 +1996,10 @@
     // Conversation metadata refresh (snippet, unread count)
     _socket.on('conversation_updated', (data) => {
       if (!data || typeof data !== 'object') return;
-      const conv = M.convs.find(c => c.id === data.id || c.psid === data.participantId);
+      if (data.pageId && String(data.pageId) !== String(M.activePageId)) return;
+      const conv = data.participantId
+        ? getConv(M.activePageId, data.participantId)
+        : M.convs.find(c => c.id === data.id);
       if (conv) {
         if (data.snippet)     conv.lastMsg   = data.snippet;
         if (data.updatedTime) conv.lastMsgAt = data.updatedTime;

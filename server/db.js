@@ -586,9 +586,9 @@ async function getConversations(pageId, limit = 100, offset = 0, archived = fals
 async function searchConversations(pageId, query, limit = 25) {
     if (!pool) return [];
     const term = String(query || '').trim();
-    if (term.length < 2) return [];
-    const like = `%${term}%`;
-    const prefix = `${term}%`;
+    if (term.length < 1) return [];
+    const likeLower = `%${term.toLowerCase()}%`;
+    const prefixLower = `${term.toLowerCase()}%`;
     try {
         const [rows] = await pool.query(`
             SELECT c.id, c.page_id, c.fb_user_id AS participant_id, c.user_name AS participant_name,
@@ -596,12 +596,12 @@ async function searchConversations(pageId, query, limit = 25) {
             FROM messenger_conversations c
             WHERE ${_inboxWhere('c')}
               AND (
-                c.user_name LIKE ? OR c.user_name LIKE ?
-                OR c.snippet LIKE ? OR c.fb_user_id = ?
+                LOWER(COALESCE(c.user_name, '')) LIKE ? OR LOWER(COALESCE(c.user_name, '')) LIKE ?
+                OR LOWER(COALESCE(c.snippet, '')) LIKE ? OR c.fb_user_id = ?
               )
             ORDER BY c.updated_at DESC
             LIMIT ?
-        `, [..._inboxParams(pageId), prefix, like, like, term, limit]);
+        `, [..._inboxParams(pageId), prefixLower, likeLower, likeLower, term, limit]);
         return rows.map(row => ({
             id: row.id,
             pageId: row.page_id,
@@ -628,7 +628,7 @@ async function searchInbox(pageId, query, limits = {}) {
         SEARCH_MSG_LIMIT
     } = require('./messenger/config');
     const term = String(query || '').trim();
-    if (!pool || term.length < 2) {
+    if (!pool || term.length < 1) {
         return { conversations: [], messages: [] };
     }
 
