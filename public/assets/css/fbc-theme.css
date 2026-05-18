@@ -250,9 +250,10 @@ html[data-theme='light'] {
   --surface2: #f5f7ff;
   --surface3: #e8edff;
 
-  --text: #0f172a;
-  --text2: #475569;
+  --text: #0c1222;
+  --text2: #334155;
   --text3: #64748b;
+  --primary-light: #2563eb;
 
   --border: rgba(99, 102, 241, 0.12);
   --border2: rgba(124, 58, 237, 0.2);

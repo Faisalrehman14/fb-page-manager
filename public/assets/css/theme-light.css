@@ -1,0 +1,683 @@
+/**
+ * FBCast Pro — Light mode readability fixes
+ * Loads last. Overrides dark-only hardcoded colors from dashboard-premium.css
+ */
+
+html[data-theme='light'],
+body.light {
+  color-scheme: light;
+}
+
+html[data-theme='light'] body,
+body.light {
+  color: var(--text, #0f172a);
+  background: var(--fbc-canvas, #eef2ff);
+}
+
+/* ─── Topbar ─── */
+html[data-theme='light'] #appPage .saas-topbar,
+body.light #appPage .saas-topbar {
+  background: rgba(255, 255, 255, 0.96) !important;
+  border-bottom: 1px solid rgba(99, 102, 241, 0.14) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 1),
+    0 4px 20px rgba(15, 23, 42, 0.06) !important;
+}
+
+html[data-theme='light'] #appPage .saas-topbar::after,
+body.light #appPage .saas-topbar::after {
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(99, 102, 241, 0.25) 30%,
+    rgba(124, 58, 237, 0.3) 70%,
+    transparent
+  ) !important;
+}
+
+html[data-theme='light'] #appPage .saas-topbar .topbar-title h1,
+body.light #appPage .saas-topbar .topbar-title h1 {
+  background: linear-gradient(135deg, #1e3a8a 0%, #5b21b6 100%) !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+}
+
+html[data-theme='light'] #appPage .saas-topbar .topbar-title p,
+body.light #appPage .saas-topbar .topbar-title p {
+  color: #64748b !important;
+}
+
+html[data-theme='light'] #appPage .saas-topbar .quota-widget,
+body.light #appPage .saas-topbar .quota-widget {
+  background: #f8fafc !important;
+  border: 1px solid rgba(99, 102, 241, 0.18) !important;
+}
+
+html[data-theme='light'] #appPage .saas-topbar__quota-values .quota-total-num,
+html[data-theme='light'] #appPage .topbar-user-name,
+html[data-theme='light'] #appPage #loginStatus,
+body.light #appPage .saas-topbar__quota-values .quota-total-num,
+body.light #appPage .topbar-user-name,
+body.light #appPage #loginStatus {
+  color: #334155 !important;
+}
+
+html[data-theme='light'] #appPage .saas-topbar__quota-values .quota-num,
+body.light #appPage .saas-topbar__quota-values .quota-num {
+  color: #059669 !important;
+}
+
+html[data-theme='light'] #appPage .saas-topbar__icon-btn,
+body.light #appPage .saas-topbar__icon-btn {
+  color: #475569 !important;
+  background: #f1f5f9 !important;
+  border-color: #e2e8f0 !important;
+}
+
+html[data-theme='light'] #appPage .saas-topbar__icon-btn:hover,
+body.light #appPage .saas-topbar__icon-btn:hover {
+  color: #1e3a8a !important;
+  background: #e0e7ff !important;
+}
+
+/* ─── Sidebar ─── */
+html[data-theme='light'] #appPage .nav-sidebar,
+body.light #appPage .nav-sidebar {
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%) !important;
+  box-shadow: 1px 0 0 #e2e8f0 !important;
+}
+
+html[data-theme='light'] #appPage .nav-side-item,
+body.light #appPage .nav-side-item {
+  color: #475569 !important;
+}
+
+html[data-theme='light'] #appPage .nav-side-item:hover,
+body.light #appPage .nav-side-item:hover {
+  color: #1e293b !important;
+  background: #f1f5f9 !important;
+}
+
+html[data-theme='light'] #appPage .nav-side-item.active,
+body.light #appPage .nav-side-item.active {
+  color: #1e3a8a !important;
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.12), rgba(124, 58, 237, 0.08)) !important;
+  box-shadow: inset 0 0 0 1px rgba(99, 102, 241, 0.2) !important;
+}
+
+/* ─── Home dashboard ─── */
+html[data-theme='light'] #view-home,
+body.light #view-home {
+  --hd-glass: #ffffff;
+  --hd-border: rgba(99, 102, 241, 0.16);
+  --prem-surface: #ffffff;
+  --prem-surface-2: #f8fafc;
+  --prem-surface-3: #f1f5f9;
+  --prem-edge: rgba(99, 102, 241, 0.14);
+  --prem-shadow:
+    0 0 0 1px rgba(15, 23, 42, 0.04),
+    0 4px 16px rgba(15, 23, 42, 0.06);
+  --prem-shadow-hover:
+    0 0 0 1px rgba(99, 102, 241, 0.2),
+    0 12px 32px rgba(99, 102, 241, 0.12);
+}
+
+html[data-theme='light'] #view-home .hv-hero,
+body.light #view-home .hv-hero {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.9) 0%, transparent 35%),
+    linear-gradient(118deg, rgba(99, 102, 241, 0.12) 0%, rgba(167, 139, 250, 0.1) 50%, transparent 75%),
+    linear-gradient(180deg, #ffffff 0%, #f1f5ff 100%) !important;
+  border: 1px solid rgba(99, 102, 241, 0.18) !important;
+}
+
+html[data-theme='light'] #view-home .hv-hero-orb1,
+html[data-theme='light'] #view-home .hv-hero-orb2,
+body.light #view-home .hv-hero-orb1,
+body.light #view-home .hv-hero-orb2 {
+  opacity: 0.35;
+}
+
+html[data-theme='light'] #view-home .hv-hero-title,
+html[data-theme='light'] #view-home .hv-metrics-title,
+html[data-theme='light'] #view-home .hv-panel-title,
+html[data-theme='light'] #view-home .hv-kpi-val,
+html[data-theme='light'] #view-home .hv-plan-used,
+html[data-theme='light'] #view-home .hv-qa-card-label,
+html[data-theme='light'] #view-home .hv-hero-sched-title,
+html[data-theme='light'] #view-home .hv-pstatus-title,
+body.light #view-home .hv-hero-title,
+body.light #view-home .hv-metrics-title,
+body.light #view-home .hv-panel-title,
+body.light #view-home .hv-kpi-val,
+body.light #view-home .hv-plan-used,
+body.light #view-home .hv-qa-card-label,
+body.light #view-home .hv-hero-sched-title,
+body.light #view-home .hv-pstatus-title {
+  color: #0f172a !important;
+  text-shadow: none !important;
+}
+
+html[data-theme='light'] #view-home .hv-hero-name,
+body.light #view-home .hv-hero-name {
+  background: linear-gradient(135deg, #1d4ed8 0%, #6d28d9 100%) !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  filter: none !important;
+}
+
+html[data-theme='light'] #view-home .hv-hero-sub,
+html[data-theme='light'] #view-home .hv-panel-sub,
+html[data-theme='light'] #view-home .hv-qa-card-desc,
+html[data-theme='light'] #view-home .hv-sync-left,
+html[data-theme='light'] #view-home .hv-plan-feat,
+html[data-theme='light'] #view-home .hv-lifetime-desc,
+body.light #view-home .hv-hero-sub,
+body.light #view-home .hv-panel-sub,
+body.light #view-home .hv-qa-card-desc,
+body.light #view-home .hv-sync-left,
+body.light #view-home .hv-plan-feat,
+body.light #view-home .hv-lifetime-desc {
+  color: #475569 !important;
+}
+
+html[data-theme='light'] #view-home .hv-metrics-eyebrow,
+html[data-theme='light'] #view-home .hv-kpi-lbl,
+html[data-theme='light'] #view-home .hv-sync-time,
+body.light #view-home .hv-metrics-eyebrow,
+body.light #view-home .hv-kpi-lbl,
+body.light #view-home .hv-sync-time {
+  color: #64748b !important;
+}
+
+html[data-theme='light'] #view-home .hv-hero-status,
+body.light #view-home .hv-hero-status {
+  background: rgba(16, 185, 129, 0.12) !important;
+  border-color: rgba(5, 150, 105, 0.28) !important;
+  color: #047857 !important;
+}
+
+html[data-theme='light'] #view-home .hv-hero-badge-fb,
+body.light #view-home .hv-hero-badge-fb {
+  background: rgba(99, 102, 241, 0.1) !important;
+  border-color: rgba(99, 102, 241, 0.22) !important;
+  color: #4338ca !important;
+}
+
+html[data-theme='light'] #view-home .hv-hero-cta2,
+body.light #view-home .hv-hero-cta2 {
+  color: #1e293b !important;
+  background: #ffffff !important;
+  border: 1px solid rgba(99, 102, 241, 0.22) !important;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06) !important;
+}
+
+html[data-theme='light'] #view-home .hv-hero-cta2:hover,
+body.light #view-home .hv-hero-cta2:hover {
+  background: #f8fafc !important;
+  border-color: rgba(99, 102, 241, 0.35) !important;
+  color: #1e3a8a !important;
+}
+
+html[data-theme='light'] #view-home .hv-hero-sched-card,
+body.light #view-home .hv-hero-sched-card {
+  background: #ffffff !important;
+  border: 1px solid rgba(99, 102, 241, 0.16) !important;
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.06) !important;
+}
+
+html[data-theme='light'] #view-home .hv-hero-sched-title i,
+body.light #view-home .hv-hero-sched-title i {
+  color: #4f46e5 !important;
+}
+
+html[data-theme='light'] #view-home .hv-hero-sched-empty,
+body.light #view-home .hv-hero-sched-empty {
+  color: #64748b !important;
+  background: #f8fafc !important;
+  border-color: #e2e8f0 !important;
+}
+
+html[data-theme='light'] #view-home .hv-hero-sched-btn,
+body.light #view-home .hv-hero-sched-btn {
+  color: #4338ca !important;
+  background: #eef2ff !important;
+  border-color: rgba(99, 102, 241, 0.25) !important;
+}
+
+html[data-theme='light'] #view-home .hv-kpi,
+html[data-theme='light'] #view-home .hv-panel,
+html[data-theme='light'] #view-home .hv-qa-card,
+html[data-theme='light'] #view-home .hv-sync-bar,
+body.light #view-home .hv-kpi,
+body.light #view-home .hv-panel,
+body.light #view-home .hv-qa-card,
+body.light #view-home .hv-sync-bar {
+  background: #ffffff !important;
+  border-color: rgba(99, 102, 241, 0.12) !important;
+}
+
+html[data-theme='light'] #view-home .hv-panel-hdr,
+body.light #view-home .hv-panel-hdr {
+  background: #f8fafc !important;
+  border-bottom-color: #e2e8f0 !important;
+}
+
+html[data-theme='light'] #view-home .hv-green,
+body.light #view-home .hv-green {
+  color: #059669 !important;
+}
+
+html[data-theme='light'] #view-home .hv-amber,
+body.light #view-home .hv-amber {
+  color: #d97706 !important;
+}
+
+html[data-theme='light'] #view-home .hv-red,
+body.light #view-home .hv-red {
+  color: #dc2626 !important;
+}
+
+html[data-theme='light'] #view-home .hv-sched-main-item,
+body.light #view-home .hv-sched-main-item {
+  background: #f8fafc !important;
+  border: 1px solid #e2e8f0 !important;
+}
+
+html[data-theme='light'] #view-home .hv-sched-main-item:hover,
+body.light #view-home .hv-sched-main-item:hover {
+  background: #eef2ff !important;
+  border-color: rgba(99, 102, 241, 0.25) !important;
+}
+
+html[data-theme='light'] #view-home .hv-half-stats,
+html[data-theme='light'] #view-home .hv-ph-half-stat,
+body.light #view-home .hv-half-stats,
+body.light #view-home .hv-ph-half-stat {
+  background: #f8fafc !important;
+}
+
+html[data-theme='light'] #view-home .hv-half-stat-val,
+html[data-theme='light'] #view-home .hv-ph-half-stat-val,
+body.light #view-home .hv-half-stat-val,
+body.light #view-home .hv-ph-half-stat-val {
+  color: #0f172a !important;
+}
+
+html[data-theme='light'] #view-home .hv-half-stat-lbl,
+html[data-theme='light'] #view-home .hv-ph-half-stat-lbl,
+body.light #view-home .hv-half-stat-lbl,
+body.light #view-home .hv-ph-half-stat-lbl {
+  color: #64748b !important;
+}
+
+/* Plan card */
+html[data-theme='light'] #view-home .hv-plan-card,
+body.light #view-home .hv-plan-card {
+  border-color: rgba(124, 58, 237, 0.3) !important;
+  box-shadow: 0 8px 32px rgba(99, 102, 241, 0.1) !important;
+}
+
+html[data-theme='light'] #view-home .hv-plan-card-bg,
+body.light #view-home .hv-plan-card-bg {
+  background: linear-gradient(165deg, #faf5ff 0%, #ffffff 55%, #f8fafc 100%) !important;
+}
+
+html[data-theme='light'] #view-home .hv-plan-badge,
+html[data-theme='light'] #view-home .hv-plan-badge span,
+html[data-theme='light'] #view-home .hv-plan-total,
+html[data-theme='light'] #view-home .hv-plan-pct,
+body.light #view-home .hv-plan-badge,
+body.light #view-home .hv-plan-badge span,
+body.light #view-home .hv-plan-total,
+body.light #view-home .hv-plan-pct {
+  color: #334155 !important;
+}
+
+html[data-theme='light'] #view-home .hv-plan-bar,
+body.light #view-home .hv-plan-bar {
+  background: #e2e8f0 !important;
+}
+
+html[data-theme='light'] #view-home .hv-lifetime-card,
+body.light #view-home .hv-lifetime-card {
+  border-color: rgba(245, 158, 11, 0.35) !important;
+}
+
+html[data-theme='light'] #view-home .hv-lifetime-bg,
+body.light #view-home .hv-lifetime-bg {
+  background: linear-gradient(135deg, #fffbeb, #fef3c7) !important;
+}
+
+html[data-theme='light'] #view-home .hv-lifetime-title,
+body.light #view-home .hv-lifetime-title {
+  color: #0f172a !important;
+}
+
+html[data-theme='light'] #view-home .hv-lifetime-btn,
+body.light #view-home .hv-lifetime-btn {
+  color: #1e3a8a !important;
+  background: #fff !important;
+  border-color: #e2e8f0 !important;
+}
+
+html[data-theme='light'] #view-home .hv-pstatus-name,
+body.light #view-home .hv-pstatus-name {
+  color: #334155 !important;
+}
+
+html[data-theme='light'] #view-home .hv-pstatus-badge,
+body.light #view-home .hv-pstatus-badge {
+  color: #047857 !important;
+}
+
+/* QA icon tints — keep readable on white */
+html[data-theme='light'] #view-home .hv-qa-card-blue .hv-qa-card-icon,
+body.light #view-home .hv-qa-card-blue .hv-qa-card-icon {
+  background: rgba(59, 130, 246, 0.12) !important;
+  color: #2563eb !important;
+}
+
+html[data-theme='light'] #view-home .hv-qa-card-cyan .hv-qa-card-icon,
+body.light #view-home .hv-qa-card-cyan .hv-qa-card-icon {
+  background: rgba(6, 182, 212, 0.12) !important;
+  color: #0891b2 !important;
+}
+
+html[data-theme='light'] #view-home .hv-qa-card-green .hv-qa-card-icon,
+body.light #view-home .hv-qa-card-green .hv-qa-card-icon {
+  background: rgba(16, 185, 129, 0.12) !important;
+  color: #059669 !important;
+}
+
+html[data-theme='light'] #view-home .hv-qa-card-purple .hv-qa-card-icon,
+body.light #view-home .hv-qa-card-purple .hv-qa-card-icon {
+  background: rgba(124, 58, 237, 0.12) !important;
+  color: #7c3aed !important;
+}
+
+html[data-theme='light'] #view-home .hv-add-btn,
+html[data-theme='light'] #view-home .hv-add-btn-purple,
+body.light #view-home .hv-add-btn,
+body.light #view-home .hv-add-btn-purple {
+  color: #4338ca !important;
+  background: #eef2ff !important;
+  border-color: rgba(99, 102, 241, 0.25) !important;
+}
+
+/* Other app views */
+html[data-theme='light'] #appPage .compose,
+html[data-theme='light'] #appPage .compose-col,
+html[data-theme='light'] #appPage .sidebar,
+html[data-theme='light'] #appPage .broadcast-col,
+body.light #appPage .compose,
+body.light #appPage .compose-col,
+body.light #appPage .sidebar,
+body.light #appPage .broadcast-col {
+  background: #ffffff !important;
+  color: #0f172a !important;
+}
+
+html[data-theme='light'] #appPage .pro-card,
+html[data-theme='light'] #appPage .settings-section,
+html[data-theme='light'] #view-messenger,
+body.light #appPage .pro-card,
+body.light #appPage .settings-section,
+body.light #view-messenger {
+  background: #ffffff !important;
+  color: #0f172a !important;
+}
+
+html[data-theme='light'] #appPage label,
+html[data-theme='light'] #appPage .form-label,
+html[data-theme='light'] #appPage h1,
+html[data-theme='light'] #appPage h2,
+html[data-theme='light'] #appPage h3,
+body.light #appPage label,
+body.light #appPage .form-label,
+body.light #appPage h1,
+body.light #appPage h2,
+body.light #appPage h3 {
+  color: #0f172a;
+}
+
+html[data-theme='light'] #appPage input,
+html[data-theme='light'] #appPage textarea,
+html[data-theme='light'] #appPage select,
+body.light #appPage input,
+body.light #appPage textarea,
+body.light #appPage select {
+  color: #0f172a !important;
+  background: #ffffff !important;
+  border-color: #cbd5e1 !important;
+}
+
+html[data-theme='light'] #appPage input::placeholder,
+html[data-theme='light'] #appPage textarea::placeholder,
+body.light #appPage input::placeholder,
+body.light #appPage textarea::placeholder {
+  color: #94a3b8 !important;
+}
+
+/* Tables in light */
+html[data-theme='light'] #appPage table th,
+body.light #appPage table th {
+  color: #475569 !important;
+  background: #f1f5f9 !important;
+}
+
+html[data-theme='light'] #appPage table td,
+body.light #appPage table td {
+  color: #334155 !important;
+}
+
+/* ─── App shell CSS vars (override dashboard-premium dark tokens) ─── */
+html[data-theme='light'] #appPage,
+body.light #appPage {
+  --prem-edge: rgba(99, 102, 241, 0.14);
+  --prem-edge-soft: rgba(99, 102, 241, 0.08);
+  --prem-surface: #ffffff;
+  --prem-surface-2: #f8fafc;
+  --prem-surface-3: #f1f5f9;
+  --prem-inset: inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  --prem-shadow:
+    0 0 0 1px rgba(15, 23, 42, 0.04),
+    0 4px 16px rgba(15, 23, 42, 0.06);
+  --prem-shadow-hover:
+    0 0 0 1px rgba(99, 102, 241, 0.2),
+    0 12px 32px rgba(99, 102, 241, 0.12);
+  background: var(--fbc-canvas, #eef2ff) !important;
+  color: #0f172a;
+}
+
+html[data-theme='light'] #appPage .nav-side-item.active,
+body.light #appPage .nav-side-item.active {
+  color: #1e3a8a !important;
+}
+
+/* saas-pro sidebar dark gradient */
+html[data-theme='light'] #appPage .nav-sidebar,
+body.light #appPage .nav-sidebar {
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%) !important;
+  box-shadow: 1px 0 0 #e2e8f0 !important;
+}
+
+html[data-theme='light'] #appPage .nav-side-item:hover:not(.active),
+body.light #appPage .nav-side-item:hover:not(.active) {
+  background: #f1f5f9 !important;
+}
+
+/* Legacy topbar (index.css) */
+html[data-theme='light'] #appPage .topbar-title h1,
+body.light #appPage .topbar-title h1 {
+  color: #0f172a !important;
+  background: linear-gradient(135deg, #1e3a8a 0%, #5b21b6 100%) !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+}
+
+/* ─── Analytics / Settings / Help pro views ─── */
+html[data-theme='light'] #view-analytics .analytics-kpi,
+html[data-theme='light'] #view-analytics .pro-history-item,
+body.light #view-analytics .analytics-kpi,
+body.light #view-analytics .pro-history-item {
+  background: #ffffff !important;
+  border-color: rgba(99, 102, 241, 0.12) !important;
+}
+
+html[data-theme='light'] #view-analytics .analytics-kpi .akpi-val,
+html[data-theme='light'] #view-analytics .analytics-kpi .akpi-lbl,
+html[data-theme='light'] #view-analytics .akpi-val,
+body.light #view-analytics .analytics-kpi .akpi-val,
+body.light #view-analytics .analytics-kpi .akpi-lbl,
+body.light #view-analytics .akpi-val {
+  color: #0f172a !important;
+}
+
+html[data-theme='light'] #view-analytics .analytics-period,
+body.light #view-analytics .analytics-period {
+  background: #f1f5f9 !important;
+  border-color: #e2e8f0 !important;
+}
+
+html[data-theme='light'] #view-analytics .period-btn,
+body.light #view-analytics .period-btn {
+  color: #475569 !important;
+}
+
+html[data-theme='light'] #view-analytics .analytics-chart-box,
+body.light #view-analytics .analytics-chart-box {
+  background: #f8fafc !important;
+  border-color: #e2e8f0 !important;
+}
+
+html[data-theme='light'] .pro-view__title,
+html[data-theme='light'] .pro-view__sub,
+html[data-theme='light'] .pro-history-item__title,
+html[data-theme='light'] .pro-history-item__meta,
+body.light .pro-view__title,
+body.light .pro-view__sub,
+body.light .pro-history-item__title,
+body.light .pro-history-item__meta {
+  color: inherit;
+}
+
+/* ─── Broadcast / Messenger panels ─── */
+html[data-theme='light'] #appPage .sidebar,
+html[data-theme='light'] #appPage .broadcast-col,
+html[data-theme='light'] #appPage .compose-col,
+html[data-theme='light'] #appPage .msg-panel,
+html[data-theme='light'] #appPage .broadcast-panel,
+body.light #appPage .sidebar,
+body.light #appPage .broadcast-col,
+body.light #appPage .compose-col,
+body.light #appPage .msg-panel,
+body.light #appPage .broadcast-panel {
+  background: #ffffff !important;
+  border-color: #e2e8f0 !important;
+}
+
+html[data-theme='light'] #appPage .sidebar-hdr h2,
+html[data-theme='light'] #appPage .broadcast-hdr h2,
+html[data-theme='light'] #appPage .compose-hdr h2,
+html[data-theme='light'] #appPage .panel-title,
+html[data-theme='light'] #appPage .section-title,
+body.light #appPage .sidebar-hdr h2,
+body.light #appPage .broadcast-hdr h2,
+body.light #appPage .compose-hdr h2,
+body.light #appPage .panel-title,
+body.light #appPage .section-title {
+  color: #0f172a !important;
+}
+
+html[data-theme='light'] #appPage .page-item,
+html[data-theme='light'] #appPage .conv-item,
+html[data-theme='light'] #appPage .msg-row,
+body.light #appPage .page-item,
+body.light #appPage .conv-item,
+body.light #appPage .msg-row {
+  color: #334155 !important;
+}
+
+html[data-theme='light'] #appPage .page-item.active,
+html[data-theme='light'] #appPage .conv-item.active,
+body.light #appPage .page-item.active,
+body.light #appPage .conv-item.active {
+  background: #eef2ff !important;
+  color: #1e3a8a !important;
+}
+
+html[data-theme='light'] #appPage .stat-num,
+html[data-theme='light'] #appPage .broadcast-stat-num,
+body.light #appPage .stat-num,
+body.light #appPage .broadcast-stat-num {
+  color: #0f172a !important;
+}
+
+html[data-theme='light'] #appPage .stat-lbl,
+html[data-theme='light'] #appPage .muted,
+html[data-theme='light'] #appPage .text-muted,
+body.light #appPage .stat-lbl,
+body.light #appPage .muted,
+body.light #appPage .text-muted {
+  color: #64748b !important;
+}
+
+/* Scheduling view (inline sv2-* in index.html) */
+html[data-theme='light'] #view-scheduling,
+html[data-theme='light'] #view-scheduling .sv2-topbar,
+html[data-theme='light'] #view-scheduling .sv2-card,
+body.light #view-scheduling,
+body.light #view-scheduling .sv2-topbar,
+body.light #view-scheduling .sv2-card {
+  background: #ffffff !important;
+  color: #0f172a !important;
+}
+
+html[data-theme='light'] #view-scheduling .sv2-title,
+html[data-theme='light'] #view-scheduling .sv2-h2,
+html[data-theme='light'] #view-scheduling label,
+body.light #view-scheduling .sv2-title,
+body.light #view-scheduling .sv2-h2,
+body.light #view-scheduling label {
+  color: #0f172a !important;
+}
+
+html[data-theme='light'] #view-scheduling .sv2-sub,
+html[data-theme='light'] #view-scheduling .sv2-muted,
+body.light #view-scheduling .sv2-sub,
+body.light #view-scheduling .sv2-muted {
+  color: #64748b !important;
+}
+
+/* Modals & overlays in app */
+html[data-theme='light'] #appPage .modal-box,
+html[data-theme='light'] #appPage .sched-modal,
+body.light #appPage .modal-box,
+body.light #appPage .sched-modal {
+  background: #ffffff !important;
+  color: #0f172a !important;
+  border-color: #e2e8f0 !important;
+}
+
+html[data-theme='light'] #appPage .sched-modal-title,
+html[data-theme='light'] #appPage .modal-title,
+body.light #appPage .sched-modal-title,
+body.light #appPage .modal-title {
+  color: #0f172a !important;
+}
+
+html[data-theme='light'] #appPage p,
+html[data-theme='light'] #appPage span,
+html[data-theme='light'] #appPage small,
+html[data-theme='light'] #appPage .help-text,
+body.light #appPage p,
+body.light #appPage span,
+body.light #appPage small,
+body.light #appPage .help-text {
+  color: inherit;
+}
+

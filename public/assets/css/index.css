@@ -2084,11 +2084,12 @@ button.sidebar-sync-btn.loading{display:flex!important;flex-direction:row!import
 
 /* LIGHT MODE */
 body.light{
-  --bg:#EFF4FF;--bg2:#E5EDFF;--bg3:#D8E6FF;
-  --surface:#FFFFFF;--surface2:#F3F7FF;--surface3:#EAF1FF;
-  --border:rgba(8,102,255,.1);--border2:rgba(8,102,255,.15);--border3:rgba(8,102,255,.22);
-  --text:#061640;--text2:#3A5080;--text3:#7090B8;
-  --shadow-sm:0 1px 4px rgba(8,102,255,.08);--shadow:0 4px 20px rgba(8,102,255,.12);
+  --bg:#f1f5f9;--bg2:#e2e8f0;--bg3:#cbd5e1;
+  --surface:#FFFFFF;--surface2:#f8fafc;--surface3:#f1f5f9;
+  --border:rgba(15,23,42,.08);--border2:rgba(99,102,241,.18);--border3:rgba(99,102,241,.28);
+  --text:#0c1222;--text2:#334155;--text3:#64748b;
+  --primary-light:#2563eb;
+  --shadow-sm:0 1px 3px rgba(15,23,42,.06);--shadow:0 8px 24px rgba(15,23,42,.08);
 }
 body.light ::-webkit-scrollbar-thumb{background:rgba(8,102,255,.15)}
 body.light ::-webkit-scrollbar-thumb:hover{background:rgba(8,102,255,.25)}
