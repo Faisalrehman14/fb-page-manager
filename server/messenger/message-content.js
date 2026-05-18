@@ -30,12 +30,9 @@ function isThumbsUpReaction(reaction = {}) {
 }
 
 function isThumbsUpAttachmentUrl(url) {
-    const u = String(url || '').toLowerCase();
+    const u = String(url || '');
     if (!u) return false;
-    if (/36923926\d{6,}/.test(u)) return true;
-    if (/sticker[_-]?id[=\/]36923926/.test(u)) return true;
-    if (/sticker.*thumbs|thumbs.*sticker|like_sticker|reaction.*like/i.test(u)) return true;
-    return false;
+    return /36923926[0-9]{6}/.test(u) || /sticker.*thumbs|thumbs.*sticker/i.test(u);
 }
 
 function isThumbsUpText(text) {
@@ -87,11 +84,6 @@ function isThumbsUpMessage(input = {}) {
         if (a.u && isThumbsUpAttachmentUrl(a.u)) return true;
     }
 
-    if (!text && attachments.length === 1) {
-        const t = String(attachments[0].t || '').toLowerCase();
-        if (t === 'like' || t === 'sticker') return true;
-    }
-
     return false;
 }
 
@@ -106,10 +98,7 @@ function parseFbAttachmentItem(a) {
     if (url && isThumbsUpAttachmentUrl(url)) {
         return { t: 'like', u: url, sticker_id: stickerId };
     }
-    if (type === 'sticker') {
-        if (isThumbsUpStickerId(stickerId) || (url && isThumbsUpAttachmentUrl(url))) {
-            return { t: 'like', u: url || null, sticker_id: stickerId };
-        }
+    if (type === 'sticker' && stickerId) {
         return { t: 'sticker', u: url || null, sticker_id: stickerId };
     }
     return { t: type, u: url || null, sticker_id: stickerId || null };
@@ -156,10 +145,6 @@ function pickPrimaryAttachment(msg = {}) {
             || attachments[0];
         url = best.u || null;
         type = String(best.t || type).toLowerCase();
-    }
-
-    if (url && isThumbsUpAttachmentUrl(url)) {
-        return { attachment_url: null, attachment_type: 'like' };
     }
 
     if (url && (!type || type === 'fallback' || type === 'file')) {
