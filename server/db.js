@@ -457,6 +457,33 @@ function _inboxParams(pageId) {
     return [pageId];
 }
 
+/** Inbox list only — search uses {@link _searchWhere} (includes cannot-reply threads). */
+function _searchWhere(alias = 'c') {
+    return `${alias}.page_id = ? AND COALESCE(${alias}.archived, 0) = 0`;
+}
+
+function _nameMatchesSearch(text, query) {
+    const hay = String(text || '').toLowerCase();
+    const words = String(query || '').trim().toLowerCase().split(/\s+/).filter(Boolean);
+    if (!words.length) return false;
+    return words.every(w => hay.includes(w));
+}
+
+function _searchNameSql(term) {
+    const words = String(term || '').trim().toLowerCase().split(/\s+/).filter(Boolean);
+    if (!words.length) return { clause: '0', params: [] };
+    const parts = [];
+    const params = [];
+    for (const w of words) {
+        const like = `%${w}%`;
+        parts.push(
+            `(LOWER(COALESCE(c.user_name, '')) LIKE ? OR LOWER(COALESCE(c.snippet, '')) LIKE ? OR c.fb_user_id LIKE ?)`
+        );
+        params.push(like, like, `%${w}%`);
+    }
+    return { clause: parts.join(' AND '), params };
+}
+
 async function markCannotReply(pageId, participantIds) {
     if (!pool || !pageId) return;
     const ids = Array.isArray(participantIds) ? participantIds : [participantIds];
@@ -583,25 +610,20 @@ async function getConversations(pageId, limit = 100, offset = 0, archived = fals
     }
 }
 
-async function searchConversations(pageId, query, limit = 25) {
+async function searchConversations(pageId, query, limit = 50) {
     if (!pool) return [];
     const term = String(query || '').trim();
     if (term.length < 1) return [];
-    const likeLower = `%${term.toLowerCase()}%`;
-    const prefixLower = `${term.toLowerCase()}%`;
+    const { clause, params: nameParams } = _searchNameSql(term);
     try {
         const [rows] = await pool.query(`
             SELECT c.id, c.page_id, c.fb_user_id AS participant_id, c.user_name AS participant_name,
                    c.user_picture AS participant_picture, c.snippet, c.updated_at AS updated_time, c.is_unread
             FROM messenger_conversations c
-            WHERE ${_inboxWhere('c')}
-              AND (
-                LOWER(COALESCE(c.user_name, '')) LIKE ? OR LOWER(COALESCE(c.user_name, '')) LIKE ?
-                OR LOWER(COALESCE(c.snippet, '')) LIKE ? OR c.fb_user_id = ?
-              )
+            WHERE ${_searchWhere('c')} AND (${clause})
             ORDER BY c.updated_at DESC
             LIMIT ?
-        `, [..._inboxParams(pageId), prefixLower, likeLower, likeLower, term, limit]);
+        `, [..._inboxParams(pageId), ...nameParams, limit]);
         return rows.map(row => ({
             id: row.id,
             pageId: row.page_id,
@@ -641,6 +663,75 @@ async function searchInbox(pageId, query, limits = {}) {
     ]);
 
     return { conversations, messages };
+}
+
+/**
+ * Scan Facebook conversation list for name/snippet matches (like Meta inbox search).
+ * Saves hits to DB so they appear on next load.
+ */
+async function searchConversationsFromFacebook(pageId, pageToken, fetchFn, query, opts = {}) {
+    const term = String(query || '').trim();
+    if (!term || !pageToken || !fetchFn) return [];
+
+    const maxPages = opts.maxPages ?? 12;
+    const maxMatches = opts.maxMatches ?? 40;
+    const matches = [];
+    const toSave = [];
+
+    let nextUrl = buildConversationsUrl(pageId, pageToken, null, opts.fbLimit ?? 100);
+    let pages = 0;
+
+    while (nextUrl && pages < maxPages && matches.length < maxMatches) {
+        pages++;
+        const response = await fetchFn(nextUrl);
+        const data = await response.json();
+        if (data.error) throw new Error(data.error.message);
+
+        for (const conv of data.data || []) {
+            const participants = conv.participants?.data || [];
+            const participant = participants.find(p => String(p.id) !== String(pageId))
+                || participants.find(p => p.id) || null;
+            if (!participant?.id) continue;
+
+            const name = participant.name || '';
+            const snip = (conv.snippet || '').substring(0, 200);
+            const hit = _nameMatchesSearch(name, term)
+                || _nameMatchesSearch(snip, term)
+                || String(participant.id).includes(term);
+            if (!hit) continue;
+
+            const row = {
+                id: conv.id,
+                pageId,
+                participantId: String(participant.id),
+                participantName: name || 'User',
+                snippet: snip,
+                updatedTime: conv.updated_time,
+                isRead: (conv.unread_count || 0) === 0,
+                unreadCount: conv.unread_count || 0,
+                canReply: conv.can_reply !== false,
+                lastFromMe: /^you:/i.test(snip.trim())
+            };
+            matches.push({
+                id: row.id,
+                pageId: row.pageId,
+                participantId: row.participantId,
+                participantName: row.participantName,
+                participantPicture: null,
+                snippet: row.snippet,
+                updatedTime: row.updatedTime,
+                isRead: row.isRead,
+                unreadCount: row.unreadCount
+            });
+            toSave.push(row);
+            if (matches.length >= maxMatches) break;
+        }
+
+        nextUrl = data.paging?.next || null;
+    }
+
+    if (toSave.length) await saveConversations(toSave);
+    return matches;
 }
 
 async function getConversationCount(pageId, archived = false) {
@@ -1790,20 +1881,21 @@ async function getTotalUnread(pageId) {
     }
 }
 
-async function searchMessages(pageId, query, limit = 30) {
+async function searchMessages(pageId, query, limit = 40) {
     if (!pool) return [];
     const term = String(query || '').trim();
-    if (term.length < 2) return [];
+    if (term.length < 1) return [];
+    const likeLower = `%${term.toLowerCase()}%`;
     try {
         const [rows] = await pool.query(
             `SELECT m.message_id, m.message, m.from_me, m.created_at, m.user_id,
                     c.fb_user_id AS senderId, c.user_name, c.user_picture, c.id AS conversation_id
              FROM messenger_messages m
              INNER JOIN messenger_conversations c ON m.conversation_id = c.id
-             WHERE m.page_id = ? AND m.message LIKE ? AND m.created_at >= ?
+             WHERE m.page_id = ? AND LOWER(COALESCE(m.message, '')) LIKE ?
              ORDER BY m.created_at DESC
              LIMIT ?`,
-            [pageId, `%${term}%`, messageRetentionCutoff(), limit]
+            [pageId, likeLower, limit]
         );
         return rows;
     } catch (err) {
@@ -2331,6 +2423,7 @@ const dbModule = {
     getPagePsids,
     getConversationCount,
     searchConversations,
+    searchConversationsFromFacebook,
     searchInbox,
     getAllConversations,
     getConversationsBulk,

@@ -61,7 +61,7 @@
   const CONV_PAGE_SIZE = 30;
   const CONV_LIST_CACHE_MS = 30_000;
   const SEARCH_MIN_CHARS = 1;
-  const SEARCH_DEBOUNCE_MS = 250;
+  const SEARCH_DEBOUNCE_MS = 400;
   const SEARCH_CACHE_MS = 15_000;
   const _convListCache = new Map();
 
@@ -1035,6 +1035,27 @@
   // SEARCH
   // ══════════════════════════════════════════════════════════
 
+  function mergeSearchConvs(apiConvs, localConvs) {
+    const byPsid = new Map();
+    (apiConvs || []).forEach(c => {
+      if (c.fb_user_id) byPsid.set(String(c.fb_user_id), c);
+    });
+    (localConvs || []).forEach(c => {
+      const psid = String(c.psid || '');
+      if (!psid || byPsid.has(psid)) return;
+      byPsid.set(psid, {
+        fb_user_id: psid,
+        user_name: c.name || 'User',
+        user_picture: c.picture || '',
+        snippet: c.lastMsg || '',
+        last_msg_at: c.lastMsgAt,
+        updated_at: c.lastMsgAt,
+        page_id: c.page_id || M.activePageId
+      });
+    });
+    return [...byPsid.values()];
+  }
+
   function filterLocalConvs(q) {
     const ql = String(q || '').trim().toLowerCase();
     if (!ql) return [];
@@ -1076,7 +1097,7 @@
       listEl.innerHTML = `<div class="msng-empty">
         <i class="fa-solid fa-magnifying-glass"></i>
         <p>No results for "<strong>${esc(q)}</strong>"</p>
-        <p class="msng-search-sub">Searched all synced chats (last 7 days)</p>
+        <p class="msng-search-sub">Try the full name, or wait a moment — we also search Facebook</p>
       </div>`;
       return;
     }
@@ -1090,7 +1111,7 @@
     });
 
     const convPsids = new Set(convMatches.map(c => c.fb_user_id));
-    let html = `<div class="msng-search-meta">${convMatches.length + Object.keys(msgByPsid).length} result(s) · database search</div>`;
+    let html = `<div class="msng-search-meta">${convMatches.length + Object.keys(msgByPsid).length} result(s)</div>`;
 
     convMatches.forEach(c => {
       html += searchRow(c.fb_user_id, c.user_name, c.user_picture,
@@ -1117,15 +1138,11 @@
 
     M.search.active = true;
     const localMatches = filterLocalConvs(q);
-    if (q.length < 2) {
-      renderLocalSearchResults(q, localMatches);
-      return;
-    }
 
     const key = `${M.activePageId}:${q.toLowerCase()}`;
     const cached = M.search.cache.get(key);
     if (cached && Date.now() - cached.ts < SEARCH_CACHE_MS) {
-      renderSearchResults(q, cached.conversations, cached.messages);
+      renderSearchResults(q, mergeSearchConvs(cached.conversations, localMatches), cached.messages);
       return;
     }
 
@@ -1137,7 +1154,7 @@
       renderLocalSearchResults(q, localMatches);
     } else {
       listEl.innerHTML = `<div class="msng-empty">
-        <i class="fa-solid fa-magnifying-glass fa-bounce"></i><p>Searching database…</p>
+        <i class="fa-solid fa-magnifying-glass fa-bounce"></i><p>Searching Facebook &amp; inbox…</p>
       </div>`;
     }
 
@@ -1167,10 +1184,11 @@
         return;
       }
 
-      renderSearchResults(q, convMatches, msgMatches);
+      renderSearchResults(q, mergeSearchConvs(convMatches, localMatches), msgMatches);
     } catch (e) {
       if (e.name === 'AbortError') return;
-      showSearchHint('Search failed — try again');
+      if (localMatches.length) renderLocalSearchResults(q, localMatches);
+      else showSearchHint('Search failed — try again');
     } finally {
       if (M.search.abort === controller) M.search.abort = null;
     }
@@ -1762,8 +1780,6 @@
 
     M.search.active = true;
     renderLocalSearchResults(q, filterLocalConvs(q));
-
-    if (q.length < 2) return;
 
     M.search.timer = setTimeout(() => doSearch(q), SEARCH_DEBOUNCE_MS);
   };

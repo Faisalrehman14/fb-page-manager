@@ -9,12 +9,50 @@ function cacheKey(pageId, q) {
     return `${pageId}:${q.toLowerCase()}`;
 }
 
+function mapConversation(c) {
+    return {
+        id: c.id,
+        fb_user_id: c.participantId,
+        user_name: c.participantName,
+        user_picture: c.participantPicture || '',
+        snippet: c.snippet,
+        last_msg: c.snippet,
+        last_msg_at: c.updatedTime,
+        updated_at: c.updatedTime,
+        is_unread: c.unreadCount || 0,
+        page_id: c.pageId
+    };
+}
+
+function mergeConversations(dbList, fbList) {
+    const byPsid = new Map();
+    for (const c of dbList) {
+        byPsid.set(String(c.participantId), c);
+    }
+    for (const c of fbList) {
+        const key = String(c.participantId);
+        const existing = byPsid.get(key);
+        if (!existing) {
+            byPsid.set(key, c);
+            continue;
+        }
+        const dbName = (existing.participantName || '').trim();
+        const fbName = (c.participantName || '').trim();
+        if ((!dbName || dbName === 'User') && fbName && fbName !== 'User') {
+            byPsid.set(key, { ...existing, participantName: fbName, snippet: c.snippet || existing.snippet });
+        }
+    }
+    return [...byPsid.values()].sort(
+        (a, b) => new Date(b.updatedTime || 0) - new Date(a.updatedTime || 0)
+    );
+}
+
 class SearchService {
     constructor({ db }) {
         this.db = db;
     }
 
-    async search({ pageId, q, dbConnected }) {
+    async search({ pageId, q, dbConnected, pageToken, fetchFn }) {
         const term = String(q || '').trim();
         if (!dbConnected) {
             return { conversations: [], messages: [], hint: 'Database not ready' };
@@ -23,7 +61,7 @@ class SearchService {
             return {
                 conversations: [],
                 messages: [],
-                hint: `Type at least ${SEARCH_MIN_CHARS} characters`
+                hint: `Type at least ${SEARCH_MIN_CHARS} character to search`
             };
         }
 
@@ -33,21 +71,17 @@ class SearchService {
             return { ...hit.data, cached: true };
         }
 
-        const data = await this.db.searchInbox(pageId, term);
+        const dbPromise = this.db.searchInbox(pageId, term);
+        const fbPromise = (pageToken && fetchFn)
+            ? this.db.searchConversationsFromFacebook(pageId, pageToken, fetchFn, term).catch(() => [])
+            : Promise.resolve([]);
+
+        const [dbData, fbConvs] = await Promise.all([dbPromise, fbPromise]);
+        const merged = mergeConversations(dbData.conversations || [], fbConvs || []);
+
         const result = {
-            conversations: data.conversations.map(c => ({
-                id: c.id,
-                fb_user_id: c.participantId,
-                user_name: c.participantName,
-                user_picture: c.participantPicture || '',
-                snippet: c.snippet,
-                last_msg: c.snippet,
-                last_msg_at: c.updatedTime,
-                updated_at: c.updatedTime,
-                is_unread: c.unreadCount || 0,
-                page_id: c.pageId
-            })),
-            messages: data.messages.map(m => ({
+            conversations: merged.map(mapConversation),
+            messages: (dbData.messages || []).map(m => ({
                 message_id: m.message_id,
                 message: m.message,
                 from_me: m.from_me,
@@ -57,7 +91,8 @@ class SearchService {
                 user_picture: m.user_picture,
                 conversation_id: m.conversation_id
             })),
-            query: term
+            query: term,
+            searched_facebook: !!(pageToken && fetchFn)
         };
 
         searchCache.set(key, { data: result, ts: Date.now() });
