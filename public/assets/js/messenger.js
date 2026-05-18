@@ -56,6 +56,8 @@
     _syncPollAttempts: 0,
     _graphMsgReloadAt: 0,
     _listReloadAt: 0,
+    _convListRefreshTimer: null,
+    _listRefreshInFlight: false,
     _lastConvRenderSig: '',
     _lastConvOrderSig: '',
     _convOrder: [],       // stable psid order — only moves on real new activity
@@ -68,6 +70,8 @@
   const CONV_PAGE_SIZE = 30;
   const CONV_LIST_CACHE_MS = 30_000;
   const CONV_LIST_RELOAD_MS = 600_000; // 10 min — avoid background list reshuffle
+  /** Silent conversation list refresh (like refresh button held down). */
+  const CONV_LIST_AUTO_REFRESH_MS = 7000;
   /** Min ms newer + snippet change before a conv moves to top (ignores FB metadata twitch). */
   const CONV_BUMP_MS = 30_000;
   const SEARCH_MIN_CHARS = 1;
@@ -1179,14 +1183,84 @@
     M.poll.since    = new Date(Date.now() - 5000).toISOString();
     M.poll.failures = 0;
     schedulePoll(nextPollDelayMs());
+    startConvListAutoRefresh();
   }
 
-  function stopPolling() {
+  function stopPollTimer() {
     if (M.poll.timer) { clearTimeout(M.poll.timer); M.poll.timer = null; }
   }
 
+  function stopPolling() {
+    stopPollTimer();
+    stopConvListAutoRefresh();
+  }
+
+  /** Silent merge refresh — no skeleton, no full list replace (no flicker). */
+  async function refreshConvListSilent() {
+    if (!M.activePageId || !M.convs.length || M.search.active || M._listRefreshInFlight) {
+      return false;
+    }
+    M._listRefreshInFlight = true;
+    try {
+      const data = await get('load_conversations', {
+        page_id: M.activePageId,
+        limit: CONV_PAGE_SIZE,
+        offset: 0
+      });
+      if (data.error) return false;
+
+      const newConvs = _mapConvRows(data.conversations);
+      const changed  = mergeConvListFromServer(newConvs);
+      if (changed) renderConvs();
+
+      _convListCache.set(M.activePageId, {
+        convs: M.convs,
+        order: M._convOrder.slice(),
+        offset: M.convOffset,
+        hasMore: M.convHasMore,
+        ts: Date.now()
+      });
+      if (typeof data.total_unread === 'number') {
+        updatePageBadge(M.activePageId, data.total_unread);
+      }
+      return changed;
+    } catch (e) {
+      console.warn('[Messenger] refreshConvListSilent:', e.message);
+      return false;
+    } finally {
+      M._listRefreshInFlight = false;
+    }
+  }
+
+  function startConvListAutoRefresh() {
+    stopConvListAutoRefresh();
+    const btn = $('msngRefreshBtn');
+    if (btn) btn.classList.add('spinning');
+
+    const tick = async () => {
+      M._convListRefreshTimer = null;
+      if (M.activePageId && !document.hidden && !M.search.active && M.convs.length) {
+        await refreshConvListSilent();
+      }
+      if (M.activePageId) {
+        M._convListRefreshTimer = setTimeout(tick, CONV_LIST_AUTO_REFRESH_MS);
+      }
+    };
+
+    tick();
+  }
+
+  function stopConvListAutoRefresh() {
+    if (M._convListRefreshTimer) {
+      clearTimeout(M._convListRefreshTimer);
+      M._convListRefreshTimer = null;
+    }
+    const btn = $('msngRefreshBtn');
+    if (btn) btn.classList.remove('spinning');
+  }
+
   function schedulePoll(delayMs) {
-    stopPolling();
+    stopPollTimer();
     M.poll.timer = setTimeout(runPoll, delayMs);
   }
 
@@ -1284,6 +1358,7 @@
       stopPolling();
     } else if (M.activePageId) {
       schedulePoll(500);
+      startConvListAutoRefresh();
     }
   });
 
@@ -1795,7 +1870,8 @@
         });
         invalidateConvListRender();
       } else if (opts.background && M.convs.length) {
-        mergeConvListFromServer(newConvs);
+        const merged = mergeConvListFromServer(newConvs);
+        if (merged) renderConvs();
         if (opts.syncOnly) {
           rebuildConvIndex();
           if (newConvs.length) {
@@ -1837,7 +1913,7 @@
       const hasSkeleton = !!$('msngConvList')?.querySelector('.msng-skeleton');
       if (!opts.background) {
         renderConvs({ immediate: true });
-      } else if (newConvs.length || hasSkeleton) {
+      } else if (hasSkeleton) {
         renderConvs();
       }
     } catch (e) {
@@ -2396,11 +2472,15 @@
     if (!M.activePageId) return;
     const btn = $('msngRefreshBtn');
     if (btn) btn.classList.add('spinning');
-    _convListCache.delete(M.activePageId);
     try {
-      await loadConvs(M.activePageId);
+      if (!M.convs.length) {
+        _convListCache.delete(M.activePageId);
+        await loadConvs(M.activePageId);
+      } else {
+        await refreshConvListSilent();
+      }
     } finally {
-      btn?.classList.remove('spinning');
+      if (!M._convListRefreshTimer && btn) btn.classList.remove('spinning');
     }
   };
 
@@ -2857,6 +2937,7 @@
       }
     } catch (_) {}
     stopPolling();
+    stopConvListAutoRefresh();
     M.pages = [];
     M.activePageId = null;
     M.activePsid = null;
