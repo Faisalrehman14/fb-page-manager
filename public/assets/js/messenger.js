@@ -597,6 +597,12 @@
   // Result: smooth, zero-flicker conv list at any poll rate.
   // ══════════════════════════════════════════════════════════
 
+  /** Remove loading placeholders so skeleton rows do not sit above real conversations. */
+  function clearConvListPlaceholders(listEl) {
+    if (!listEl) return;
+    listEl.querySelectorAll('.msng-skeleton, #msngConvLoadMore').forEach(el => el.remove());
+  }
+
   function renderConvsNow() {
     if (M.search.active) return; // search results own the list — don't overwrite them
     const listEl = $('msngConvList');
@@ -609,6 +615,8 @@
 
     updatePageBadge(M.activePageId, M.convs.reduce((s, c) => s + (c.unread || 0), 0));
     updateMessengerChrome();
+
+    if (list.length) clearConvListPlaceholders(listEl);
 
     if (!list.length) {
       invalidateConvListRender();
@@ -1715,8 +1723,12 @@
       } else {
         clearSyncPoll();
       }
-      if (!opts.background) renderConvs({ immediate: true });
-      else if (newConvs.length) renderConvs();
+      const hasSkeleton = !!$('msngConvList')?.querySelector('.msng-skeleton');
+      if (!opts.background) {
+        renderConvs({ immediate: true });
+      } else if (newConvs.length || hasSkeleton) {
+        renderConvs();
+      }
     } catch (e) {
       console.error('[Messenger] loadConvs:', e);
       M.ui.syncing = false;
