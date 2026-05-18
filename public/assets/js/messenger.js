@@ -311,6 +311,17 @@
     return idx !== 0;
   }
 
+  /** After we send from this inbox — bump sidebar row to top immediately. */
+  function bumpConvAfterPageSend(psid, { lastMsg, lastMsgAt } = {}) {
+    const conv = getConv(M.activePageId, psid);
+    if (!conv) return;
+    if (lastMsg != null) conv.lastMsg = lastMsg;
+    conv.lastFromMe = true;
+    if (lastMsgAt != null) conv.lastMsgAt = lastMsgAt;
+    moveConvToTop(psid);
+    renderConvs();
+  }
+
   /** True when poll/socket data indicates a real new message, not FB timestamp drift. */
   function convHasNewActivity(existing, patch) {
     const nu = patch.unread != null ? parseInt(patch.unread, 10) : null;
@@ -1350,9 +1361,7 @@
       const entry = M.msgs.find(m => m._tempId === tempId);
       if (entry) { entry.message_id = res.message_id; entry._pending = false; delete entry._tempId; }
 
-      const conv = M.convs.find(c => c.psid === M.activePsid);
-      if (conv) { conv.lastMsg = text; conv.lastFromMe = true; conv.lastMsgAt = now; }
-      renderConvs();
+      bumpConvAfterPageSend(M.activePsid, { lastMsg: text, lastMsgAt: now });
 
     } catch (e) {
       showToast('Send failed — tap Retry to try again', 'error');
@@ -2204,9 +2213,10 @@
         delete entry._tempId;
       }
       if (res.message_id) M.renderedMsgIds.add(res.message_id);
-      const conv = M.convs.find(c => c.psid === M.activePsid);
-      if (conv) { conv.lastMsg = '👍'; conv.lastFromMe = true; conv.lastMsgAt = entry?.created_at || new Date().toISOString(); }
-      renderConvs();
+      bumpConvAfterPageSend(M.activePsid, {
+        lastMsg: '👍',
+        lastMsgAt: entry?.created_at || new Date().toISOString()
+      });
     } catch (e) {
       const bubble = document.querySelector(`[data-temp-id="${tempId}"]`);
       if (bubble) { bubble.classList.add('failed'); bubble.classList.remove('pending'); }
@@ -2281,13 +2291,10 @@
         if (!entry.message) entry.message = d.message || '[Image]';
       }
       if (d.message_id) M.renderedMsgIds.add(d.message_id);
-      const conv = M.convs.find(c => c.psid === M.activePsid);
-      if (conv) {
-        conv.lastMsg = entry?.message || '[Image]';
-        conv.lastFromMe = true;
-        conv.lastMsgAt = entry?.created_at || new Date().toISOString();
-      }
-      renderConvs();
+      bumpConvAfterPageSend(M.activePsid, {
+        lastMsg: entry?.message || '[Image]',
+        lastMsgAt: entry?.created_at || new Date().toISOString()
+      });
       URL.revokeObjectURL(objUrl);
     } catch (e) {
       const bubble = document.querySelector(`[data-temp-id="${tempId}"]`);
@@ -2535,7 +2542,7 @@
         if (msg.participantId !== M.activePsid && !msg.isFromPage) {
           conv.unread = (conv.unread || 0) + 1;
         }
-        if (msg.participantId !== M.activePsid || !msg.isFromPage) {
+        if (msg.isFromPage || msg.participantId !== M.activePsid) {
           moveConvToTop(msgPsid);
         }
         renderConvs();
