@@ -1260,6 +1260,28 @@ app.post('/api/upload-image', verifyCsrf, uploadDisk.single('image'), (req, res)
 mountMessenger({ app, requireAuth, db, getDbConnected: () => state.dbConnected, fetch, syncCooldown: state.syncCooldown, io, logError });
 
 // ── Quota ───────────────────────────────────────────────────────────────────
+app.get('/api/user/quota', requireAuth, async (req, res) => {
+    const uid = req.session.userId;
+    if (!uid) return res.status(401).json({ error: 'Not authenticated' });
+    try {
+        const result = await db.updateUserQuota(uid, 0);
+        if (!result) return res.status(404).json({ error: 'User not found' });
+        const check = await db.assertQuota(uid, 1);
+        res.json({
+            success: true,
+            subscriptionStatus: result.subscriptionStatus || 'free',
+            messageLimit: result.messageLimit,
+            messagesUsed: result.messenger_messagesUsed,
+            remaining: check.remaining ?? Math.max(0, result.messageLimit - result.messenger_messagesUsed),
+            canSend: !!check.ok,
+            code: check.ok ? null : check.code
+        });
+    } catch (err) {
+        logError('user_quota', err);
+        res.status(500).json({ error: 'Failed to load quota' });
+    }
+});
+
 app.post(['/api/update_quota', '/api/update_quota.php'], requireAuth, verifyCsrf, async (req, res) => {
     const { fb_user_id, count } = req.body;
     const uid = req.session.userId;
@@ -1272,10 +1294,15 @@ app.post(['/api/update_quota', '/api/update_quota.php'], requireAuth, verifyCsrf
             const quota = await db.assertQuota(uid, n);
             if (!quota.ok) {
                 return res.status(402).json({
+                    success: false,
                     error: quota.message,
                     code: quota.code,
                     remaining: quota.remaining,
-                    limit: quota.limit
+                    limit: quota.limit,
+                    messagesUsed: quota.used ?? null,
+                    messageLimit: quota.limit ?? null,
+                    subscriptionStatus: quota.plan || 'free',
+                    plan: quota.plan || 'free'
                 });
             }
         }

@@ -2048,28 +2048,41 @@ async function assertQuota(fbUserId, count = 1) {
         `INSERT IGNORE INTO users (fb_user_id, plan, messenger_messages_limit) VALUES (?, 'free', ?)`,
         [fbUserId, FREE_TIER.limit]
     );
-    const [rows] = await pool.query(
+    let [rows] = await pool.query(
         `SELECT messenger_messages_used, messenger_messages_limit, plan, subscription_expires
          FROM users WHERE fb_user_id = ?`,
         [fbUserId]
     );
     if (!rows.length) return { ok: false, code: 'USER_NOT_FOUND', message: 'User not found' };
-    const r = rows[0];
-    if (r.subscription_expires && new Date(r.subscription_expires) < new Date()) {
-        return { ok: false, code: 'SUBSCRIPTION_EXPIRED', message: 'Subscription expired', plan: r.plan };
+    let r = rows[0];
+
+    // Expired paid plan → revert to free (fresh 2000) instead of hard-blocking sends
+    if (r.subscription_expires && new Date(r.subscription_expires) < new Date() && r.plan !== 'free') {
+        await downgradeToFree(fbUserId);
+        [rows] = await pool.query(
+            `SELECT messenger_messages_used, messenger_messages_limit, plan, subscription_expires
+             FROM users WHERE fb_user_id = ?`,
+            [fbUserId]
+        );
+        r = rows[0] || r;
     }
-    const remaining = r.messenger_messages_limit - r.messenger_messages_used;
+
+    const limit = Number(r.messenger_messages_limit) || FREE_TIER.limit;
+    const used = Math.min(Number(r.messenger_messages_used) || 0, limit);
+    const remaining = Math.max(0, limit - used);
+
     if (remaining < count) {
         return {
             ok: false,
             code: 'QUOTA_EXCEEDED',
-            message: 'Message quota exceeded',
-            remaining: Math.max(0, remaining),
-            limit: r.messenger_messages_limit,
+            message: 'Message quota exceeded. Upgrade your plan or wait for quota reset.',
+            remaining,
+            limit,
+            used,
             plan: r.plan
         };
     }
-    return { ok: true, remaining, limit: r.messenger_messages_limit, plan: r.plan };
+    return { ok: true, remaining, limit, used, plan: r.plan };
 }
 
 async function checkExpiredSubscriptions() {

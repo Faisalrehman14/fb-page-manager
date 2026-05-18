@@ -556,20 +556,81 @@ async function fetchConversations(pageId, onProgress) {
   return { page, convos: allConvos, psids: [...new Set(psids)], labelMap, nameMap };
 }
 
+// ── Quota helpers ─────────────────────────────────────
+function _applyQuotaPayload(data) {
+  if (!data || !window.saveQuota) return;
+  const limit = data.messageLimit ?? data.limit;
+  const used = data.messagesUsed ?? data.messenger_messagesUsed;
+  window.saveQuota({
+    subscriptionStatus: data.subscriptionStatus || data.plan || 'free',
+    messageLimit: typeof limit === 'number' ? limit : undefined,
+    messagesUsed: typeof used === 'number' ? used : (typeof limit === 'number' && typeof data.remaining === 'number' ? limit - data.remaining : undefined)
+  });
+  window.updateQuotaUI?.();
+}
+
+function _handleQuotaBlocked(data) {
+  _applyQuotaPayload(data);
+  const msg = data?.error || data?.message || 'Message quota exceeded';
+  if (typeof window.showUpgradeModal === 'function') {
+    window.showUpgradeModal(data?.code === 'SUBSCRIPTION_EXPIRED' ? 'expired' : 'pro_exhausted');
+  } else if (window.showToast) {
+    window.showToast(msg, 'warning');
+  }
+}
+
+async function _syncQuotaBeforeSend(fbUserId) {
+  if (!fbUserId) return true;
+  try {
+    if (typeof window.syncQuotaFromServer === 'function') {
+      await window.syncQuotaFromServer({ force: true, source: 'pre_send', silent: true });
+    }
+    const res = await fetch('/api/user/quota', { credentials: 'same-origin' });
+    const data = await res.json().catch(() => ({}));
+    if (res.ok && data.success) {
+      _applyQuotaPayload(data);
+      if (data.canSend === false) {
+        _handleQuotaBlocked(data);
+        return false;
+      }
+      return true;
+    }
+    if (res.status === 402) {
+      _handleQuotaBlocked(data);
+      return false;
+    }
+  } catch (_) {}
+  if (typeof window.getRemaining === 'function' && window.getRemaining() <= 0) {
+    _handleQuotaBlocked({ error: 'Message quota exceeded', code: 'QUOTA_EXCEEDED' });
+    return false;
+  }
+  return true;
+}
+
 // ── Quota update helper ────────────────────────────────
 async function _updateQuota(fbUserId, count) {
   if (!fbUserId) return;
   try {
     const csrfToken = await window.getCsrfToken?.() || '';
-    const qData = await requestJson('/api/update_quota', {
+    const res = await fetch('/api/update_quota', {
       method: 'POST',
+      credentials: 'same-origin',
       headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
       body: JSON.stringify({ fb_user_id: fbUserId, count })
-    }, { attempts: 2, backoffMs: 300 });
+    });
+    const qData = await res.json().catch(() => ({}));
+
+    if (res.status === 402) {
+      _handleQuotaBlocked(qData);
+      return 'exhausted';
+    }
+    if (!res.ok) {
+      if (window.showToast) window.showToast(qData.error || 'Quota update failed', 'warning');
+      return 'error';
+    }
     if (qData.success) {
-      if (window.saveQuota) window.saveQuota(qData);
-      if (window.updateQuotaUI) window.updateQuotaUI();
-      const rem = qData.messageLimit - qData.messagesUsed;
+      _applyQuotaPayload(qData);
+      const rem = (qData.messageLimit ?? 0) - (qData.messagesUsed ?? qData.messenger_messagesUsed ?? 0);
       if (rem <= 0) return 'exhausted';
     } else if (qData.error && window.showToast) {
       window.showToast('Quota update error: ' + qData.error, 'warning');
@@ -621,6 +682,9 @@ async function enqueueAndSendUtility({ pageId, messageText, imageUrl, recipientI
     if (window.showToast) {
       window.showToast('Warning: Quota tracking unavailable. Please re-login.', 'warning');
     }
+  } else if (!(await _syncQuotaBeforeSend(fbUserId))) {
+    runtime.isSending = false;
+    throw new Error('Message quota exceeded. Upgrade your plan to continue sending.');
   }
 
   const queue = recipientIds.map(id => ({ id, status: 'pending', error: '' }));
@@ -649,6 +713,13 @@ async function enqueueAndSendUtility({ pageId, messageText, imageUrl, recipientI
 
     const item = queue[i];
     try {
+      if (fbUserId && typeof window.getRemaining === 'function' && window.getRemaining() < 1) {
+        _handleQuotaBlocked({ error: 'Message quota exceeded', code: 'QUOTA_EXCEEDED' });
+        runtime.isSending = false;
+        item.status = 'failed';
+        item.error = 'Quota exhausted.';
+        break;
+      }
       // ── Send text message (if any) ────────────────────
       if (messageText) {
         const recipientName = recipientNames[item.id] || 'Friend';

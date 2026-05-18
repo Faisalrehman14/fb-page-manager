@@ -155,10 +155,14 @@ function createMessengerRouter(deps) {
                             const quota = await db.assertQuota(userId, 1);
                             if (!quota.ok) {
                                 return res.status(402).json({
+                                    success: false,
                                     error: quota.message || 'Quota exceeded',
                                     code: quota.code,
                                     remaining: quota.remaining,
-                                    limit: quota.limit
+                                    limit: quota.limit,
+                                    messagesUsed: quota.used ?? null,
+                                    messageLimit: quota.limit ?? null,
+                                    subscriptionStatus: quota.plan || 'free'
                                 });
                             }
                         }
