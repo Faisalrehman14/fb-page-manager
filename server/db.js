@@ -900,11 +900,11 @@ async function getAllConversations() {
 // =============================================================================
 
 async function saveMessage(message) {
-    if (!pool) return false;
+    if (!pool) return { ok: false, inserted: false };
     const { normalizeIncomingSave } = require('./messenger/message-content');
     let { id, threadId, conversationId, pageId, senderId, text, attachments, isFromPage, createdTime } = message;
     const convId = conversationId || threadId;
-    if (!isWithinMessageRetention(createdTime)) return false;
+    if (!isWithinMessageRetention(createdTime)) return { ok: false, inserted: false };
 
     const normalized = normalizeIncomingSave({ text, attachments });
     text = normalized.text;
@@ -916,7 +916,7 @@ async function saveMessage(message) {
     const metaJson = attachments?.length ? JSON.stringify(attachments) : null;
 
     try {
-        await pool.query(`
+        const [result] = await pool.query(`
             INSERT INTO messenger_messages
                 (conversation_id, page_id, user_id, message_id, message, from_me, created_at, attachment_url, attachment_type, metadata)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -925,15 +925,15 @@ async function saveMessage(message) {
                 from_me = VALUES(from_me),
                 attachment_url = VALUES(attachment_url),
                 attachment_type = VALUES(attachment_type),
-                metadata = VALUES(metadata),
-                created_at = VALUES(created_at)
+                metadata = VALUES(metadata)
         `, [convId, pageId, senderId, id, text, isFromPage ? 1 : 0,
             createdTime ? new Date(createdTime) : new Date(),
             firstUrl, firstType, metaJson]);
-        return true;
+        const inserted = result.affectedRows === 1;
+        return { ok: true, inserted };
     } catch (err) {
         addDbError(`saveMessage: ${err.message}`);
-        return false;
+        return { ok: false, inserted: false };
     }
 }
 

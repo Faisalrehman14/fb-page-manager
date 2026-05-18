@@ -148,24 +148,28 @@ app.post(['/webhook', '/fb_webhook.php'], async (req, res) => {
                     attachment_type: saveAttachments?.[0]?.t
                 });
 
-                // Always update conversation metadata and emit events, even for echoes
+                const isNewMessage = saved?.inserted === true;
                 if (isEcho) {
-                    await db.updateConversationFromMessage({ threadId, text: snippet, createdTime: ts, lastFromMe: true }).catch(() => {});
-                } else {
+                    if (isNewMessage) {
+                        await db.updateConversationFromMessage({ threadId, text: snippet, createdTime: ts, lastFromMe: true }).catch(() => {});
+                    }
+                } else if (isNewMessage) {
                     await db.onIncomingMessage(threadId, pageId, participantId, snippet);
                 }
 
-                io.to(`page_${pageId}`).emit('new_message', { 
-                    id: mid, threadId, pageId, participantId, text: saveText, 
-                    isFromPage: isEcho, createdTime: ts,
-                    attachments: saveAttachments || [],
-                    attachment_type: saveAttachments?.[0]?.t || null
-                });
-                io.to(`page_${pageId}`).emit('conversation_updated', { 
-                    id: threadId, pageId, participantId, snippet, 
-                    updatedTime: new Date(), isRead: isEcho, 
-                    unreadCount: isEcho ? 0 : 1, lastMessageFromPage: isEcho 
-                });
+                if (isNewMessage) {
+                    io.to(`page_${pageId}`).emit('new_message', {
+                        id: mid, threadId, pageId, participantId, text: saveText,
+                        isFromPage: isEcho, createdTime: ts,
+                        attachments: saveAttachments || [],
+                        attachment_type: saveAttachments?.[0]?.t || null
+                    });
+                    io.to(`page_${pageId}`).emit('conversation_updated', {
+                        id: threadId, pageId, participantId, snippet,
+                        updatedTime: new Date(), isRead: isEcho,
+                        unreadCount: isEcho ? 0 : 1, lastMessageFromPage: isEcho
+                    });
+                }
             } catch (err) {
                 logError('webhook_event', err, { pageId, eventSender: event?.sender?.id });
             }
