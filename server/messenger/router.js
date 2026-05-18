@@ -141,7 +141,8 @@ function createMessengerRouter(deps) {
                         if (graphSynced) {
                             const sinceDate = new Date(since);
                             if (!isNaN(sinceDate.getTime())) {
-                                sinceForPoll = new Date(sinceDate.getTime() - 180000).toISOString();
+                                // Small lookback only — a 3-minute window reflows the whole list every poll
+                                sinceForPoll = new Date(sinceDate.getTime() - 20000).toISOString();
                             }
                         }
                         const result = await pollService.poll({

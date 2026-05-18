@@ -55,6 +55,10 @@
     _syncPollTimer: null,
     _syncPollAttempts: 0,
     _graphMsgReloadAt: 0,
+    _listReloadAt: 0,
+    _lastConvRenderSig: '',
+    _lastConvOrderSig: '',
+    _renderConvsRaf: 0,
     pendingImage: null, // { file, previewUrl }
   };
 
@@ -62,6 +66,7 @@
   const POLL_SOCKET_MS = 8000;
   const CONV_PAGE_SIZE = 30;
   const CONV_LIST_CACHE_MS = 30_000;
+  const CONV_LIST_RELOAD_MS = 90_000;
   const SEARCH_MIN_CHARS = 1;
   const SEARCH_DEBOUNCE_MS = 400;
   const SEARCH_CACHE_MS = 15_000;
@@ -283,6 +288,114 @@
     );
   }
 
+  function invalidateConvListRender() {
+    M._lastConvRenderSig = '';
+    M._lastConvOrderSig = '';
+  }
+
+  function convRowSig(c) {
+    const preview = formatConvPreview(c);
+    return [
+      c.psid,
+      c.unread || 0,
+      c.lastMsgAt || '',
+      preview,
+      c.name || '',
+      c.lastFromMe ? 1 : 0
+    ].join('|');
+  }
+
+  function mergeConvListFromServer(incoming) {
+    if (!incoming?.length) return false;
+    const map = new Map(M.convs.map(c => [String(c.psid), c]));
+    let changed = false;
+    for (const row of incoming) {
+      const key = String(row.psid);
+      const ex = map.get(key);
+      if (ex) {
+        const rowTs = new Date(row.lastMsgAt || 0).getTime();
+        const exTs  = new Date(ex.lastMsgAt || 0).getTime();
+        if (rowTs >= exTs || row.lastMsg !== ex.lastMsg || row.unread !== ex.unread) {
+          Object.assign(ex, row);
+          changed = true;
+        }
+      } else {
+        M.convs.push(row);
+        map.set(key, row);
+        changed = true;
+      }
+    }
+    if (changed) {
+      M.convs.sort((a, b) => new Date(b.lastMsgAt || 0) - new Date(a.lastMsgAt || 0));
+      rebuildConvIndex();
+      invalidateConvListRender();
+    }
+    return changed;
+  }
+
+  function applyPollConvUpdates(updates) {
+    if (!updates?.length) return false;
+    let dirty = false;
+    for (const uc of updates) {
+      const ucPage = String(uc.page_id || M.activePageId || '');
+      if (ucPage !== String(M.activePageId)) continue;
+
+      const key = convKey(M.activePageId, uc.fb_user_id);
+      const existing = M._convByPsid.get(key);
+      if (existing) {
+        let rowChanged = false;
+        if (uc.fb_user_id !== M.activePsid) {
+          const nu = parseInt(uc.is_unread) || 0;
+          if (existing.unread !== nu) { existing.unread = nu; rowChanged = true; }
+        } else if (parseInt(uc.is_unread) > 0) {
+          const nu = parseInt(uc.is_unread);
+          if (existing.unread !== nu) { existing.unread = nu; rowChanged = true; }
+        }
+        if (uc.snippet && uc.snippet !== existing.lastMsg) {
+          existing.lastMsg = uc.snippet;
+          rowChanged = true;
+        }
+        if (uc.last_from_me != null) {
+          const lfm = uc.last_from_me == 1;
+          if (existing.lastFromMe !== lfm) { existing.lastFromMe = lfm; rowChanged = true; }
+        }
+        const newAt = uc.updated_at || uc.last_msg_at;
+        if (newAt) {
+          const newTs = new Date(newAt).getTime();
+          const oldTs = new Date(existing.lastMsgAt || 0).getTime();
+          if (newTs > oldTs + 800) {
+            existing.lastMsgAt = newAt;
+            rowChanged = true;
+            const idx = M.convs.indexOf(existing);
+            if (idx > 0) {
+              M.convs.splice(idx, 1);
+              M.convs.unshift(existing);
+            }
+          } else if (String(existing.lastMsgAt) !== String(newAt)) {
+            existing.lastMsgAt = newAt;
+            rowChanged = true;
+          }
+        }
+        if (rowChanged) dirty = true;
+      } else {
+        const row = {
+          id: uc.id, psid: uc.fb_user_id,
+          name: uc.user_name || 'User', picture: uc.user_picture || null,
+          lastMsg: uc.snippet || uc.last_msg || '',
+          lastFromMe: uc.last_from_me == 1,
+          lastMsgAt: uc.updated_at || uc.last_msg_at,
+          unread: parseInt(uc.is_unread) || 0,
+          page_id: M.activePageId,
+        };
+        M.convs.unshift(row);
+        M._convByPsid.set(key, row);
+        dirty = true;
+      }
+    }
+    if (dirty) rebuildConvIndex();
+    return dirty;
+  }
+
   function nextPollDelayMs() {
     if (M.activePsid) return Math.min(POLL_MS, POLL_SOCKET_MS);
     if (_socket?.connected && !M._offline) return POLL_SOCKET_MS;
@@ -484,18 +597,21 @@
   // Result: smooth, zero-flicker conv list at any poll rate.
   // ══════════════════════════════════════════════════════════
 
-  function renderConvs() {
+  function renderConvsNow() {
     if (M.search.active) return; // search results own the list — don't overwrite them
     const listEl = $('msngConvList');
     if (!listEl) return;
 
     const q    = M.search.query.toLowerCase();
     const list = getDisplayConvs();
+    const sig  = list.map(convRowSig).join('\n');
+    const order = list.map(c => c.psid).join(',');
 
     updatePageBadge(M.activePageId, M.convs.reduce((s, c) => s + (c.unread || 0), 0));
     updateMessengerChrome();
 
     if (!list.length) {
+      invalidateConvListRender();
       if (q) {
         listEl.innerHTML = `<div class="msng-empty">
           <i class="fa-brands fa-facebook-messenger"></i>
@@ -523,13 +639,19 @@
       return;
     }
 
-    // Index existing nodes by psid
-    const existing = {};
-    listEl.querySelectorAll('[data-psid]').forEach(el => { existing[el.dataset.psid] = el; });
+    if (sig === M._lastConvRenderSig && order === M._lastConvOrderSig) return;
+    M._lastConvRenderSig = sig;
+    M._lastConvOrderSig  = order;
 
-    // Remove nodes not in the new list
-    const wanted = new Set(list.map(c => c.psid));
+    const existing = {};
+    listEl.querySelectorAll('.msng-conv-item[data-psid]').forEach(el => {
+      existing[el.dataset.psid] = el;
+    });
+
+    const wanted = new Set(list.map(c => String(c.psid)));
     Object.keys(existing).forEach(psid => { if (!wanted.has(psid)) existing[psid].remove(); });
+
+    const orderNodes = Array.from(listEl.querySelectorAll('.msng-conv-item[data-psid]'));
 
     list.forEach((c, i) => {
       let node = existing[c.psid];
@@ -548,15 +670,17 @@
         const timeEl  = node.querySelector('.msng-ci-time');
         let   badgeEl = node.querySelector('.msng-ci-badge');
 
-        if (nameEl) nameEl.textContent = c.name;
-        if (lastEl) lastEl.textContent = short;
-        if (timeEl) timeEl.textContent = fmtTime(c.lastMsgAt);
+        const timeStr = fmtTime(c.lastMsgAt);
+        if (nameEl && nameEl.textContent !== c.name) nameEl.textContent = c.name;
+        if (lastEl && lastEl.textContent !== short) lastEl.textContent = short;
+        if (timeEl && timeEl.textContent !== timeStr) timeEl.textContent = timeStr;
 
         if (c.unread > 0) {
+          const badgeTxt = c.unread > 9 ? '9+' : String(c.unread);
           if (!badgeEl) {
-            node.insertAdjacentHTML('beforeend', `<span class="msng-ci-badge">${c.unread > 9 ? '9+' : c.unread}</span>`);
-          } else {
-            badgeEl.textContent = c.unread > 9 ? '9+' : c.unread;
+            node.insertAdjacentHTML('beforeend', `<span class="msng-ci-badge">${badgeTxt}</span>`);
+          } else if (badgeEl.textContent !== badgeTxt) {
+            badgeEl.textContent = badgeTxt;
           }
         } else if (badgeEl) {
           badgeEl.remove();
@@ -569,8 +693,27 @@
         existing[c.psid] = node;
       }
 
-      // Ensure correct visual order (insertBefore is a no-op if already in position)
-      if (listEl.children[i] !== node) listEl.insertBefore(node, listEl.children[i] || null);
+      const target = orderNodes[i];
+      if (node !== target) {
+        if (target) listEl.insertBefore(node, target);
+        else listEl.appendChild(node);
+      }
+    });
+  }
+
+  function renderConvs(opts) {
+    if (opts && opts.immediate) {
+      if (M._renderConvsRaf) {
+        cancelAnimationFrame(M._renderConvsRaf);
+        M._renderConvsRaf = 0;
+      }
+      renderConvsNow();
+      return;
+    }
+    if (M._renderConvsRaf) return;
+    M._renderConvsRaf = requestAnimationFrame(() => {
+      M._renderConvsRaf = 0;
+      renderConvsNow();
     });
   }
 
@@ -584,6 +727,7 @@
         <div class="msng-sk-line w60"></div>
       </div>
     </div>`;
+    invalidateConvListRender();
     listEl.innerHTML = sk() + sk() + sk() + sk() + sk();
   }
 
@@ -994,40 +1138,7 @@
       // Updated conversations (unread counts, snippets, new convs from other senders)
       let convListDirty = false;
       if (data.updated_convs?.length) {
-        data.updated_convs.forEach(uc => {
-          const ucPage = String(uc.page_id || M.activePageId || '');
-          if (ucPage !== String(M.activePageId)) return;
-
-          const key = convKey(M.activePageId, uc.fb_user_id);
-          const existing = M._convByPsid.get(key);
-          if (existing) {
-            if (uc.fb_user_id !== M.activePsid) {
-              existing.unread = parseInt(uc.is_unread) || 0;
-            } else if (parseInt(uc.is_unread) > 0) {
-              existing.unread = parseInt(uc.is_unread);
-            }
-            if (uc.snippet) existing.lastMsg = uc.snippet;
-            if (uc.last_from_me != null) existing.lastFromMe = uc.last_from_me == 1;
-            const newAt = uc.updated_at || uc.last_msg_at;
-            if (newAt) existing.lastMsgAt = newAt;
-          } else {
-            const row = {
-              id: uc.id, psid: uc.fb_user_id,
-              name: uc.user_name || 'User', picture: uc.user_picture || null,
-              lastMsg: uc.snippet || uc.last_msg || '',
-              lastFromMe: uc.last_from_me == 1,
-              lastMsgAt: uc.updated_at || uc.last_msg_at,
-              unread: parseInt(uc.is_unread) || 0,
-              page_id: M.activePageId,
-            };
-            M.convs.unshift(row);
-            M._convByPsid.set(key, row);
-          }
-          convListDirty = true;
-        });
-
-        M.convs.sort((a, b) => new Date(b.lastMsgAt || 0) - new Date(a.lastMsgAt || 0));
-        rebuildConvIndex();
+        convListDirty = applyPollConvUpdates(data.updated_convs);
 
         const newFromOthers = data.updated_convs.filter(c =>
           c.fb_user_id !== M.activePsid && parseInt(c.is_unread) > 0
@@ -1038,10 +1149,12 @@
         }
       }
 
-      // FB list sync — refresh sidebar if poll missed updated_at window
+      // FB list sync — merge in background (throttled; avoid full list replace every poll)
       if (data.list_synced && M.activePageId) {
         _convListCache.delete(M.activePageId);
-        if (!convListDirty) {
+        const now = Date.now();
+        if (!convListDirty && now - (M._listReloadAt || 0) > CONV_LIST_RELOAD_MS) {
+          M._listReloadAt = now;
           loadConvs(M.activePageId, false, { background: true });
         }
       }
@@ -1573,8 +1686,12 @@
 
       if (isMore) {
         M.convs = [...M.convs, ...newConvs];
+        invalidateConvListRender();
+      } else if (opts.background && M.convs.length) {
+        mergeConvListFromServer(newConvs);
       } else {
         M.convs = newConvs;
+        invalidateConvListRender();
       }
 
       M.convOffset += newConvs.length;
@@ -1598,7 +1715,7 @@
       } else {
         clearSyncPoll();
       }
-      if (!opts.background) renderConvs();
+      if (!opts.background) renderConvs({ immediate: true });
       else if (newConvs.length) renderConvs();
     } catch (e) {
       console.error('[Messenger] loadConvs:', e);
@@ -1761,7 +1878,8 @@
 
     const conv = getConv(pageId || M.activePageId, psid);
     if (conv) conv.unread = 0;
-    renderConvs();
+    invalidateConvListRender();
+    renderConvs({ immediate: true });
 
     if (_socket?.connected) {
       if (M._joinedThread) _socket.emit('leave_thread', M._joinedThread);
@@ -2133,7 +2251,8 @@
     document.querySelectorAll('.msng-filter-chip').forEach(el => {
       el.classList.toggle('active', el.dataset.filter === M.convFilter);
     });
-    renderConvs();
+    invalidateConvListRender();
+    renderConvs({ immediate: true });
   };
 
   window.msngLoadMore = async function () {
@@ -2308,7 +2427,12 @@
         if (msg.participantId !== M.activePsid && !msg.isFromPage) {
           conv.unread = (conv.unread || 0) + 1;
         }
-        M.convs.sort((a, b) => new Date(b.lastMsgAt || 0) - new Date(a.lastMsgAt || 0));
+        const idx = M.convs.indexOf(conv);
+        if (idx > 0) {
+          M.convs.splice(idx, 1);
+          M.convs.unshift(conv);
+          invalidateConvListRender();
+        }
         renderConvs();
       } else if (!msg.isFromPage && msg.participantId) {
         const row = {
@@ -2361,12 +2485,31 @@
         ? getConv(M.activePageId, data.participantId)
         : M.convs.find(c => c.id === data.id);
       if (conv) {
-        if (data.snippet)     conv.lastMsg   = data.snippet;
-        if (data.updatedTime) conv.lastMsgAt = data.updatedTime;
-        if (data.participantId !== M.activePsid) {
-          conv.unread = data.unreadCount || (conv.unread || 0) + 1;
+        let changed = false;
+        if (data.snippet && data.snippet !== conv.lastMsg) {
+          conv.lastMsg = data.snippet;
+          changed = true;
         }
-        renderConvs();
+        if (data.updatedTime && data.updatedTime !== conv.lastMsgAt) {
+          conv.lastMsgAt = data.updatedTime;
+          changed = true;
+          const idx = M.convs.indexOf(conv);
+          if (idx > 0) {
+            M.convs.splice(idx, 1);
+            M.convs.unshift(conv);
+          }
+        }
+        if (data.participantId !== M.activePsid) {
+          const nu = data.unreadCount != null ? data.unreadCount : (conv.unread || 0) + 1;
+          if (conv.unread !== nu) {
+            conv.unread = nu;
+            changed = true;
+          }
+        }
+        if (changed) {
+          invalidateConvListRender();
+          renderConvs();
+        }
       }
       window.dispatchEvent(new CustomEvent('fbc:conversation-changed', { detail: data }));
     });
@@ -2517,7 +2660,7 @@
       M.convOffset = hit.offset;
       M.convHasMore = hit.hasMore;
       rebuildConvIndex();
-      renderConvs();
+      renderConvs({ immediate: true });
       loadConvs(pageId, false, { background: true });
     } else {
       loadConvs(pageId);
