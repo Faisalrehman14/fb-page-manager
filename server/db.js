@@ -2862,6 +2862,155 @@ async function getAdminUserDetail(fbUserId) {
     }
 }
 
+async function getAdminDatabaseHealth() {
+    const disconnected = {
+        connected: false,
+        health: 'critical',
+        error: getLastDbError() || 'Database not connected'
+    };
+    if (!pool) return disconnected;
+
+    try {
+        const pingStart = Date.now();
+        await pool.query('SELECT 1');
+        const pingMs = Date.now() - pingStart;
+
+        const [[dbRow]] = await pool.query('SELECT DATABASE() AS db_name');
+        const dbName = dbRow?.db_name || '';
+
+        const [tables] = await pool.query(`
+            SELECT table_name AS name,
+                COALESCE(table_rows, 0) AS row_count,
+                COALESCE(data_length, 0) AS data_bytes,
+                COALESCE(index_length, 0) AS index_bytes,
+                COALESCE(data_length, 0) + COALESCE(index_length, 0) AS total_bytes,
+                COALESCE(data_free, 0) AS free_bytes
+            FROM information_schema.tables
+            WHERE table_schema = DATABASE()
+            ORDER BY (data_length + index_length) DESC
+        `);
+
+        let totalBytes = 0;
+        let dataBytes = 0;
+        let indexBytes = 0;
+        let freeBytes = 0;
+        const tableList = (tables || []).map(t => {
+            const tb = Number(t.total_bytes) || 0;
+            const db = Number(t.data_bytes) || 0;
+            const ib = Number(t.index_bytes) || 0;
+            const fb = Number(t.free_bytes) || 0;
+            totalBytes += tb;
+            dataBytes += db;
+            indexBytes += ib;
+            freeBytes += fb;
+            return {
+                name: t.name,
+                rows: Number(t.row_count) || 0,
+                dataBytes: db,
+                indexBytes: ib,
+                totalBytes: tb,
+                freeBytes: fb
+            };
+        });
+
+        const [statusRows] = await pool.query(`
+            SHOW GLOBAL STATUS WHERE Variable_name IN (
+                'Uptime','Threads_connected','Threads_running','Max_used_connections',
+                'Queries','Slow_queries','Questions','Connections','Aborted_connects',
+                'Innodb_buffer_pool_read_requests','Innodb_buffer_pool_reads',
+                'Bytes_received','Bytes_sent'
+            )
+        `).catch(() => [[]]);
+        const statusMap = {};
+        for (const r of statusRows || []) statusMap[r.Variable_name] = r.Value;
+
+        const [varRows] = await pool.query(`
+            SHOW VARIABLES WHERE Variable_name IN (
+                'version','version_comment','max_connections','innodb_buffer_pool_size',
+                'datadir','character_set_database','collation_database'
+            )
+        `).catch(() => [[]]);
+        const varMap = {};
+        for (const r of varRows || []) varMap[r.Variable_name] = r.Value;
+
+        const readReq = Number(statusMap.Innodb_buffer_pool_read_requests) || 0;
+        const readDisk = Number(statusMap.Innodb_buffer_pool_reads) || 0;
+        const bufferHitRate = readReq > 0
+            ? Math.round((1 - readDisk / readReq) * 10000) / 100
+            : null;
+
+        const quotaMb = parseInt(process.env.MYSQL_QUOTA_MB || process.env.DB_QUOTA_MB || '0', 10) || 0;
+        const quotaBytes = quotaMb > 0 ? quotaMb * 1024 * 1024 : 0;
+        const remainingBytes = quotaBytes > 0 ? Math.max(0, quotaBytes - totalBytes) : null;
+        const usedPercent = quotaBytes > 0
+            ? Math.min(100, Math.round((totalBytes / quotaBytes) * 10000) / 100)
+            : null;
+
+        const threadsConnected = Number(statusMap.Threads_connected) || 0;
+        const maxConnections = Number(varMap.max_connections) || 0;
+        const connectionUsagePct = maxConnections > 0
+            ? Math.round((threadsConnected / maxConnections) * 10000) / 100
+            : null;
+
+        let health = 'healthy';
+        if (pingMs > 500 || Number(statusMap.Aborted_connects) > 10) health = 'warning';
+        if (pingMs > 2000) health = 'critical';
+        if (usedPercent != null && usedPercent >= 90) health = 'critical';
+        else if (usedPercent != null && usedPercent >= 75) health = health === 'critical' ? 'critical' : 'warning';
+        if (connectionUsagePct != null && connectionUsagePct >= 85) {
+            health = health === 'healthy' ? 'warning' : health;
+        }
+
+        const poolCfg = pool.pool?.config || pool.config || {};
+
+        return {
+            connected: true,
+            health,
+            database: dbName,
+            pingMs,
+            totalBytes,
+            dataBytes,
+            indexBytes,
+            freeBytes,
+            tableCount: tableList.length,
+            quotaBytes: quotaBytes || null,
+            remainingBytes,
+            usedPercent,
+            tables: tableList,
+            status: {
+                uptimeSeconds: Number(statusMap.Uptime) || 0,
+                threadsConnected,
+                threadsRunning: Number(statusMap.Threads_running) || 0,
+                maxUsedConnections: Number(statusMap.Max_used_connections) || 0,
+                queries: Number(statusMap.Queries) || 0,
+                slowQueries: Number(statusMap.Slow_queries) || 0,
+                questions: Number(statusMap.Questions) || 0,
+                connections: Number(statusMap.Connections) || 0,
+                abortedConnects: Number(statusMap.Aborted_connects) || 0,
+                bytesReceived: Number(statusMap.Bytes_received) || 0,
+                bytesSent: Number(statusMap.Bytes_sent) || 0,
+                bufferHitRate,
+                connectionUsagePct
+            },
+            variables: {
+                version: varMap.version || '',
+                comment: varMap.version_comment || '',
+                maxConnections,
+                bufferPoolBytes: Number(varMap.innodb_buffer_pool_size) || 0,
+                datadir: varMap.datadir || '',
+                charset: varMap.character_set_database || '',
+                collation: varMap.collation_database || ''
+            },
+            pool: {
+                connectionLimit: poolCfg.connectionLimit || 5,
+                queueLimit: poolCfg.queueLimit ?? 0
+            }
+        };
+    } catch (e) {
+        return { connected: false, health: 'critical', error: e.message };
+    }
+}
+
 async function getAdminExpiringUsers(days = 7, limit = 20) {
     if (!pool) return [];
     try {
@@ -2986,6 +3135,7 @@ const dbModule = {
     getAdminUserTimeline,
     syncUserPagesFromFacebook,
     getAdminExpiringUsers,
+    getAdminDatabaseHealth,
     fbPageUrl
 };
 

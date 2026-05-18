@@ -78,6 +78,12 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
           Activity Log
         </div>
+        <div class="sb-section">System</div>
+        <div class="sb-item" id="nav-database" onclick="App.switchView('database')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
+          Database
+          <span class="sb-badge" id="dbHealthBadge" style="display:none">OK</span>
+        </div>
       </nav>
 
       <div class="sb-footer">
@@ -383,6 +389,22 @@
           </div>
         </div>
 
+
+        <!-- ── DATABASE VIEW ── -->
+        <div class="view" id="view-database">
+          <div class="admin-page-hero">
+            <div>
+              <h2>Database health</h2>
+              <p>Storage volume, table sizes, MySQL status, and server disk (if available).</p>
+            </div>
+            <button class="btn btn-ghost btn-sm" onclick="App.database.load()">Refresh</button>
+          </div>
+          <div id="dbHealthRoot">
+            <div class="loading-center"><span class="spinner spinner-lg"></span></div>
+          </div>
+        </div>
+
+
       </div><!-- /content -->
     </div><!-- /main -->
   </div><!-- /shell -->
@@ -499,6 +521,21 @@ const $ = id => document.getElementById(id);
 const esc = s => s == null ? '' : String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 const fmt = n => n != null ? Number(n).toLocaleString() : '0';
 const fmtMoney = c => '$' + (Number(c || 0) / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const fmtBytes = (bytes, digits = 2) => {
+  const n = Number(bytes) || 0;
+  if (n < 1) return '0 B';
+  const u = ['B', 'KB', 'MB', 'GB', 'TB'];
+  let i = 0, v = n;
+  while (v >= 1024 && i < u.length - 1) { v /= 1024; i++; }
+  return v.toFixed(i > 0 ? digits : 0) + ' ' + u[i];
+};
+const fmtUptime = sec => {
+  const s = Number(sec) || 0;
+  if (s < 60) return s + 's';
+  if (s < 3600) return Math.floor(s / 60) + 'm';
+  if (s < 86400) return Math.floor(s / 3600) + 'h ' + Math.floor((s % 3600) / 60) + 'm';
+  return Math.floor(s / 86400) + 'd ' + Math.floor((s % 86400) / 3600) + 'h';
+};
 const fmtDate = d => {
   if(!d) return '—';
   try{ return new Date(d).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}); }catch(e){ return d; }
@@ -605,6 +642,7 @@ const App = {
     App.users.initPlanSelects();
     fetch('/api/admin/users/sync-names', { method: 'POST' }).catch(() => {});
     this.dashboard.load();
+    this.database.load(true);
     this.startAutoRefresh();
     document.addEventListener('keydown', e => { if(e.key==='Escape') { document.querySelectorAll('.overlay.open').forEach(o=>o.classList.remove('open')); } });
   },
@@ -614,6 +652,7 @@ const App = {
     if(v==='dashboard') this.dashboard.load();
     else if(v==='users') this.users.load();
     else if(v==='activity') this.activity.load();
+    else if(v==='database') this.database.load();
     this.markSynced();
   },
 
@@ -643,6 +682,8 @@ const App = {
         this.dashboard.loadExpiring(true);
       } else if (this.state.view === 'users') {
         this.users.load(null, true);
+      } else if (this.state.view === 'database') {
+        this.database.load(true);
       }
     }, 15000);
   },
@@ -654,14 +695,15 @@ const App = {
     document.querySelectorAll('.sb-item').forEach(el => el.classList.remove('active'));
     $('view-'+v).classList.add('active');
     $('nav-'+v)?.classList.add('active');
-    const titles = { dashboard:'Dashboard', users:'User Management', activity:'Activity Log' };
-    const crumbs = { dashboard:'Overview', users:'Management', activity:'Audit' };
+    const titles = { dashboard:'Dashboard', users:'User Management', activity:'Activity Log', database:'Database Health' };
+    const crumbs = { dashboard:'Overview', users:'Management', activity:'Audit', database:'System' };
     $('topbarTitle').textContent = titles[v] || v;
     if($('topbarCrumb')) $('topbarCrumb').textContent = crumbs[v] || 'Admin';
     $('globalSearch').style.display = v==='users' ? 'flex' : 'none';
     if(v==='dashboard') this.dashboard.load();
     else if(v==='users') { this.state.users.page=1; this.users.load(); }
     else if(v==='activity') { this.state.activity.page=1; this.activity.load(); }
+    else if(v==='database') this.database.load();
   },
 
   // ── Modal ─────────────────────────────────────────────────
@@ -1504,6 +1546,120 @@ const App = {
       }
       html+=`<button class="pg-btn" onclick="App.activity.load(${p+1})" ${p===pages?'disabled':''}>›</button>`;
       $('actPgBtns').innerHTML=html;
+    }
+  },
+
+  // ══════════════════════════════════════════════════════════
+  //  DATABASE HEALTH
+  // ══════════════════════════════════════════════════════════
+  database: {
+    async load(silent) {
+      const root = $('dbHealthRoot');
+      if (!root) return;
+      if (!silent) root.innerHTML = '<div class="loading-center"><span class="spinner spinner-lg"></span></div>';
+      try {
+        const r = await fetch('/api/admin/database');
+        const d = await r.json();
+        this.render(d);
+        this.updateBadge(d);
+      } catch (e) {
+        root.innerHTML = '<div class="panel"><p style="padding:24px;color:var(--red)">Failed to load database health</p></div>';
+      }
+    },
+
+    updateBadge(d) {
+      const b = $('dbHealthBadge');
+      if (!b) return;
+      if (!d.connected) { b.textContent = 'ERR'; b.style.display = ''; b.style.background = 'rgba(239,68,68,.2)'; b.style.color = 'var(--red)'; return; }
+      const map = { healthy: ['OK', 'rgba(34,197,94,.2)', 'var(--green)'], warning: ['!', 'rgba(245,158,11,.2)', 'var(--amber)'], critical: ['!!', 'rgba(239,68,68,.2)', 'var(--red)'] };
+      const [txt, bg, col] = map[d.health] || map.healthy;
+      b.textContent = txt; b.style.display = ''; b.style.background = bg; b.style.color = col;
+    },
+
+    healthClass(h) {
+      return h === 'healthy' ? 'db-h-ok' : (h === 'warning' ? 'db-h-warn' : 'db-h-crit');
+    },
+
+    render(d) {
+      const root = $('dbHealthRoot');
+      if (!d.connected) {
+        root.innerHTML = '<div class="panel"><div class="db-alert crit"><strong>Database disconnected</strong><p>' + esc(d.error || 'Unknown error') + '</p></div></div>';
+        return;
+      }
+
+      const totalRows = (d.tables || []).reduce((s, t) => s + (t.rows || 0), 0);
+      const hc = this.healthClass(d.health);
+      const quotaBar = d.quotaBytes ? (
+        '<div class="db-storage-bar"><div class="db-storage-fill ' + hc + '" style="width:' + Math.min(100, d.usedPercent || 0) + '%"></div></div>' +
+        '<div class="db-storage-labels"><span>Used: ' + fmtBytes(d.totalBytes) + ' (' + (d.usedPercent || 0) + '%)</span><span>Free: ' + fmtBytes(d.remainingBytes) + ' / ' + fmtBytes(d.quotaBytes) + '</span></div>'
+      ) : (
+        '<div class="db-storage-bar db-storage-unknown"><div class="db-storage-fill ' + hc + '" style="width:100%"></div></div>' +
+        '<div class="db-storage-labels"><span>Current size: <strong>' + fmtBytes(d.totalBytes) + '</strong></span></div>' +
+        '<p class="db-hint">Remaining quota bar: set <code>DB_QUOTA_MB</code> or <code>MYSQL_QUOTA_MB</code> on server (e.g. Railway MySQL plan limit).</p>'
+      );
+
+      let hostDiskHtml = '';
+      if (d.hostDisk) {
+        const hd = d.hostDisk;
+        hostDiskHtml = '<div class="panel db-host-disk"><div class="panel-title">Server disk (' + esc(hd.path) + ')</div>' +
+          '<div class="db-storage-bar" style="margin-top:12px"><div class="db-storage-fill ' + (hd.usedPercent >= 90 ? 'db-h-crit' : hd.usedPercent >= 75 ? 'db-h-warn' : 'db-h-ok') + '" style="width:' + hd.usedPercent + '%"></div></div>' +
+          '<div class="db-storage-labels"><span>Used: ' + fmtBytes(hd.usedBytes) + '</span><span>Free: ' + fmtBytes(hd.freeBytes) + ' / ' + fmtBytes(hd.totalBytes) + '</span></div></div>';
+      }
+
+      const maxTable = Math.max(...(d.tables || []).map(t => t.totalBytes), 1);
+      const tableRows = (d.tables || []).map(t => {
+        const pct = Math.round((t.totalBytes / maxTable) * 100);
+        return '<tr><td><strong>' + esc(t.name) + '</strong></td><td style="text-align:right">' + fmt(t.rows) + '</td>' +
+          '<td style="text-align:right">' + fmtBytes(t.dataBytes) + '</td><td style="text-align:right">' + fmtBytes(t.indexBytes) + '</td>' +
+          '<td style="text-align:right;font-weight:700">' + fmtBytes(t.totalBytes) + '</td>' +
+          '<td class="db-bar-cell"><div class="db-mini-bar"><div style="width:' + pct + '%"></div></div></td></tr>';
+      }).join('');
+
+      const st = d.status || {};
+      const vr = d.variables || {};
+
+      root.innerHTML =
+        '<div class="db-status-row">' +
+        '<span class="db-health-pill ' + hc + '">' + esc(d.health).toUpperCase() + '</span>' +
+        '<span class="db-meta">MySQL ' + esc(vr.version || '') + ' · DB <strong>' + esc(d.database) + '</strong> · Ping <strong>' + d.pingMs + 'ms</strong></span>' +
+        '</div>' +
+
+        '<div class="ua-kpi-grid db-kpi-grid">' +
+        '<div class="ua-kpi highlight"><span class="ua-kpi-l">Database size</span><span class="ua-kpi-v">' + fmtBytes(d.totalBytes) + '</span></div>' +
+        '<div class="ua-kpi"><span class="ua-kpi-l">Data</span><span class="ua-kpi-v">' + fmtBytes(d.dataBytes) + '</span></div>' +
+        '<div class="ua-kpi"><span class="ua-kpi-l">Indexes</span><span class="ua-kpi-v">' + fmtBytes(d.indexBytes) + '</span></div>' +
+        '<div class="ua-kpi"><span class="ua-kpi-l">Tables</span><span class="ua-kpi-v">' + fmt(d.tableCount) + '</span></div>' +
+        '<div class="ua-kpi"><span class="ua-kpi-l">Est. rows</span><span class="ua-kpi-v">' + fmt(totalRows) + '</span></div>' +
+        '<div class="ua-kpi"><span class="ua-kpi-l">Fragmented</span><span class="ua-kpi-v">' + fmtBytes(d.freeBytes) + '</span></div>' +
+        '<div class="ua-kpi"><span class="ua-kpi-l">Uptime</span><span class="ua-kpi-v">' + fmtUptime(st.uptimeSeconds) + '</span></div>' +
+        '<div class="ua-kpi"><span class="ua-kpi-l">Connections</span><span class="ua-kpi-v">' + fmt(st.threadsConnected) + '/' + fmt(vr.maxConnections) + '</span></div>' +
+        '</div>' +
+
+        '<div class="panel db-storage-panel"><div class="panel-title">Storage usage</div>' + quotaBar + '</div>' +
+        hostDiskHtml +
+
+        '<div class="panel"><div class="panel-head"><div class="panel-title">Tables by size</div></div>' +
+        '<div class="detail-table-wrap"><table class="pages-table"><thead><tr><th>Table</th><th style="text-align:right">Rows</th><th style="text-align:right">Data</th><th style="text-align:right">Index</th><th style="text-align:right">Total</th><th>Share</th></tr></thead><tbody>' +
+        (tableRows || '<tr><td colspan="6" class="detail-empty">No tables</td></tr>') + '</tbody></table></div></div>' +
+
+        '<div class="db-two-col">' +
+        '<div class="panel"><div class="panel-title">Performance</div><ul class="db-info-list">' +
+        '<li>Buffer pool hit: <strong>' + (st.bufferHitRate != null ? st.bufferHitRate + '%' : '—') + '</strong></li>' +
+        '<li>Slow queries: <strong>' + fmt(st.slowQueries) + '</strong></li>' +
+        '<li>Total queries: <strong>' + fmt(st.queries) + '</strong></li>' +
+        '<li>Threads running: <strong>' + fmt(st.threadsRunning) + '</strong></li>' +
+        '<li>Aborted connects: <strong>' + fmt(st.abortedConnects) + '</strong></li>' +
+        '<li>Network in/out: <strong>' + fmtBytes(st.bytesReceived) + ' / ' + fmtBytes(st.bytesSent) + '</strong></li>' +
+        '</ul></div>' +
+        '<div class="panel"><div class="panel-title">Configuration</div><ul class="db-info-list">' +
+        '<li>InnoDB buffer: <strong>' + fmtBytes(vr.bufferPoolBytes) + '</strong></li>' +
+        '<li>App pool limit: <strong>' + fmt((d.pool || {}).connectionLimit) + '</strong></li>' +
+        '<li>Charset: <strong>' + esc(vr.charset) + '</strong></li>' +
+        '<li>Collation: <strong>' + esc(vr.collation) + '</strong></li>' +
+        '<li>Data directory: <span class="mono" style="font-size:11px">' + esc(vr.datadir) + '</span></li>' +
+        '<li>Comment: <span class="mono" style="font-size:11px">' + esc(vr.comment) + '</span></li>' +
+        '</ul></div></div>';
+
     }
   }
 };

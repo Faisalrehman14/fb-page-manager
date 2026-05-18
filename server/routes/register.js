@@ -779,6 +779,31 @@ app.get('/api/admin/activity', requireAdminAuth, async (req, res) => {
 });
 
 // Charts data
+app.get('/api/admin/database', requireAdminAuth, async (req, res) => {
+    try {
+        const health = await db.getAdminDatabaseHealth();
+        let hostDisk = null;
+        try {
+            const fs = require('fs');
+            const path = require('path');
+            const checkPath = process.env.DISK_CHECK_PATH || path.resolve(process.cwd());
+            const stat = fs.statfsSync(checkPath);
+            const total = Number(stat.blocks) * Number(stat.bsize);
+            const free = Number(stat.bavail) * Number(stat.bsize);
+            hostDisk = {
+                path: checkPath,
+                totalBytes: total,
+                freeBytes: free,
+                usedBytes: Math.max(0, total - free),
+                usedPercent: total > 0 ? Math.round(((total - free) / total) * 10000) / 100 : 0
+            };
+        } catch (_) {}
+        res.json({ ...health, hostDisk });
+    } catch (e) {
+        res.status(500).json({ connected: false, health: 'critical', error: e.message });
+    }
+});
+
 app.get('/api/admin/charts', requireAdminAuth, async (req, res) => {
     const pool = db.pool;
     if (!pool) return res.json({ userGrowth: [], planDistribution: {}, dailyActivity: [] });
