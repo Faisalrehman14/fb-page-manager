@@ -1368,6 +1368,10 @@
   async function runPoll() {
     M.poll.timer = null;
     if (!M.activePageId || document.hidden) return;
+    if (M.ui.loadingConvs && String(M._loadingConvsFor) === String(M.activePageId)) {
+      schedulePoll(nextPollDelayMs());
+      return;
+    }
 
     try {
       const params = { page_id: M.activePageId, since: M.poll.since };
@@ -1949,18 +1953,20 @@
     if (!isMore && !opts.background) {
       M.convOffset = 0;
       M.convHasMore = true;
-      const hit = _convListCache.get(pageId);
-      if (hit && Date.now() - hit.ts < CONV_LIST_CACHE_MS && hit.convs.length) {
-        M.convs = hit.convs;
-        M._convOrder = hit.order?.length
-          ? hit.order.slice()
-          : hit.convs.map(c => String(c.psid));
-        M.convOffset = hit.offset;
-        M.convHasMore = hit.hasMore;
-        rebuildConvIndex();
-        renderConvs();
-        loadConvs(pageId, false, { background: true });
-        return;
+      if (!opts.skipCacheRestore) {
+        const hit = _convListCache.get(pageId);
+        if (hit && Date.now() - hit.ts < CONV_LIST_CACHE_MS && hit.convs.length) {
+          M.convs = hit.convs.map(c => ({ ...c }));
+          M._convOrder = hit.order?.length
+            ? hit.order.slice()
+            : hit.convs.map(c => String(c.psid));
+          M.convOffset = hit.offset;
+          M.convHasMore = hit.hasMore;
+          rebuildConvIndex();
+          renderConvs({ immediate: true });
+          loadConvs(pageId, false, { background: true, skipCacheRestore: true, loadSeq });
+          return;
+        }
       }
       showConvSkeleton();
     } else if (isMore) {
@@ -1994,9 +2000,14 @@
         });
         invalidateConvListRender();
       } else if (opts.background && M.convs.length) {
+        const orderBefore = M._convOrder.join(',');
         const merged = mergeConvListFromServer(newConvs);
-        const reordered = applyMetaConvOrder(newConvs) || resortConvsByMeta();
-        if (merged || reordered) renderConvs();
+        let reordered = applyMetaConvOrder(newConvs);
+        if (!reordered) reordered = resortConvsByMeta();
+        const orderAfter = M._convOrder.join(',');
+        if (merged || orderBefore !== orderAfter) {
+          renderConvs({ immediate: orderBefore !== orderAfter });
+        }
         if (opts.syncOnly) {
           rebuildConvIndex();
           if (newConvs.length) {
@@ -2018,7 +2029,7 @@
 
       if (!isMore) {
         _convListCache.set(pageId, {
-          convs: M.convs,
+          convs: M.convs.map(c => ({ ...c })),
           order: M._convOrder.slice(),
           offset: M.convOffset,
           hasMore: M.convHasMore,
@@ -2982,6 +2993,17 @@
   // ── Updated msngSelectPage ──────────────────────────────────────────────────
   window.msngSelectPage = function (pageId) {
     const loadSeq = ++M._convLoadSeq;
+    const prevPageId = M.activePageId;
+    if (prevPageId && String(prevPageId) !== String(pageId) && M.convs.length) {
+      _convListCache.set(prevPageId, {
+        convs: M.convs.map(c => ({ ...c })),
+        order: M._convOrder.slice(),
+        offset: M.convOffset,
+        hasMore: M.convHasMore,
+        ts: Date.now()
+      });
+    }
+
     clearSyncPoll();
     M.ui.syncing = false;
     M.activePageId = pageId;
@@ -2993,17 +3015,34 @@
     M.search.cache.clear();
     const searchInput = $('msngSearchInput');
     if (searchInput) searchInput.value = '';
-    M.convs = [];
-    M._convOrder = [];
-    M.convOffset = 0;
-    M.convHasMore = true;
-    invalidateConvListRender();
-    rebuildConvIndex();
+    M.poll.since = new Date(Date.now() - 2000).toISOString();
+
     renderPages();
     showChatEmpty();
-    showConvSkeleton();
-    renderConvs({ immediate: true });
-    loadConvs(pageId, false, { loadSeq });
+
+    const hit = _convListCache.get(pageId);
+    const hadCache = hit && Date.now() - hit.ts < CONV_LIST_CACHE_MS && hit.convs?.length;
+
+    if (hadCache) {
+      M.convs = hit.convs.map(c => ({ ...c }));
+      M._convOrder = hit.order?.length ? hit.order.slice() : hit.convs.map(c => String(c.psid));
+      M.convOffset = hit.offset;
+      M.convHasMore = hit.hasMore;
+      rebuildConvIndex();
+      invalidateConvListRender();
+      renderConvs({ immediate: true });
+      loadConvs(pageId, false, { loadSeq, background: true, skipCacheRestore: true });
+    } else {
+      M.convs = [];
+      M._convOrder = [];
+      M.convOffset = 0;
+      M.convHasMore = true;
+      invalidateConvListRender();
+      rebuildConvIndex();
+      showConvSkeleton();
+      renderConvs({ immediate: true });
+      loadConvs(pageId, false, { loadSeq });
+    }
   };
 
   // ── Outer page selector integration ─────────────────────────────────────────
