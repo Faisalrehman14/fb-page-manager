@@ -107,6 +107,61 @@ app.post(['/webhook', '/fb_webhook.php'], async (req, res) => {
                     }
                     continue;
                 }
+                // Customer 👍 reaction on a message (Meta Business Suite / Messenger app)
+                if (event.reaction) {
+                    const { isThumbsUpReaction, normalizeIncomingSave, snippetForMessage, toClientMessage } = require('../messenger/message-content');
+                    if (!isThumbsUpReaction(event.reaction)) continue;
+
+                    const participantId = event.sender?.id;
+                    if (!participantId) continue;
+
+                    const ts = event.timestamp ? new Date(event.timestamp).toISOString() : new Date().toISOString();
+                    const rxMid = `rxn_${event.reaction.mid || '0'}_${participantId}_${event.timestamp || Date.now()}`;
+                    const normalized = normalizeIncomingSave({
+                        text: '👍',
+                        attachments: [{ t: 'like', u: null }]
+                    });
+
+                    const threadId = await db.ensureConversation(pageId, participantId);
+                    if (!threadId) continue;
+
+                    const saved = await db.saveMessage({
+                        id: rxMid, threadId, pageId, senderId: participantId,
+                        senderType: 'user',
+                        text: normalized.text,
+                        isFromPage: false,
+                        createdTime: ts,
+                        attachments: normalized.attachments
+                    });
+
+                    const clientMsg = toClientMessage({
+                        message_id: rxMid,
+                        text: normalized.text,
+                        attachments: normalized.attachments,
+                        isFromPage: false,
+                        createdTime: ts
+                    });
+                    const snippet = snippetForMessage(clientMsg);
+
+                    if (saved?.inserted === true) {
+                        await db.onIncomingMessage(threadId, pageId, participantId, snippet);
+                        io.to(`page_${pageId}`).emit('new_message', {
+                            id: rxMid, threadId, pageId, participantId,
+                            text: clientMsg.message,
+                            isFromPage: false,
+                            createdTime: ts,
+                            attachment_url: null,
+                            attachment_type: 'like',
+                            is_like: true
+                        });
+                        io.to(`page_${pageId}`).emit('conversation_updated', {
+                            id: threadId, pageId, participantId, snippet,
+                            updatedTime: new Date(), isRead: false,
+                            unreadCount: 1, lastMessageFromPage: false
+                        });
+                    }
+                    continue;
+                }
                 // No message body (postbacks etc.) — skip
                 if (!event.message) continue;
 
@@ -941,7 +996,7 @@ app.get('/api/pages', requireAuth, async (req, res) => {
         for (const p of (data.data || [])) {
             fetch(`https://graph.facebook.com/v19.0/${p.id}/subscribed_apps`, {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ subscribed_fields: ['messages', 'messaging_postbacks', 'message_deliveries', 'message_reads', 'conversations'], access_token: p.access_token })
+                body: JSON.stringify({ subscribed_fields: ['messages', 'messaging_postbacks', 'message_deliveries', 'message_reads', 'message_reactions', 'conversations'], access_token: p.access_token })
             }).then(async r => {
                 const d = await r.json().catch(() => ({}));
                 if (!r.ok || d.error) logError('webhook_subscribe', new Error(d.error?.message || 'subscribe failed'), { pageId: p.id });

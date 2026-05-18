@@ -12,7 +12,21 @@ const FB_MESSAGE_ATTACHMENT_FIELDS =
     'attachments{type,mime_type,payload{url,sticker_id},sticker_id,image_data{url,preview_url},file_url}';
 
 function isThumbsUpStickerId(id) {
-    return id != null && id !== '' && THUMBS_UP_STICKER_IDS.has(String(id));
+    if (id == null || id === '') return false;
+    const s = String(id);
+    if (THUMBS_UP_STICKER_IDS.has(s)) return true;
+    return /^36923926\d{6,}$/.test(s);
+}
+
+/** Meta message_reactions webhook — customer tapped 👍 on a message */
+function isThumbsUpReaction(reaction = {}) {
+    if (!reaction || reaction.action === 'unreact') return false;
+    const r = String(reaction.reaction || '').toLowerCase();
+    if (r === 'like') return true;
+    const emoji = String(reaction.emoji || '').trim();
+    if (!emoji) return false;
+    if (THUMBS_UP_TEXTS.has(emoji)) return true;
+    return /^[\u{1F44D}\u{1F3FB}-\u{1F3FF}]/u.test(emoji);
 }
 
 function isThumbsUpAttachmentUrl(url) {
@@ -112,6 +126,16 @@ function parseWebhookAttachments(rawList) {
 
 function pickPrimaryAttachment(msg = {}) {
     const attachments = Array.isArray(msg.attachments) ? msg.attachments.filter(Boolean) : [];
+    const likeAtt = attachments.find(a => {
+        const t = String(a.t || '').toLowerCase();
+        return t === 'like' || t === 'thumbs_up'
+            || (a.sticker_id && isThumbsUpStickerId(a.sticker_id))
+            || (a.u && isThumbsUpAttachmentUrl(a.u));
+    });
+    if (likeAtt) {
+        return { attachment_url: null, attachment_type: 'like' };
+    }
+
     let url = msg.attachment_url || null;
     let type = String(msg.attachment_type || '').toLowerCase();
 
@@ -221,8 +245,10 @@ module.exports = {
     THUMBS_UP_STICKER_IDS,
     FB_MESSAGE_ATTACHMENT_FIELDS,
     isThumbsUpMessage,
+    isThumbsUpReaction,
     isThumbsUpAttachmentUrl,
     isThumbsUpText,
+    isThumbsUpStickerId,
     parseFbAttachments,
     parseWebhookAttachments,
     normalizeIncomingSave,

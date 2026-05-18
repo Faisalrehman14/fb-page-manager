@@ -673,7 +673,13 @@
   }
 
   function isLikeMessage(msg) {
-    return !!(msg && (msg.is_like || msg._isLike || msg.attachment_type === 'like'));
+    if (!msg) return false;
+    if (msg.is_like || msg._isLike || msg.attachment_type === 'like') return true;
+    const t = String(msg.message || '').trim();
+    if (!t) return false;
+    if (t === '👍' || /^[\u{1F44D}\u{1F3FB}-\u{1F3FF}]/u.test(t)) return true;
+    if (/^\[(sticker|like)\]$/i.test(t)) return true;
+    return false;
   }
 
   function msgPreviewText(msg) {
@@ -711,6 +717,8 @@
     } else if (attType === 'image' || attType === 'video' || attType === 'audio') {
       const label = attType === 'video' ? '🎬 Video' : attType === 'audio' ? '🎵 Audio' : '📷 Photo';
       content = `<span class="msng-media-placeholder">${label}</span>`;
+    } else if (isLikeMessage(msg)) {
+      content = '<span class="msng-like-bubble" aria-label="Thumbs up">👍</span>';
     }
 
     const avatar = !fromMe

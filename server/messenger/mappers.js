@@ -27,7 +27,7 @@ function mapConversation(c) {
 }
 
 function mapMessage(m) {
-    return toClientMessage({
+    const out = toClientMessage({
         ...m,
         message_id: m.mid || m.message_id || m.id,
         message: m.text || m.message || '',
@@ -37,8 +37,10 @@ function mapMessage(m) {
         created_at: m.createdTime || m.created_at,
         attachment_url: m.attachment_url || m.attachments?.[0]?.u || null,
         attachment_type: m.attachment_type || m.attachments?.[0]?.t || null,
-        attachments: m.attachments
+        attachments: m.attachments,
+        is_like: m.is_like
     });
+    return out;
 }
 
 function mapPollMessage(m) {
@@ -49,7 +51,8 @@ function mapPollMessage(m) {
         created_at: m.createdTime || m.created_at,
         attachment_url: m.attachment_url || null,
         attachment_type: m.attachment_type || null,
-        attachments: m.attachments
+        attachments: m.attachments,
+        is_like: m.is_like
     });
 }
 
