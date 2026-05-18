@@ -123,7 +123,7 @@ app.post(['/webhook', '/fb_webhook.php'], async (req, res) => {
                 const text = (event.message.text || '').trim();
                 const ts   = event.timestamp ? new Date(event.timestamp).toISOString() : new Date().toISOString();
 
-                const { parseWebhookAttachments, normalizeIncomingSave, snippetForMessage } = require('../messenger/message-content');
+                const { parseWebhookAttachments, normalizeIncomingSave, snippetForMessage, toClientMessage } = require('../messenger/message-content');
                 const rawAttachments = parseWebhookAttachments(event.message.attachments || []);
                 const normalized = normalizeIncomingSave({ text, attachments: rawAttachments });
                 const saveText = normalized.text;
@@ -142,11 +142,14 @@ app.post(['/webhook', '/fb_webhook.php'], async (req, res) => {
                     attachments: saveAttachments
                 });
 
-                const snippet = snippetForMessage({
+                const clientMsg = toClientMessage({
+                    message_id: mid,
                     text: saveText,
                     attachments: saveAttachments,
-                    attachment_type: saveAttachments?.[0]?.t
+                    isFromPage: isEcho,
+                    createdTime: ts
                 });
+                const snippet = snippetForMessage(clientMsg);
 
                 const isNewMessage = saved?.inserted === true;
                 if (isEcho) {
@@ -159,10 +162,13 @@ app.post(['/webhook', '/fb_webhook.php'], async (req, res) => {
 
                 if (isNewMessage) {
                     io.to(`page_${pageId}`).emit('new_message', {
-                        id: mid, threadId, pageId, participantId, text: saveText,
-                        isFromPage: isEcho, createdTime: ts,
-                        attachments: saveAttachments || [],
-                        attachment_type: saveAttachments?.[0]?.t || null
+                        id: mid, threadId, pageId, participantId,
+                        text: clientMsg.message,
+                        isFromPage: isEcho,
+                        createdTime: ts,
+                        attachment_url: clientMsg.attachment_url,
+                        attachment_type: clientMsg.attachment_type,
+                        is_like: clientMsg.is_like
                     });
                     io.to(`page_${pageId}`).emit('conversation_updated', {
                         id: threadId, pageId, participantId, snippet,

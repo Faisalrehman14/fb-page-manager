@@ -923,9 +923,9 @@ async function saveMessage(message) {
             ON DUPLICATE KEY UPDATE
                 message = VALUES(message),
                 from_me = VALUES(from_me),
-                attachment_url = VALUES(attachment_url),
-                attachment_type = VALUES(attachment_type),
-                metadata = VALUES(metadata)
+                attachment_url = COALESCE(VALUES(attachment_url), attachment_url),
+                attachment_type = COALESCE(VALUES(attachment_type), attachment_type),
+                metadata = COALESCE(VALUES(metadata), metadata)
         `, [convId, pageId, senderId, id, text, isFromPage ? 1 : 0,
             createdTime ? new Date(createdTime) : new Date(),
             firstUrl, firstType, metaJson]);
@@ -980,10 +980,9 @@ async function saveMessages(messenger_messages) {
                 ON DUPLICATE KEY UPDATE
                     message = VALUES(message),
                     from_me = VALUES(from_me),
-                    attachment_url = VALUES(attachment_url),
-                    attachment_type = VALUES(attachment_type),
-                    metadata = VALUES(metadata),
-                    created_at = VALUES(created_at)
+                    attachment_url = COALESCE(VALUES(attachment_url), attachment_url),
+                    attachment_type = COALESCE(VALUES(attachment_type), attachment_type),
+                    metadata = COALESCE(VALUES(metadata), metadata)
             `, params);
         } catch (err) {
             addDbError(`saveMessagesBatch: ${err.message}`);

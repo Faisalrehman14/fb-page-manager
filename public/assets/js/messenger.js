@@ -343,7 +343,7 @@
     const last = [...M.msgs].reverse().find(m => !m._pending && !m._failed);
     if (!last) return false;
     let changed = false;
-    const preview = isLikeMessage(last) ? '👍' : (normalizePreviewText(last.message || '') || '[Attachment]');
+    const preview = msgPreviewText(last);
     if (conv.lastMsg !== preview) { conv.lastMsg = preview; changed = true; }
     const fromMe = !!last.from_me;
     if (conv.lastFromMe !== fromMe) { conv.lastFromMe = fromMe; changed = true; }
@@ -663,119 +663,63 @@
     </div>`;
   }
 
-  function isThumbsUpUrl(url) {
-    const u = String(url || '');
-    if (!u) return false;
-    if (/36923926[0-9]{6}/.test(u)) return true;
-    if (/sticker.*thumbs|thumbs.*sticker/i.test(u)) return true;
-    return false;
+  /** API already normalizes content — client only maps fields + pending send state. */
+  function normalizeMsg(raw) {
+    if (!raw) return raw;
+    return {
+      message_id: raw.message_id || raw.mid || null,
+      message: raw.message || raw.text || '',
+      from_me: raw.from_me == 1 || raw.from_me === true ? 1 : 0,
+      created_at: raw.created_at || raw.createdTime || null,
+      attachment_url: raw.attachment_url || null,
+      attachment_type: raw.attachment_type || null,
+      is_like: !!(raw.is_like || raw._isLike || raw.attachment_type === 'like'),
+      _tempId: raw._tempId,
+      _pending: raw._pending,
+      _failed: raw._failed,
+      _isLike: raw._isLike
+    };
   }
 
   function isLikeMessage(msg) {
-    if (!msg) return false;
-    if (msg.is_like || msg._isLike || msg.attachment_type === 'like') return true;
+    return !!(msg && (msg.is_like || msg._isLike || msg.attachment_type === 'like'));
+  }
+
+  function msgPreviewText(msg) {
+    if (!msg) return '';
+    if (isLikeMessage(msg)) return '👍';
     const t = String(msg.message || '').trim();
-    if (t === '👍' || t === ':thumbs_up:') return true;
-    if (/^\[(sticker|like|image|attachment)\]$/i.test(t)) return true;
-    if (/thumbs?\s*up/i.test(t) || /sent\s+(a\s+)?thumbs/i.test(t)) return true;
-    if (isThumbsUpUrl(msg.attachment_url)) return true;
-    if (!t && (msg.attachment_type === 'sticker' || msg.attachment_type === 'like')) return true;
-    if (!t && msg.attachment_type === 'image' && isThumbsUpUrl(msg.attachment_url)) return true;
-    if (/^attachment$/i.test(t)) return true;
-    const fromMe = msg.from_me == 1 || msg.from_me === true;
-    if (fromMe && !t && !msg.attachment_url) {
-      const at = String(msg.attachment_type || '').toLowerCase();
-      if (!at || at === 'image' || at === 'sticker' || at === 'like' || at === 'fallback') return true;
-    }
-    const THUMBS_IDS = new Set(['369239263222821', '369239263222822', '369239343222814', '369239383222810']);
-    const atts = msg.attachments || [];
-    for (const a of atts) {
-      const at = String(a.t || a.type || '').toLowerCase();
-      if (at === 'like' || at === 'thumbs_up') return true;
-      if (a.sticker_id != null && THUMBS_IDS.has(String(a.sticker_id))) return true;
-      if (isThumbsUpUrl(a.u)) return true;
-      if (at === 'sticker' && (a.sticker_id == null || a.sticker_id === '' || !a.u)) return true;
-    }
-    return false;
-  }
-
-  function isLikelyImageUrl(url) {
-    const u = String(url || '');
-    if (!u || isThumbsUpUrl(u)) return false;
-    if (/\.(jpe?g|png|gif|webp|bmp)(\?|$)/i.test(u)) return true;
-    if (/fbcdn\.net|fbsbx\.com|scontent/i.test(u)) return true;
-    return false;
-  }
-
-  function resolveMsgAttachment(msg) {
-    const atts = msg.attachments || [];
-    let url = msg.attachment_url || null;
-    let type = String(msg.attachment_type || '').toLowerCase();
-    if (!url && atts.length) {
-      const withUrl = atts.filter(a => a && a.u);
-      const best = withUrl.find(a => ['image', 'photo'].includes(String(a.t || '').toLowerCase()))
-        || withUrl.find(a => isLikelyImageUrl(a.u))
-        || withUrl[0];
-      if (best) {
-        url = best.u;
-        type = String(best.t || type).toLowerCase();
-      }
-    }
-    if (url && (!type || type === 'fallback' || type === 'file') && isLikelyImageUrl(url)) type = 'image';
-    return { attachment_url: url, attachment_type: type };
-  }
-
-  function isDisplayableImage(msg) {
-    const { attachment_url: url, attachment_type: type } = resolveMsgAttachment(msg);
-    if (!url) return false;
-    if (type === 'image' || type === 'photo') return true;
-    return isLikelyImageUrl(url);
-  }
-
-  function normalizeMsg(msg) {
-    if (!msg) return msg;
-    const resolved = resolveMsgAttachment(msg);
-    msg = { ...msg, ...resolved };
-    if (isLikeMessage(msg)) {
-      return { ...msg, message: '👍', attachment_url: null, attachment_type: 'like', _isLike: true };
-    }
-    let message = msg.message || '';
-    if (/^\[(sticker|like|image|attachment|photo)\]$/i.test(message.trim())) message = '';
-    if (/^attachment$/i.test(message.trim())) message = '';
-    return { ...msg, message };
+    if (t) return t;
+    const type = String(msg.attachment_type || '').toLowerCase();
+    if (type === 'image') return '📷 Photo';
+    if (type === 'video') return '🎬 Video';
+    if (type === 'audio') return '🎵 Audio';
+    if (msg.attachment_url) return '📎 Attachment';
+    return '';
   }
 
   function bubbleHtml(msg) {
     msg = normalizeMsg(msg);
     const fromMe  = msg.from_me == 1;
-    const txt     = msg.message  || '';
-    const { attachment_url: attUrl, attachment_type: attType } = resolveMsgAttachment(msg);
+    const txt     = String(msg.message || '').trim();
+    const attUrl  = msg.attachment_url;
+    const attType = String(msg.attachment_type || '').toLowerCase();
     const tempId  = msg._tempId  || '';
 
     let content = '';
     if (isLikeMessage(msg)) {
       content = '<span class="msng-like-bubble" aria-label="Thumbs up">👍</span>';
-    } else if (isDisplayableImage(msg)) {
+    } else if (attUrl && (attType === 'image' || attType === 'photo')) {
       content = `<img class="msng-att-img" src="${esc(attUrl)}" alt="Photo" role="button" tabindex="0" loading="lazy">`;
-      if (txt && !/^\[(image|photo|attachment)\]$/i.test(txt.trim())) {
-        content += `<div style="margin-top:4px">${esc(txt)}</div>`;
-      }
-    } else if (attType === 'video' && attUrl) {
-      content = `<a class="msng-media-link" href="${esc(attUrl)}" target="_blank" rel="noopener">🎬 Video</a>`;
-    } else if (attType === 'audio' && attUrl) {
-      content = `<a class="msng-media-link" href="${esc(attUrl)}" target="_blank" rel="noopener">🎵 Audio</a>`;
+      if (txt) content += `<div style="margin-top:4px">${esc(txt)}</div>`;
     } else if (txt) {
       content = esc(txt).replace(/\n/g, '<br>');
-    } else if (attType === 'sticker' || attType === 'like') {
-      content = '<span class="msng-like-bubble" aria-label="Thumbs up">👍</span>';
-    } else if (attUrl || ['image', 'video', 'audio', 'file'].includes(attType)) {
-      const label = attType === 'image' ? '📷 Photo' : attType === 'video' ? '🎬 Video'
-        : attType === 'audio' ? '🎵 Audio' : '📎 Attachment';
-      content = attUrl
-        ? `<a class="msng-media-link" href="${esc(attUrl)}" target="_blank" rel="noopener">${label}</a>`
-        : `<span class="msng-media-placeholder">${label}</span>`;
-    } else {
-      content = '<span class="msng-media-placeholder">📷 Photo</span>';
+    } else if (attUrl) {
+      const label = attType === 'video' ? '🎬 Video' : attType === 'audio' ? '🎵 Audio' : '📷 Photo';
+      content = `<a class="msng-media-link" href="${esc(attUrl)}" target="_blank" rel="noopener">${label}</a>`;
+    } else if (attType === 'image' || attType === 'video' || attType === 'audio') {
+      const label = attType === 'video' ? '🎬 Video' : attType === 'audio' ? '🎵 Audio' : '📷 Photo';
+      content = `<span class="msng-media-placeholder">${label}</span>`;
     }
 
     const avatar = !fromMe
@@ -2738,15 +2682,13 @@
       const msgPageId = String(msg.pageId);
       const msgPsid   = String(msg.participantId);
       const normalized = normalizeMsg({
-        message_id:      msg.id             || null,
-        conversation_id: msg.threadId       || null,
-        page_id:         msg.pageId,
-        user_id:         msg.participantId,
-        message:         typeof msg.text === 'string' ? msg.text : '',
-        from_me:         msg.isFromPage ? 1 : 0,
-        created_at:      msg.createdTime    || new Date().toISOString(),
-        attachment_url:  msg.attachments?.[0]?.u || msg.attachment_url || null,
-        attachment_type: msg.attachment_type || msg.attachments?.[0]?.t || null
+        message_id: msg.id || null,
+        message: typeof msg.text === 'string' ? msg.text : '',
+        from_me: msg.isFromPage ? 1 : 0,
+        created_at: msg.createdTime || new Date().toISOString(),
+        attachment_url: msg.attachment_url || null,
+        attachment_type: msg.attachment_type || null,
+        is_like: msg.is_like
       });
 
       if (msgPageId === String(M.activePageId) && msgPsid === String(M.activePsid)) {
@@ -2762,7 +2704,7 @@
 
       const conv = getConv(M.activePageId, msgPsid);
       if (conv) {
-        conv.lastMsg    = isLikeMessage(normalized) ? '👍' : (normalized.message || msg.text || '[Attachment]');
+        conv.lastMsg    = msgPreviewText(normalized) || normalizePreviewText(msg.text || '');
         conv.lastFromMe = !!msg.isFromPage;
         conv.lastMsgAt  = msg.createdTime || new Date().toISOString();
         if (msg.participantId !== M.activePsid && !msg.isFromPage) {
@@ -2776,7 +2718,7 @@
         const row = {
           id: msg.threadId, psid: msg.participantId,
           name: 'New User', picture: null,
-          lastMsg: msg.text || '[Attachment]', lastFromMe: false,
+          lastMsg: msgPreviewText(normalized) || 'Message', lastFromMe: false,
           lastMsgAt: msg.createdTime || new Date().toISOString(),
           unread: 1, page_id: M.activePageId
         };

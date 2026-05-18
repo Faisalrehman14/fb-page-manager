@@ -1,5 +1,5 @@
 /** API response shapes expected by messenger.js / web_ui.js */
-const { normalizeMessengerMessage, normalizeSnippetForList } = require('./message-content');
+const { toClientMessage, normalizeSnippetForList } = require('./message-content');
 
 function mapConversation(c) {
     const snippet = normalizeSnippetForList(c.snippet || '');
@@ -27,7 +27,7 @@ function mapConversation(c) {
 }
 
 function mapMessage(m) {
-    return normalizeMessengerMessage({
+    return toClientMessage({
         ...m,
         message_id: m.mid || m.message_id || m.id,
         message: m.text || m.message || '',
@@ -35,24 +35,21 @@ function mapMessage(m) {
             ? m.from_me
             : (m.isFromPage ? 1 : 0),
         created_at: m.createdTime || m.created_at,
-        attachment_url: (m.attachments?.[0]?.u) || m.attachment_url || null,
-        attachment_type: (m.attachments?.[0]?.t) || m.attachment_type || null,
+        attachment_url: m.attachment_url || m.attachments?.[0]?.u || null,
+        attachment_type: m.attachment_type || m.attachments?.[0]?.t || null,
         attachments: m.attachments
     });
 }
 
 function mapPollMessage(m) {
-    const attachments = m.attachments || (m.attachment_type || m.attachment_url
-        ? [{ t: m.attachment_type, u: m.attachment_url }]
-        : []);
-    return normalizeMessengerMessage({
+    return toClientMessage({
         message_id: m.mid || m.message_id,
         message: m.text || m.message || '',
         from_me: m.isFromPage ? 1 : (m.from_me != null ? m.from_me : 0),
         created_at: m.createdTime || m.created_at,
         attachment_url: m.attachment_url || null,
         attachment_type: m.attachment_type || null,
-        attachments
+        attachments: m.attachments
     });
 }
 
