@@ -45,7 +45,8 @@ class FacebookClient {
 
     lookupConversationByUser(pageId, psid, pageToken) {
         return `${FB_GRAPH_BASE}/${pageId}/conversations` +
-            `?user_id=${encodeURIComponent(psid)}&fields=id&limit=1&access_token=${pageToken}`;
+            `?user_id=${encodeURIComponent(psid)}` +
+            `&fields=id,unread_count,updated_time&limit=1&access_token=${pageToken}`;
     }
 
     messagesUrl(fbConvId, pageToken, { limit = 50, sinceUnix = null, untilUnix = null } = {}) {
@@ -79,21 +80,21 @@ class FacebookClient {
             }));
     }
 
-    async sendThumbsUp(pageToken, psid, useUtility = false) {
+    async sendThumbsUp(pageToken, psid, useUtility = false, pageId = null) {
         let data = await this.send(pageToken, psid, {
             attachment: { type: 'like' }
-        }, useUtility);
+        }, useUtility, pageId);
         if (!data.error) return data;
-        data = await this.send(pageToken, psid, { text: '👍' }, useUtility);
+        data = await this.send(pageToken, psid, { text: '👍' }, useUtility, pageId);
         if (data.error) throw new FbApiError(data.error);
         return data;
     }
 
-    async sendThumbsUpWithRetry(pageToken, psid) {
+    async sendThumbsUpWithRetry(pageToken, psid, pageId = null) {
         let lastErr;
         for (const useUtility of [false, true]) {
             try {
-                return await this.sendThumbsUp(pageToken, psid, useUtility);
+                return await this.sendThumbsUp(pageToken, psid, useUtility, pageId);
             } catch (err) {
                 lastErr = err;
                 const fbErr = { code: err.fbCode, message: err.message };
@@ -103,44 +104,132 @@ class FacebookClient {
         throw lastErr;
     }
 
-    async send(pageToken, psid, messageObj, useUtility = false) {
-        const url = `${FB_GRAPH_BASE}/me/messages?access_token=${pageToken}`;
-        const body = { recipient: { id: psid }, message: messageObj };
-        if (useUtility) body.messaging_type = 'UTILITY';
-        const formBody = new URLSearchParams();
-        for (const [k, v] of Object.entries(body)) {
-            formBody.append(k, typeof v === 'object' ? JSON.stringify(v) : String(v));
-        }
-        const r = await this._fetchWithTimeout(url, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: formBody.toString()
-        });
-        return r.json();
+    _messagesUrl(pageId, pageToken) {
+        const pid = pageId ? String(pageId) : null;
+        const base = pid ? `${FB_GRAPH_BASE}/${pid}/messages` : `${FB_GRAPH_BASE}/me/messages`;
+        return `${base}?access_token=${encodeURIComponent(pageToken)}`;
     }
 
-    /** Tell Meta the page has seen the customer's messages (Business Suite read state). */
-    async markSeen(pageToken, psid) {
-        const url = `${FB_GRAPH_BASE}/me/messages?access_token=${pageToken}`;
-        const formBody = new URLSearchParams();
-        formBody.append('recipient', JSON.stringify({ id: String(psid) }));
-        formBody.append('sender_action', 'mark_seen');
+    async _postJson(url, body) {
         const r = await this._fetchWithTimeout(url, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: formBody.toString()
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
         });
         const data = await r.json();
         if (data.error) throw new FbApiError(data.error);
         return data;
     }
 
-    async markSeenWithRetry(pageToken, psid) {
+    async send(pageToken, psid, messageObj, useUtility = false, pageId = null) {
+        const body = {
+            messaging_product: 'facebook',
+            recipient: { id: String(psid) },
+            message: messageObj
+        };
+        if (useUtility) body.messaging_type = 'UTILITY';
+
+        const urls = [];
+        if (pageId) urls.push(this._messagesUrl(pageId, pageToken));
+        urls.push(this._messagesUrl(null, pageToken));
+
+        let lastErr;
+        for (const url of urls) {
+            try {
+                return await this._postJson(url, body);
+            } catch (err) {
+                lastErr = err;
+                if (!FacebookClient.isTransient(err)) break;
+            }
+        }
+
+        const formUrl = `${FB_GRAPH_BASE}/me/messages?access_token=${encodeURIComponent(pageToken)}`;
+        const formBody = new URLSearchParams();
+        formBody.append('messaging_product', 'facebook');
+        for (const [k, v] of Object.entries(body)) {
+            formBody.append(k, typeof v === 'object' ? JSON.stringify(v) : String(v));
+        }
+        const r = await this._fetchWithTimeout(formUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: formBody.toString()
+        });
+        const data = await r.json();
+        if (data.error) throw lastErr || new FbApiError(data.error);
+        return data;
+    }
+
+    /** Meta: page has read customer's messages (clears Business Suite unread). */
+    async markSeen(pageToken, psid, pageId = null) {
+        const payload = {
+            messaging_product: 'facebook',
+            recipient: { id: String(psid) },
+            sender_action: 'mark_seen'
+        };
+
+        const urls = [];
+        if (pageId) urls.push(this._messagesUrl(pageId, pageToken));
+        urls.push(this._messagesUrl(null, pageToken));
+
+        let lastErr;
+        for (const url of urls) {
+            try {
+                return await this._postJson(url, payload);
+            } catch (err) {
+                lastErr = err;
+            }
+        }
+
+        const formUrl = `${FB_GRAPH_BASE}/me/messages?access_token=${encodeURIComponent(pageToken)}`;
+        const formBody = new URLSearchParams();
+        formBody.append('messaging_product', 'facebook');
+        formBody.append('recipient', JSON.stringify({ id: String(psid) }));
+        formBody.append('sender_action', 'mark_seen');
+        const r = await this._fetchWithTimeout(formUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: formBody.toString()
+        });
+        const data = await r.json();
+        if (data.error) throw lastErr || new FbApiError(data.error);
+        return data;
+    }
+
+    async getConversationUnreadCount(pageId, psid, pageToken) {
+        if (!pageId || !psid) return null;
+        const data = await this.getJson(this.lookupConversationByUser(pageId, psid, pageToken));
+        const row = (data.data || [])[0];
+        if (!row) return null;
+        return {
+            unreadCount: Number(row.unread_count) || 0,
+            fbConvId: row.id || null
+        };
+    }
+
+    /**
+     * Mark read on Meta (retry until unread_count clears or attempts exhausted).
+     */
+    async markThreadReadOnMeta(pageId, pageToken, psid) {
+        let fb = null;
+        const maxAttempts = pageId ? 4 : 2;
+        for (let attempt = 0; attempt < maxAttempts; attempt++) {
+            await this.markSeen(pageToken, psid, pageId);
+            await new Promise(r => setTimeout(r, 350 + attempt * 200));
+            if (!pageId) break;
+            try {
+                fb = await this.getConversationUnreadCount(pageId, psid, pageToken);
+                if (!fb || fb.unreadCount === 0) break;
+            } catch (_) { /* verify optional */ }
+        }
+        return { metaMarked: true, fbUnread: fb?.unreadCount ?? null, fbConvId: fb?.fbConvId ?? null };
+    }
+
+    async markSeenWithRetry(pageToken, psid, pageId = null) {
         let lastErr;
         for (let i = 0; i <= 2; i++) {
-            if (i > 0) await new Promise(r => setTimeout(r, 300 * i));
+            if (i > 0) await new Promise(r => setTimeout(r, 400 * i));
             try {
-                return await this.markSeen(pageToken, psid);
+                return await this.markThreadReadOnMeta(pageId, pageToken, psid);
             } catch (err) {
                 lastErr = err;
                 if (!FacebookClient.isTransient(err)) throw err;

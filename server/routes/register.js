@@ -234,6 +234,18 @@ app.post(['/webhook', '/fb_webhook.php'], async (req, res) => {
                 if (isEcho) {
                     if (isNewMessage) {
                         await db.updateConversationFromMessage({ threadId, text: snippet, createdTime: ts, lastFromMe: true }).catch(() => {});
+                        await db.markAsRead(threadId).catch(() => {});
+                        setImmediate(async () => {
+                            try {
+                                const token = await db.getPageToken(pageId);
+                                if (token && participantId) {
+                                    const { FacebookClient } = require('../messenger/facebook-client');
+                                    await new FacebookClient(fetch).markSeenWithRetry(token, participantId, pageId);
+                                }
+                            } catch (err) {
+                                logError('echo_mark_seen_meta', err, { pageId, threadId, participantId });
+                            }
+                        });
                     }
                 } else if (isNewMessage) {
                     const viewedLive = threadHasLiveViewers(io, threadId);
@@ -1245,48 +1257,18 @@ app.post('/api/threads/:threadId/reply', requireAuth, verifyCsrf, async (req, re
     if (!token) return res.status(401).json({ error: 'Page token not found', tokenMissing: true });
 
     try {
-        const _replyUrl  = `https://graph.facebook.com/v19.0/me/messages?access_token=${token}`;
-        const _replySend = async (useUtility = false) => {
-            const body = { recipient: { id: recipientId }, message: { text: message.trim() } };
-            if (useUtility) body.messaging_type = 'UTILITY';
-            const formBody = new URLSearchParams();
-            for (const [k, v] of Object.entries(body)) {
-                formBody.append(k, typeof v === 'object' ? JSON.stringify(v) : String(v));
-            }
-            const r = await fetch(_replyUrl, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: formBody.toString() });
-            return r.json();
-        };
-        let data = await _replySend();
-        if (data.error) {
-            const code = data.error.code;
-            const em   = (data.error.message || '').toLowerCase();
-            if (code === 10 || code === 551 || em.includes('outside of allowed window') || em.includes('24 hour') || em.includes('messaging window')) {
-                data = await _replySend(true);
-            }
-        }
-        if (data.error) throw new Error(data.error.message);
-
-        const createdTime = new Date().toISOString();
-        if (state.dbConnected) {
-            await db.saveMessage({ id: data.message_id, threadId, pageId, senderId: pageId, senderType: 'page', text: message.trim(), isFromPage: true, createdTime });
-            await db.markAsRead(threadId);
-        }
-        try {
-            const { FacebookClient } = require('../messenger/facebook-client');
-            await new FacebookClient(fetch).markSeenWithRetry(token, recipientId);
-        } catch (err) {
-            logError('reply_mark_seen_meta', err, { pageId, threadId, recipientId });
-        }
-
-        res.json({ success: true, messageId: data.message_id });
-        // Emit AFTER HTTP response so the optimistic tempId element is already in DOM when socket fires
-        setImmediate(() => {
-            io.to(`page_${pageId}`).emit('new_message',          { id: data.message_id, threadId, text: message.trim(), isFromPage: true, senderId: pageId, createdTime });
-            io.to(`page_${pageId}`).emit('conversation_updated', { id: threadId, pageId, snippet: message.trim(), updatedTime: new Date(), isRead: true, unreadCount: 0, lastMessageFromPage: true });
+        const { SendService } = require('../messenger/send-service');
+        const sendService = new SendService({ db, io, fetchFn: fetch });
+        const result = await sendService.send({
+            pageId,
+            psid: recipientId,
+            message: message.trim(),
+            page_token: token
         });
+        res.json({ success: true, messageId: result.message_id });
     } catch (err) {
         logError('reply_route', err, { pageId, threadId });
-        res.status(500).json({ error: err.message });
+        res.status(500).json({ error: err.message || 'Send failed' });
     }
 });
 
@@ -1303,7 +1285,7 @@ app.post('/api/threads/:threadId/read', requireAuth, verifyCsrf, async (req, res
                 const token = await db.getPageToken(pageId);
                 if (psid && token) {
                     const { FacebookClient } = require('../messenger/facebook-client');
-                    await new FacebookClient(fetch).markSeenWithRetry(token, psid);
+                    await new FacebookClient(fetch).markSeenWithRetry(token, psid, pageId);
                 }
             } catch (err) {
                 logError('thread_mark_read_meta', err, { pageId, threadId });

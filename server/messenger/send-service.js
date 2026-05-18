@@ -14,12 +14,12 @@ class SendService {
     }
 
     // Retries on transient network failures only; throws on FB API errors.
-    async _fbSendWithRetry(token, psid, msgObj, useUtility = false) {
+    async _fbSendWithRetry(token, psid, msgObj, useUtility = false, pageId = null) {
         let lastErr;
         for (let i = 0; i <= RETRY_DELAYS.length; i++) {
             if (i > 0) await sleep(RETRY_DELAYS[i - 1]);
             try {
-                return await this.fb.send(token, psid, msgObj, useUtility);
+                return await this.fb.send(token, psid, msgObj, useUtility, pageId);
             } catch (err) {
                 if (FacebookClient.isTransient(err)) { lastErr = err; continue; }
                 throw err;
@@ -36,9 +36,17 @@ class SendService {
         const token = pageToken || await this.db.getPageToken(pageId);
         if (!token || !psid) return;
         try {
-            await this.fb.markSeenWithRetry(token, psid);
+            const result = await this.fb.markSeenWithRetry(token, psid, pageId);
+            if (result?.fbUnread > 0) {
+                console.warn(`[SendService] Meta unread_count still ${result.fbUnread} for psid ${psid} after mark_seen`);
+            } else if (convId && result?.fbUnread === 0) {
+                await this.db.markAsRead(convId).catch(() => {});
+            }
         } catch (err) {
-            console.warn('[SendService] mark_seen after send:', err.message || err);
+            const detail = err.fbCode != null
+                ? `code=${err.fbCode} ${err.message}`
+                : (err.message || String(err));
+            console.warn(`[SendService] mark_seen failed page=${pageId} psid=${psid}: ${detail}`);
         }
     }
 
@@ -61,13 +69,16 @@ class SendService {
         }
         if (!parts.length) throw new Error('No message content');
 
+        const convInfoEarly = await this.db.getConversationIdByParticipant(pageId, psid);
+        await this._markThreadReadOnMetaAndDb(pageId, psid, convInfoEarly?.id || null, token);
+
         let lastMid;
         for (const part of parts) {
-            let fbData = await this._fbSendWithRetry(token, psid, part.msgObj, false);
+            let fbData = await this._fbSendWithRetry(token, psid, part.msgObj, false, pageId);
 
             // Outside 24h window: retry as UTILITY message type
             if (fbData.error && FacebookClient.isOutside24hWindow(fbData.error)) {
-                fbData = await this._fbSendWithRetry(token, psid, part.msgObj, true);
+                fbData = await this._fbSendWithRetry(token, psid, part.msgObj, true, pageId);
             }
 
             if (fbData.error) throw new Error(fbData.error.message);
@@ -132,7 +143,9 @@ class SendService {
         const token = page_token || await this.db.getPageToken(pageId);
         if (!token) throw new Error('Page token not found');
 
-        const fbData = await this.fb.sendThumbsUpWithRetry(token, psid);
+        await this._markThreadReadOnMetaAndDb(pageId, psid, null, token);
+
+        const fbData = await this.fb.sendThumbsUpWithRetry(token, psid, pageId);
         const mid = fbData.message_id;
         const createdTime = new Date().toISOString();
         const displayText = '👍';
@@ -193,7 +206,7 @@ class SendService {
 
         if (token && psid) {
             try {
-                await this.fb.markSeenWithRetry(token, psid);
+                await this.fb.markSeenWithRetry(token, psid, pageId);
                 metaMarked = true;
             } catch (err) {
                 console.warn('[markRead] Meta mark_seen failed:', err.message || err);
