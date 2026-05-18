@@ -538,21 +538,33 @@ app.get('/api/admin/users', requireAdminAuth, async (req, res) => {
     } catch(e) { res.json({ users:[], total:0 }); }
 });
 
-// Update user plan / quota
+// Plan catalog for admin UI
+app.get('/api/admin/plans', requireAdminAuth, (req, res) => {
+    const { getPlanCatalogForAdmin } = require('../config/plans');
+    res.json({ plans: getPlanCatalogForAdmin() });
+});
+
+// Update user plan / quota (plan change = full activation with limits + expiry)
 app.post('/api/admin/users/:id/update', requireAdminAuth, async (req, res) => {
-    const pool = db.pool;
-    if (!pool) return res.status(500).json({ error: 'DB not connected' });
+    if (!db.pool) return res.status(500).json({ error: 'DB not connected' });
     try {
         const { plan, messages_limit, messages_used } = req.body;
-        const sets = []; const vals = [];
-        if (plan !== undefined)           { sets.push('plan=?');                       vals.push(plan); }
-        if (messages_limit !== undefined) { sets.push('messenger_messages_limit=?');   vals.push(parseInt(messages_limit)); }
-        if (messages_used !== undefined)  { sets.push('messenger_messages_used=?');    vals.push(parseInt(messages_used)); }
+        if (plan !== undefined) {
+            const result = await db.adminActivatePlan(req.params.id, plan, { messages_limit, messages_used });
+            if (!result.ok) return res.status(400).json(result);
+            return res.json({ success: true, ...result });
+        }
+        const sets = [];
+        const vals = [];
+        if (messages_limit !== undefined) { sets.push('messenger_messages_limit=?'); vals.push(parseInt(messages_limit, 10)); }
+        if (messages_used !== undefined)  { sets.push('messenger_messages_used=?'); vals.push(parseInt(messages_used, 10)); }
         if (!sets.length) return res.json({ success: true });
         vals.push(req.params.id);
-        await pool.query(`UPDATE users SET ${sets.join(',')} WHERE fb_user_id=?`, vals);
+        await db.pool.query(`UPDATE users SET ${sets.join(',')} WHERE fb_user_id=?`, vals);
         res.json({ success: true });
-    } catch(e) { res.status(500).json({ error: e.message }); }
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
 });
 
 // Reset user quota

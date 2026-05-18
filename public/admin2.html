@@ -242,12 +242,6 @@
               <div class="tbl-filter">
                 <select id="planFilter" onchange="App.users.filterChange()">
                   <option value="">All Plans</option>
-                  <option value="free">Free</option>
-                  <option value="basic">Basic</option>
-                  <option value="pro">Pro</option>
-                  <option value="gold">Gold</option>
-                  <option value="sapphire">Sapphire</option>
-                  <option value="platinum">Platinum</option>
                 </select>
               </div>
               <div class="tbl-count" id="usersCount"></div>
@@ -350,15 +344,7 @@
         </div>
         <div class="form-row">
           <label class="form-label">Plan</label>
-          <select class="form-input" id="editPlan">
-            <option value="free">Free</option>
-            <option value="basic">Basic</option>
-            <option value="pro">Pro</option>
-            <option value="gold">Gold</option>
-            <option value="sapphire">Sapphire</option>
-            <option value="platinum">Platinum</option>
-            <option value="unknown">Unknown</option>
-          </select>
+          <select class="form-input" id="editPlan" onchange="App.users.onPlanPick()"></select>
         </div>
         <div class="form-row">
           <label class="form-label">Message Limit</label>
@@ -407,14 +393,7 @@
     <div class="modal-body">
       <div class="form-row">
         <label class="form-label">New Plan for selected users</label>
-        <select class="form-input" id="bulkPlanSelect">
-          <option value="free">Free</option>
-          <option value="basic">Basic</option>
-          <option value="pro">Pro</option>
-          <option value="gold">Gold</option>
-          <option value="sapphire">Sapphire</option>
-          <option value="platinum">Platinum</option>
-        </select>
+        <select class="form-input" id="bulkPlanSelect"></select>
       </div>
     </div>
     <div class="modal-foot">
@@ -458,6 +437,37 @@ const debounce = (fn, ms) => { let t; return (...a) => { clearTimeout(t); t = se
 const planColors = { free:'#64748b', basic:'#60a5fa', pro:'#0866ff', gold:'#fbbf24', sapphire:'#38bdf8', platinum:'#c084fc', unknown:'#475569' };
 const planBg = { free:'rgba(100,116,139,.15)', basic:'rgba(59,130,246,.15)', pro:'rgba(8,102,255,.18)', gold:'rgba(245,158,11,.15)', sapphire:'rgba(14,165,233,.15)', platinum:'rgba(168,85,247,.18)', unknown:'rgba(71,85,105,.12)' };
 const BRAND = '#0866ff';
+
+const ADMIN_PLANS = [
+  { key: 'free', name: 'Free', limit: 2000, dbPlan: 'free' },
+  { key: 'starter', name: 'Starter', limit: 30000, dbPlan: 'basic' },
+  { key: 'basic', name: 'Bronze', limit: 300000, dbPlan: 'basic' },
+  { key: 'pro', name: 'Silver', limit: 650000, dbPlan: 'pro' },
+  { key: 'gold', name: 'Gold', limit: 1750000, dbPlan: 'gold' },
+  { key: 'sapphire', name: 'Sapphire', limit: 4000000, dbPlan: 'sapphire' },
+  { key: 'pro_unlimited', name: 'Platinum', limit: 7000000, dbPlan: 'platinum' }
+];
+
+function detectPlanKey(u) {
+  const p = String(u?.plan || 'free').toLowerCase();
+  const limit = Number(u?.messenger_messages_limit) || 0;
+  if (p === 'free') return 'free';
+  if (p === 'platinum') return 'pro_unlimited';
+  if (p === 'basic' && limit > 0 && limit <= 50000) return 'starter';
+  const hit = ADMIN_PLANS.find(x => x.key === p || x.dbPlan === p);
+  return hit ? hit.key : p;
+}
+
+function planAdminLabel(u) {
+  const key = detectPlanKey(u);
+  return ADMIN_PLANS.find(x => x.key === key)?.name || u.plan || '?';
+}
+
+function planBadgeClass(u) {
+  const key = detectPlanKey(u);
+  const db = ADMIN_PLANS.find(x => x.key === key)?.dbPlan || u.plan || 'unknown';
+  return 'badge badge-' + db;
+}
 
 function userDisplayName(u) {
   const n = String(u?.fb_name || '').trim();
@@ -505,6 +515,7 @@ const App = {
 
   // ── Init ──────────────────────────────────────────────────
   init() {
+    App.users.initPlanSelects();
     fetch('/api/admin/users/sync-names', { method: 'POST' }).catch(() => {});
     this.dashboard.load();
     this.startAutoRefresh();
@@ -720,7 +731,7 @@ const App = {
               <div class="u-av">${userInitial(u)}</div>
               <div><div class="u-name">${esc(userDisplayName(u))}</div><div class="u-id">${esc(u.fb_user_id)}</div></div>
             </div></td>
-            <td><span class="badge badge-${u.plan||'unknown'}">${u.plan||'?'}</span></td>
+            <td><span class="${planBadgeClass(u)}">${esc(planAdminLabel(u))}</span></td>
             <td style="font-size:12px">${fmt(u.messenger_messages_used||0)} / ${fmt(u.messenger_messages_limit||0)}</td>
             <td style="font-size:12px;color:var(--muted)">${fmtDate(u.created_at)}</td>
           </tr>`).join('');
@@ -750,6 +761,25 @@ const App = {
   //  USERS
   // ══════════════════════════════════════════════════════════
   users: {
+    initPlanSelects() {
+      const opts = ADMIN_PLANS.map(p =>
+        `<option value="${esc(p.key)}">${esc(p.name)} — ${fmt(p.limit)} msgs/mo</option>`
+      ).join('');
+      const filterDb = [...new Set(ADMIN_PLANS.map(p => p.dbPlan))];
+      const filterOpts = '<option value="">All Plans</option>' + filterDb.map(db => {
+        const names = ADMIN_PLANS.filter(p => p.dbPlan === db).map(p => p.name).join(' / ');
+        return `<option value="${esc(db)}">${esc(names)}</option>`;
+      }).join('');
+      $('editPlan').innerHTML = opts;
+      $('bulkPlanSelect').innerHTML = opts;
+      if ($('planFilter')) $('planFilter').innerHTML = filterOpts;
+    },
+
+    onPlanPick() {
+      const p = ADMIN_PLANS.find(x => x.key === $('editPlan').value);
+      if (p) $('editLimit').value = p.limit;
+    },
+
     debouncedSearch: debounce(function() {
       const s = App.state.users;
       s.search = ($('usersSearch')?.value || $('userSearchInput')?.value || '').trim();
@@ -831,7 +861,7 @@ const App = {
             <div class="u-av">${userInitial(u)}</div>
             <div><div class="u-name">${esc(userDisplayName(u))}</div><div class="u-id">${esc(u.fb_user_id)}</div></div>
           </div></td>
-          <td><span class="badge badge-${u.plan||'unknown'}">${u.plan||'?'}</span></td>
+          <td><span class="${planBadgeClass(u)}">${esc(planAdminLabel(u))}</span></td>
           <td class="quota-cell">
             <div class="quota-bar"><div class="quota-fill ${cls}" style="width:${pct}%"></div></div>
             <div class="quota-txt">${fmt(used)} / ${fmt(limit)} (${pct}%)</div>
@@ -914,8 +944,8 @@ const App = {
       $('editId').value        = u.fb_user_id;
       $('editUserIdShow').value = u.fb_user_id;
       $('editFbName').value    = u.fb_name || userDisplayName(u);
-      $('editPlan').value      = u.plan || 'free';
-      $('editLimit').value     = u.messenger_messages_limit || 2000;
+      $('editPlan').value      = detectPlanKey(u);
+      $('editLimit').value     = u.messenger_messages_limit || (ADMIN_PLANS.find(p => p.key === detectPlanKey(u))?.limit ?? 2000);
       $('editUsed').value      = u.messenger_messages_used  || 0;
       $('editModalTitle').textContent = 'Edit — '+esc(userDisplayName(u));
       App.modal.open('editOverlay');
@@ -923,11 +953,18 @@ const App = {
 
     async save() {
       const id = $('editId').value;
-      const body = { plan: $('editPlan').value, messages_limit: $('editLimit').value, messages_used: $('editUsed').value };
+      const planKey = $('editPlan').value;
+      const body = { plan: planKey, messages_limit: $('editLimit').value, messages_used: $('editUsed').value };
       try {
         const r = await fetch(`/api/admin/users/${encodeURIComponent(id)}/update`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
-        if(r.ok){ App.modal.close('editOverlay'); App.toast.show('User updated successfully','success'); this.load(); }
-        else App.toast.show('Failed to update','error');
+        const d = await r.json().catch(() => ({}));
+        if(r.ok){
+          App.modal.close('editOverlay');
+          const name = d.planName || planAdminLabel({ plan: d.plan, messenger_messages_limit: d.messageLimit });
+          App.toast.show(`Plan activated: ${name}`,'success');
+          this.load();
+        }
+        else App.toast.show(d.error || 'Failed to update','error');
       } catch(e){ App.toast.show('Request failed','error'); }
     },
 
@@ -961,7 +998,7 @@ const App = {
       let ok = 0;
       await Promise.all(ids.map(async id => {
         try {
-          const r = await fetch(`/api/admin/users/${encodeURIComponent(id)}/update`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({plan})});
+          const r = await fetch(`/api/admin/users/${encodeURIComponent(id)}/update`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({ plan })});
           if(r.ok) ok++;
         } catch(e){}
       }));

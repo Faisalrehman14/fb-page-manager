@@ -885,14 +885,20 @@ function updateQuotaUI(){
   if(totEl)totEl.textContent=q.messageLimit.toLocaleString();
   if(badgeEl){
     const plan=(q.subscriptionStatus||'free').toLowerCase();
-    const isPro=plan==='pro';
-    const isBasic=plan==='basic';
-    const label=isPro?'Pro':(isBasic?'Basic':'Free');
-    const icon=isPro?'fa-crown':(isBasic?'fa-layer-group':'fa-gem');
-    const planKey=isPro?'pro':(isBasic?'basic':'free');
-    badgeEl.setAttribute('data-plan', planKey);
+    const limit=q.messageLimit||0;
+    const BADGES={
+      free:{label:'Free',icon:'fa-gem',dataPlan:'free'},
+      basic:limit>0&&limit<=50000?{label:'Starter',icon:'fa-bolt',dataPlan:'basic'}:{label:'Bronze',icon:'fa-layer-group',dataPlan:'basic'},
+      pro:{label:'Silver',icon:'fa-crown',dataPlan:'pro'},
+      gold:{label:'Gold',icon:'fa-crown',dataPlan:'gold'},
+      sapphire:{label:'Sapphire',icon:'fa-gem',dataPlan:'sapphire'},
+      platinum:{label:'Platinum',icon:'fa-crown',dataPlan:'platinum'},
+      unknown:{label:'Free',icon:'fa-gem',dataPlan:'free'}
+    };
+    const b=BADGES[plan]||BADGES.free;
+    badgeEl.setAttribute('data-plan', b.dataPlan);
     badgeEl.className='saas-topbar__plan-btn';
-    badgeEl.innerHTML=`<i class="fa-solid ${icon}" aria-hidden="true"></i><span>${label}</span>`;
+    badgeEl.innerHTML=`<i class="fa-solid ${b.icon}" aria-hidden="true"></i><span>${b.label}</span>`;
     badgeEl.removeAttribute('style');
   }
   if(emptyEl)emptyEl.style.display=rem<=0?'flex':'none';

@@ -76,4 +76,53 @@ function planForPriceId(priceId) {
     return null;
 }
 
-module.exports = { PLANS, FREE_TIER, getPlan, listPlanKeys, planForPriceId };
+/** Resolve admin/UI plan key or legacy db plan value → catalog key */
+function resolvePlanKey(input) {
+    const key = String(input || '').trim().toLowerCase();
+    if (!key || key === 'free') return 'free';
+    if (PLANS[key]) return key;
+    const byDb = {
+        basic: 'basic',
+        pro: 'pro',
+        gold: 'gold',
+        sapphire: 'sapphire',
+        platinum: 'pro_unlimited',
+        unknown: 'free'
+    };
+    return byDb[key] || null;
+}
+
+function getPlanCatalogForAdmin() {
+    return [
+        { key: 'free', dbPlan: FREE_TIER.dbPlan, name: 'Free', limit: FREE_TIER.limit },
+        ...Object.values(PLANS).map(p => ({
+            key: p.key,
+            dbPlan: p.dbPlan,
+            name: p.name,
+            limit: p.limit
+        }))
+    ];
+}
+
+function getDisplayForDbPlan(dbPlan, messageLimit) {
+    const plan = String(dbPlan || 'free').toLowerCase();
+    const limit = Number(messageLimit) || 0;
+    if (plan === 'free') return { label: 'Free', dbPlan: 'free', dataPlan: 'free' };
+    if (plan === 'basic' && limit > 0 && limit <= 50000) {
+        return { label: 'Starter', dbPlan: 'basic', dataPlan: 'basic' };
+    }
+    const match = Object.values(PLANS).find(p => p.dbPlan === plan);
+    if (match) return { label: match.name, dbPlan: match.dbPlan, dataPlan: match.dbPlan };
+    return { label: plan.charAt(0).toUpperCase() + plan.slice(1), dbPlan: plan, dataPlan: plan };
+}
+
+module.exports = {
+    PLANS,
+    FREE_TIER,
+    getPlan,
+    listPlanKeys,
+    planForPriceId,
+    resolvePlanKey,
+    getPlanCatalogForAdmin,
+    getDisplayForDbPlan
+};

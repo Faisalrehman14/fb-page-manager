@@ -1925,7 +1925,7 @@ async function cleanupStaleConversations(pageId = null, daysOld = CONVERSATION_R
     }
 }
 
-const { getPlan, FREE_TIER } = require('./config/plans');
+const { getPlan, FREE_TIER, resolvePlanKey } = require('./config/plans');
 
 async function ensureBillingTables() {
     return initDatabase();
@@ -2040,6 +2040,56 @@ async function downgradeToFree(fbUserId) {
         'INSERT INTO activity_log (fb_user_id, action, detail) VALUES (?, ?, ?)',
         [fbUserId, 'subscription', 'Cancelled — reverted to free']
     ).catch(() => {});
+}
+
+/** Admin: fully activate a plan (limits, expiry, quota reset) like Stripe checkout */
+async function adminActivatePlan(fbUserId, planInput, { messages_used, messages_limit } = {}) {
+    if (!pool || !fbUserId) return { ok: false, error: 'Invalid user' };
+    const catalogKey = resolvePlanKey(planInput);
+    if (!catalogKey) return { ok: false, error: 'Unknown plan' };
+
+    if (catalogKey === 'free') {
+        await downgradeToFree(fbUserId);
+    } else {
+        await applyPlan(fbUserId, catalogKey, { billingReason: 'admin_activation' });
+    }
+
+    const sets = [];
+    const vals = [];
+    if (messages_limit !== undefined && messages_limit !== null && messages_limit !== '') {
+        sets.push('messenger_messages_limit=?');
+        vals.push(Math.max(0, parseInt(messages_limit, 10) || 0));
+    }
+    if (messages_used !== undefined && messages_used !== null && messages_used !== '') {
+        sets.push('messenger_messages_used=?');
+        vals.push(Math.max(0, parseInt(messages_used, 10) || 0));
+    }
+    if (sets.length) {
+        vals.push(fbUserId);
+        await pool.query(`UPDATE users SET ${sets.join(',')} WHERE fb_user_id=?`, vals);
+    }
+
+    const [rows] = await pool.query(
+        `SELECT plan, messenger_messages_limit, messenger_messages_used, subscription_expires
+         FROM users WHERE fb_user_id = ?`,
+        [fbUserId]
+    );
+    const r = rows[0] || {};
+    const catalog = catalogKey === 'free' ? null : getPlan(catalogKey);
+    await pool.query(
+        'INSERT INTO activity_log (fb_user_id, action, detail) VALUES (?, ?, ?)',
+        [fbUserId, 'subscription', `Admin activated: ${catalog?.name || 'Free'} (${r.messenger_messages_limit} msgs)`]
+    ).catch(() => {});
+
+    return {
+        ok: true,
+        planKey: catalogKey,
+        plan: r.plan || (catalogKey === 'free' ? 'free' : catalog?.dbPlan),
+        planName: catalog?.name || 'Free',
+        messageLimit: r.messenger_messages_limit,
+        messagesUsed: r.messenger_messages_used,
+        subscriptionExpires: r.subscription_expires
+    };
 }
 
 async function assertQuota(fbUserId, count = 1) {
@@ -2179,6 +2229,7 @@ const dbModule = {
     markWebhookFailed,
     recordPayment,
     applyPlan,
+    adminActivatePlan,
     renewPlan,
     downgradeToFree,
     assertQuota,
