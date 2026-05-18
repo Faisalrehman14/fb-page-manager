@@ -10,15 +10,15 @@ body.shell-home .sidebar {
 
 #view-home.hv,
 #view-home {
-  --hd-glass: rgba(12, 24, 48, 0.65);
-  --hd-border: rgba(255, 255, 255, 0.08);
+  --hd-glass: rgba(19, 21, 26, 0.88);
+  --hd-border: rgba(255, 255, 255, 0.09);
   --hd-shadow:
     0 0 0 1px rgba(255, 255, 255, 0.04) inset,
-    0 2px 4px rgba(0, 0, 0, 0.15),
-    0 16px 48px rgba(0, 0, 0, 0.28);
+    0 2px 4px rgba(0, 0, 0, 0.2),
+    0 12px 36px rgba(0, 0, 0, 0.32);
   --hd-shadow-hover:
-    0 0 0 1px rgba(8, 102, 255, 0.18) inset,
-    0 20px 48px rgba(8, 102, 255, 0.1);
+    0 0 0 1px rgba(255, 255, 255, 0.1) inset,
+    0 16px 40px rgba(0, 0, 0, 0.38);
 
   display: flex;
   flex-direction: column;
@@ -47,8 +47,8 @@ body.shell-home .sidebar {
   padding: 32px 36px;
   border: 1px solid var(--hd-border) !important;
   background:
-    linear-gradient(135deg, rgba(8, 102, 255, 0.16) 0%, rgba(124, 58, 237, 0.09) 45%, transparent 72%),
-    linear-gradient(180deg, rgba(11, 22, 46, 0.98) 0%, rgba(7, 16, 34, 0.99) 100%) !important;
+    linear-gradient(135deg, rgba(255, 255, 255, 0.04) 0%, rgba(45, 212, 191, 0.06) 40%, transparent 70%),
+    linear-gradient(180deg, var(--surface2) 0%, var(--surface) 100%) !important;
   box-shadow: var(--hd-shadow) !important;
   backdrop-filter: blur(12px);
 }
@@ -72,10 +72,10 @@ body.shell-home .sidebar {
 }
 
 #view-home .hv-hero-orb1 {
-  background: rgba(8, 102, 255, 0.22);
+  background: rgba(79, 125, 245, 0.12);
 }
 #view-home .hv-hero-orb2 {
-  background: rgba(124, 58, 237, 0.16);
+  background: rgba(45, 212, 191, 0.1);
 }
 #view-home .hv-hero-orb3 {
   display: none;
@@ -140,9 +140,9 @@ body.shell-home .sidebar {
   border-radius: 100px;
   font-size: 12px;
   font-weight: 700;
-  background: var(--primary-dim) !important;
-  border: 1px solid rgba(8, 102, 255, 0.28) !important;
-  color: var(--primary-light) !important;
+  background: rgba(255, 255, 255, 0.06) !important;
+  border: 1px solid var(--hd-border) !important;
+  color: var(--text2) !important;
 }
 
 #view-home .hv-hero-dot {
@@ -164,7 +164,7 @@ body.shell-home .sidebar {
 
 #view-home .hv-hero-name {
   display: inline;
-  background: linear-gradient(135deg, #6ab4ff 0%, #c4b5fd 100%);
+  background: linear-gradient(135deg, #fafafa 0%, #a1a1aa 100%);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -205,13 +205,13 @@ body.shell-home .sidebar {
   font-size: 14px !important;
   font-weight: 700 !important;
   color: #fff !important;
-  background: linear-gradient(135deg, #0866ff 0%, #0052cc 100%) !important;
-  box-shadow: 0 4px 18px rgba(8, 102, 255, 0.4) !important;
+  background: var(--gradient-brand) !important;
+  box-shadow: var(--shadow-accent) !important;
 }
 
 #view-home .hv-hero-cta:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 24px rgba(8, 102, 255, 0.5) !important;
+  box-shadow: 0 8px 28px rgba(79, 125, 245, 0.35) !important;
 }
 
 #view-home .hv-hero-cta2 {
@@ -225,9 +225,9 @@ body.shell-home .sidebar {
 }
 
 #view-home .hv-hero-cta2:hover {
-  background: rgba(8, 102, 255, 0.12) !important;
-  border-color: rgba(8, 102, 255, 0.32) !important;
-  color: var(--primary-light) !important;
+  background: rgba(255, 255, 255, 0.08) !important;
+  border-color: var(--border2) !important;
+  color: var(--text) !important;
   transform: translateY(-2px);
 }
 
@@ -270,9 +270,9 @@ body.shell-home .sidebar {
 }
 
 #view-home .hv-hero-sched-badge {
-  background: var(--primary-dim);
-  color: var(--primary-light);
-  border-color: rgba(8, 102, 255, 0.3);
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text2);
+  border-color: var(--hd-border);
 }
 
 #view-home .hv-hero-sched-list {
@@ -302,9 +302,9 @@ body.shell-home .sidebar {
   width: 100%;
   margin-top: auto;
   padding: 10px 14px;
-  background: var(--primary-dim) !important;
-  border: 1px solid rgba(8, 102, 255, 0.35) !important;
-  color: var(--primary-light) !important;
+  background: rgba(255, 255, 255, 0.06) !important;
+  border: 1px solid var(--hd-border) !important;
+  color: var(--text) !important;
   border-radius: 10px;
   font-size: 13px;
   font-weight: 700;
@@ -313,8 +313,8 @@ body.shell-home .sidebar {
 }
 
 #view-home .hv-hero-sched-btn:hover {
-  background: rgba(8, 102, 255, 0.22);
-  color: #fff;
+  background: rgba(255, 255, 255, 0.1);
+  border-color: var(--border2);
 }
 
 /* ─── Section header ─── */
@@ -330,7 +330,7 @@ body.shell-home .sidebar {
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.1em;
-  color: var(--primary-light);
+  color: var(--text3);
   margin: 0 0 4px;
 }
 
@@ -442,13 +442,14 @@ body.shell-home .sidebar {
 
 #view-home .hv-kpi:hover {
   transform: translateY(-3px);
-  border-color: rgba(8, 102, 255, 0.22);
+  border-color: var(--border2);
   box-shadow: var(--hd-shadow-hover);
 }
 
+/* Keep per-metric accent bars & glows from index.css */
 #view-home .hv-kpi::after,
 #view-home .hv-kpi-glow {
-  display: none !important;
+  display: block !important;
 }
 
 #view-home .hv-kpi-icon {
@@ -456,19 +457,28 @@ body.shell-home .sidebar {
   height: 44px;
   border-radius: 11px;
   font-size: 18px;
-  background: var(--primary-dim) !important;
-  color: var(--primary-light) !important;
-  box-shadow: none !important;
+  color: #fff !important;
 }
 
-#view-home .hv-kpi-blue .hv-kpi-icon,
-#view-home .hv-kpi-green .hv-kpi-icon,
-#view-home .hv-kpi-indigo .hv-kpi-icon,
-#view-home .hv-kpi-red .hv-kpi-icon,
+#view-home .hv-kpi-blue .hv-kpi-icon {
+  background: linear-gradient(135deg, #4f7df5, #3d66e0) !important;
+  box-shadow: 0 4px 14px rgba(79, 125, 245, 0.35) !important;
+}
+#view-home .hv-kpi-green .hv-kpi-icon {
+  background: linear-gradient(135deg, #22c55e, #16a34a) !important;
+  box-shadow: 0 4px 14px rgba(34, 197, 94, 0.35) !important;
+}
+#view-home .hv-kpi-indigo .hv-kpi-icon {
+  background: linear-gradient(135deg, #818cf8, #6366f1) !important;
+  box-shadow: 0 4px 14px rgba(99, 102, 241, 0.35) !important;
+}
+#view-home .hv-kpi-red .hv-kpi-icon {
+  background: linear-gradient(135deg, #f87171, #ef4444) !important;
+  box-shadow: 0 4px 14px rgba(239, 68, 68, 0.35) !important;
+}
 #view-home .hv-kpi-amber .hv-kpi-icon {
-  background: var(--primary-dim) !important;
-  color: var(--primary-light) !important;
-  box-shadow: none !important;
+  background: linear-gradient(135deg, #fbbf24, #d97706) !important;
+  box-shadow: 0 4px 14px rgba(245, 158, 11, 0.35) !important;
 }
 
 #view-home .hv-kpi-val {
@@ -503,7 +513,7 @@ body.shell-home .sidebar {
 }
 
 #view-home .hv-kpi-clickable:hover .hv-kpi-lbl {
-  color: var(--primary-light);
+  color: var(--text2);
 }
 
 /* ─── Main content grid ─── */
@@ -538,7 +548,7 @@ body.shell-home .sidebar {
 }
 
 #view-home .hv-panel:hover {
-  border-color: rgba(8, 102, 255, 0.18);
+  border-color: var(--border2);
 }
 
 #view-home .hv-panel-hdr {
@@ -559,15 +569,24 @@ body.shell-home .sidebar {
   margin-top: 3px;
 }
 
-#view-home .hv-panel-icon-wrap,
-#view-home .hv-panel-icon-purple,
-#view-home .hv-panel-icon-indigo,
-#view-home .hv-panel-icon-amber {
+#view-home .hv-panel-icon-wrap {
   width: 38px;
   height: 38px;
   border-radius: 10px;
-  background: var(--primary-dim) !important;
-  color: var(--primary-light) !important;
+  background: rgba(255, 255, 255, 0.06) !important;
+  color: var(--text2) !important;
+}
+#view-home .hv-panel-icon-purple {
+  background: rgba(129, 140, 248, 0.15) !important;
+  color: #a5b4fc !important;
+}
+#view-home .hv-panel-icon-indigo {
+  background: rgba(99, 102, 241, 0.15) !important;
+  color: #a5b4fc !important;
+}
+#view-home .hv-panel-icon-amber {
+  background: rgba(245, 158, 11, 0.15) !important;
+  color: #fcd34d !important;
 }
 
 #view-home .hv-add-btn,
@@ -577,16 +596,17 @@ body.shell-home .sidebar {
   padding: 0;
   justify-content: center;
   border-radius: 10px;
-  background: var(--primary-dim) !important;
-  border: 1px solid rgba(8, 102, 255, 0.3) !important;
-  color: var(--primary-light) !important;
+  background: rgba(255, 255, 255, 0.06) !important;
+  border: 1px solid var(--hd-border) !important;
+  color: var(--text2) !important;
   box-shadow: none !important;
 }
 
 #view-home .hv-add-btn:hover,
 #view-home .hv-add-btn-purple:hover {
-  background: rgba(8, 102, 255, 0.22) !important;
-  color: #fff !important;
+  background: rgba(255, 255, 255, 0.1) !important;
+  color: var(--text) !important;
+  border-color: var(--border2) !important;
 }
 
 /* Scheduler half-panel stats */
@@ -624,18 +644,18 @@ body.shell-home .sidebar {
 }
 
 #view-home .hv-sched-main-item:hover {
-  border-color: rgba(8, 102, 255, 0.25);
-  background: rgba(8, 102, 255, 0.06);
+  border-color: var(--border2);
+  background: rgba(255, 255, 255, 0.04);
 }
 
 #view-home .hv-sched-main-icon {
-  background: linear-gradient(135deg, var(--primary), #0048cc) !important;
-  box-shadow: 0 2px 10px rgba(8, 102, 255, 0.35) !important;
+  background: linear-gradient(135deg, #6366f1, #4f46e5) !important;
+  box-shadow: 0 2px 10px rgba(99, 102, 241, 0.3) !important;
 }
 
 #view-home .hv-sched-empty-btn {
-  background: linear-gradient(135deg, var(--primary), #0048cc) !important;
-  box-shadow: var(--shadow-violet) !important;
+  background: var(--gradient-brand) !important;
+  box-shadow: var(--shadow-accent) !important;
 }
 
 /* Performance donut */
@@ -710,9 +730,9 @@ body.shell-home .sidebar {
 
 #view-home .hv-qa-card:hover {
   transform: translateY(-3px);
-  border-color: rgba(8, 102, 255, 0.25);
+  border-color: var(--border2);
   box-shadow: var(--hd-shadow-hover);
-  background: rgba(8, 102, 255, 0.06);
+  background: rgba(255, 255, 255, 0.04);
 }
 
 #view-home .hv-qa-card-blue,
@@ -727,9 +747,23 @@ body.shell-home .sidebar {
   height: 36px;
   margin-bottom: 12px;
   border-radius: 10px;
-  background: var(--primary-dim) !important;
-  color: var(--primary-light) !important;
   box-shadow: none !important;
+}
+#view-home .hv-qa-card-blue .hv-qa-card-icon {
+  background: rgba(79, 125, 245, 0.15) !important;
+  color: #93b4ff !important;
+}
+#view-home .hv-qa-card-cyan .hv-qa-card-icon {
+  background: rgba(45, 212, 191, 0.15) !important;
+  color: #5eead4 !important;
+}
+#view-home .hv-qa-card-green .hv-qa-card-icon {
+  background: rgba(34, 197, 94, 0.15) !important;
+  color: #4ade80 !important;
+}
+#view-home .hv-qa-card-purple .hv-qa-card-icon {
+  background: rgba(167, 139, 250, 0.15) !important;
+  color: #c4b5fd !important;
 }
 
 #view-home .hv-qa-card-label {
@@ -752,18 +786,18 @@ body.shell-home .sidebar {
 
 #view-home .hv-plan-card {
   border-radius: 18px;
-  border: 1px solid rgba(8, 102, 255, 0.28);
-  box-shadow: var(--hd-shadow), 0 0 40px rgba(8, 102, 255, 0.08);
+  border: 1px solid var(--border2);
+  box-shadow: var(--hd-shadow);
 }
 
 #view-home .hv-plan-card-bg {
-  background: linear-gradient(165deg, #0a1835 0%, #061228 50%, #040d1c 100%);
+  background: linear-gradient(165deg, #1a1d24 0%, #13151a 50%, #0f1014 100%);
 }
 
 #view-home .hv-plan-card-bg::before {
   background:
-    radial-gradient(ellipse at 90% 10%, rgba(8, 102, 255, 0.2), transparent 55%),
-    radial-gradient(ellipse at 10% 90%, rgba(124, 58, 237, 0.12), transparent 50%);
+    radial-gradient(ellipse at 90% 10%, rgba(45, 212, 191, 0.1), transparent 55%),
+    radial-gradient(ellipse at 10% 90%, rgba(79, 125, 245, 0.08), transparent 50%);
 }
 
 #view-home .hv-plan-inner {
@@ -773,7 +807,7 @@ body.shell-home .sidebar {
 #view-home .hv-plan-badge {
   font-size: 13px;
   font-weight: 800;
-  color: var(--primary-light);
+  color: var(--text2);
 }
 
 #view-home .hv-plan-badge i {
@@ -785,11 +819,12 @@ body.shell-home .sidebar {
 }
 
 #view-home .hv-upgrade-btn {
-  background: linear-gradient(135deg, #0866ff, #6d28d9);
-  color: #fff;
+  background: linear-gradient(135deg, #2dd4bf, #14b8a6);
+  color: #042f2e;
   border: none;
   font-size: 10px;
-  box-shadow: 0 2px 12px rgba(8, 102, 255, 0.35);
+  font-weight: 800;
+  box-shadow: 0 2px 12px rgba(45, 212, 191, 0.3);
 }
 
 #view-home .hv-plan-label {
@@ -822,7 +857,7 @@ body.shell-home .sidebar {
 }
 
 #view-home .hv-plan-fill {
-  background: linear-gradient(90deg, #0866ff, #7c3aed);
+  background: linear-gradient(90deg, #2dd4bf, #4f7df5);
   height: 8px;
   border-radius: 100px;
 }
@@ -849,15 +884,15 @@ body.shell-home .sidebar {
   margin-top: 20px;
   padding: 14px;
   border-radius: 12px;
-  background: linear-gradient(135deg, #0866ff 0%, #6d28d9 100%);
+  background: var(--gradient-brand);
   color: #fff;
   font-size: 14px;
   font-weight: 800;
-  box-shadow: 0 6px 24px rgba(8, 102, 255, 0.4);
+  box-shadow: var(--shadow-accent);
 }
 
 #view-home .hv-plan-upgrade-full:hover {
-  box-shadow: 0 10px 32px rgba(8, 102, 255, 0.5);
+  box-shadow: 0 10px 32px rgba(79, 125, 245, 0.35);
 }
 
 /* Platform status */
@@ -891,22 +926,22 @@ body.shell-home .sidebar {
 /* Lifetime card — brand accent, not loud orange */
 #view-home .hv-lifetime-card {
   border-radius: 14px;
-  border: 1px solid rgba(124, 58, 237, 0.28);
+  border: 1px solid var(--border2);
   margin-top: 0;
 }
 
 #view-home .hv-lifetime-bg {
-  background: linear-gradient(135deg, rgba(124, 58, 237, 0.12), rgba(8, 102, 255, 0.08));
+  background: linear-gradient(135deg, rgba(251, 191, 36, 0.08), rgba(45, 212, 191, 0.06));
 }
 
 #view-home .hv-lifetime-bg::before {
-  background: radial-gradient(ellipse at 30% 50%, rgba(8, 102, 255, 0.15), transparent 60%);
+  background: radial-gradient(ellipse at 30% 50%, rgba(251, 191, 36, 0.1), transparent 60%);
 }
 
 #view-home .hv-lifetime-icon {
-  background: linear-gradient(135deg, #7c3aed, #0866ff);
-  color: #fff;
-  box-shadow: 0 4px 16px rgba(124, 58, 237, 0.35);
+  background: linear-gradient(135deg, #fbbf24, #f59e0b);
+  color: #422006;
+  box-shadow: 0 4px 16px rgba(245, 158, 11, 0.3);
 }
 
 #view-home .hv-lifetime-title {
@@ -924,30 +959,30 @@ body.shell-home .sidebar {
 #view-home .hv-lifetime-btn {
   background: rgba(255, 255, 255, 0.06);
   border: 1px solid var(--hd-border);
-  color: var(--primary-light);
+  color: var(--text);
   font-size: 13px;
   font-weight: 700;
   box-shadow: none;
 }
 
 #view-home .hv-lifetime-btn:hover {
-  background: rgba(8, 102, 255, 0.12);
-  border-color: rgba(8, 102, 255, 0.3);
+  background: rgba(255, 255, 255, 0.1);
+  border-color: var(--border2);
   color: #fff;
 }
 
 /* Light theme */
 body.light #view-home {
-  --hd-glass: rgba(255, 255, 255, 0.92);
-  --hd-border: rgba(8, 102, 255, 0.12);
-  --hd-shadow: 0 4px 24px rgba(8, 102, 255, 0.08);
+  --hd-glass: rgba(255, 255, 255, 0.95);
+  --hd-border: rgba(0, 0, 0, 0.08);
+  --hd-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
 }
 
 body.light #view-home .hv-hero {
   background:
-    linear-gradient(135deg, rgba(8, 102, 255, 0.1) 0%, rgba(124, 58, 237, 0.05) 45%, transparent 70%),
-    linear-gradient(180deg, #fff 0%, #f8fafc 100%) !important;
-  border-color: rgba(8, 102, 255, 0.14) !important;
+    linear-gradient(135deg, rgba(79, 125, 245, 0.06) 0%, rgba(45, 212, 191, 0.04) 45%, transparent 70%),
+    linear-gradient(180deg, #fff 0%, #fafafa 100%) !important;
+  border-color: var(--border) !important;
 }
 
 body.light #view-home .hv-hero-status {
@@ -961,8 +996,8 @@ body.light #view-home .hv-hero-sub {
 }
 
 body.light #view-home .hv-hero-cta2 {
-  background: rgba(8, 102, 255, 0.06) !important;
-  border-color: rgba(8, 102, 255, 0.15) !important;
+  background: rgba(0, 0, 0, 0.03) !important;
+  border-color: var(--border) !important;
   color: var(--text) !important;
 }
 
@@ -977,5 +1012,5 @@ body.light #view-home .hv-qa-card {
 }
 
 body.light #view-home .hv-plan-card-bg {
-  background: linear-gradient(165deg, #f0f5ff, #fff);
+  background: linear-gradient(165deg, #fafafa, #fff);
 }

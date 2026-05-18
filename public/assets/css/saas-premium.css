@@ -5,16 +5,16 @@
 
 /* ─── Refined tokens ─── */
 :root {
-  --premium-glass: rgba(13, 27, 56, 0.72);
-  --premium-glass-border: rgba(255, 255, 255, 0.08);
+  --premium-glass: rgba(19, 21, 26, 0.88);
+  --premium-glass-border: rgba(255, 255, 255, 0.09);
   --premium-glass-highlight: rgba(255, 255, 255, 0.04);
   --premium-shadow-card:
     0 0 0 1px rgba(255, 255, 255, 0.05) inset,
     0 1px 2px rgba(0, 0, 0, 0.2),
     0 12px 40px rgba(0, 0, 0, 0.35);
   --premium-shadow-hover:
-    0 0 0 1px rgba(8, 102, 255, 0.2) inset,
-    0 20px 50px rgba(8, 102, 255, 0.12);
+    0 0 0 1px rgba(255, 255, 255, 0.1) inset,
+    0 20px 50px rgba(0, 0, 0, 0.35);
   --premium-section-pad: clamp(80px, 10vw, 128px);
 }
 
@@ -498,36 +498,13 @@ body {
   box-shadow: var(--premium-shadow-card);
 }
 
-.hv-kpi:hover {
+#view-home .hv-kpi:hover {
   transform: translateY(-2px) !important;
-  border-color: rgba(8, 102, 255, 0.22) !important;
+  border-color: var(--border2) !important;
   box-shadow: var(--premium-shadow-hover) !important;
 }
 
-.hv-kpi::after,
-.hv-kpi-glow {
-  display: none !important;
-}
-
-.hv-kpi-icon {
-  width: 42px !important;
-  height: 42px !important;
-  border-radius: 11px !important;
-  background: var(--primary-dim) !important;
-  color: var(--primary-light) !important;
-  box-shadow: none !important;
-  font-size: 16px !important;
-}
-
-.hv-kpi-blue .hv-kpi-icon,
-.hv-kpi-indigo .hv-kpi-icon,
-.hv-kpi-green .hv-kpi-icon,
-.hv-kpi-red .hv-kpi-icon,
-.hv-kpi-amber .hv-kpi-icon {
-  background: var(--primary-dim) !important;
-  color: var(--primary-light) !important;
-  box-shadow: none !important;
-}
+/* Per-metric colors live in home-dashboard.css + index.css */
 
 .hv-kpi-val {
   font-size: 22px !important;
@@ -551,17 +528,11 @@ body {
   transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease !important;
 }
 
-.hv-qa-card:hover,
-.hv-plan-card:hover {
+#view-home .hv-qa-card:hover,
+#view-home .hv-plan-card:hover {
   transform: translateY(-2px);
-  border-color: rgba(8, 102, 255, 0.2) !important;
+  border-color: var(--border2) !important;
   box-shadow: var(--premium-shadow-hover) !important;
-}
-
-.hv-qa-card-icon {
-  background: var(--primary-dim) !important;
-  color: var(--primary-light) !important;
-  border: 1px solid rgba(8, 102, 255, 0.2);
 }
 
 /* Messenger view container */
