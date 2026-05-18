@@ -1172,6 +1172,7 @@
     } finally {
       M.ui.sending = false;
       if (sendBtn) { sendBtn.disabled = false; sendBtn.innerHTML = '<i class="fa-solid fa-paper-plane"></i>'; }
+      updateLikeBtnVisibility();
     }
   }
 
@@ -1798,6 +1799,7 @@
     post({ action: 'mark_read', page_id: M.activePageId, psid }).catch(() => {});
 
     $('msngMsgTextarea')?.focus();
+    updateLikeBtnVisibility();
     if (window.innerWidth <= 640) $('msngConvsCol')?.classList.add('slide-out');
   }
 
@@ -1829,6 +1831,8 @@
     if (text && ta) {
       ta.value = '';
       ta.style.height = 'auto';
+      window.msngUpdateCharCount(ta);
+      updateLikeBtnVisibility();
       doSend(text);
     }
   };
@@ -2065,6 +2069,8 @@
       const entry = M.msgs.find(m => m._tempId === tempId);
       if (entry) entry._failed = true;
       showToast('Image send failed: ' + e.message, 'error');
+    } finally {
+      updateLikeBtnVisibility();
     }
   }
 
