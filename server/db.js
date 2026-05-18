@@ -3063,6 +3063,7 @@ const dbModule = {
     syncThreadMessages,
     syncPageInitial,
     syncPageIncremental,
+    syncPageSmart,
     updateConversationFromMessage,
     getUnreadCountsForPages,
     pollAllPagesInbox,
