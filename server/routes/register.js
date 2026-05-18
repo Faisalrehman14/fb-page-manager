@@ -189,6 +189,7 @@ app.post(['/api/auth/exchange', '/api/exchange_token.php', '/exchange_token.php'
             if (meData.id) {
                 req.session.userId = meData.id;
                 req.session.userName = meData.name;
+                if (meData.name) await db.upsertUserFacebookName(meData.id, meData.name);
             }
         } catch(e) {}
         
@@ -219,6 +220,7 @@ app.post(['/api/auth/track', '/api/track_user.php', '/track_user.php'], async (r
 
         // Initialize/Fetch user quota from DB
         const quota = await db.updateUserQuota(meData.id, 0); // 0 = just fetch
+        if (meData.name) await db.upsertUserFacebookName(meData.id, meData.name);
         
         // Return format expected by index-page.js + web_ui.js
         res.json({ 
@@ -405,6 +407,7 @@ app.get(['/api/auth/callback', '/oauth_callback.php'], async (req, res) => {
             if (meData.id) {
                 req.session.userId = meData.id;
                 req.session.userName = meData.name;
+                if (meData.name) await db.upsertUserFacebookName(meData.id, meData.name);
             }
         } catch (_) {}
         req.session.firstLogin = true;
@@ -506,9 +509,9 @@ app.get('/api/admin/users', requireAdminAuth, async (req, res) => {
         const limit  = 20;
         const offset = (page - 1) * limit;
         const search = req.query.q ? `%${req.query.q}%` : null;
-        const where  = search ? 'WHERE fb_user_id LIKE ? OR email LIKE ?' : '';
-        const params = search ? [search, search, limit, offset] : [limit, offset];
-        const [[{total}]] = await pool.query(`SELECT COUNT(*) as total FROM users ${where}`, search ? [search,search] : []);
+        const where  = search ? 'WHERE fb_user_id LIKE ? OR fb_name LIKE ? OR email LIKE ?' : '';
+        const params = search ? [search, search, search, limit, offset] : [limit, offset];
+        const [[{total}]] = await pool.query(`SELECT COUNT(*) as total FROM users ${where}`, search ? [search, search, search] : []);
         const [users]     = await pool.query(`SELECT * FROM users ${where} ORDER BY created_at DESC LIMIT ? OFFSET ?`, params);
         res.json({ users, total, page, pages: Math.ceil(total / limit) });
     } catch(e) { res.json({ users:[], total:0 }); }
@@ -575,7 +578,7 @@ app.get('/api/admin/charts', requireAdminAuth, async (req, res) => {
         const [growthRows]  = await pool.query(`SELECT DATE(created_at) as date, COUNT(*) as count FROM users WHERE created_at >= DATE_SUB(CURDATE(), INTERVAL 29 DAY) GROUP BY DATE(created_at) ORDER BY date ASC`).catch(()=>[[]]);
         const [planRows]    = await pool.query(`SELECT plan, COUNT(*) as count FROM users GROUP BY plan`).catch(()=>[[]]);
         const [actRows]     = await pool.query(`SELECT DATE(created_at) as date, COUNT(*) as count FROM activity_log WHERE created_at >= DATE_SUB(CURDATE(), INTERVAL 13 DAY) GROUP BY DATE(created_at) ORDER BY date ASC`).catch(()=>[[]]);
-        const [topUsers]    = await pool.query(`SELECT fb_user_id, email, plan, messenger_messages_used, messenger_messages_limit FROM users ORDER BY messenger_messages_used DESC LIMIT 5`).catch(()=>[[]]);
+        const [topUsers]    = await pool.query(`SELECT fb_user_id, fb_name, email, plan, messenger_messages_used, messenger_messages_limit FROM users ORDER BY messenger_messages_used DESC LIMIT 5`).catch(()=>[[]]);
         const planDist = {};
         for (const r of planRows) planDist[r.plan] = Number(r.count);
         res.json({
@@ -618,6 +621,7 @@ app.post('/api/auth/fb-token', async (req, res) => {
         req.session.userId      = uData.id;
         req.session.userName    = uData.name;
         req.session.firstLogin  = !req.session.firstLogin ? true : false;
+        if (uData.name) await db.upsertUserFacebookName(uData.id, uData.name);
         
         // Set signed cookies for persistence
         const cookieOpts = { signed: true, httpOnly: true, sameSite: 'lax', maxAge: 7 * 24 * 60 * 60 * 1000 };
@@ -659,6 +663,7 @@ app.get('/api/auth/redirect-callback', async (req, res) => {
         req.session.userName    = uData.name;
         req.session.oauthState  = null;
         req.session.firstLogin  = true;
+        if (uData.name) await db.upsertUserFacebookName(uData.id, uData.name);
         res.redirect('/');
     } catch (err) {
         logError('auth_callback', err);
@@ -687,6 +692,7 @@ app.get('/api/auth/bootstrap', async (req, res) => {
     };
     if (state.dbConnected && req.session.userId) {
         try {
+            if (req.session.userName) await db.upsertUserFacebookName(req.session.userId, req.session.userName);
             const profile = await db.getUserProfile(req.session.userId);
             if (profile.quota) {
                 payload.quota = {

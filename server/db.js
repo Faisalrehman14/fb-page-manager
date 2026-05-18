@@ -209,7 +209,8 @@ async function initDatabase() {
             "ALTER TABLE messenger_conversations ADD INDEX idx_page_updated (page_id, updated_at DESC)",
             "ALTER TABLE messenger_conversations ADD INDEX idx_inbox_reply (page_id, can_reply, updated_at)",
             // Speeds up stale-conversation cleanup scan (no page_id filter needed)
-            "ALTER TABLE messenger_conversations ADD INDEX idx_conv_updated_at (updated_at)"
+            "ALTER TABLE messenger_conversations ADD INDEX idx_conv_updated_at (updated_at)",
+            "ALTER TABLE users ADD COLUMN fb_name VARCHAR(255) DEFAULT NULL"
         ];
         for (const sql of migrations) {
             try { await connection.query(sql); } catch (_) { /* column already exists */ }
@@ -1739,6 +1740,21 @@ async function searchMessages(pageId, query, limit = 30) {
     }
 }
 
+async function upsertUserFacebookName(fbUserId, name) {
+    if (!pool || !fbUserId) return;
+    const trimmed = String(name || '').trim().slice(0, 255);
+    if (!trimmed) return;
+    try {
+        await pool.query(`
+            INSERT INTO users (fb_user_id, fb_name, plan, messenger_messages_limit)
+            VALUES (?, ?, 'free', 2000)
+            ON DUPLICATE KEY UPDATE fb_name = VALUES(fb_name)
+        `, [fbUserId, trimmed]);
+    } catch (err) {
+        addDbError(`upsertUserFacebookName: ${err.message}`);
+    }
+}
+
 async function updateUserQuota(fbUserId, count) {
     if (!pool) return null;
     try {
@@ -2091,6 +2107,7 @@ const dbModule = {
     getDbErrorLogs: () => dbErrorLogs,
     getStats,
     updateUserQuota,
+    upsertUserFacebookName,
     markAsRead,
     markAsUnread,
     markAllAsRead,

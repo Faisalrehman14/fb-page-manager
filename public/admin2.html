@@ -237,7 +237,7 @@
             <div class="tbl-controls">
               <div class="tbl-search">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
-                <input type="text" id="usersSearch" placeholder="Search by ID or email…" oninput="App.users.debouncedSearch()"/>
+                <input type="text" id="usersSearch" placeholder="Search by name or Facebook ID…" oninput="App.users.debouncedSearch()"/>
               </div>
               <div class="tbl-filter">
                 <select id="planFilter" onchange="App.users.filterChange()">
@@ -270,7 +270,7 @@
                 <thead>
                   <tr>
                     <th class="td-check"><input type="checkbox" id="selectAll" onchange="App.users.toggleSelectAll(this)"/></th>
-                    <th class="sortable" onclick="App.users.sort('email')">User<span class="sort-indicator"><span class="up"></span><span class="dn"></span></span></th>
+                    <th class="sortable" onclick="App.users.sort('fb_name')">User<span class="sort-indicator"><span class="up"></span><span class="dn"></span></span></th>
                     <th class="sortable" onclick="App.users.sort('plan')">Plan<span class="sort-indicator"><span class="up"></span><span class="dn"></span></span></th>
                     <th>Quota</th>
                     <th>Subscription</th>
@@ -345,8 +345,8 @@
           <input class="form-input" id="editUserIdShow" readonly/>
         </div>
         <div class="form-row full">
-          <label class="form-label">Email</label>
-          <input class="form-input" id="editEmail" readonly/>
+          <label class="form-label">Facebook Name</label>
+          <input class="form-input" id="editFbName" readonly/>
         </div>
         <div class="form-row">
           <label class="form-label">Plan</label>
@@ -458,6 +458,15 @@ const debounce = (fn, ms) => { let t; return (...a) => { clearTimeout(t); t = se
 const planColors = { free:'#64748b', basic:'#60a5fa', pro:'#0866ff', gold:'#fbbf24', sapphire:'#38bdf8', platinum:'#c084fc', unknown:'#475569' };
 const planBg = { free:'rgba(100,116,139,.15)', basic:'rgba(59,130,246,.15)', pro:'rgba(8,102,255,.18)', gold:'rgba(245,158,11,.15)', sapphire:'rgba(14,165,233,.15)', platinum:'rgba(168,85,247,.18)', unknown:'rgba(71,85,105,.12)' };
 const BRAND = '#0866ff';
+
+function userDisplayName(u) {
+  const n = String(u?.fb_name || '').trim();
+  if (n) return n;
+  return String(u?.fb_user_id || 'Unknown');
+}
+function userInitial(u) {
+  return (userDisplayName(u).replace(/^@/, '')[0] || '?').toUpperCase();
+}
 
 function animateNumber(el, target, duration = 800) {
   const start = Date.now(), from = 0;
@@ -707,8 +716,8 @@ const App = {
         body.innerHTML = d.users.slice(0,6).map(u => `
           <tr>
             <td><div class="user-cell">
-              <div class="u-av">${(u.email||u.fb_user_id||'?')[0].toUpperCase()}</div>
-              <div><div class="u-name">${esc(u.email||'No email')}</div><div class="u-id">${esc(u.fb_user_id)}</div></div>
+              <div class="u-av">${userInitial(u)}</div>
+              <div><div class="u-name">${esc(userDisplayName(u))}</div><div class="u-id">${esc(u.fb_user_id)}</div></div>
             </div></td>
             <td><span class="badge badge-${u.plan||'unknown'}">${u.plan||'?'}</span></td>
             <td style="font-size:12px">${fmt(u.messenger_messages_used||0)} / ${fmt(u.messenger_messages_limit||0)}</td>
@@ -725,9 +734,9 @@ const App = {
         const cls = pct>=90?'qf-hot':pct>=70?'qf-warn':'qf-ok';
         return `<div style="padding:10px 20px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--border)${i===users.length-1?';border:none':''}">
           <div style="font-size:18px;font-weight:900;color:var(--muted);min-width:22px;text-align:right">${i+1}</div>
-          <div class="u-av" style="width:28px;height:28px;border-radius:7px;font-size:11px">${(u.email||u.fb_user_id||'?')[0].toUpperCase()}</div>
+          <div class="u-av" style="width:28px;height:28px;border-radius:7px;font-size:11px">${userInitial(u)}</div>
           <div style="flex:1;min-width:0">
-            <div style="font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(u.email||u.fb_user_id||'—')}</div>
+            <div style="font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(userDisplayName(u))}</div>
             <div class="quota-bar" style="margin-top:4px;margin-bottom:0"><div class="quota-fill ${cls}" style="width:${pct}%"></div></div>
           </div>
           <div style="font-size:12px;font-weight:700;color:var(--muted2);white-space:nowrap">${fmt(u.messenger_messages_used||0)}</div>
@@ -807,8 +816,8 @@ const App = {
         return `<tr class="${sel?'selected':''}" id="row-${esc(u.fb_user_id)}">
           <td class="td-check"><input type="checkbox" ${sel?'checked':''} onchange="App.users.toggleRow('${esc(u.fb_user_id)}',this)"/></td>
           <td><div class="user-cell">
-            <div class="u-av">${(u.email||u.fb_user_id||'?')[0].toUpperCase()}</div>
-            <div><div class="u-name">${esc(u.email||'No email')}</div><div class="u-id">${esc(u.fb_user_id)}</div></div>
+            <div class="u-av">${userInitial(u)}</div>
+            <div><div class="u-name">${esc(userDisplayName(u))}</div><div class="u-id">${esc(u.fb_user_id)}</div></div>
           </div></td>
           <td><span class="badge badge-${u.plan||'unknown'}">${u.plan||'?'}</span></td>
           <td class="quota-cell">
@@ -892,11 +901,11 @@ const App = {
     openEdit(u) {
       $('editId').value        = u.fb_user_id;
       $('editUserIdShow').value = u.fb_user_id;
-      $('editEmail').value     = u.email || '';
+      $('editFbName').value    = u.fb_name || userDisplayName(u);
       $('editPlan').value      = u.plan || 'free';
       $('editLimit').value     = u.messenger_messages_limit || 2000;
       $('editUsed').value      = u.messenger_messages_used  || 0;
-      $('editModalTitle').textContent = 'Edit — '+esc(u.email||u.fb_user_id);
+      $('editModalTitle').textContent = 'Edit — '+esc(userDisplayName(u));
       App.modal.open('editOverlay');
     },
 
@@ -984,8 +993,8 @@ const App = {
     exportCSV() {
       const s = App.state.users;
       if(!s.allData.length){ App.toast.show('No data to export','info'); return; }
-      const rows = [['ID','Email','Plan','Messages Used','Limit','Subscription','Joined']];
-      s.allData.forEach(u => rows.push([u.fb_user_id,u.email||'',u.plan||'',u.messenger_messages_used||0,u.messenger_messages_limit||0,u.stripe_subscription_id||'',u.created_at||'']));
+      const rows = [['ID','Facebook Name','Plan','Messages Used','Limit','Subscription','Joined']];
+      s.allData.forEach(u => rows.push([u.fb_user_id,userDisplayName(u),u.plan||'',u.messenger_messages_used||0,u.messenger_messages_limit||0,u.stripe_subscription_id||'',u.created_at||'']));
       const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
       const a = document.createElement('a');
       a.href = 'data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
