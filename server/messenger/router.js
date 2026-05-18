@@ -265,10 +265,10 @@ function createMessengerRouter(deps) {
                         return res.json(result);
                     }
                     case 'mark_read': {
-                        const { psid } = req.body;
+                        const { psid, page_token } = req.body;
                         if (!pageId || !psid) return res.status(400).json({ error: 'Missing fields' });
                         if (dbConnected) {
-                            await sendService.markRead({ pageId, psid });
+                            await sendService.markRead({ pageId, psid, page_token });
                         }
                         // Broadcast to other agents so their unread badge updates instantly
                         io.to(`page_${pageId}`).emit('thread_read', { pageId, psid });

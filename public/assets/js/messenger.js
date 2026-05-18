@@ -2320,7 +2320,12 @@
       await loadMessages();
     }
 
-    post({ action: 'mark_read', page_id: M.activePageId, psid })
+    post({
+      action: 'mark_read',
+      page_id: M.activePageId,
+      psid,
+      page_token: M.activeToken
+    })
       .then(() => { lockConvRead(psid); })
       .catch(() => {});
 
@@ -2717,7 +2722,12 @@
   window.msngMarkRead = function () {
     if (!M.activePsid || !M.activePageId) return;
     lockConvRead(M.activePsid);
-    post({ action: 'mark_read', page_id: M.activePageId, psid: M.activePsid });
+    post({
+      action: 'mark_read',
+      page_id: M.activePageId,
+      psid: M.activePsid,
+      page_token: M.activeToken
+    });
     const conv = M.convs.find(c => c.psid === M.activePsid);
     if (conv) {
       conv.unread = 0;

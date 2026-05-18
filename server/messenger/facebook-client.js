@@ -119,6 +119,36 @@ class FacebookClient {
         return r.json();
     }
 
+    /** Tell Meta the page has seen the customer's messages (Business Suite read state). */
+    async markSeen(pageToken, psid) {
+        const url = `${FB_GRAPH_BASE}/me/messages?access_token=${pageToken}`;
+        const formBody = new URLSearchParams();
+        formBody.append('recipient', JSON.stringify({ id: String(psid) }));
+        formBody.append('sender_action', 'mark_seen');
+        const r = await this._fetchWithTimeout(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: formBody.toString()
+        });
+        const data = await r.json();
+        if (data.error) throw new FbApiError(data.error);
+        return data;
+    }
+
+    async markSeenWithRetry(pageToken, psid) {
+        let lastErr;
+        for (let i = 0; i <= 2; i++) {
+            if (i > 0) await new Promise(r => setTimeout(r, 300 * i));
+            try {
+                return await this.markSeen(pageToken, psid);
+            } catch (err) {
+                lastErr = err;
+                if (!FacebookClient.isTransient(err)) throw err;
+            }
+        }
+        throw lastErr;
+    }
+
     static isOutside24hWindow(fbError) {
         if (!fbError) return false;
         const code = fbError.code ?? fbError.fbCode;

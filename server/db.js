@@ -850,6 +850,20 @@ async function getConversationIdByParticipant(pageId, participantId) {
     }
 }
 
+async function getConversationById(convId) {
+    if (!pool || !convId) return null;
+    try {
+        const [rows] = await pool.query(
+            'SELECT id, page_id, fb_user_id FROM messenger_conversations WHERE id = ? LIMIT 1',
+            [convId]
+        );
+        return rows[0] || null;
+    } catch (err) {
+        addDbError(`getConversationById: ${err.message}`);
+        return null;
+    }
+}
+
 async function getPagePsids(pageId) {
     if (!pool) return [];
     try {
@@ -2520,6 +2534,7 @@ const dbModule = {
     updateConversationFromMessage,
     getUnreadCountsForPages,
     getConversationIdByParticipant,
+    getConversationById,
     getLastError,
     isPageSyncing,
     getDbErrorLogs: () => dbErrorLogs,

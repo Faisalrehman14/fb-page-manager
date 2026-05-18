@@ -1095,8 +1095,24 @@ app.post('/api/threads/:threadId/reply', requireAuth, verifyCsrf, async (req, re
 // ── Read / Unread ─────────────────────────────────────────────────────────────
 app.post('/api/threads/:threadId/read', requireAuth, verifyCsrf, async (req, res) => {
     const pageId = req.body?.pageId || req.query?.pageId;
-    if (state.dbConnected) await db.markAsRead(req.params.threadId).catch(() => {});
-    if (pageId) io.to(`page_${pageId}`).emit('conversation_updated', { id: req.params.threadId, pageId, isRead: true, unreadCount: 0, isLive: true });
+    const threadId = req.params.threadId;
+    if (state.dbConnected) {
+        await db.markAsRead(threadId).catch(() => {});
+        if (pageId) {
+            try {
+                const row = await db.getConversationById(threadId);
+                const psid = row?.fb_user_id;
+                const token = await db.getPageToken(pageId);
+                if (psid && token) {
+                    const { FacebookClient } = require('../messenger/facebook-client');
+                    await new FacebookClient(fetch).markSeenWithRetry(token, psid);
+                }
+            } catch (err) {
+                logError('thread_mark_read_meta', err, { pageId, threadId });
+            }
+        }
+    }
+    if (pageId) io.to(`page_${pageId}`).emit('conversation_updated', { id: threadId, pageId, isRead: true, unreadCount: 0, isLive: true });
     res.json({ success: true });
 });
 
