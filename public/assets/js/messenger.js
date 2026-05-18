@@ -59,6 +59,7 @@
     _convBumpAt: {},       // psid → ms when locally bumped (send / socket)
     _convListRefreshTimer: null,
     _listRefreshInFlight: false,
+    _metaListRefreshAt: 0,
     _lastConvRenderSig: '',
     _lastConvOrderSig: '',
     _convOrder: [],       // stable psid order — only moves on real new activity
@@ -66,13 +67,14 @@
     pendingImage: null, // { file, previewUrl }
   };
 
-  const POLL_MS = 3000;
-  const POLL_SOCKET_MS = 8000;
+  /** DB + Meta inbox poll while messenger is open (~1 req/s, setTimeout chain). */
+  const POLL_MS = 1000;
+  const POLL_SOCKET_MS = 1000;
   const CONV_PAGE_SIZE = 30;
   const CONV_LIST_CACHE_MS = 30_000;
   const CONV_LIST_RELOAD_MS = 600_000; // 10 min — avoid background list reshuffle
-  /** Silent conversation list refresh (like refresh button held down). */
-  const CONV_LIST_AUTO_REFRESH_MS = 10_000;
+  /** Full list merge from API — Meta order only, not every poll (keeps list stable). */
+  const CONV_LIST_META_ORDER_MS = 20_000;
   /** Min ms newer + snippet change before a conv moves to top (ignores FB metadata twitch). */
   const CONV_BUMP_MS = 30_000;
   const SEARCH_MIN_CHARS = 1;
@@ -544,9 +546,12 @@
   }
 
   function nextPollDelayMs() {
-    if (M.activePsid) return Math.min(POLL_MS, POLL_SOCKET_MS);
-    if (_socket?.connected && !M._offline) return POLL_SOCKET_MS;
     return POLL_MS;
+  }
+
+  function setPollSince(serverTime) {
+    const t = serverTime ? new Date(serverTime).getTime() : Date.now();
+    M.poll.since = new Date(t - 1500).toISOString();
   }
 
   function getDisplayConvs() {
@@ -1246,7 +1251,8 @@
 
   function startPolling() {
     stopPolling();
-    M.poll.since    = new Date(Date.now() - 5000).toISOString();
+    M.poll.since    = new Date(Date.now() - 3000).toISOString();
+    M._metaListRefreshAt = 0;
     M.poll.failures = 0;
     schedulePoll(nextPollDelayMs());
     startConvListAutoRefresh();
@@ -1306,11 +1312,14 @@
 
     const tick = async () => {
       M._convListRefreshTimer = null;
-      if (M.activePageId && !document.hidden && !M.search.active && M.convs.length) {
+      const now = Date.now();
+      if (M.activePageId && !document.hidden && !M.search.active && M.convs.length
+          && now - (M._metaListRefreshAt || 0) >= CONV_LIST_META_ORDER_MS) {
+        M._metaListRefreshAt = now;
         await refreshConvListSilent();
       }
       if (M.activePageId) {
-        M._convListRefreshTimer = setTimeout(tick, CONV_LIST_AUTO_REFRESH_MS);
+        M._convListRefreshTimer = setTimeout(tick, CONV_LIST_META_ORDER_MS);
       }
     };
 
@@ -1346,7 +1355,7 @@
         return;
       }
       const wasOffline = M.poll.failures >= 3;
-      M.poll.since    = data.server_time || new Date().toISOString();
+      setPollSince(data.server_time);
       M.poll.failures = 0;
       if (wasOffline) { hideConnBanner(); showToast('Back online', 'success', 2500); }
 
@@ -1354,8 +1363,8 @@
         updatePageBadge(M.activePageId, data.total_unread);
       }
 
-      // Server short-circuit: skip heavy DOM when quiet
-      if (data.has_changes === false && !M.activePsid && !data.list_synced) {
+      // Quiet poll — badge already updated; skip DOM
+      if (data.has_changes === false) {
         schedulePoll(nextPollDelayMs());
         return;
       }
@@ -1381,10 +1390,10 @@
         if (isMsgsNearBottom(msgsEl)) scrollToBottom(true, true);
       }
 
-      // Graph sync — silent refresh at most every 45s (avoids full-list flicker)
-      if (M.activePsid && data.graph_synced && !gotNewMsg && !(data.new_messages || []).length && !M.ui.sending) {
+      // Open thread: Meta sync may have landed in DB without appearing in poll slice
+      if (M.activePsid && data.meta_sync && !gotNewMsg && !msgLoadBusy && !M.ui.sending) {
         const now = Date.now();
-        if (now - (M._graphMsgReloadAt || 0) > 45_000) {
+        if (now - (M._graphMsgReloadAt || 0) > 12_000) {
           M._graphMsgReloadAt = now;
           loadMessages(null, { silent: true }).catch(() => {});
         }
@@ -1404,11 +1413,7 @@
         }
       }
 
-      let listHandled = false;
-      if (data.list_synced && M.convs.length && !M.search.active) {
-        listHandled = await refreshConvListSilent();
-      }
-      if (!listHandled && (convListDirty || gotNewMsg || syncOpenConvSidebarFromMessages())) {
+      if (convListDirty || gotNewMsg || syncOpenConvSidebarFromMessages()) {
         renderConvs();
       }
 

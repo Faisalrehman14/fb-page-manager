@@ -6,6 +6,7 @@ const {
     ACTIVE_PAGE_SYNC_MS,
     HOT_CONV_SYNC_LIMIT,
     CONVERSATION_LIST_SYNC_MS,
+    CONVERSATION_LIST_SYNC_POLL_MS,
     CONVERSATION_LIST_SYNC_ACTIVE_MS,
     CONVERSATION_LIST_SINCE_SEC,
     retentionCutoffUnix
@@ -159,8 +160,8 @@ class SyncService {
             return;
         }
 
-        // Inbox view (no open thread): refresh list metadata from Facebook
-        await this.syncConversationListFromFacebook(pageId, pageToken);
+        // Inbox view (no open thread): refresh list metadata from Facebook (fast cadence while polling)
+        await this.syncConversationListFromFacebook(pageId, pageToken, CONVERSATION_LIST_SYNC_POLL_MS);
 
         const lastPage = this._activePageSync.get(pageId) || 0;
         if (now - lastPage < ACTIVE_PAGE_SYNC_MS) return;

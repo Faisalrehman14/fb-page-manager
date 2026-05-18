@@ -54,7 +54,7 @@ function createMessengerRouter(deps) {
 
     const pollLimiter = rateLimit({
         windowMs: 60_000,
-        max: 120,
+        max: 200,
         standardHeaders: true,
         legacyHeaders: false,
         message: { error: 'Poll rate limit — slow down' }
@@ -122,9 +122,8 @@ function createMessengerRouter(deps) {
                     case 'poll': {
                         if (!pageId) return res.status(400).json({ error: 'page_id required' });
                         const psid = req.query.psid || null;
-                        const since = req.query.since || new Date(Date.now() - 30000).toISOString();
-                        let graphSynced = false;
-                        let listSynced = false;
+                        const since = req.query.since || new Date(Date.now() - 10000).toISOString();
+                        let metaSyncStarted = false;
                         if (dbConnected) {
                             const pageToken = await resolvePageToken({
                                 pageId,
@@ -134,28 +133,22 @@ function createMessengerRouter(deps) {
                                 fetchFn
                             });
                             if (pageToken) {
+                                metaSyncStarted = true;
                                 if (psid) {
-                                    await syncService.syncActiveThreadOnPoll(pageId, pageToken, psid);
-                                    graphSynced = true;
-                                    listSynced = true;
+                                    // Cap wait so 1s polls stay fast; sync continues in background if slow
+                                    await Promise.race([
+                                        syncService.syncActiveThreadOnPoll(pageId, pageToken, psid),
+                                        new Promise((resolve) => setTimeout(resolve, 900))
+                                    ]);
                                 } else {
-                                    await syncService.syncOnPoll(pageId, pageToken, { psid: null });
-                                    graphSynced = true;
-                                    listSynced = true;
+                                    syncService.syncOnPoll(pageId, pageToken, { psid: null }).catch(() => {});
                                 }
-                            }
-                        }
-                        let sinceForPoll = since;
-                        if (graphSynced && !psid) {
-                            const sinceDate = new Date(since);
-                            if (!isNaN(sinceDate.getTime())) {
-                                sinceForPoll = new Date(sinceDate.getTime() - 20000).toISOString();
                             }
                         }
                         const result = await pollService.poll({
                             pageId,
                             psid,
-                            since: sinceForPoll,
+                            since,
                             dbConnected
                         });
                         if (psid && dbConnected) {
@@ -178,8 +171,7 @@ function createMessengerRouter(deps) {
                                 if (wide.length) result.has_changes = true;
                             }
                         }
-                        result.graph_synced = graphSynced;
-                        result.list_synced = listSynced;
+                        result.meta_sync = metaSyncStarted;
                         res.set('Cache-Control', 'no-store');
                         return res.json(result);
                     }

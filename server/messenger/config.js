@@ -8,8 +8,8 @@ const BULK_INSERT_BATCH_SIZE = parseInt(process.env.MESSENGER_BULK_BATCH_SIZE ||
 const CLEANUP_DELETE_BATCH = parseInt(process.env.MESSENGER_CLEANUP_BATCH || '500', 10);
 const CLEANUP_DEFER_MS = parseInt(process.env.MESSENGER_CLEANUP_DEFER_MS || '10000', 10);
 const POLL_MAX_CONVS = parseInt(process.env.MESSENGER_POLL_MAX_CONVS || '40', 10);
-const POLL_INTERVAL_MS = parseInt(process.env.MESSENGER_POLL_MS || '3000', 10);
-const POLL_INTERVAL_SOCKET_MS = parseInt(process.env.MESSENGER_POLL_SOCKET_MS || '8000', 10);
+const POLL_INTERVAL_MS = parseInt(process.env.MESSENGER_POLL_MS || '1000', 10);
+const POLL_INTERVAL_SOCKET_MS = parseInt(process.env.MESSENGER_POLL_SOCKET_MS || '1000', 10);
 const CONVERSATION_PAGE_SIZE_MAX = 100;
 const CONVERSATION_INITIAL_LIMIT = parseInt(process.env.MESSENGER_CONV_INITIAL || '30', 10);
 const CONV_LIST_CACHE_MS = parseInt(process.env.MESSENGER_CONV_CACHE_MS || '5000', 10);
@@ -27,14 +27,16 @@ const CONVERSATION_RETENTION_DAYS = parseInt(process.env.MESSENGER_CONV_RETENTIO
 /** Re-login / return visit: full sync if last sync older than this (default 15 min). */
 const RELOGIN_SYNC_GAP_MS = parseInt(process.env.MESSENGER_RELOGIN_SYNC_MS || String(15 * 60 * 1000), 10);
 /** While inbox is open: refresh open thread from Graph (Business Suite / external replies). */
-const ACTIVE_THREAD_SYNC_MS = parseInt(process.env.MESSENGER_ACTIVE_THREAD_SYNC_MS || '5000', 10);
+const ACTIVE_THREAD_SYNC_MS = parseInt(process.env.MESSENGER_ACTIVE_THREAD_SYNC_MS || '2000', 10);
 /** While inbox is open (no thread): refresh hottest convs from Graph. */
-const ACTIVE_PAGE_SYNC_MS = parseInt(process.env.MESSENGER_ACTIVE_PAGE_SYNC_MS || '30000', 10);
+const ACTIVE_PAGE_SYNC_MS = parseInt(process.env.MESSENGER_ACTIVE_PAGE_SYNC_MS || '12000', 10);
 const HOT_CONV_SYNC_LIMIT = parseInt(process.env.MESSENGER_HOT_CONV_SYNC || '10', 10);
 /** Refresh conversation list snippet/time from Facebook while inbox is open. */
-const CONVERSATION_LIST_SYNC_MS = parseInt(process.env.MESSENGER_LIST_SYNC_MS || '180000', 10);
+const CONVERSATION_LIST_SYNC_MS = parseInt(process.env.MESSENGER_LIST_SYNC_MS || '60000', 10);
+/** Inbox poll (no thread open) — Meta list/snippet refresh cadence. */
+const CONVERSATION_LIST_SYNC_POLL_MS = parseInt(process.env.MESSENGER_LIST_SYNC_POLL_MS || '5000', 10);
 /** While a thread is open — still pull FB list order (Meta Business Suite sends). */
-const CONVERSATION_LIST_SYNC_ACTIVE_MS = parseInt(process.env.MESSENGER_LIST_SYNC_ACTIVE_MS || '20000', 10);
+const CONVERSATION_LIST_SYNC_ACTIVE_MS = parseInt(process.env.MESSENGER_LIST_SYNC_ACTIVE_MS || '5000', 10);
 const CONVERSATION_LIST_SINCE_SEC = parseInt(process.env.MESSENGER_LIST_SINCE_SEC || '900', 10);
 const FB_GRAPH_VERSION = process.env.FB_GRAPH_VERSION || 'v19.0';
 const FB_GRAPH_BASE = `https://graph.facebook.com/${FB_GRAPH_VERSION}`;
@@ -82,6 +84,7 @@ module.exports = {
     ACTIVE_PAGE_SYNC_MS,
     HOT_CONV_SYNC_LIMIT,
     CONVERSATION_LIST_SYNC_MS,
+    CONVERSATION_LIST_SYNC_POLL_MS,
     CONVERSATION_LIST_SYNC_ACTIVE_MS,
     CONVERSATION_LIST_SINCE_SEC,
     FB_GRAPH_VERSION,
