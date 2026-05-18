@@ -20,12 +20,33 @@ function isThumbsUpText(text) {
     const t = String(text || '').trim();
     if (!t) return false;
     if (THUMBS_UP_TEXTS.has(t)) return true;
-    return /^[\u{1F44D}\u{1F3FB}-\u{1F3FF}]?$/u.test(t);
+    if (/^[\u{1F44D}\u{1F3FB}-\u{1F3FF}]$/u.test(t)) return true;
+    if (/thumbs?\s*up/i.test(t)) return true;
+    if (/sent\s+(a\s+)?thumbs?\s*up/i.test(t)) return true;
+    return false;
 }
 
 function isPlaceholderAttachmentText(text) {
     const t = String(text || '').trim().toLowerCase();
-    return t === '[sticker]' || t === '[like]' || t === '[image]' || t === 'attachment';
+    return t === '[sticker]' || t === '[like]' || t === '[image]' || t === 'attachment'
+        || t === 'message' || t === '';
+}
+
+/** Whether a raw Facebook list snippet was sent by the page. */
+function snippetIndicatesFromPage(snippet) {
+    const raw = String(snippet || '').trim();
+    return /^you:/i.test(raw) || /^you\s+sent\b/i.test(raw);
+}
+
+/** Normalize Facebook conversation list snippet (often includes "You:" or "You sent a thumbs up"). */
+function normalizeSnippetForList(snippet) {
+    let s = String(snippet || '').trim();
+    if (!s) return '';
+    while (/^you:\s*/i.test(s)) s = s.replace(/^you:\s*/i, '').trim();
+    s = s.replace(/^you\s+sent\s+/i, '').trim();
+    if (isThumbsUpText(s) || isPlaceholderAttachmentText(s)) return '👍';
+    if (/^\[.+\]$/i.test(s) && /sticker|like|image|attachment/i.test(s)) return '👍';
+    return s.substring(0, 200);
 }
 
 function isThumbsUpMessage(input = {}) {
@@ -47,43 +68,42 @@ function isThumbsUpMessage(input = {}) {
     return false;
 }
 
+function parseFbAttachmentItem(a) {
+    const type = String(a.type || (a.mime_type ? a.mime_type.split('/')[0] : 'file')).toLowerCase();
+    const stickerId = a.payload?.sticker_id ?? a.sticker_id ?? null;
+    const url = a.payload?.url || a.file_url || a.image_data?.url || '';
+
+    if (stickerId && isThumbsUpStickerId(stickerId)) {
+        return { t: 'like', u: url || null, sticker_id: stickerId };
+    }
+    if (type === 'like' || type === 'thumbs_up') {
+        return { t: 'like', u: url || null, sticker_id: stickerId };
+    }
+    if (type === 'sticker' || stickerId) {
+        if (!url || isThumbsUpStickerId(stickerId)) {
+            return { t: 'like', u: url || null, sticker_id: stickerId };
+        }
+        return { t: 'sticker', u: url || null, sticker_id: stickerId };
+    }
+    const entry = { t: type, u: url };
+    if (a.name || a.payload?.name) entry.n = a.name || a.payload?.name;
+    return entry;
+}
+
 function parseFbAttachments(fbAttachments) {
     if (!fbAttachments) return [];
     const list = fbAttachments.data || (Array.isArray(fbAttachments) ? fbAttachments : []);
-    return list.map(a => {
-        const type = String(a.type || (a.mime_type ? a.mime_type.split('/')[0] : 'file')).toLowerCase();
-        const stickerId = a.payload?.sticker_id ?? a.sticker_id ?? null;
-        const url = a.payload?.url || a.file_url || a.image_data?.url || '';
-        if (type === 'sticker' || stickerId) {
-            if (isThumbsUpStickerId(stickerId) || (!url && type === 'sticker')) {
-                return { t: 'like', u: url || null, sticker_id: stickerId };
-            }
-            return { t: 'sticker', u: url || null, sticker_id: stickerId };
-        }
-        if (type === 'like' || type === 'thumbs_up') {
-            return { t: 'like', u: url || null };
-        }
-        const entry = { t: type, u: url };
-        if (a.name || a.payload?.name) entry.n = a.name || a.payload?.name;
-        return entry;
-    }).filter(a => a.t === 'like' || a.t === 'sticker' || a.u);
+    return list.map(parseFbAttachmentItem).filter(a => a.t === 'like' || a.t === 'sticker' || a.u);
 }
 
 function parseWebhookAttachments(rawList) {
     if (!Array.isArray(rawList)) return [];
-    return rawList.map(a => {
-        const type = String(a.type || 'file').toLowerCase();
-        const stickerId = a.payload?.sticker_id ?? a.sticker_id ?? null;
-        const url = a.payload?.url || '';
-        if (type === 'sticker' || stickerId) {
-            if (isThumbsUpStickerId(stickerId) || !url) {
-                return { t: 'like', u: url || null, sticker_id: stickerId };
-            }
-            return { t: 'sticker', u: url, sticker_id: stickerId };
-        }
-        if (type === 'like') return { t: 'like', u: url || null };
-        return { t: type, u: url };
-    }).filter(a => a.t === 'like' || a.t === 'sticker' || a.u);
+    return rawList.map(a => parseFbAttachmentItem({
+        type: a.type,
+        payload: a.payload,
+        sticker_id: a.payload?.sticker_id ?? a.sticker_id,
+        file_url: a.payload?.url
+    })).filter(a => a.t === 'like' || a.t === 'sticker' || a.u);
 }
 
 function normalizeIncomingSave({ text, attachments }) {
@@ -153,6 +173,8 @@ module.exports = {
     THUMBS_UP_STICKER_IDS,
     isThumbsUpMessage,
     isThumbsUpText,
+    snippetIndicatesFromPage,
+    normalizeSnippetForList,
     parseFbAttachments,
     parseWebhookAttachments,
     normalizeIncomingSave,

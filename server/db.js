@@ -591,13 +591,14 @@ async function getConversations(pageId, limit = 100, offset = 0, archived = fals
             ORDER BY c.updated_at DESC
             LIMIT ? OFFSET ?
         `, [..._inboxParams(pageId, archived), limit, offset]);
+        const { normalizeSnippetForList } = require('./messenger/message-content');
         return rows.map(row => ({
             id: row.id,
             pageId: row.page_id,
             participantId: row.participant_id,
             participantName: row.participant_name,
             participantPicture: row.participant_picture,
-            snippet: row.snippet,
+            snippet: normalizeSnippetForList(row.snippet || ''),
             updatedTime: row.updated_time,
             isRead: row.is_unread === 0,
             unreadCount: row.is_unread || 0,
@@ -694,9 +695,12 @@ async function searchConversationsFromFacebook(pageId, pageToken, fetchFn, query
             if (!participant?.id) continue;
 
             const name = participant.name || '';
-            const snip = (conv.snippet || '').substring(0, 200);
+            const rawSnip = (conv.snippet || '').substring(0, 200);
+            const { normalizeSnippetForList, snippetIndicatesFromPage } = require('./messenger/message-content');
+            const snip = normalizeSnippetForList(rawSnip);
             const hit = _nameMatchesSearch(name, term)
                 || _nameMatchesSearch(snip, term)
+                || _nameMatchesSearch(rawSnip, term)
                 || String(participant.id).includes(term);
             if (!hit) continue;
 
@@ -710,7 +714,7 @@ async function searchConversationsFromFacebook(pageId, pageToken, fetchFn, query
                 isRead: (conv.unread_count || 0) === 0,
                 unreadCount: conv.unread_count || 0,
                 canReply: conv.can_reply !== false,
-                lastFromMe: /^you:/i.test(snip.trim())
+                lastFromMe: snippetIndicatesFromPage(rawSnip)
             };
             matches.push({
                 id: row.id,
@@ -897,7 +901,7 @@ async function saveMessage(message) {
     // Split first attachment into indexed columns; store overflow in metadata JSON
     const firstUrl = attachments?.[0]?.u || null;
     const firstType = attachments?.[0]?.t || null;
-    const metaJson = attachments?.length > 1 ? JSON.stringify(attachments) : null;
+    const metaJson = attachments?.length ? JSON.stringify(attachments) : null;
 
     try {
         await pool.query(`
@@ -909,6 +913,7 @@ async function saveMessage(message) {
                 from_me = VALUES(from_me),
                 attachment_url = COALESCE(VALUES(attachment_url), attachment_url),
                 attachment_type = COALESCE(VALUES(attachment_type), attachment_type),
+                metadata = COALESCE(VALUES(metadata), metadata),
                 created_at = VALUES(created_at)
         `, [convId, pageId, senderId, id, text, isFromPage ? 1 : 0,
             createdTime ? new Date(createdTime) : new Date(),
@@ -943,7 +948,7 @@ async function saveMessages(messenger_messages) {
                 createdAt: m.createdTime ? new Date(m.createdTime) : new Date(),
                 firstUrl: norm.attachments?.[0]?.u || null,
                 firstType: norm.attachments?.[0]?.t || null,
-                metaJson: norm.attachments?.length > 1 ? JSON.stringify(norm.attachments) : null
+                metaJson: norm.attachments?.length ? JSON.stringify(norm.attachments) : null
             };
         })
         .filter(r => r.convId && r.messageId);
@@ -965,6 +970,7 @@ async function saveMessages(messenger_messages) {
                     from_me = VALUES(from_me),
                     attachment_url = COALESCE(VALUES(attachment_url), attachment_url),
                     attachment_type = COALESCE(VALUES(attachment_type), attachment_type),
+                    metadata = COALESCE(VALUES(metadata), metadata),
                     created_at = VALUES(created_at)
             `, params);
         } catch (err) {
@@ -983,7 +989,7 @@ async function getMessages(threadId, limit = 100, before = null) {
         const cutoff = messageRetentionCutoff();
         let query = `
             SELECT id, message_id as mid, message as text, from_me as is_from_page,
-                   created_at as created_time, attachment_url, attachment_type
+                   created_at as created_time, attachment_url, attachment_type, metadata
             FROM messenger_messages
             WHERE conversation_id = ? AND created_at >= ?
         `;
@@ -1005,6 +1011,14 @@ async function getMessages(threadId, limit = 100, before = null) {
         const { normalizeMessengerMessage } = require('./messenger/message-content');
         return rows.reverse().map(row => {
             const att = _readAttachment(row.attachment_url, row.attachment_type);
+            let attachments = [];
+            if (att.type || att.url) attachments.push({ t: att.type, u: att.url });
+            if (row.metadata) {
+                try {
+                    const meta = JSON.parse(row.metadata);
+                    if (Array.isArray(meta) && meta.length) attachments = meta;
+                } catch { /* ignore */ }
+            }
             return normalizeMessengerMessage({
                 id: row.id,
                 mid: row.mid,
@@ -1012,7 +1026,8 @@ async function getMessages(threadId, limit = 100, before = null) {
                 isFromPage: row.is_from_page === 1 || row.is_from_page === true,
                 createdTime: row.created_time,
                 attachment_url: att.url,
-                attachment_type: att.type
+                attachment_type: att.type,
+                attachments
             });
         });
     } catch (err) {
@@ -1266,7 +1281,9 @@ async function syncConversationsAll(pageId, pageToken, fetchFn, since = null, op
                 return [];
             }
             const fbCount = conv.unread_count || 0;
-            const snip = (conv.snippet || '').substring(0, 200);
+            const { normalizeSnippetForList, snippetIndicatesFromPage } = require('./messenger/message-content');
+            const rawSnip = (conv.snippet || '').substring(0, 200);
+            const snip = normalizeSnippetForList(rawSnip);
             return [{
                 id: conv.id,
                 pageId: pageId,
@@ -1277,7 +1294,7 @@ async function syncConversationsAll(pageId, pageToken, fetchFn, since = null, op
                 isRead: fbCount === 0,
                 unreadCount: fbCount,
                 canReply: true,
-                lastFromMe: /^you:/i.test(snip.trim())
+                lastFromMe: snippetIndicatesFromPage(rawSnip)
             }];
         });
 

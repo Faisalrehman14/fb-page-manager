@@ -1,14 +1,15 @@
 /** API response shapes expected by messenger.js / web_ui.js */
-const { normalizeMessengerMessage } = require('./message-content');
+const { normalizeMessengerMessage, normalizeSnippetForList } = require('./message-content');
 
 function mapConversation(c) {
+    const snippet = normalizeSnippetForList(c.snippet || '');
     return {
         ...c,
         fb_user_id: c.participantId,
         user_name: c.participantName,
         user_picture: c.participantPicture || '',
-        snippet: c.snippet,
-        last_msg: c.snippet,
+        snippet,
+        last_msg: snippet,
         last_from_me: c.lastMessageFromPage ? 1 : 0,
         last_msg_at: c.updatedTime,
         updated_at: c.updatedTime,
@@ -17,7 +18,7 @@ function mapConversation(c) {
         psid: c.participantId,
         name: c.participantName,
         picture: c.participantPicture || '',
-        lastMsg: c.snippet,
+        lastMsg: snippet,
         lastFromMe: c.lastMessageFromPage ? 1 : 0,
         lastMsgAt: c.updatedTime,
         unread: c.unreadCount || 0,
@@ -58,7 +59,7 @@ function mapPollConvUpdate(r) {
         fb_user_id: r.fb_user_id,
         user_name: r.user_name,
         user_picture: r.user_picture || null,
-        snippet: r.snippet,
+        snippet: normalizeSnippetForList(r.snippet || ''),
         updated_at: r.updated_at,
         is_unread: r.is_unread || 0,
         last_from_me: r.last_from_me

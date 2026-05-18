@@ -352,7 +352,7 @@
           if (existing.unread !== nu) { existing.unread = nu; rowChanged = true; }
         }
         if (uc.snippet && uc.snippet !== existing.lastMsg) {
-          existing.lastMsg = uc.snippet;
+          existing.lastMsg = normalizePreviewText(uc.snippet);
           rowChanged = true;
         }
         if (uc.last_from_me != null) {
@@ -465,9 +465,18 @@
       : `<div class="${cls}-ph">${esc(initial)}</div>`;
   }
 
+  function normalizePreviewText(raw) {
+    let last = String(raw || '').trim();
+    while (/^you:\s*/i.test(last)) last = last.replace(/^you:\s*/i, '').trim();
+    last = last.replace(/^you\s+sent\s+(a\s+)?/i, '').trim();
+    if (/^\[(sticker|like|image|attachment)\]$/i.test(last) || last === '👍') return '👍';
+    if (/thumbs?\s*up/i.test(last) || /sent\s+(a\s+)?thumbs/i.test(last)) return '👍';
+    if (/^attachment$/i.test(last)) return '👍';
+    return last;
+  }
+
   function formatConvPreview(c) {
-    let last = c.lastMsg || '';
-    if (/^\[(sticker|like)\]$/i.test(last) || last === '👍') last = '👍';
+    const last = normalizePreviewText(c.lastMsg);
     if (c.lastFromMe) return 'You: ' + (last || '');
     return last || 'No messages yet';
   }
@@ -501,8 +510,17 @@
     if (msg.is_like || msg._isLike || msg.attachment_type === 'like') return true;
     const t = String(msg.message || '').trim();
     if (t === '👍' || t === ':thumbs_up:') return true;
-    if (/^\[sticker\]$/i.test(t) || /^\[like\]$/i.test(t)) return true;
-    if (!t && msg.attachment_type === 'sticker') return true;
+    if (/^\[(sticker|like|image|attachment)\]$/i.test(t)) return true;
+    if (/thumbs?\s*up/i.test(t) || /sent\s+(a\s+)?thumbs/i.test(t)) return true;
+    if (!t && (msg.attachment_type === 'sticker' || msg.attachment_type === 'like')) return true;
+    const THUMBS_IDS = new Set(['369239263222821', '369239263222822', '369239343222814', '369239383222810']);
+    const atts = msg.attachments || [];
+    for (const a of atts) {
+      const at = String(a.t || a.type || '').toLowerCase();
+      if (at === 'like' || at === 'thumbs_up') return true;
+      if (a.sticker_id != null && THUMBS_IDS.has(String(a.sticker_id))) return true;
+      if (at === 'sticker' && (a.sticker_id == null || a.sticker_id === '' || !a.u)) return true;
+    }
     return false;
   }
 
@@ -512,7 +530,8 @@
       return { ...msg, message: '👍', attachment_url: null, attachment_type: 'like', _isLike: true };
     }
     let message = msg.message || '';
-    if (/^\[(sticker|like|image)\]$/i.test(message.trim())) message = '';
+    if (/^\[(sticker|like|image|attachment)\]$/i.test(message.trim())) message = '';
+    if (/^attachment$/i.test(message.trim())) message = '';
     return { ...msg, message };
   }
 
@@ -532,8 +551,8 @@
       if (txt && txt !== '[Image]') content += `<div style="margin-top:4px">${esc(txt)}</div>`;
     } else if (txt) {
       content = esc(txt).replace(/\n/g, '<br>');
-    } else if (attType === 'sticker') {
-      content = '<span class="msng-like-bubble" aria-label="Sticker">👍</span>';
+    } else if (attType === 'sticker' || attType === 'like') {
+      content = '<span class="msng-like-bubble" aria-label="Thumbs up">👍</span>';
     } else {
       content = '<em style="opacity:.5">Attachment</em>';
     }
