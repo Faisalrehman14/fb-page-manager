@@ -453,9 +453,15 @@ function detectPlanKey(u) {
   const limit = Number(u?.messenger_messages_limit) || 0;
   if (p === 'free') return 'free';
   if (p === 'platinum') return 'pro_unlimited';
-  if (p === 'basic' && limit > 0 && limit <= 50000) return 'starter';
-  const hit = ADMIN_PLANS.find(x => x.key === p || x.dbPlan === p);
-  return hit ? hit.key : p;
+  // Starter & Bronze share dbPlan "basic" — use limit to tell them apart
+  if (p === 'basic') {
+    if (limit > 0 && limit <= 50000) return 'starter';
+    return 'basic';
+  }
+  const byKey = ADMIN_PLANS.find(x => x.key === p);
+  if (byKey) return byKey.key;
+  const byDb = ADMIN_PLANS.find(x => x.dbPlan === p);
+  return byDb ? byDb.key : p;
 }
 
 function planAdminLabel(u) {

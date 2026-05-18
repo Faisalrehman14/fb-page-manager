@@ -108,8 +108,14 @@ function getDisplayForDbPlan(dbPlan, messageLimit) {
     const plan = String(dbPlan || 'free').toLowerCase();
     const limit = Number(messageLimit) || 0;
     if (plan === 'free') return { label: 'Free', dbPlan: 'free', dataPlan: 'free' };
-    if (plan === 'basic' && limit > 0 && limit <= 50000) {
-        return { label: 'Starter', dbPlan: 'basic', dataPlan: 'basic' };
+    if (plan === 'basic') {
+        if (limit > 0 && limit <= 50000) {
+            return { label: 'Starter', dbPlan: 'basic', dataPlan: 'basic' };
+        }
+        return { label: 'Bronze', dbPlan: 'basic', dataPlan: 'basic' };
+    }
+    if (plan === 'platinum') {
+        return { label: 'Platinum', dbPlan: 'platinum', dataPlan: 'platinum' };
     }
     const match = Object.values(PLANS).find(p => p.dbPlan === plan);
     if (match) return { label: match.name, dbPlan: match.dbPlan, dataPlan: match.dbPlan };
