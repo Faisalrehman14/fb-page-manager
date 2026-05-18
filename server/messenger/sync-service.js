@@ -6,6 +6,7 @@ const {
     ACTIVE_PAGE_SYNC_MS,
     HOT_CONV_SYNC_LIMIT,
     CONVERSATION_LIST_SYNC_MS,
+    CONVERSATION_LIST_SYNC_ACTIVE_MS,
     CONVERSATION_LIST_SINCE_SEC,
     retentionCutoffUnix
 } = require('./config');
@@ -45,11 +46,11 @@ class SyncService {
      * Pull conversation snippets + updated_time from Facebook (Meta Business Suite activity).
      * This is what updates the left-hand list when webhooks do not fire.
      */
-    async syncConversationListFromFacebook(pageId, pageToken) {
-        if (!pageId || !pageToken) return;
+    async syncConversationListFromFacebook(pageId, pageToken, minIntervalMs = CONVERSATION_LIST_SYNC_MS) {
+        if (!pageId || !pageToken) return false;
         const now = Date.now();
         const last = this._listSync.get(pageId) || 0;
-        if (now - last < CONVERSATION_LIST_SYNC_MS) return;
+        if (now - last < minIntervalMs) return false;
         this._listSync.set(pageId, now);
 
         const sinceUnix = Math.floor((now - CONVERSATION_LIST_SINCE_SEC * 1000) / 1000);
@@ -60,8 +61,10 @@ class SyncService {
                 fbLimit: 50
             });
             clearPageCache(pageId);
+            return true;
         } catch (err) {
             this.logError('sync_conversation_list', err, { pageId });
+            return false;
         }
     }
 
@@ -209,6 +212,9 @@ class SyncService {
                 }
                 if (saved > 0) clearPageCache(pageId);
             }
+            await this.syncConversationListFromFacebook(
+                pageId, pageToken, CONVERSATION_LIST_SYNC_ACTIVE_MS
+            );
         } catch (err) {
             this.logError('sync_on_poll_thread', err, { pageId, psid });
         }

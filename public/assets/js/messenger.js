@@ -406,6 +406,19 @@
     }
   }
 
+  /** Apply Meta/DB sort (updated_at DESC) to sidebar order — first page from API is already sorted. */
+  function applyMetaConvOrder(incoming) {
+    if (!incoming?.length) return false;
+    const head = incoming.map(c => String(c.psid));
+    const headSet = new Set(head);
+    const tail = M._convOrder.filter(id => !headSet.has(id));
+    const next = head.concat(tail);
+    if (next.join(',') === M._convOrder.join(',')) return false;
+    M._convOrder = next;
+    invalidateConvListRender();
+    return true;
+  }
+
   function mergeConvListFromServer(incoming) {
     if (!incoming?.length) return false;
     let changed = false;
@@ -419,11 +432,13 @@
             || ex.name !== patch.name || ex.lastFromMe !== patch.lastFromMe) {
           Object.assign(ex, patch);
           changed = true;
+        } else if (patch.lastMsgAt && String(ex.lastMsgAt) !== String(patch.lastMsgAt)) {
+          ex.lastMsgAt = patch.lastMsgAt;
+          changed = true;
         }
       } else {
         row.lastMsg = normalizePreviewText(row.lastMsg || '');
         M.convs.push(row);
-        M._convOrder.unshift(key);
         changed = true;
       }
     }
@@ -437,7 +452,6 @@
     for (const uc of updates) {
       const ucPage = String(uc.page_id || M.activePageId || '');
       if (ucPage !== String(M.activePageId)) continue;
-      if (uc.fb_user_id === M.activePsid) continue;
 
       const key = convKey(M.activePageId, uc.fb_user_id);
       const existing = M._convByPsid.get(key);
@@ -445,6 +459,8 @@
         let rowChanged = false;
         const prevUnread = existing.unread || 0;
         const nu = parseInt(uc.is_unread) || 0;
+        const pageSent = uc.last_from_me == 1;
+        const prevSnippet = normalizePreviewText(existing.lastMsg || '');
         if (existing.unread !== nu) {
           existing.unread = nu;
           rowChanged = true;
@@ -452,14 +468,23 @@
         }
         if (uc.snippet) {
           const norm = normalizePreviewText(uc.snippet);
-          if (norm !== normalizePreviewText(existing.lastMsg || '')) {
+          if (norm !== prevSnippet) {
             existing.lastMsg = norm;
             rowChanged = true;
+            if (pageSent || nu > prevUnread) moveConvToTop(uc.fb_user_id);
           }
         }
         if (uc.last_from_me != null) {
           const lfm = uc.last_from_me == 1;
           if (existing.lastFromMe !== lfm) { existing.lastFromMe = lfm; rowChanged = true; }
+        }
+        const newAt = uc.updated_at || uc.last_msg_at;
+        if (newAt && String(existing.lastMsgAt) !== String(newAt)) {
+          const newTs = new Date(newAt).getTime();
+          const oldTs = new Date(existing.lastMsgAt || 0).getTime();
+          existing.lastMsgAt = newAt;
+          rowChanged = true;
+          if (pageSent && (!oldTs || newTs > oldTs + 2000)) moveConvToTop(uc.fb_user_id);
         }
         if (rowChanged) dirty = true;
       } else {
@@ -1210,8 +1235,9 @@
       if (data.error) return false;
 
       const newConvs = _mapConvRows(data.conversations);
-      const changed  = mergeConvListFromServer(newConvs);
-      if (changed) renderConvs();
+      const merged   = mergeConvListFromServer(newConvs);
+      const reordered = applyMetaConvOrder(newConvs);
+      if (merged || reordered) renderConvs();
 
       _convListCache.set(M.activePageId, {
         convs: M.convs,
@@ -1328,10 +1354,11 @@
         }
       }
 
-      // Full FB list reload disabled — poll patches + stable _convOrder keep the list still.
-
-      // Only re-render if there are actual changes (optimization)
-      if (convListDirty || data.new_messages?.length) renderConvs();
+      if ((data.list_synced || data.graph_synced) && M.convs.length && !M.search.active) {
+        refreshConvListSilent().catch(() => {});
+      } else if (convListDirty || data.new_messages?.length) {
+        renderConvs();
+      }
 
       if (typeof data.total_unread === 'number') updatePageBadge(M.activePageId, data.total_unread);
 
@@ -1871,7 +1898,8 @@
         invalidateConvListRender();
       } else if (opts.background && M.convs.length) {
         const merged = mergeConvListFromServer(newConvs);
-        if (merged) renderConvs();
+        const reordered = applyMetaConvOrder(newConvs);
+        if (merged || reordered) renderConvs();
         if (opts.syncOnly) {
           rebuildConvIndex();
           if (newConvs.length) {
@@ -2685,14 +2713,13 @@
         : M.convs.find(c => c.id === data.id);
       if (conv) {
         let changed = false;
-        const fromPage = data.lastMessageFromPage === true
-          || data.last_from_me == 1
-          || data.participantId === M.activePsid;
+        const pageSent = data.lastMessageFromPage === true || data.last_from_me == 1;
         if (data.snippet) {
           const norm = normalizePreviewText(data.snippet);
           if (norm !== normalizePreviewText(conv.lastMsg || '')) {
             conv.lastMsg = norm;
             changed = true;
+            if (pageSent) moveConvToTop(conv.psid);
           }
         }
         if (data.participantId !== M.activePsid) {
@@ -2702,8 +2729,9 @@
             changed = true;
             if (nu > 0) moveConvToTop(conv.psid);
           }
-        } else if (!fromPage && data.updatedTime) {
-          conv.lastMsgAt = data.updatedTime;
+        } else if (pageSent) {
+          if (data.updatedTime) conv.lastMsgAt = data.updatedTime;
+          moveConvToTop(conv.psid);
           changed = true;
         }
         if (changed) renderConvs();

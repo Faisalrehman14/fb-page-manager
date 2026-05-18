@@ -33,6 +33,8 @@ const ACTIVE_PAGE_SYNC_MS = parseInt(process.env.MESSENGER_ACTIVE_PAGE_SYNC_MS |
 const HOT_CONV_SYNC_LIMIT = parseInt(process.env.MESSENGER_HOT_CONV_SYNC || '10', 10);
 /** Refresh conversation list snippet/time from Facebook while inbox is open. */
 const CONVERSATION_LIST_SYNC_MS = parseInt(process.env.MESSENGER_LIST_SYNC_MS || '180000', 10);
+/** While a thread is open — still pull FB list order (Meta Business Suite sends). */
+const CONVERSATION_LIST_SYNC_ACTIVE_MS = parseInt(process.env.MESSENGER_LIST_SYNC_ACTIVE_MS || '20000', 10);
 const CONVERSATION_LIST_SINCE_SEC = parseInt(process.env.MESSENGER_LIST_SINCE_SEC || '900', 10);
 const FB_GRAPH_VERSION = process.env.FB_GRAPH_VERSION || 'v19.0';
 const FB_GRAPH_BASE = `https://graph.facebook.com/${FB_GRAPH_VERSION}`;
@@ -80,6 +82,7 @@ module.exports = {
     ACTIVE_PAGE_SYNC_MS,
     HOT_CONV_SYNC_LIMIT,
     CONVERSATION_LIST_SYNC_MS,
+    CONVERSATION_LIST_SYNC_ACTIVE_MS,
     CONVERSATION_LIST_SINCE_SEC,
     FB_GRAPH_VERSION,
     FB_GRAPH_BASE,

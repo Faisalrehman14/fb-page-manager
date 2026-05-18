@@ -137,6 +137,7 @@ function createMessengerRouter(deps) {
                                 if (psid) {
                                     await syncService.syncActiveThreadOnPoll(pageId, pageToken, psid);
                                     graphSynced = true;
+                                    listSynced = true;
                                 } else {
                                     await syncService.syncOnPoll(pageId, pageToken, { psid: null });
                                     graphSynced = true;
