@@ -55,6 +55,7 @@
     _syncPollTimer: null,
     _syncPollAttempts: 0,
     _graphMsgReloadAt: 0,
+    pendingImage: null, // { file, previewUrl }
   };
 
   const POLL_MS = 3000;
@@ -1644,6 +1645,7 @@
     // Save current conversation to cache before switching
     if (M.activePsid && M.activePsid !== psid) _cacheSave(M.activePsid);
 
+    msngClearPendingImage();
     M.activePsid     = psid;
     M.activeConvName = name;
     M.activeConvPic  = picture;
@@ -1708,13 +1710,24 @@
   window.msngOpenConv = function (psid, name, picture, pageId) { openConv(psid, name, picture, pageId); };
   window.msngRetry    = function (tempId, text) { doSend(text, tempId); };
 
-  window.msngSend = function () {
+  window.msngSend = async function () {
     const ta = $('msngMsgTextarea');
-    if (!ta) return;
-    const text = ta.value.trim();
-    if (!text) return;
-    ta.value = ''; ta.style.height = 'auto';
-    doSend(text);
+    const text = ta ? ta.value.trim() : '';
+    const pending = M.pendingImage;
+
+    if (!pending && !text) return;
+
+    if (pending) {
+      const file = pending.file;
+      msngClearPendingImage();
+      await msngSendImageFile(file);
+    }
+
+    if (text && ta) {
+      ta.value = '';
+      ta.style.height = 'auto';
+      doSend(text);
+    }
   };
 
   window.msngKeydown = function (e) {
@@ -1772,6 +1785,39 @@
     window.msngToggleCanned();
   };
 
+  function msngClearPendingImage() {
+    if (M.pendingImage?.previewUrl) URL.revokeObjectURL(M.pendingImage.previewUrl);
+    M.pendingImage = null;
+    const box = $('msngImagePreview');
+    const img = $('msngImagePreviewImg');
+    if (box) { box.style.display = 'none'; box.setAttribute('aria-hidden', 'true'); }
+    if (img) img.removeAttribute('src');
+  }
+
+  function msngStageImageFile(file) {
+    if (!file) return;
+    if (!M.activePsid || !M.activePageId) {
+      showToast('Select a conversation first', 'warning');
+      return;
+    }
+    if (!file.type || !file.type.startsWith('image/')) {
+      showToast('Only images can be attached here', 'warning');
+      return;
+    }
+    if (file.size > 8 * 1024 * 1024) {
+      showToast('Image too large — max 8 MB', 'error');
+      return;
+    }
+    msngClearPendingImage();
+    const previewUrl = URL.createObjectURL(file);
+    M.pendingImage = { file, previewUrl };
+    const box = $('msngImagePreview');
+    const img = $('msngImagePreviewImg');
+    if (img) img.src = previewUrl;
+    if (box) { box.style.display = 'flex'; box.setAttribute('aria-hidden', 'false'); }
+    $('msngMsgTextarea')?.focus();
+  }
+
   async function msngSendImageFile(file) {
     if (!file) return;
     if (!M.activePsid || !M.activePageId || !M.activeToken) {
@@ -1819,11 +1865,13 @@
     }
   }
 
-  window.msngOnFileSelect = async function (input) {
+  window.msngClearPendingImage = msngClearPendingImage;
+
+  window.msngOnFileSelect = function (input) {
     const file = input.files[0];
     if (!file) return;
     input.value = '';
-    await msngSendImageFile(file);
+    msngStageImageFile(file);
   };
 
   window.msngOnPaste = function (e) {
@@ -1836,18 +1884,17 @@
       if (item.kind === 'file' && item.type && item.type.startsWith('image/')) {
         e.preventDefault();
         const file = item.getAsFile();
-        if (file) msngSendImageFile(file);
+        if (file) msngStageImageFile(file);
         return;
       }
     }
 
-    // Screenshot paste on some browsers (image/png in files list only)
     const files = cd.files;
     if (files?.length) {
       for (let i = 0; i < files.length; i++) {
         if (files[i].type && files[i].type.startsWith('image/')) {
           e.preventDefault();
-          msngSendImageFile(files[i]);
+          msngStageImageFile(files[i]);
           return;
         }
       }

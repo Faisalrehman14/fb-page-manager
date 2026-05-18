@@ -1163,15 +1163,13 @@ app.post('/api/threads/:threadId/attach', requireAuth, verifyCsrf, upload.single
     if (!token) return res.status(401).json({ error: 'Page token not found' });
 
     try {
-        const mime       = file.mimetype;
+        const { FacebookClient } = require('../messenger/facebook-client');
+        const mime = file.mimetype || 'application/octet-stream';
         const attachType = mime.startsWith('image/') ? 'image' : mime.startsWith('video/') ? 'video' : 'file';
-        const form       = new FormData();
-        form.append('recipient', JSON.stringify({ id: recipientId }));
-        form.append('message',   JSON.stringify({ attachment: { type: attachType, payload: { is_reusable: false } } }));
-        form.append('filedata',  new Blob([file.buffer], { type: mime }), file.originalname || 'upload');
-        const fbRes = await fetch(`https://graph.facebook.com/v19.0/me/messages?access_token=${token}`, { method: 'POST', body: form });
-        const data  = await fbRes.json();
-        if (data.error) throw new Error(data.error.message);
+        const fbClient = new FacebookClient(fetch);
+        const data = await fbClient.sendAttachmentWithRetry(
+            token, recipientId, file.buffer, mime, file.originalname || 'upload'
+        );
         const createdTime = new Date().toISOString();
         if (state.dbConnected) {
             await db.saveMessage({ id: data.message_id, threadId, pageId, senderId: pageId, senderType: 'page', text: '', isFromPage: true, createdTime, attachments: [{ t: attachType, u: '' }] });
@@ -1181,12 +1179,16 @@ app.post('/api/threads/:threadId/attach', requireAuth, verifyCsrf, upload.single
         res.json({ success: true, messageId: data.message_id });
     } catch (err) {
         logError('attach_route', err, { pageId, threadId });
-        res.status(500).json({ error: err.message });
+        const { FacebookClient } = require('../messenger/facebook-client');
+        const fbErr = err.fbCode != null ? { code: err.fbCode, message: err.message } : null;
+        const msg = fbErr ? FacebookClient.formatSendError(fbErr) : err.message;
+        res.status(500).json({ error: msg });
     }
 });
 
 // ── Messenger Image Upload ────────────────────────────────────────────────────
 app.post('/api/messenger/upload', requireAuth, upload.single('file'), async (req, res) => {
+    const { FacebookClient } = require('../messenger/facebook-client');
     const { page_id: pageId, psid, page_token: bodyToken } = req.body;
     const file = req.file;
     if (!pageId      || !/^\d+$/.test(pageId)) return res.status(400).json({ error: 'Invalid page_id' });
@@ -1197,15 +1199,12 @@ app.post('/api/messenger/upload', requireAuth, upload.single('file'), async (req
     if (!token) return res.status(401).json({ error: 'Page token not found' });
 
     try {
-        const mime       = file.mimetype;
+        const mime = file.mimetype || 'image/png';
+        const fbClient = new FacebookClient(fetch);
+        const data = await fbClient.sendAttachmentWithRetry(
+            token, psid, file.buffer, mime, file.originalname || 'image.png'
+        );
         const attachType = mime.startsWith('image/') ? 'image' : mime.startsWith('video/') ? 'video' : 'file';
-        const form       = new FormData();
-        form.append('recipient', JSON.stringify({ id: psid }));
-        form.append('message',   JSON.stringify({ attachment: { type: attachType, payload: { is_reusable: false } } }));
-        form.append('filedata',  new Blob([file.buffer], { type: mime }), file.originalname || 'upload');
-        const fbRes = await fetch(`https://graph.facebook.com/v19.0/me/messages?access_token=${token}`, { method: 'POST', body: form });
-        const data  = await fbRes.json();
-        if (data.error) throw new Error(data.error.message);
 
         if (state.dbConnected && data.message_id) {
             const convInfo = await db.getConversationIdByParticipant(pageId, psid);
@@ -1217,7 +1216,9 @@ app.post('/api/messenger/upload', requireAuth, upload.single('file'), async (req
         res.json({ success: true, message_id: data.message_id });
     } catch (err) {
         logError('messenger_upload', err, { pageId, psid });
-        res.status(500).json({ error: err.message });
+        const fbErr = err.fbCode != null ? { code: err.fbCode, message: err.message } : null;
+        const msg = fbErr ? FacebookClient.formatSendError(fbErr) : err.message;
+        res.status(500).json({ error: msg });
     }
 });
 

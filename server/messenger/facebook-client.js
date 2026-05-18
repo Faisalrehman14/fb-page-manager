@@ -100,10 +100,52 @@ class FacebookClient {
         if (!fbError) return false;
         const code = fbError.code ?? fbError.fbCode;
         const msg = (fbError.message || '').toLowerCase();
+        if (code === 10 && (msg.includes('permission') || msg.includes('does not have'))) return false;
         return code === 10 || code === 551 ||
             msg.includes('outside of allowed window') ||
             msg.includes('24 hour') ||
             msg.includes('messaging window');
+    }
+
+    static formatSendError(fbError) {
+        if (!fbError) return 'Message could not be sent';
+        const msg = fbError.message || String(fbError);
+        const code = fbError.code ?? fbError.fbCode;
+        const lower = msg.toLowerCase();
+        if (FacebookClient.isOutside24hWindow(fbError)) {
+            return 'Cannot send: the 24-hour reply window has ended. Ask the customer to message your page first, then try again.';
+        }
+        if (code === 10 && (lower.includes('permission') || lower.includes('does not have'))) {
+            return 'Facebook permission error (#10). Reconnect your page in Settings and allow messaging.';
+        }
+        if (code === 190 || lower.includes('access token')) {
+            return 'Page session expired. Refresh the page or reconnect Facebook.';
+        }
+        return msg.replace(/^\(#\d+\)\s*/i, '').trim() || `Facebook error (#${code || '?'})`;
+    }
+
+    async sendAttachment(pageToken, psid, fileBuffer, mime, filename, useUtility = false) {
+        const attachType = mime.startsWith('image/') ? 'image'
+            : mime.startsWith('video/') ? 'video' : 'file';
+        const form = new FormData();
+        form.append('recipient', JSON.stringify({ id: psid }));
+        form.append('message', JSON.stringify({
+            attachment: { type: attachType, payload: { is_reusable: false } }
+        }));
+        if (useUtility) form.append('messaging_type', 'UTILITY');
+        form.append('filedata', new Blob([fileBuffer], { type: mime }), filename || 'upload');
+        const url = `${FB_GRAPH_BASE}/me/messages?access_token=${pageToken}`;
+        const r = await this._fetchWithTimeout(url, { method: 'POST', body: form });
+        return r.json();
+    }
+
+    async sendAttachmentWithRetry(pageToken, psid, fileBuffer, mime, filename) {
+        let data = await this.sendAttachment(pageToken, psid, fileBuffer, mime, filename, false);
+        if (data.error && FacebookClient.isOutside24hWindow(data.error)) {
+            data = await this.sendAttachment(pageToken, psid, fileBuffer, mime, filename, true);
+        }
+        if (data.error) throw new FbApiError(data.error);
+        return data;
     }
 
     // FB platform-level rate limit codes

@@ -521,6 +521,57 @@ body.in-messenger .sidebar { display: none !important; }
 }
 .msng-scroll-btn.visible { display: flex; }
 
+/* ── Pending image (paste / attach preview) ──────────────── */
+.msng-image-preview {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0 14px 8px;
+  padding: 10px 12px;
+  background: rgba(8, 102, 255, 0.08);
+  border: 1px solid rgba(8, 102, 255, 0.28);
+  border-radius: 12px;
+}
+.msng-image-preview img {
+  width: 56px;
+  height: 56px;
+  object-fit: cover;
+  border-radius: 8px;
+  flex-shrink: 0;
+}
+.msng-image-preview-meta {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+}
+.msng-image-preview-hint {
+  font-size: 12px;
+  color: var(--msng-text-muted);
+}
+.msng-image-preview-hint kbd {
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.08);
+  font-size: 11px;
+}
+.msng-image-preview-remove {
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--msng-text-muted);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.msng-image-preview-remove:hover {
+  background: rgba(239, 68, 68, 0.15);
+  color: #f87171;
+}
+
 /* ── Input Bar ───────────────────────────────────────────── */
 .msng-input-bar {
   padding: 12px 14px;
