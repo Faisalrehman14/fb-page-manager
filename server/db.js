@@ -1813,15 +1813,21 @@ async function pollInboxUpdates(pageId, psid, since, maxConvs = 40) {
         conn = await pool.getConnection();
 
         // Fire both inbox queries in parallel on the same connection
+        const convParams = [pageId, sinceDate];
+        let convExclude = '';
+        if (psid) {
+            convExclude = ' AND fb_user_id <> ?';
+            convParams.push(String(psid));
+        }
         const [updatedConvsResult, unreadResult] = await Promise.all([
             conn.query(
                 `SELECT id, page_id, fb_user_id, user_name, user_picture, snippet,
                         updated_at, is_unread, last_from_me
                  FROM messenger_conversations
                  WHERE page_id = ? AND updated_at > ?
-                   AND COALESCE(can_reply, 1) = 1
+                   AND COALESCE(can_reply, 1) = 1${convExclude}
                  ORDER BY updated_at DESC LIMIT ${cap}`,
-                [pageId, sinceDate]
+                convParams
             ),
             conn.query(
                 `SELECT COUNT(*) AS total FROM messenger_conversations

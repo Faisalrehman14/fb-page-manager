@@ -145,10 +145,9 @@ function createMessengerRouter(deps) {
                             }
                         }
                         let sinceForPoll = since;
-                        if (graphSynced) {
+                        if (graphSynced && !psid) {
                             const sinceDate = new Date(since);
                             if (!isNaN(sinceDate.getTime())) {
-                                // Small lookback only — a 3-minute window reflows the whole list every poll
                                 sinceForPoll = new Date(sinceDate.getTime() - 20000).toISOString();
                             }
                         }

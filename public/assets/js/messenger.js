@@ -344,11 +344,39 @@
     return [
       c.psid,
       c.unread || 0,
-      c.lastMsgAt || '',
       preview,
       c.name || '',
       c.lastFromMe ? 1 : 0
     ].join('|');
+  }
+
+  function patchConvListNode(node, c) {
+    const isActive = c.psid === M.activePsid;
+    node.classList.toggle('active', isActive);
+    node.classList.toggle('unread', c.unread > 0);
+
+    const preview = formatConvPreview(c);
+    const short   = preview.length > 42 ? preview.slice(0, 42) + '…' : preview;
+    const nameEl  = node.querySelector('.msng-ci-name');
+    const lastEl  = node.querySelector('.msng-ci-last');
+    const timeEl  = node.querySelector('.msng-ci-time');
+    let   badgeEl = node.querySelector('.msng-ci-badge');
+    const timeStr = fmtTime(c.lastMsgAt);
+
+    if (nameEl && nameEl.textContent !== c.name) nameEl.textContent = c.name;
+    if (lastEl && lastEl.textContent !== short) lastEl.textContent = short;
+    if (timeEl && timeEl.textContent !== timeStr) timeEl.textContent = timeStr;
+
+    if (c.unread > 0) {
+      const badgeTxt = c.unread > 9 ? '9+' : String(c.unread);
+      if (!badgeEl) {
+        node.insertAdjacentHTML('beforeend', `<span class="msng-ci-badge">${badgeTxt}</span>`);
+      } else if (badgeEl.textContent !== badgeTxt) {
+        badgeEl.textContent = badgeTxt;
+      }
+    } else if (badgeEl) {
+      badgeEl.remove();
+    }
   }
 
   function mergeConvListFromServer(incoming) {
@@ -358,18 +386,13 @@
       const key = String(row.psid);
       const ex = getConv(row.page_id || M.activePageId, key);
       if (ex) {
-        const bump = convHasNewActivity(ex, row);
         const patch = { ...row };
         if (patch.lastMsg != null) patch.lastMsg = normalizePreviewText(patch.lastMsg);
         if (ex.unread !== patch.unread || ex.lastMsg !== patch.lastMsg
             || ex.name !== patch.name || ex.lastFromMe !== patch.lastFromMe) {
           Object.assign(ex, patch);
           changed = true;
-        } else if (String(ex.lastMsgAt) !== String(patch.lastMsgAt)) {
-          ex.lastMsgAt = patch.lastMsgAt;
-          changed = true;
         }
-        if (bump && moveConvToTop(key)) changed = true;
       } else {
         row.lastMsg = normalizePreviewText(row.lastMsg || '');
         M.convs.push(row);
@@ -387,24 +410,22 @@
     for (const uc of updates) {
       const ucPage = String(uc.page_id || M.activePageId || '');
       if (ucPage !== String(M.activePageId)) continue;
+      if (uc.fb_user_id === M.activePsid) continue;
 
       const key = convKey(M.activePageId, uc.fb_user_id);
       const existing = M._convByPsid.get(key);
       if (existing) {
         let rowChanged = false;
-        const prevMsg = existing.lastMsg;
         const prevUnread = existing.unread || 0;
-        const prevAt = existing.lastMsgAt;
-        if (uc.fb_user_id !== M.activePsid) {
-          const nu = parseInt(uc.is_unread) || 0;
-          if (existing.unread !== nu) { existing.unread = nu; rowChanged = true; }
-        } else if (parseInt(uc.is_unread) > 0) {
-          const nu = parseInt(uc.is_unread);
-          if (existing.unread !== nu) { existing.unread = nu; rowChanged = true; }
+        const nu = parseInt(uc.is_unread) || 0;
+        if (existing.unread !== nu) {
+          existing.unread = nu;
+          rowChanged = true;
+          if (nu > prevUnread) moveConvToTop(uc.fb_user_id);
         }
         if (uc.snippet) {
           const norm = normalizePreviewText(uc.snippet);
-          if (norm !== normalizePreviewText(prevMsg)) {
+          if (norm !== normalizePreviewText(existing.lastMsg || '')) {
             existing.lastMsg = norm;
             rowChanged = true;
           }
@@ -412,22 +433,6 @@
         if (uc.last_from_me != null) {
           const lfm = uc.last_from_me == 1;
           if (existing.lastFromMe !== lfm) { existing.lastFromMe = lfm; rowChanged = true; }
-        }
-        const newAt = uc.updated_at || uc.last_msg_at;
-        if (newAt && String(existing.lastMsgAt) !== String(newAt)) {
-          existing.lastMsgAt = newAt;
-          rowChanged = true;
-        }
-        const bumpPatch = {
-          psid: uc.fb_user_id,
-          snippet: uc.snippet,
-          lastMsg: prevMsg,
-          unread: parseInt(uc.is_unread) || 0,
-          lastMsgAt: newAt || prevAt
-        };
-        const bumpExisting = { ...existing, lastMsg: prevMsg, unread: prevUnread, lastMsgAt: prevAt };
-        if (convHasNewActivity(bumpExisting, bumpPatch) && moveConvToTop(uc.fb_user_id)) {
-          rowChanged = true;
         }
         if (rowChanged) dirty = true;
       } else {
@@ -748,7 +753,9 @@
       return;
     }
 
-    if (sig === M._lastConvRenderSig && order === M._lastConvOrderSig) return;
+    const orderChanged   = order !== M._lastConvOrderSig;
+    const contentChanged = sig !== M._lastConvRenderSig;
+    if (!orderChanged && !contentChanged) return;
     M._lastConvRenderSig = sig;
     M._lastConvOrderSig  = order;
 
@@ -760,52 +767,30 @@
     const wanted = new Set(list.map(c => String(c.psid)));
     Object.keys(existing).forEach(psid => { if (!wanted.has(psid)) existing[psid].remove(); });
 
-    const orderNodes = Array.from(listEl.querySelectorAll('.msng-conv-item[data-psid]'));
+    const orderNodes = orderChanged
+      ? Array.from(listEl.querySelectorAll('.msng-conv-item[data-psid]'))
+      : null;
 
     list.forEach((c, i) => {
       let node = existing[c.psid];
 
       if (node) {
-        // Patch only what changed — no DOM teardown
-        const isActive = c.psid === M.activePsid;
-        node.classList.toggle('active',  isActive);
-        node.classList.toggle('unread',  c.unread > 0);
-
-        const preview = formatConvPreview(c);
-        const short   = preview.length > 42 ? preview.slice(0, 42) + '…' : preview;
-
-        const nameEl  = node.querySelector('.msng-ci-name');
-        const lastEl  = node.querySelector('.msng-ci-last');
-        const timeEl  = node.querySelector('.msng-ci-time');
-        let   badgeEl = node.querySelector('.msng-ci-badge');
-
-        const timeStr = fmtTime(c.lastMsgAt);
-        if (nameEl && nameEl.textContent !== c.name) nameEl.textContent = c.name;
-        if (lastEl && lastEl.textContent !== short) lastEl.textContent = short;
-        if (timeEl && timeEl.textContent !== timeStr) timeEl.textContent = timeStr;
-
-        if (c.unread > 0) {
-          const badgeTxt = c.unread > 9 ? '9+' : String(c.unread);
-          if (!badgeEl) {
-            node.insertAdjacentHTML('beforeend', `<span class="msng-ci-badge">${badgeTxt}</span>`);
-          } else if (badgeEl.textContent !== badgeTxt) {
-            badgeEl.textContent = badgeTxt;
-          }
-        } else if (badgeEl) {
-          badgeEl.remove();
-        }
+        patchConvListNode(node, c);
       } else {
-        // New conv — create node
         const tmp = document.createElement('div');
         tmp.innerHTML = convItemHtml(c, M.activePsid);
         node = tmp.firstElementChild;
         existing[c.psid] = node;
       }
 
-      const target = orderNodes[i];
-      if (node !== target) {
-        if (target) listEl.insertBefore(node, target);
-        else listEl.appendChild(node);
+      if (orderChanged) {
+        const target = orderNodes[i];
+        if (node !== target) {
+          if (target) listEl.insertBefore(node, target);
+          else listEl.appendChild(node);
+        }
+      } else if (!node.parentNode) {
+        listEl.appendChild(node);
       }
     });
   }
@@ -1595,8 +1580,8 @@
         renderConvs();
         return;
       }
-      loadConvs(pageId, false, { background: true });
-    }, 4000);
+      loadConvs(pageId, false, { background: true, syncOnly: true });
+    }, 8000);
   }
 
   // ══════════════════════════════════════════════════════════
@@ -1800,6 +1785,16 @@
         invalidateConvListRender();
       } else if (opts.background && M.convs.length) {
         mergeConvListFromServer(newConvs);
+        if (opts.syncOnly) {
+          rebuildConvIndex();
+          if (newConvs.length) {
+            M.ui.syncing = false;
+            clearSyncPoll();
+          } else if (M.ui.syncing) {
+            startSyncPoll(pageId);
+          }
+          return;
+        }
       } else {
         M.convs = newConvs;
         setConvOrderFromList(newConvs);
@@ -2599,35 +2594,28 @@
         : M.convs.find(c => c.id === data.id);
       if (conv) {
         let changed = false;
-        if (data.snippet && data.snippet !== conv.lastMsg) {
-          conv.lastMsg = data.snippet;
-          changed = true;
-        }
-        if (data.updatedTime && data.updatedTime !== conv.lastMsgAt) {
-          conv.lastMsgAt = data.updatedTime;
-          changed = true;
-        }
-        if (convHasNewActivity(conv, {
-          psid: data.participantId,
-          snippet: data.snippet,
-          lastMsg: conv.lastMsg,
-          unread: data.unreadCount,
-          lastMsgAt: data.updatedTime
-        })) {
-          moveConvToTop(conv.psid);
-          changed = true;
-        }
-        if (data.participantId !== M.activePsid) {
-          const nu = data.unreadCount != null ? data.unreadCount : (conv.unread || 0) + 1;
-          if (conv.unread !== nu) {
-            conv.unread = nu;
+        const fromPage = data.lastMessageFromPage === true
+          || data.last_from_me == 1
+          || data.participantId === M.activePsid;
+        if (data.snippet) {
+          const norm = normalizePreviewText(data.snippet);
+          if (norm !== normalizePreviewText(conv.lastMsg || '')) {
+            conv.lastMsg = norm;
             changed = true;
           }
         }
-        if (changed) {
-          invalidateConvListRender();
-          renderConvs();
+        if (data.participantId !== M.activePsid) {
+          const nu = data.unreadCount != null ? parseInt(data.unreadCount, 10) : (conv.unread || 0) + 1;
+          if (conv.unread !== nu) {
+            conv.unread = nu;
+            changed = true;
+            if (nu > 0) moveConvToTop(conv.psid);
+          }
+        } else if (!fromPage && data.updatedTime) {
+          conv.lastMsgAt = data.updatedTime;
+          changed = true;
         }
+        if (changed) renderConvs();
       }
       window.dispatchEvent(new CustomEvent('fbc:conversation-changed', { detail: data }));
     });
@@ -2775,6 +2763,9 @@
     const hit = _convListCache.get(pageId);
     if (hit && Date.now() - hit.ts < CONV_LIST_CACHE_MS && hit.convs.length) {
       M.convs = hit.convs;
+      M._convOrder = hit.order?.length
+        ? hit.order.slice()
+        : hit.convs.map(c => String(c.psid));
       M.convOffset = hit.offset;
       M.convHasMore = hit.hasMore;
       rebuildConvIndex();
