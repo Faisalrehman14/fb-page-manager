@@ -1439,7 +1439,12 @@
           c.fb_user_id !== M.activePsid && parseInt(c.is_unread) > 0
         );
         if (newFromOthers.length) {
-          showToast('New message from ' + (newFromOthers[0].user_name || 'a customer'), 'info');
+          const nc = newFromOthers[0];
+          showMessageToast({
+            sender: nc.user_name || 'A customer',
+            pageName: M.pages.find(p => p.id === M.activePageId)?.name || '',
+            preview: nc.snippet ? normalizePreviewText(nc.snippet) : ''
+          });
           _playNotifSound();
         }
       }
@@ -1818,26 +1823,84 @@
   // ══════════════════════════════════════════════════════════
   const _toastQ   = [];
   let _toastBusy  = false;
+  const _TOAST_ICONS = {
+    error: 'fa-circle-exclamation',
+    success: 'fa-circle-check',
+    warning: 'fa-triangle-exclamation',
+    info: 'fa-circle-info',
+    message: 'fa-brands fa-facebook-messenger'
+  };
+
+  function _dismissToastEl(t) {
+    if (!t) return;
+    clearTimeout(t._hideTimer);
+    t.classList.remove('show');
+    setTimeout(_drainToastQ, 320);
+  }
+
+  function _buildToastHtml(msg, type, opts = {}) {
+    const isMessage = !!(opts.message || type === 'message' || /^new message/i.test(String(msg)));
+    if (isMessage) {
+      let sender = opts.sender || '';
+      let page   = opts.pageName || '';
+      const fromM = String(msg).match(/^New message from\s+(.+)$/i);
+      const onM   = String(msg).match(/^New message\s+on\s+(.+)$/i);
+      if (fromM) sender = fromM[1];
+      if (onM) page = onM[1];
+      const senderLabel = esc(sender || 'Customer');
+      const pageLabel   = page ? esc(page) : '';
+      const preview     = opts.preview ? esc(String(opts.preview).slice(0, 120)) : '';
+      return `<div class="msng-toast-inner msng-toast-inner--message">
+        <div class="msng-toast-icon-wrap msng-toast-icon-wrap--message" aria-hidden="true">
+          <i class="fa-brands fa-facebook-messenger"></i>
+        </div>
+        <div class="msng-toast-copy">
+          <div class="msng-toast-label">New message</div>
+          <div class="msng-toast-headline">${senderLabel}</div>
+          ${pageLabel ? `<div class="msng-toast-meta"><i class="fa-solid fa-store"></i> ${pageLabel}</div>` : ''}
+          ${preview ? `<div class="msng-toast-preview">${preview}</div>` : ''}
+        </div>
+        <button type="button" class="msng-toast-close" aria-label="Dismiss"><i class="fa-solid fa-xmark"></i></button>
+      </div>`;
+    }
+    const icon = _TOAST_ICONS[type] || _TOAST_ICONS.info;
+    return `<div class="msng-toast-inner">
+      <div class="msng-toast-icon-wrap" aria-hidden="true"><i class="fa-solid ${icon}"></i></div>
+      <div class="msng-toast-copy"><div class="msng-toast-body">${esc(msg)}</div></div>
+    </div>`;
+  }
 
   function _drainToastQ() {
     if (!_toastQ.length) { _toastBusy = false; return; }
     _toastBusy = true;
-    const { msg, type, duration } = _toastQ.shift();
+    const { msg, type, duration, opts } = _toastQ.shift();
     const t = $('msngToast');
     if (!t) { _toastBusy = false; return; }
-    t.textContent = msg;
-    t.className   = `msng-toast msng-toast--${type} show`;
+    const toastType = (opts && opts.message) || type === 'message' ? 'message' : type;
+    t.innerHTML = _buildToastHtml(msg, toastType, opts || {});
+    t.className = `msng-toast msng-toast--${toastType} show`;
+    const closeBtn = t.querySelector('.msng-toast-close');
+    if (closeBtn) {
+      closeBtn.onclick = (e) => { e.stopPropagation(); _dismissToastEl(t); };
+    }
+    t.onclick = () => _dismissToastEl(t);
     clearTimeout(t._hideTimer);
-    t._hideTimer = setTimeout(() => {
-      t.classList.remove('show');
-      setTimeout(_drainToastQ, 300);
-    }, duration);
+    t._hideTimer = setTimeout(() => _dismissToastEl(t), duration);
   }
 
-  // type: 'info' | 'success' | 'error' | 'warning'
-  function showToast(msg, type = 'info', duration = 3500) {
-    _toastQ.push({ msg, type, duration });
+  // type: 'info' | 'success' | 'error' | 'warning' | 'message'
+  function showToast(msg, type = 'info', duration = 3500, opts = null) {
+    _toastQ.push({ msg, type, duration, opts: opts || {} });
     if (!_toastBusy) _drainToastQ();
+  }
+
+  function showMessageToast({ sender, pageName, preview } = {}) {
+    showToast('', 'message', 5500, {
+      message: true,
+      sender: sender || 'Customer',
+      pageName: pageName || '',
+      preview: preview || ''
+    });
   }
 
   function showConnBanner(msg) {
@@ -2803,7 +2866,12 @@
 
       if (!msg.isFromPage && msg.participantId !== M.activePsid) {
         const pageName = M.pages.find(p => p.id === msg.pageId)?.name || '';
-        showToast('New message' + (pageName ? ' on ' + pageName : ''), 'info');
+        const convRow  = getConv(M.activePageId, msgPsid);
+        showMessageToast({
+          sender: convRow?.name || 'Customer',
+          pageName,
+          preview: msgPreviewText(normalized) || normalizePreviewText(msg.text || '')
+        });
         _playNotifSound();
         // Flash the conversation item in the sidebar
         const flashEl = document.querySelector(`.msng-conv-item[data-psid="${CSS.escape(String(msg.participantId))}"]`);
