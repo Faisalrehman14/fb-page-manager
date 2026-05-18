@@ -39,6 +39,8 @@
     search: { query: '', timer: null, active: false, abort: null, cache: new Map() },
 
     ui: { sending: false, loadingMore: false, syncing: false, loadingConvs: false },
+    _convLoadSeq: 0,
+    _loadingConvsFor: null,
 
     msgStatus: { delivered: 0, read: 0 }, // unix-ms watermarks for active conversation
 
@@ -776,10 +778,11 @@
     listEl.querySelectorAll('.msng-skeleton, #msngConvLoadMore').forEach(el => el.remove());
   }
 
-  function renderConvsNow() {
+  function renderConvsNow(opts) {
     if (M.search.active) return; // search results own the list — don't overwrite them
     const listEl = $('msngConvList');
     if (!listEl) return;
+    const forceRebuild = !!(opts && opts.forceRebuild);
 
     const q    = M.search.query.toLowerCase();
     const list = getDisplayConvs();
@@ -822,19 +825,25 @@
 
     const orderChanged   = order !== M._lastConvOrderSig;
     const contentChanged = sig !== M._lastConvRenderSig;
-    if (!orderChanged && !contentChanged) return;
+    if (!forceRebuild && !orderChanged && !contentChanged) return;
     M._lastConvRenderSig = sig;
     M._lastConvOrderSig  = order;
 
     const existing = {};
-    listEl.querySelectorAll('.msng-conv-item[data-psid]').forEach(el => {
-      existing[el.dataset.psid] = el;
-    });
+    if (forceRebuild) {
+      listEl.querySelectorAll('.msng-conv-item[data-psid]').forEach(el => el.remove());
+    } else {
+      listEl.querySelectorAll('.msng-conv-item[data-psid]').forEach(el => {
+        existing[el.dataset.psid] = el;
+      });
+    }
 
     const wanted = new Set(list.map(c => String(c.psid)));
-    Object.keys(existing).forEach(psid => { if (!wanted.has(psid)) existing[psid].remove(); });
+    if (!forceRebuild) {
+      Object.keys(existing).forEach(psid => { if (!wanted.has(psid)) existing[psid].remove(); });
+    }
 
-    if (orderChanged) {
+    if (forceRebuild || orderChanged) {
       const frag = document.createDocumentFragment();
       list.forEach((c) => {
         let node = existing[c.psid];
@@ -871,13 +880,14 @@
         cancelAnimationFrame(M._renderConvsRaf);
         M._renderConvsRaf = 0;
       }
-      renderConvsNow();
+      renderConvsNow(opts);
       return;
     }
     if (M._renderConvsRaf) return;
+    const passOpts = opts;
     M._renderConvsRaf = requestAnimationFrame(() => {
       M._renderConvsRaf = 0;
-      renderConvsNow();
+      renderConvsNow(passOpts);
     });
   }
 
@@ -1895,7 +1905,13 @@
   }
 
   async function loadConvs(pageId, isMore = false, opts = {}) {
-    if (M.ui.loadingConvs && !opts.background) return;
+    const pageKey = String(pageId);
+    const loadSeq = opts.loadSeq;
+
+    if (M.ui.loadingConvs && !opts.background && !isMore
+        && pageKey === String(M._loadingConvsFor)) {
+      return;
+    }
     if (isMore && !M.convHasMore) return;
 
     if (!isMore && !opts.background) {
@@ -1918,11 +1934,14 @@
     } else if (isMore) {
       _showConvLoadingMore();
     }
+    M._loadingConvsFor = pageKey;
     M.ui.loadingConvs = true;
 
     try {
       const limit = CONV_PAGE_SIZE;
       const data = await get('load_conversations', { page_id: pageId, limit, offset: M.convOffset });
+      if (loadSeq && loadSeq !== M._convLoadSeq) return;
+      if (pageKey !== String(M.activePageId)) return;
       if (data.error) throw new Error(data.error);
 
       if (data.message_retention_days) M.retentionDays = data.message_retention_days;
@@ -2008,7 +2027,12 @@
       // isMore failure: silently allow retry on next scroll
       if (isMore) M.convHasMore = true;
     } finally {
-      M.ui.loadingConvs = false;
+      if (!loadSeq || loadSeq === M._convLoadSeq) {
+        if (pageKey === String(M._loadingConvsFor)) {
+          M.ui.loadingConvs = false;
+          M._loadingConvsFor = null;
+        }
+      }
       _hideConvLoadingMore();
     }
   }
@@ -2526,7 +2550,7 @@
       el.classList.toggle('active', el.dataset.filter === M.convFilter);
     });
     invalidateConvListRender();
-    renderConvs({ immediate: true });
+    renderConvs({ immediate: true, forceRebuild: true });
   };
 
   window.msngLoadMore = async function () {
@@ -2917,6 +2941,7 @@
 
   // ── Updated msngSelectPage ──────────────────────────────────────────────────
   window.msngSelectPage = function (pageId) {
+    const loadSeq = ++M._convLoadSeq;
     clearSyncPoll();
     M.ui.syncing = false;
     M.activePageId = pageId;
@@ -2938,7 +2963,7 @@
     showChatEmpty();
     showConvSkeleton();
     renderConvs({ immediate: true });
-    loadConvs(pageId);
+    loadConvs(pageId, false, { loadSeq });
   };
 
   // ── Outer page selector integration ─────────────────────────────────────────
