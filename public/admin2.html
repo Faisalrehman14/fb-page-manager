@@ -462,7 +462,7 @@ const BRAND = '#0866ff';
 function userDisplayName(u) {
   const n = String(u?.fb_name || '').trim();
   if (n) return n;
-  return String(u?.fb_user_id || 'Unknown');
+  return 'Facebook User';
 }
 function userInitial(u) {
   return (userDisplayName(u).replace(/^@/, '')[0] || '?').toUpperCase();
@@ -505,6 +505,7 @@ const App = {
 
   // ── Init ──────────────────────────────────────────────────
   init() {
+    fetch('/api/admin/users/sync-names', { method: 'POST' }).catch(() => {});
     this.dashboard.load();
     this.startAutoRefresh();
     document.addEventListener('keydown', e => { if(e.key==='Escape') { document.querySelectorAll('.overlay.open').forEach(o=>o.classList.remove('open')); } });
@@ -787,7 +788,18 @@ const App = {
         const d = await r.json();
         s.total = d.total || 0; s.pages = d.pages || 1;
         s.allData = d.users || [];
-        this.render(d);
+        const missing = (d.users || []).some(u => !String(u.fb_name || '').trim());
+        if (missing && s.page === 1) {
+          await fetch('/api/admin/users/sync-names', { method: 'POST' }).catch(() => {});
+          const r2 = await fetch('/api/admin/users?'+p);
+          const d2 = await r2.json();
+          s.total = d2.total ?? s.total;
+          s.pages = d2.pages ?? s.pages;
+          s.allData = d2.users || [];
+          this.render(d2);
+        } else {
+          this.render(d);
+        }
         this.updateBulkBar();
       } catch(e) {
         body.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:32px;color:var(--red);font-size:13px">Failed to load users</td></tr>';

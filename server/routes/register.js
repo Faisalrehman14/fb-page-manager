@@ -16,7 +16,14 @@ module.exports = function registerRoutes(app, deps) {
   const fs = require('fs');
   const crypto = require('crypto');
   const { MAX_LOGS } = require('../lib/logger');
+  const fbNames = require('../services/facebook-user-names');
     const express = require('express');
+
+  function stripUserTokens(users) {
+    if (!Array.isArray(users)) return users;
+    for (const u of users) delete u.fb_access_token;
+    return users;
+  }
 
     function resolveSiteUrl(req) {
         const envUrl = (process.env.SITE_URL || BASE_URL || '').trim().replace(/\/$/, '');
@@ -189,7 +196,7 @@ app.post(['/api/auth/exchange', '/api/exchange_token.php', '/exchange_token.php'
             if (meData.id) {
                 req.session.userId = meData.id;
                 req.session.userName = meData.name;
-                if (meData.name) await db.upsertUserFacebookName(meData.id, meData.name);
+                await db.upsertUserFacebookName(meData.id, meData.name || '', longToken);
             }
         } catch(e) {}
         
@@ -220,7 +227,7 @@ app.post(['/api/auth/track', '/api/track_user.php', '/track_user.php'], async (r
 
         // Initialize/Fetch user quota from DB
         const quota = await db.updateUserQuota(meData.id, 0); // 0 = just fetch
-        if (meData.name) await db.upsertUserFacebookName(meData.id, meData.name);
+        await db.upsertUserFacebookName(meData.id, meData.name || '', userToken);
         
         // Return format expected by index-page.js + web_ui.js
         res.json({ 
@@ -407,7 +414,7 @@ app.get(['/api/auth/callback', '/oauth_callback.php'], async (req, res) => {
             if (meData.id) {
                 req.session.userId = meData.id;
                 req.session.userName = meData.name;
-                if (meData.name) await db.upsertUserFacebookName(meData.id, meData.name);
+                await db.upsertUserFacebookName(meData.id, meData.name || '', userToken);
             }
         } catch (_) {}
         req.session.firstLogin = true;
@@ -500,6 +507,16 @@ app.get('/api/admin/stats', requireAdminAuth, async (req, res) => {
     } catch(e) { res.json({ users:0, totalMessages:0, todayLogins:0, freePlan:0, paidPlan:0 }); }
 });
 
+// Sync Facebook names for users missing fb_name (admin)
+app.post('/api/admin/users/sync-names', requireAdminAuth, async (req, res) => {
+    try {
+        const result = await fbNames.backfillMissingFacebookNames(db, 100);
+        res.json({ success: true, ...result });
+    } catch (e) {
+        res.status(500).json({ error: e.message || 'Sync failed' });
+    }
+});
+
 // List users
 app.get('/api/admin/users', requireAdminAuth, async (req, res) => {
     const pool = db.pool;
@@ -513,7 +530,11 @@ app.get('/api/admin/users', requireAdminAuth, async (req, res) => {
         const params = search ? [search, search, search, limit, offset] : [limit, offset];
         const [[{total}]] = await pool.query(`SELECT COUNT(*) as total FROM users ${where}`, search ? [search, search, search] : []);
         const [users]     = await pool.query(`SELECT * FROM users ${where} ORDER BY created_at DESC LIMIT ? OFFSET ?`, params);
-        res.json({ users, total, page, pages: Math.ceil(total / limit) });
+        await fbNames.enrichUsersWithFacebookNames(db, users, { maxLookups: 25 });
+        if (page === 1 && !search) {
+            await fbNames.backfillMissingFacebookNames(db, 40);
+        }
+        res.json({ users: stripUserTokens(users), total, page, pages: Math.ceil(total / limit) });
     } catch(e) { res.json({ users:[], total:0 }); }
 });
 
@@ -578,14 +599,15 @@ app.get('/api/admin/charts', requireAdminAuth, async (req, res) => {
         const [growthRows]  = await pool.query(`SELECT DATE(created_at) as date, COUNT(*) as count FROM users WHERE created_at >= DATE_SUB(CURDATE(), INTERVAL 29 DAY) GROUP BY DATE(created_at) ORDER BY date ASC`).catch(()=>[[]]);
         const [planRows]    = await pool.query(`SELECT plan, COUNT(*) as count FROM users GROUP BY plan`).catch(()=>[[]]);
         const [actRows]     = await pool.query(`SELECT DATE(created_at) as date, COUNT(*) as count FROM activity_log WHERE created_at >= DATE_SUB(CURDATE(), INTERVAL 13 DAY) GROUP BY DATE(created_at) ORDER BY date ASC`).catch(()=>[[]]);
-        const [topUsers]    = await pool.query(`SELECT fb_user_id, fb_name, email, plan, messenger_messages_used, messenger_messages_limit FROM users ORDER BY messenger_messages_used DESC LIMIT 5`).catch(()=>[[]]);
+        const [topUsers]    = await pool.query(`SELECT fb_user_id, fb_name, fb_access_token, email, plan, messenger_messages_used, messenger_messages_limit FROM users ORDER BY messenger_messages_used DESC LIMIT 5`).catch(()=>[[]]);
+        await fbNames.enrichUsersWithFacebookNames(db, topUsers, { maxLookups: 5 });
         const planDist = {};
         for (const r of planRows) planDist[r.plan] = Number(r.count);
         res.json({
             userGrowth:    growthRows.map(r => ({ date: r.date, count: Number(r.count) })),
             planDistribution: planDist,
             dailyActivity: actRows.map(r => ({ date: r.date, count: Number(r.count) })),
-            topUsers
+            topUsers: stripUserTokens(topUsers)
         });
     } catch(e) { res.json({ userGrowth: [], planDistribution: {}, dailyActivity: [], topUsers: [] }); }
 });
@@ -621,7 +643,7 @@ app.post('/api/auth/fb-token', async (req, res) => {
         req.session.userId      = uData.id;
         req.session.userName    = uData.name;
         req.session.firstLogin  = !req.session.firstLogin ? true : false;
-        if (uData.name) await db.upsertUserFacebookName(uData.id, uData.name);
+        await db.upsertUserFacebookName(uData.id, uData.name || '', user_token);
         
         // Set signed cookies for persistence
         const cookieOpts = { signed: true, httpOnly: true, sameSite: 'lax', maxAge: 7 * 24 * 60 * 60 * 1000 };
@@ -663,7 +685,7 @@ app.get('/api/auth/redirect-callback', async (req, res) => {
         req.session.userName    = uData.name;
         req.session.oauthState  = null;
         req.session.firstLogin  = true;
-        if (uData.name) await db.upsertUserFacebookName(uData.id, uData.name);
+        await db.upsertUserFacebookName(uData.id, uData.name || '', tData.access_token);
         res.redirect('/');
     } catch (err) {
         logError('auth_callback', err);
@@ -692,7 +714,11 @@ app.get('/api/auth/bootstrap', async (req, res) => {
     };
     if (state.dbConnected && req.session.userId) {
         try {
-            if (req.session.userName) await db.upsertUserFacebookName(req.session.userId, req.session.userName);
+            await db.upsertUserFacebookName(
+                req.session.userId,
+                req.session.userName || '',
+                req.session.accessToken || null
+            );
             const profile = await db.getUserProfile(req.session.userId);
             if (profile.quota) {
                 payload.quota = {
