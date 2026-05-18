@@ -11,7 +11,8 @@
       icon: 'fa-house',
       top: 'home',
       broadcastSub: null,
-      hideSidebar: false,
+      hideSidebar: true,
+      bodyClass: 'shell-home',
       onEnter() {
         if (typeof updateHomeViewStats === 'function') updateHomeViewStats();
         if (global.homeDashboard) global.homeDashboard.start();
@@ -138,7 +139,7 @@
     const next = VIEWS[view];
 
     if (prev && prev.onLeave) prev.onLeave();
-    document.body.classList.remove('shell-scheduling', 'shell-messenger', 'in-messenger');
+    document.body.classList.remove('shell-scheduling', 'shell-messenger', 'shell-home', 'in-messenger');
     if (next.bodyClass) document.body.classList.add(next.bodyClass);
 
     currentView = view;

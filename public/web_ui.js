@@ -1461,7 +1461,6 @@ function _renderMainSchedList(scheduled, allBroadcasts) {
     const name   = b.message ? b.message.substring(0, 40) + (b.message.length > 40 ? '…' : '') : 'Broadcast';
     const t      = b.scheduled_at || b.schedule_time || b.created_at;
     const time   = t ? new Date(t).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—';
-    const page   = b.page_name || b.page_id || 'Facebook Page';
     const status = b.status || 'pending';
     const stCls  = status === 'sent' || status === 'completed' ? 'hv-sched-status-sent'
                  : status === 'sending' ? 'hv-sched-status-sending'
@@ -1476,7 +1475,6 @@ function _renderMainSchedList(scheduled, allBroadcasts) {
           <div class="hv-sched-main-name">${name}</div>
           <div class="hv-sched-main-time">
             <i class="fa-solid fa-clock"></i>${time}
-            &nbsp;·&nbsp;${page}
           </div>
         </div>
         <div class="hv-sched-main-status ${stCls}">${stLbl}</div>

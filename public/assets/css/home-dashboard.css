@@ -3,6 +3,11 @@
  * Scoped to #view-home — loads after saas-premium.css
  */
 
+/* Home view: hide Facebook Pages sidebar column (full-width dashboard) */
+body.shell-home .sidebar {
+  display: none !important;
+}
+
 #view-home.hv,
 #view-home {
   --hd-glass: rgba(12, 24, 48, 0.65);
