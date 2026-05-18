@@ -1840,6 +1840,7 @@
       if (entry) { entry.message_id = res.message_id; entry._pending = false; delete entry._tempId; }
 
       bumpConvAfterPageSend(M.activePsid, { lastMsg: text, lastMsgAt: nowIso });
+      queueMarkConvRead(M.activePsid, { immediate: true });
 
     } catch (e) {
       showToast('Send failed — tap Retry to try again', 'error');

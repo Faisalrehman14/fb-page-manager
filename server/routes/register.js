@@ -1271,6 +1271,12 @@ app.post('/api/threads/:threadId/reply', requireAuth, verifyCsrf, async (req, re
             await db.saveMessage({ id: data.message_id, threadId, pageId, senderId: pageId, senderType: 'page', text: message.trim(), isFromPage: true, createdTime });
             await db.markAsRead(threadId);
         }
+        try {
+            const { FacebookClient } = require('../messenger/facebook-client');
+            await new FacebookClient(fetch).markSeenWithRetry(token, recipientId);
+        } catch (err) {
+            logError('reply_mark_seen_meta', err, { pageId, threadId, recipientId });
+        }
 
         res.json({ success: true, messageId: data.message_id });
         // Emit AFTER HTTP response so the optimistic tempId element is already in DOM when socket fires

@@ -28,6 +28,20 @@ class SendService {
         throw lastErr;
     }
 
+    /** Clear unread in our DB and on Meta (Business Suite / Page Inbox). */
+    async _markThreadReadOnMetaAndDb(pageId, psid, convId, pageToken) {
+        if (convId) {
+            await this.db.markAsRead(convId).catch(() => {});
+        }
+        const token = pageToken || await this.db.getPageToken(pageId);
+        if (!token || !psid) return;
+        try {
+            await this.fb.markSeenWithRetry(token, psid);
+        } catch (err) {
+            console.warn('[SendService] mark_seen after send:', err.message || err);
+        }
+    }
+
     async send({ pageId, psid, message, image_url, page_token }) {
         const token = page_token || await this.db.getPageToken(pageId);
         if (!token) throw new Error('Page token not found');
@@ -84,6 +98,8 @@ class SendService {
                 lastFromMe: true
             }).catch(() => {});
         }
+
+        await this._markThreadReadOnMetaAndDb(pageId, psid, convId, token);
 
         setImmediate(() => {
             this.io.to(`page_${pageId}`).emit('new_message', {
@@ -142,6 +158,8 @@ class SendService {
                 attachment_type: 'like'
             }).catch(() => {});
         }
+
+        await this._markThreadReadOnMetaAndDb(pageId, psid, convId, token);
 
         setImmediate(() => {
             this.io.to(`page_${pageId}`).emit('new_message', {
