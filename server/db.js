@@ -911,9 +911,9 @@ async function saveMessage(message) {
             ON DUPLICATE KEY UPDATE
                 message = VALUES(message),
                 from_me = VALUES(from_me),
-                attachment_url = COALESCE(VALUES(attachment_url), attachment_url),
-                attachment_type = COALESCE(VALUES(attachment_type), attachment_type),
-                metadata = COALESCE(VALUES(metadata), metadata),
+                attachment_url = VALUES(attachment_url),
+                attachment_type = VALUES(attachment_type),
+                metadata = VALUES(metadata),
                 created_at = VALUES(created_at)
         `, [convId, pageId, senderId, id, text, isFromPage ? 1 : 0,
             createdTime ? new Date(createdTime) : new Date(),
@@ -968,9 +968,9 @@ async function saveMessages(messenger_messages) {
                 ON DUPLICATE KEY UPDATE
                     message = VALUES(message),
                     from_me = VALUES(from_me),
-                    attachment_url = COALESCE(VALUES(attachment_url), attachment_url),
-                    attachment_type = COALESCE(VALUES(attachment_type), attachment_type),
-                    metadata = COALESCE(VALUES(metadata), metadata),
+                    attachment_url = VALUES(attachment_url),
+                    attachment_type = VALUES(attachment_type),
+                    metadata = VALUES(metadata),
                     created_at = VALUES(created_at)
             `, params);
         } catch (err) {
@@ -1843,15 +1843,33 @@ async function getNewMessagesSince(convId, since) {
         const [rows] = await pool.query(
             `SELECT id, message_id AS mid, message AS text,
                     from_me AS isFromPage, created_at AS createdTime,
-                    attachment_url, attachment_type
+                    attachment_url, attachment_type, metadata
              FROM messenger_messages
              WHERE conversation_id = ? AND created_at > ?
              ORDER BY created_at ASC`,
             [convId, sinceDate]
         );
+        const { normalizeMessengerMessage } = require('./messenger/message-content');
         return rows.map(r => {
             const att = _readAttachment(r.attachment_url, r.attachment_type);
-            return { ...r, attachment_url: att.url, attachment_type: att.type };
+            let attachments = [];
+            if (att.type || att.url) attachments.push({ t: att.type, u: att.url });
+            if (r.metadata) {
+                try {
+                    const meta = JSON.parse(r.metadata);
+                    if (Array.isArray(meta) && meta.length) attachments = meta;
+                } catch { /* ignore */ }
+            }
+            return normalizeMessengerMessage({
+                mid: r.mid,
+                message_id: r.mid,
+                text: r.text,
+                isFromPage: r.isFromPage === 1 || r.isFromPage === true,
+                createdTime: r.createdTime,
+                attachment_url: att.url,
+                attachment_type: att.type,
+                attachments
+            });
         });
     } catch (err) {
         addDbError(`getNewMessagesSince: ${err.message}`);

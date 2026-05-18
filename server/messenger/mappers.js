@@ -42,13 +42,17 @@ function mapMessage(m) {
 }
 
 function mapPollMessage(m) {
+    const attachments = m.attachments || (m.attachment_type || m.attachment_url
+        ? [{ t: m.attachment_type, u: m.attachment_url }]
+        : []);
     return normalizeMessengerMessage({
-        message_id: m.mid,
-        message: m.text || '',
-        from_me: m.isFromPage ? 1 : 0,
-        created_at: m.createdTime,
+        message_id: m.mid || m.message_id,
+        message: m.text || m.message || '',
+        from_me: m.isFromPage ? 1 : (m.from_me != null ? m.from_me : 0),
+        created_at: m.createdTime || m.created_at,
         attachment_url: m.attachment_url || null,
-        attachment_type: m.attachment_type || null
+        attachment_type: m.attachment_type || null,
+        attachments
     });
 }
 

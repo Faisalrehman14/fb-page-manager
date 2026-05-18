@@ -16,6 +16,15 @@ function isThumbsUpStickerId(id) {
     return THUMBS_UP_STICKER_IDS.has(String(id));
 }
 
+/** Facebook CDN URLs for the default Messenger thumbs-up sticker. */
+function isThumbsUpAttachmentUrl(url) {
+    const u = String(url || '');
+    if (!u) return false;
+    if (/36923926[0-9]{6}/.test(u)) return true;
+    if (/sticker.*thumbs|thumbs.*sticker/i.test(u)) return true;
+    return false;
+}
+
 function isThumbsUpText(text) {
     const t = String(text || '').trim();
     if (!t) return false;
@@ -54,17 +63,37 @@ function isThumbsUpMessage(input = {}) {
     const attType = String(input.attachment_type || input.attachmentType || '').toLowerCase();
     const attachments = input.attachments || [];
 
+    const attUrl = input.attachment_url || input.attachmentUrl || '';
+
     if (isThumbsUpText(text)) return true;
     if (attType === 'like' || attType === 'thumbs_up') return true;
-    if (isPlaceholderAttachmentText(text) && (attType === 'sticker' || attType === 'like')) return true;
+    if (isThumbsUpAttachmentUrl(attUrl)) return true;
+    if (isPlaceholderAttachmentText(text) && (attType === 'sticker' || attType === 'like' || attType === 'image')) return true;
 
     for (const a of attachments) {
         const t = String(a.t || a.type || '').toLowerCase();
         if (t === 'like' || t === 'thumbs_up') return true;
+        if (isThumbsUpStickerId(a.sticker_id)) return true;
+        if (isThumbsUpAttachmentUrl(a.u)) return true;
         if (t === 'sticker' && (isThumbsUpStickerId(a.sticker_id) || !a.u)) return true;
+        if (t === 'image' && isThumbsUpAttachmentUrl(a.u)) return true;
     }
 
-    if (!String(text).trim() && attType === 'sticker') return true;
+    if (!String(text).trim() && (attType === 'sticker' || attType === 'like')) return true;
+    if (!String(text).trim() && attType === 'image' && isThumbsUpAttachmentUrl(attUrl)) return true;
+
+    const fromPage = input.from_me == 1 || input.from_me === true
+        || input.isFromPage === true || input.isFromPage === 1;
+    if (fromPage && (isThumbsUpText(text) || /^attachment$/i.test(String(text).trim()))) return true;
+    if (fromPage && !String(text).trim() && !attUrl) {
+        const benign = !attType || attType === 'image' || attType === 'sticker'
+            || attType === 'like' || attType === 'fallback';
+        const hasReal = attachments.some(a => {
+            const t = String(a.t || a.type || '').toLowerCase();
+            return a.u && !isThumbsUpAttachmentUrl(a.u) && t !== 'like' && t !== 'sticker';
+        });
+        if (benign && !hasReal) return true;
+    }
     return false;
 }
 
@@ -77,6 +106,9 @@ function parseFbAttachmentItem(a) {
         return { t: 'like', u: url || null, sticker_id: stickerId };
     }
     if (type === 'like' || type === 'thumbs_up') {
+        return { t: 'like', u: url || null, sticker_id: stickerId };
+    }
+    if ((type === 'image' || type === 'fallback') && isThumbsUpAttachmentUrl(url)) {
         return { t: 'like', u: url || null, sticker_id: stickerId };
     }
     if (type === 'sticker' || stickerId) {
@@ -172,6 +204,7 @@ function normalizeMessengerMessage(msg = {}) {
 module.exports = {
     THUMBS_UP_STICKER_IDS,
     isThumbsUpMessage,
+    isThumbsUpAttachmentUrl,
     isThumbsUpText,
     snippetIndicatesFromPage,
     normalizeSnippetForList,

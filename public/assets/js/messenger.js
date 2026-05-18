@@ -505,6 +505,14 @@
     </div>`;
   }
 
+  function isThumbsUpUrl(url) {
+    const u = String(url || '');
+    if (!u) return false;
+    if (/36923926[0-9]{6}/.test(u)) return true;
+    if (/sticker.*thumbs|thumbs.*sticker/i.test(u)) return true;
+    return false;
+  }
+
   function isLikeMessage(msg) {
     if (!msg) return false;
     if (msg.is_like || msg._isLike || msg.attachment_type === 'like') return true;
@@ -512,13 +520,22 @@
     if (t === '👍' || t === ':thumbs_up:') return true;
     if (/^\[(sticker|like|image|attachment)\]$/i.test(t)) return true;
     if (/thumbs?\s*up/i.test(t) || /sent\s+(a\s+)?thumbs/i.test(t)) return true;
+    if (isThumbsUpUrl(msg.attachment_url)) return true;
     if (!t && (msg.attachment_type === 'sticker' || msg.attachment_type === 'like')) return true;
+    if (!t && msg.attachment_type === 'image' && isThumbsUpUrl(msg.attachment_url)) return true;
+    if (/^attachment$/i.test(t)) return true;
+    const fromMe = msg.from_me == 1 || msg.from_me === true;
+    if (fromMe && !t && !msg.attachment_url) {
+      const at = String(msg.attachment_type || '').toLowerCase();
+      if (!at || at === 'image' || at === 'sticker' || at === 'like' || at === 'fallback') return true;
+    }
     const THUMBS_IDS = new Set(['369239263222821', '369239263222822', '369239343222814', '369239383222810']);
     const atts = msg.attachments || [];
     for (const a of atts) {
       const at = String(a.t || a.type || '').toLowerCase();
       if (at === 'like' || at === 'thumbs_up') return true;
       if (a.sticker_id != null && THUMBS_IDS.has(String(a.sticker_id))) return true;
+      if (isThumbsUpUrl(a.u)) return true;
       if (at === 'sticker' && (a.sticker_id == null || a.sticker_id === '' || !a.u)) return true;
     }
     return false;
