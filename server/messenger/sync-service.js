@@ -5,6 +5,8 @@ const {
     ACTIVE_THREAD_SYNC_MS,
     ACTIVE_PAGE_SYNC_MS,
     HOT_CONV_SYNC_LIMIT,
+    CONVERSATION_LIST_SYNC_MS,
+    CONVERSATION_LIST_SINCE_SEC,
     retentionCutoffUnix
 } = require('./config');
 const { clearPageCache } = require('./conversation-service');
@@ -21,6 +23,7 @@ class SyncService {
         this._ensureKick = new Map(); // pageId → last kick timestamp
         this._activeThreadSync = new Map(); // pageId:psid → last Graph pull
         this._activePageSync = new Map(); // pageId → last hot-conv pull
+        this._listSync = new Map(); // pageId → last conversation list pull from FB
     }
 
     shouldRunBackgroundSync(pageId) {
@@ -36,6 +39,30 @@ class SyncService {
         const t = lastSyncedAt instanceof Date ? lastSyncedAt : new Date(lastSyncedAt);
         if (isNaN(t.getTime())) return true;
         return Date.now() - t.getTime() > RELOGIN_SYNC_GAP_MS;
+    }
+
+    /**
+     * Pull conversation snippets + updated_time from Facebook (Meta Business Suite activity).
+     * This is what updates the left-hand list when webhooks do not fire.
+     */
+    async syncConversationListFromFacebook(pageId, pageToken) {
+        if (!pageId || !pageToken) return;
+        const now = Date.now();
+        const last = this._listSync.get(pageId) || 0;
+        if (now - last < CONVERSATION_LIST_SYNC_MS) return;
+        this._listSync.set(pageId, now);
+
+        const sinceUnix = Math.floor((now - CONVERSATION_LIST_SINCE_SEC * 1000) / 1000);
+        try {
+            await this.db.syncConversationsFromFacebook(pageId, pageToken, this.fetchFn, sinceUnix, {
+                maxPages: 3,
+                maxTotal: 60,
+                fbLimit: 50
+            });
+            clearPageCache(pageId);
+        } catch (err) {
+            this.logError('sync_conversation_list', err, { pageId });
+        }
     }
 
     /**
@@ -122,6 +149,9 @@ class SyncService {
         if (!pageId || !pageToken) return;
         if (this.db.isPageSyncing?.(pageId)) return;
 
+        // Always refresh list metadata from Facebook (snippet, time, unread)
+        await this.syncConversationListFromFacebook(pageId, pageToken);
+
         const now = Date.now();
 
         if (psid) {
@@ -142,6 +172,9 @@ class SyncService {
                 }
                 if (conv?.fbConvId) {
                     await this.db.syncThreadMessages(conv.fbConvId, pageId, pageToken, this.fetchFn, null);
+                    if (conv.id && this.db.touchConversationFromLatestMessage) {
+                        await this.db.touchConversationFromLatestMessage(conv.id);
+                    }
                     clearPageCache(pageId);
                 }
             } catch (err) {
@@ -161,6 +194,9 @@ class SyncService {
 
             const tasks = withFb.map((c) => async () => {
                 await this.db.syncThreadMessages(c.fb_conv_id, pageId, pageToken, this.fetchFn, null);
+                if (c.id && this.db.touchConversationFromLatestMessage) {
+                    await this.db.touchConversationFromLatestMessage(c.id);
+                }
             });
             await this.db.parallelLimit(tasks, 4);
             clearPageCache(pageId);

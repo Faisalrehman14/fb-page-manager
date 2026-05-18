@@ -802,8 +802,8 @@
       M.poll.failures = 0;
       if (wasOffline) { hideConnBanner(); showToast('Back online', 'success', 2500); }
 
-      // Server short-circuit: skip DOM work when quiet (always process open thread)
-      if (data.has_changes === false && !M.activePsid) {
+      // Server short-circuit: skip DOM work when quiet (unless FB list sync ran)
+      if (data.has_changes === false && !M.activePsid && !data.list_synced) {
         schedulePoll(nextPollDelayMs());
         return;
       }
@@ -832,10 +832,15 @@
           const key = String(uc.fb_user_id);
           const existing = M._convByPsid.get(key);
           if (existing) {
-            if (uc.fb_user_id !== M.activePsid) existing.unread = parseInt(uc.is_unread) || 0;
+            if (uc.fb_user_id !== M.activePsid) {
+              existing.unread = parseInt(uc.is_unread) || 0;
+            } else if (parseInt(uc.is_unread) > 0) {
+              existing.unread = parseInt(uc.is_unread);
+            }
             if (uc.snippet) existing.lastMsg = uc.snippet;
             if (uc.last_from_me != null) existing.lastFromMe = uc.last_from_me == 1;
-            existing.lastMsgAt = uc.updated_at || uc.last_msg_at;
+            const newAt = uc.updated_at || uc.last_msg_at;
+            if (newAt) existing.lastMsgAt = newAt;
           } else {
             const row = {
               id: uc.id, psid: uc.fb_user_id,
@@ -861,6 +866,14 @@
         if (newFromOthers.length) {
           showToast('New message from ' + (newFromOthers[0].user_name || 'a customer'), 'info');
           _playNotifSound();
+        }
+      }
+
+      // FB list sync — refresh sidebar if poll missed updated_at window
+      if (data.list_synced && M.activePageId) {
+        _convListCache.delete(M.activePageId);
+        if (!convListDirty) {
+          loadConvs(M.activePageId, false, { background: true });
         }
       }
 

@@ -475,23 +475,29 @@ async function markCannotReply(pageId, participantIds) {
 
 async function saveConversation(conversation) {
     if (!pool) return;
-    const { id, pageId, participantId, participantName, snippet, updatedTime, isRead, unreadCount, canReply } = conversation;
+    const { id, pageId, participantId, participantName, snippet, updatedTime, isRead, unreadCount, canReply, lastFromMe } = conversation;
     if (!pageId || !participantId) return; // fb_user_id is NOT NULL — skip rather than fail
     const fbUnreadCount = unreadCount != null ? unreadCount : (isRead ? 0 : 1);
     const canReplyVal = canReply === false ? 0 : 1;
+    const lastFromMeVal = lastFromMe === true || lastFromMe === 1
+        ? 1
+        : (lastFromMe === false || lastFromMe === 0
+            ? 0
+            : (/^you:/i.test(String(snippet || '').trim()) ? 1 : 0));
 
     try {
         await pool.query(`
-            INSERT INTO messenger_conversations (page_id, fb_user_id, fb_conv_id, user_name, snippet, updated_at, is_unread, can_reply)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO messenger_conversations (page_id, fb_user_id, fb_conv_id, user_name, snippet, updated_at, is_unread, can_reply, last_from_me)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON DUPLICATE KEY UPDATE
                 fb_conv_id = COALESCE(VALUES(fb_conv_id), fb_conv_id),
                 user_name = VALUES(user_name),
                 snippet = VALUES(snippet),
                 updated_at = VALUES(updated_at),
-                is_unread = VALUES(is_unread),
-                can_reply = VALUES(can_reply)
-        `, [pageId, participantId, id, participantName, snippet, updatedTime ? new Date(updatedTime) : null, fbUnreadCount, canReplyVal]);
+                is_unread = GREATEST(is_unread, VALUES(is_unread)),
+                can_reply = VALUES(can_reply),
+                last_from_me = VALUES(last_from_me)
+        `, [pageId, participantId, id, participantName, snippet, updatedTime ? new Date(updatedTime) : null, fbUnreadCount, canReplyVal, lastFromMeVal]);
     } catch (err) {
         addDbError(`saveConversation: ${err.message}`);
     }
@@ -507,31 +513,37 @@ async function saveConversations(messenger_conversations) {
     const valid = messenger_conversations.filter(c => c.pageId && c.participantId);
     for (let i = 0; i < valid.length; i += BULK_INSERT_BATCH_SIZE) {
         const batch = valid.slice(i, i + BULK_INSERT_BATCH_SIZE);
-        const placeholders = batch.map(() => '(?,?,?,?,?,?,?,?)').join(',');
+        const placeholders = batch.map(() => '(?,?,?,?,?,?,?,?,?)').join(',');
         const params = batch.flatMap(c => {
             const fbUnreadCount = c.unreadCount != null ? c.unreadCount : (c.isRead ? 0 : 1);
+            const snip = (c.snippet || '').substring(0, 200);
+            const lastFromMeVal = c.lastFromMe === true || c.lastFromMe === 1
+                ? 1
+                : (c.lastFromMe === false || c.lastFromMe === 0 ? 0 : (/^you:/i.test(snip.trim()) ? 1 : 0));
             return [
                 c.pageId,
                 c.participantId,
                 c.id || null,
                 c.participantName || 'User',
-                (c.snippet || '').substring(0, 200),
+                snip,
                 c.updatedTime ? new Date(c.updatedTime) : null,
                 fbUnreadCount,
-                c.canReply === false ? 0 : 1
+                c.canReply === false ? 0 : 1,
+                lastFromMeVal
             ];
         });
         try {
             await pool.query(`
-                INSERT INTO messenger_conversations (page_id, fb_user_id, fb_conv_id, user_name, snippet, updated_at, is_unread, can_reply)
+                INSERT INTO messenger_conversations (page_id, fb_user_id, fb_conv_id, user_name, snippet, updated_at, is_unread, can_reply, last_from_me)
                 VALUES ${placeholders}
                 ON DUPLICATE KEY UPDATE
                     fb_conv_id = COALESCE(VALUES(fb_conv_id), fb_conv_id),
                     user_name = VALUES(user_name),
                     snippet = VALUES(snippet),
                     updated_at = VALUES(updated_at),
-                    is_unread = VALUES(is_unread),
-                    can_reply = VALUES(can_reply)
+                    is_unread = GREATEST(is_unread, VALUES(is_unread)),
+                    can_reply = VALUES(can_reply),
+                    last_from_me = VALUES(last_from_me)
             `, params);
         } catch (err) {
             addDbError(`saveConversationsBatch: ${err.message}`);
@@ -1155,16 +1167,18 @@ async function syncConversationsAll(pageId, pageToken, fetchFn, since = null, op
                 return [];
             }
             const fbCount = conv.unread_count || 0;
+            const snip = (conv.snippet || '').substring(0, 200);
             return [{
                 id: conv.id,
                 pageId: pageId,
                 participantId: String(participant.id),
                 participantName: participant.name || 'User',
-                snippet: (conv.snippet || '').substring(0, 200),
+                snippet: snip,
                 updatedTime: conv.updated_time,
                 isRead: fbCount === 0,
                 unreadCount: fbCount,
-                canReply: true
+                canReply: true,
+                lastFromMe: /^you:/i.test(snip.trim())
             }];
         });
 

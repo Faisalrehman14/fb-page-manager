@@ -137,10 +137,17 @@ function createMessengerRouter(deps) {
                                 graphSynced = true;
                             }
                         }
+                        let sinceForPoll = since;
+                        if (graphSynced) {
+                            const sinceDate = new Date(since);
+                            if (!isNaN(sinceDate.getTime())) {
+                                sinceForPoll = new Date(sinceDate.getTime() - 180000).toISOString();
+                            }
+                        }
                         const result = await pollService.poll({
                             pageId,
                             psid,
-                            since,
+                            since: sinceForPoll,
                             dbConnected
                         });
                         if (psid && dbConnected) {
@@ -163,7 +170,8 @@ function createMessengerRouter(deps) {
                                 if (wide.length) result.has_changes = true;
                             }
                         }
-                        result.graph_synced = graphSynced && !!psid;
+                        result.graph_synced = graphSynced;
+                        result.list_synced = graphSynced;
                         res.set('Cache-Control', 'no-store');
                         return res.json(result);
                     }
