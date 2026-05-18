@@ -828,6 +828,61 @@ async function getUnreadCountsForPages(pageIds) {
     }
 }
 
+/**
+ * Cross-page inbox poll — unread totals + recent customer messages on other pages.
+ */
+async function pollAllPagesInbox(pageIds, opts = {}) {
+    const unreadByPage = await getUnreadCountsForPages(pageIds || []);
+    const notifications = [];
+    if (!pool || !pageIds?.length) return { unreadByPage, notifications };
+
+    const since = opts.since;
+    if (!since) return { unreadByPage, notifications };
+
+    const sinceDate = since instanceof Date ? since : new Date(since);
+    if (isNaN(sinceDate.getTime())) return { unreadByPage, notifications };
+
+    const activePageId = opts.activePageId ? String(opts.activePageId) : null;
+    const activePsid = opts.activePsid ? String(opts.activePsid) : null;
+    const cap = Math.min(Math.max(parseInt(opts.limit, 10) || 25, 1), 50);
+
+    try {
+        const placeholders = pageIds.map(() => '?').join(',');
+        const params = [...pageIds, sinceDate];
+        let excludeOpen = '';
+        if (activePageId && activePsid) {
+            excludeOpen = ' AND NOT (page_id = ? AND fb_user_id = ?)';
+            params.push(activePageId, activePsid);
+        }
+        const [rows] = await pool.query(
+            `SELECT page_id, fb_user_id, user_name, snippet, updated_at
+             FROM messenger_conversations
+             WHERE page_id IN (${placeholders})
+               AND updated_at > ?
+               AND is_unread > 0
+               AND COALESCE(last_from_me, 0) = 0
+               AND COALESCE(can_reply, 1) = 1
+               ${excludeOpen}
+             ORDER BY updated_at DESC
+             LIMIT ${cap}`,
+            params
+        );
+        for (const r of rows || []) {
+            notifications.push({
+                page_id: r.page_id,
+                fb_user_id: r.fb_user_id,
+                user_name: r.user_name,
+                snippet: r.snippet,
+                updated_at: r.updated_at
+            });
+        }
+    } catch (err) {
+        addDbError(`pollAllPagesInbox: ${err.message}`);
+    }
+
+    return { unreadByPage, notifications };
+}
+
 async function getConversationIdByParticipant(pageId, participantId) {
     if (!pool) return null;
     const key = `${pageId}:${participantId}`;
@@ -2533,6 +2588,7 @@ const dbModule = {
     syncPageIncremental,
     updateConversationFromMessage,
     getUnreadCountsForPages,
+    pollAllPagesInbox,
     getConversationIdByParticipant,
     getConversationById,
     getLastError,

@@ -62,7 +62,9 @@ function createMessengerRouter(deps) {
 
     function pollOnly(req, res, next) {
         const action = req.query.action || req.body.action;
-        if (req.method === 'GET' && action === 'poll') return pollLimiter(req, res, next);
+        if (req.method === 'GET' && (action === 'poll' || action === 'poll_pages')) {
+            return pollLimiter(req, res, next);
+        }
         next();
     }
 
@@ -175,6 +177,31 @@ function createMessengerRouter(deps) {
                         result.meta_sync = metaSyncStarted;
                         res.set('Cache-Control', 'no-store');
                         return res.json(result);
+                    }
+                    case 'poll_pages': {
+                        const pageIds = Object.keys(req.session.pageTokens || {});
+                        const since = req.query.since || null;
+                        const activePageId = req.query.active_page_id || null;
+                        const activePsid = req.query.active_psid || null;
+                        if (!dbConnected || !pageIds.length) {
+                            return res.json({
+                                unread_by_page: {},
+                                notifications: [],
+                                server_time: new Date().toISOString()
+                            });
+                        }
+                        const batch = await db.pollAllPagesInbox(pageIds, {
+                            since,
+                            activePageId,
+                            activePsid,
+                            limit: 25
+                        });
+                        res.set('Cache-Control', 'no-store');
+                        return res.json({
+                            unread_by_page: batch.unreadByPage || {},
+                            notifications: batch.notifications || [],
+                            server_time: new Date().toISOString()
+                        });
                     }
                     case 'search': {
                         const q = (req.query.q || '').trim();

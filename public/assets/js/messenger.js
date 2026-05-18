@@ -35,6 +35,7 @@
     oldestMsgTime:   null,
 
     poll: { timer: null, since: null, failures: 0 },
+    pagePoll: { timer: null, since: null },
 
     search: { query: '', timer: null, active: false, abort: null, cache: new Map() },
 
@@ -66,12 +67,16 @@
     _convOrder: [],       // Meta order: updated_at DESC from API
     _renderConvsRaf: 0,
     _readLocked: new Set(),
+    _lastNotifKey: '',
+    _lastNotifAt: 0,
     pendingImage: null, // { file, previewUrl }
   };
 
   /** DB + Meta inbox poll while messenger is open (~1 req/s, setTimeout chain). */
   const POLL_MS = 1000;
   const POLL_SOCKET_MS = 1000;
+  /** Background poll for unread + notifications on non-active pages. */
+  const PAGE_POLL_MS = 3500;
   const CONV_PAGE_SIZE = 30;
   const CONV_LIST_CACHE_MS = 30_000;
   const CONV_LIST_RELOAD_MS = 600_000; // 10 min — avoid background list reshuffle
@@ -981,17 +986,72 @@
     listEl.innerHTML = sk() + sk() + sk() + sk() + sk();
   }
 
+  function updateDocumentUnreadTitle() {
+    const total = Object.values(M.pageUnread).reduce((s, n) => s + (parseInt(n, 10) || 0), 0);
+    const base = document.title.replace(/^\(\d+\)\s*/, '') || 'Messenger';
+    document.title = total > 0 ? `(${total > 99 ? '99+' : total}) ${base}` : base;
+  }
+
+  function applyUnreadByPage(unreadByPage) {
+    if (!unreadByPage || typeof unreadByPage !== 'object') return;
+    Object.entries(unreadByPage).forEach(([pid, n]) => {
+      const count = parseInt(n, 10) || 0;
+      if (String(pid) === String(M.activePageId)) {
+        syncPageBadge(pid, count);
+      } else {
+        updatePageBadge(pid, count);
+      }
+    });
+    updateDocumentUnreadTitle();
+  }
+
   function updatePageBadge(pageId, count) {
     if (!pageId) return;
-    const n = parseInt(count) || 0;
+    const prev = M.pageUnread[pageId] || 0;
+    const n = parseInt(count, 10) || 0;
     M.pageUnread[pageId] = n;
     const badge = $('msngPageBadge_' + pageId);
     if (badge) {
       badge.style.display = n > 0 ? 'flex' : 'none';
-      badge.textContent   = n > 99 ? '99+' : n;
+      badge.textContent   = n > 99 ? '99+' : String(n);
+      if (n > prev) {
+        badge.classList.remove('msng-page-badge--pop');
+        void badge.offsetWidth;
+        badge.classList.add('msng-page-badge--pop');
+        setTimeout(() => badge.classList.remove('msng-page-badge--pop'), 500);
+      }
     }
     const sub = $('msngPageSub_' + pageId);
-    if (sub) sub.textContent = n > 0 ? n + ' unread' : 'No unread';
+    if (sub) sub.textContent = n > 0 ? `${n} unread` : 'No unread';
+    const item = document.querySelector(`.msng-page-item[data-page-id="${CSS.escape(String(pageId))}"]`);
+    if (item) item.classList.toggle('has-unread', n > 0);
+    updateDocumentUnreadTitle();
+  }
+
+  function pageNameById(pageId) {
+    return M.pages.find(p => String(p.id) === String(pageId))?.name || 'Page';
+  }
+
+  function maybeNotifyIncoming({ pageId, psid, sender, pageName, preview } = {}) {
+    if (!pageId || !psid) return;
+    const isActivePage = String(pageId) === String(M.activePageId);
+    const isOpenConv   = isActivePage && String(psid) === String(M.activePsid);
+    if (isOpenConv || document.hidden) return;
+
+    const key = `${pageId}:${psid}:${String(preview || '').slice(0, 80)}`;
+    const now = Date.now();
+    if (M._lastNotifKey === key && now - (M._lastNotifAt || 0) < 2500) return;
+    M._lastNotifKey = key;
+    M._lastNotifAt  = now;
+
+    showMessageToast({
+      sender: sender || 'Customer',
+      pageName: pageName || pageNameById(pageId),
+      preview: preview || '',
+      pageId,
+      psid
+    });
+    _playNotifSound();
   }
 
   // ══════════════════════════════════════════════════════════
@@ -1327,14 +1387,78 @@
     M.poll.failures = 0;
     schedulePoll(nextPollDelayMs());
     startConvListAutoRefresh();
+    startPagePolling();
   }
 
   function stopPollTimer() {
     if (M.poll.timer) { clearTimeout(M.poll.timer); M.poll.timer = null; }
   }
 
+  function stopPagePollTimer() {
+    if (M.pagePoll.timer) { clearTimeout(M.pagePoll.timer); M.pagePoll.timer = null; }
+  }
+
+  function schedulePagePoll(delayMs) {
+    stopPagePollTimer();
+    if (M.pages.length <= 1) return;
+    M.pagePoll.timer = setTimeout(runPagePoll, delayMs);
+  }
+
+  async function runPagePoll() {
+    M.pagePoll.timer = null;
+    if (document.hidden || M.pages.length <= 1) return;
+
+    try {
+      const params = {};
+      if (M.pagePoll.since) params.since = M.pagePoll.since;
+      if (M.activePageId) params.active_page_id = M.activePageId;
+      if (M.activePsid) params.active_psid = M.activePsid;
+
+      const data = await get('poll_pages', params);
+      if (data.error) {
+        schedulePagePoll(PAGE_POLL_MS * 2);
+        return;
+      }
+
+      if (data.server_time) M.pagePoll.since = data.server_time;
+      applyUnreadByPage(data.unread_by_page);
+
+      (data.notifications || []).forEach((n) => {
+        const pid = n.page_id;
+        if (!pid) return;
+        if (String(pid) === String(M.activePageId)) return;
+        maybeNotifyIncoming({
+          pageId: pid,
+          psid: n.fb_user_id,
+          sender: n.user_name || 'Customer',
+          pageName: pageNameById(pid),
+          preview: normalizePreviewText(n.snippet || '')
+        });
+      });
+
+      schedulePagePoll(PAGE_POLL_MS);
+    } catch (e) {
+      console.warn('[Messenger] page poll:', e.message);
+      schedulePagePoll(PAGE_POLL_MS * 2);
+    }
+  }
+
+  function startPagePolling() {
+    stopPagePollTimer();
+    if (M.pages.length <= 1) return;
+    if (!M.pagePoll.since) {
+      M.pagePoll.since = new Date(Date.now() - 5000).toISOString();
+    }
+    schedulePagePoll(800);
+  }
+
+  function stopPagePolling() {
+    stopPagePollTimer();
+  }
+
   function stopPolling() {
     stopPollTimer();
+    stopPagePolling();
     stopConvListAutoRefresh();
   }
 
@@ -1488,12 +1612,13 @@
         );
         if (newFromOthers.length) {
           const nc = newFromOthers[0];
-          showMessageToast({
+          maybeNotifyIncoming({
+            pageId: M.activePageId,
+            psid: nc.fb_user_id,
             sender: nc.user_name || 'A customer',
-            pageName: M.pages.find(p => p.id === M.activePageId)?.name || '',
+            pageName: pageNameById(M.activePageId),
             preview: nc.snippet ? normalizePreviewText(nc.snippet) : ''
           });
-          _playNotifSound();
         }
       }
 
@@ -1525,6 +1650,7 @@
     } else if (M.activePageId) {
       schedulePoll(500);
       startConvListAutoRefresh();
+      startPagePolling();
     }
   });
 
@@ -1931,7 +2057,20 @@
     if (closeBtn) {
       closeBtn.onclick = (e) => { e.stopPropagation(); _dismissToastEl(t); };
     }
-    t.onclick = () => _dismissToastEl(t);
+    t.onclick = () => {
+      const pid = opts?.pageId;
+      const sid = opts?.psid;
+      const senderName = opts?.sender || 'Customer';
+      _dismissToastEl(t);
+      if (pid && sid) {
+        if (String(pid) !== String(M.activePageId)) {
+          window.msngSelectPage(pid);
+          setTimeout(() => window.msngOpenConv(sid, senderName, '', pid), 400);
+        } else {
+          window.msngOpenConv(sid, senderName, '', pid);
+        }
+      }
+    };
     clearTimeout(t._hideTimer);
     t._hideTimer = setTimeout(() => _dismissToastEl(t), duration);
   }
@@ -1942,12 +2081,14 @@
     if (!_toastBusy) _drainToastQ();
   }
 
-  function showMessageToast({ sender, pageName, preview } = {}) {
+  function showMessageToast({ sender, pageName, preview, pageId, psid } = {}) {
     showToast('', 'message', 5500, {
       message: true,
       sender: sender || 'Customer',
       pageName: pageName || '',
-      preview: preview || ''
+      preview: preview || '',
+      pageId: pageId || '',
+      psid: psid || ''
     });
   }
 
@@ -2801,7 +2942,7 @@
       const subText  = pgUnread > 0 ? `${pgUnread} unread` : 'No unread';
       const pgBadge  = `<span class="msng-page-badge" id="msngPageBadge_${esc(p.id)}"
                               style="display:${pgUnread > 0 ? 'flex' : 'none'}">${pgUnread > 99 ? '99+' : pgUnread}</span>`;
-      return `<div class="msng-page-item ${isActive ? 'active' : ''}" data-page-id="${esc(p.id)}">
+      return `<div class="msng-page-item ${isActive ? 'active' : ''} ${pgUnread > 0 ? 'has-unread' : ''}" data-page-id="${esc(p.id)}">
         <div class="msng-page-avatar-wrap">${avatar}</div>
         <div class="msng-page-info">
           <div class="msng-page-name">${esc(p.name)}</div>
@@ -2865,13 +3006,15 @@
       M.pages.forEach(p => _socket.emit('join_page', p.id));
     });
 
-    // New message from webhook → push into open conversation
+    // New message from webhook → all joined page rooms
     _socket.on('new_message', (msg) => {
       if (!msg || typeof msg !== 'object') return;
       if (!msg.pageId || !msg.participantId) return;
 
       const msgPageId = String(msg.pageId);
       const msgPsid   = String(msg.participantId);
+      const isActivePage = msgPageId === String(M.activePageId);
+      const isOpenConv   = isActivePage && msgPsid === String(M.activePsid);
       const normalized = normalizeMsg({
         message_id: msg.id || null,
         message: typeof msg.text === 'string' ? msg.text : '',
@@ -2882,23 +3025,35 @@
         is_like: msg.is_like
       });
 
-      if (msgPageId === String(M.activePageId) && msgPsid === String(M.activePsid)) {
-        const confirmedPending = _tryConfirmPending(normalized); // race-condition guard for own echo
+      if (isOpenConv) {
+        const confirmedPending = _tryConfirmPending(normalized);
         if (!confirmedPending && !isDuplicate(normalized)) {
           M.msgs.push(normalized);
           appendBubble(normalized);
         }
       }
 
-      // Sidebar: only update conversations for the page currently shown
-      if (msgPageId !== String(M.activePageId)) return;
+      if (!isActivePage) {
+        if (!msg.isFromPage) {
+          updatePageBadge(msgPageId, (M.pageUnread[msgPageId] || 0) + 1);
+          maybeNotifyIncoming({
+            pageId: msgPageId,
+            psid: msgPsid,
+            sender: 'Customer',
+            pageName: pageNameById(msgPageId),
+            preview: msgPreviewText(normalized) || normalizePreviewText(msg.text || '')
+          });
+        }
+        window.dispatchEvent(new CustomEvent('fbc:conversation-changed', { detail: msg }));
+        return;
+      }
 
       const conv = getConv(M.activePageId, msgPsid);
       if (conv) {
         conv.lastMsg    = msgPreviewText(normalized) || normalizePreviewText(msg.text || '');
         conv.lastFromMe = !!msg.isFromPage;
         conv.lastMsgAt  = msg.createdTime || new Date().toISOString();
-        if (msg.participantId !== M.activePsid && !msg.isFromPage) {
+        if (!isOpenConv && !msg.isFromPage) {
           conv.unread = (conv.unread || 0) + 1;
         }
         resortConvsByMeta();
@@ -2917,34 +3072,30 @@
         renderConvs();
       }
 
-      // Increment page badge when message comes for a different page
-      if (!msg.isFromPage && msg.pageId && msg.pageId !== M.activePageId) {
-        updatePageBadge(msg.pageId, (M.pageUnread[msg.pageId] || 0) + 1);
-      }
-
-      if (!msg.isFromPage && msg.participantId !== M.activePsid) {
-        const pageName = M.pages.find(p => p.id === msg.pageId)?.name || '';
-        const convRow  = getConv(M.activePageId, msgPsid);
-        showMessageToast({
-          sender: convRow?.name || 'Customer',
-          pageName,
-          preview: msgPreviewText(normalized) || normalizePreviewText(msg.text || '')
-        });
-        _playNotifSound();
-        // Flash the conversation item in the sidebar
-        const flashEl = document.querySelector(`.msng-conv-item[data-psid="${CSS.escape(String(msg.participantId))}"]`);
-        if (flashEl) {
-          flashEl.classList.remove('msng-flash');
-          void flashEl.offsetWidth; // reflow to restart animation
-          flashEl.classList.add('msng-flash');
-          setTimeout(() => flashEl.classList.remove('msng-flash'), 800);
-          // Pop the unread badge
-          const badge = flashEl.querySelector('.msng-ci-badge');
-          if (badge) {
-            badge.classList.remove('msng-badge-pop');
-            void badge.offsetWidth;
-            badge.classList.add('msng-badge-pop');
-            setTimeout(() => badge.classList.remove('msng-badge-pop'), 400);
+      if (!msg.isFromPage) {
+        syncPageBadge(M.activePageId);
+        if (!isOpenConv) {
+          const convRow = getConv(M.activePageId, msgPsid);
+          maybeNotifyIncoming({
+            pageId: msgPageId,
+            psid: msgPsid,
+            sender: convRow?.name || 'Customer',
+            pageName: pageNameById(msgPageId),
+            preview: msgPreviewText(normalized) || normalizePreviewText(msg.text || '')
+          });
+          const flashEl = document.querySelector(`.msng-conv-item[data-psid="${CSS.escape(msgPsid)}"]`);
+          if (flashEl) {
+            flashEl.classList.remove('msng-flash');
+            void flashEl.offsetWidth;
+            flashEl.classList.add('msng-flash');
+            setTimeout(() => flashEl.classList.remove('msng-flash'), 800);
+            const badge = flashEl.querySelector('.msng-ci-badge');
+            if (badge) {
+              badge.classList.remove('msng-badge-pop');
+              void badge.offsetWidth;
+              badge.classList.add('msng-badge-pop');
+              setTimeout(() => badge.classList.remove('msng-badge-pop'), 400);
+            }
           }
         }
       }
@@ -2955,7 +3106,26 @@
     // Conversation metadata refresh (snippet, unread count)
     _socket.on('conversation_updated', (data) => {
       if (!data || typeof data !== 'object') return;
-      if (data.pageId && String(data.pageId) !== String(M.activePageId)) return;
+      const dataPageId = data.pageId ? String(data.pageId) : '';
+      const isActivePage = dataPageId === String(M.activePageId);
+
+      if (dataPageId && !isActivePage) {
+        if (!data.lastMessageFromPage && data.last_from_me != 1) {
+          updatePageBadge(dataPageId, (M.pageUnread[dataPageId] || 0) + 1);
+          if (data.participantId) {
+            maybeNotifyIncoming({
+              pageId: dataPageId,
+              psid: data.participantId,
+              sender: data.user_name || 'Customer',
+              pageName: pageNameById(dataPageId),
+              preview: normalizePreviewText(data.snippet || '')
+            });
+          }
+        }
+        window.dispatchEvent(new CustomEvent('fbc:conversation-changed', { detail: data }));
+        return;
+      }
+
       const conv = data.participantId
         ? getConv(M.activePageId, data.participantId)
         : M.convs.find(c => c.id === data.id);
@@ -2984,6 +3154,16 @@
         if (changed) {
           resortConvsByMeta();
           renderConvs();
+          if (!pageSent && data.participantId && String(data.participantId) !== String(M.activePsid)) {
+            maybeNotifyIncoming({
+              pageId: M.activePageId,
+              psid: data.participantId,
+              sender: conv.name || 'Customer',
+              pageName: pageNameById(M.activePageId),
+              preview: normalizePreviewText(conv.lastMsg || data.snippet || '')
+            });
+          }
+          syncPageBadge(M.activePageId);
         }
       }
       window.dispatchEvent(new CustomEvent('fbc:conversation-changed', { detail: data }));
@@ -3092,6 +3272,9 @@
     M.pages.forEach(p => {
       if (M.pageUnread[p.id] == null) M.pageUnread[p.id] = p.unreadCount || 0;
     });
+    get('poll_pages', {}).then((data) => {
+      if (data?.unread_by_page) applyUnreadByPage(data.unread_by_page);
+    }).catch(() => {});
     if (!M.pages.length) {
       if (retries < 10) { setTimeout(() => window.msngInit(retries + 1), 500); return; }
       const listEl = $('msngConvList');
