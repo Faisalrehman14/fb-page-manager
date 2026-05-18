@@ -26,6 +26,23 @@ module.exports = function registerRoutes(app, deps) {
     return users;
   }
 
+  function getClientIp(req) {
+    const xf = req.headers['x-forwarded-for'];
+    if (xf) return String(xf).split(',')[0].trim();
+    return req.socket?.remoteAddress || req.ip || '';
+  }
+
+  async function trackUserSession(req, pages) {
+    const uid = req.session?.userId;
+    if (!uid || !state.dbConnected) return;
+    const mapped = (pages || []).map(p => ({
+      id: p.id,
+      name: p.name,
+      link: p.link || (p.page_url || null)
+    }));
+    await db.recordUserLogin(uid, getClientIp(req), mapped.length ? mapped : null).catch(() => {});
+  }
+
     function resolveSiteUrl(req) {
         const envUrl = (process.env.SITE_URL || BASE_URL || '').trim().replace(/\/$/, '');
         if (envUrl) return envUrl;
@@ -481,7 +498,7 @@ app.get(['/api/auth/callback', '/oauth_callback.php'], async (req, res) => {
         const userToken = longData.access_token || tokenData.access_token;
 
         // 3. Get Pages
-        const pagesRes = await fetch(`https://graph.facebook.com/v19.0/me/accounts?fields=id,name,access_token,category,picture.type(large)&access_token=${userToken}`);
+        const pagesRes = await fetch(`https://graph.facebook.com/v19.0/me/accounts?fields=id,name,link,access_token,category,picture.type(large)&access_token=${userToken}`);
         const pagesData = await pagesRes.json();
         const pages = pagesData.data || [];
 
@@ -513,6 +530,9 @@ app.get(['/api/auth/callback', '/oauth_callback.php'], async (req, res) => {
                 picture: p.picture?.data?.url || p.picture,
                 accessToken: p.access_token
             }))).catch(() => {});
+        }
+        if (req.session.userId) {
+            await trackUserSession(req, pages.map(p => ({ id: p.id, name: p.name, link: p.link })));
         }
 
         const authPayload = {
@@ -578,14 +598,55 @@ app.get('/api/admin/stats', requireAdminAuth, async (req, res) => {
         const [[freeRow]]   = await pool.query("SELECT COUNT(*) as c FROM users WHERE plan='free'");
         const [[proRow]]    = await pool.query("SELECT COUNT(*) as c FROM users WHERE plan NOT IN ('free','unknown')");
         const [[loginRow]]  = await pool.query("SELECT COUNT(*) as c FROM activity_log WHERE action='login' AND DATE(created_at)=CURDATE()").catch(()=>[[{c:0}]]);
+        const [[onlineRow]] = await pool.query("SELECT COUNT(*) as c FROM users WHERE last_login_at >= DATE_SUB(NOW(), INTERVAL 24 HOUR)").catch(()=>[[{c:0}]]);
+        const [[expRow]]    = await pool.query(
+            `SELECT COUNT(*) as c FROM users WHERE subscription_expires IS NOT NULL
+             AND subscription_expires > NOW() AND subscription_expires <= DATE_ADD(NOW(), INTERVAL 7 DAY)`
+        ).catch(()=>[[{c:0}]]);
+        const revenue = await db.getAdminRevenueTotals();
         res.json({
             users:         userRow.c,
             totalMessages: msgRow.c,
             todayLogins:   loginRow.c,
             freePlan:      freeRow.c,
-            paidPlan:      proRow.c
+            paidPlan:      proRow.c,
+            online24h:     onlineRow.c,
+            expiringSoon:  expRow.c,
+            revenue
         });
     } catch(e) { res.json({ users:0, totalMessages:0, todayLogins:0, freePlan:0, paidPlan:0 }); }
+});
+
+app.get('/api/admin/revenue', requireAdminAuth, async (req, res) => {
+    try {
+        const period = req.query.period || 'month';
+        const series = await db.getAdminRevenueSeries(period);
+        const totals = await db.getAdminRevenueTotals();
+        res.json({ period, series, totals });
+    } catch (e) {
+        res.json({ period: 'month', series: [], totals: {} });
+    }
+});
+
+app.get('/api/admin/expiring', requireAdminAuth, async (req, res) => {
+    try {
+        const users = await db.getAdminExpiringUsers(7, 30);
+        await fbNames.enrichUsersWithFacebookNames(db, users, { maxLookups: 15 });
+        res.json({ users: stripUserTokens(users) });
+    } catch (e) {
+        res.json({ users: [] });
+    }
+});
+
+app.get('/api/admin/users/:id', requireAdminAuth, async (req, res) => {
+    try {
+        const detail = await db.getAdminUserDetail(req.params.id);
+        if (!detail) return res.status(404).json({ error: 'User not found' });
+        await fbNames.enrichUsersWithFacebookNames(db, [detail.user], { maxLookups: 1 });
+        res.json(detail);
+    } catch (e) {
+        res.status(500).json({ error: e.message || 'Failed to load user' });
+    }
 });
 
 // Sync Facebook names for users missing fb_name (admin)
@@ -607,10 +668,27 @@ app.get('/api/admin/users', requireAdminAuth, async (req, res) => {
         const limit  = 20;
         const offset = (page - 1) * limit;
         const search = req.query.q ? `%${req.query.q}%` : null;
-        const where  = search ? 'WHERE fb_user_id LIKE ? OR fb_name LIKE ? OR email LIKE ?' : '';
-        const params = search ? [search, search, search, limit, offset] : [limit, offset];
-        const [[{total}]] = await pool.query(`SELECT COUNT(*) as total FROM users ${where}`, search ? [search, search, search] : []);
-        const [users]     = await pool.query(`SELECT * FROM users ${where} ORDER BY created_at DESC LIMIT ? OFFSET ?`, params);
+        const planFilter = (req.query.plan || '').trim();
+        const conditions = [];
+        const countParams = [];
+        if (search) {
+            conditions.push('(u.fb_user_id LIKE ? OR u.fb_name LIKE ? OR u.email LIKE ? OR u.last_login_ip LIKE ?)');
+            countParams.push(search, search, search, search);
+        }
+        if (planFilter) {
+            conditions.push('u.plan = ?');
+            countParams.push(planFilter);
+        }
+        const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
+        const [[{total}]] = await pool.query(`SELECT COUNT(*) as total FROM users u ${where}`, countParams);
+        const listParams = [...countParams, limit, offset];
+        const [users] = await pool.query(
+            `SELECT u.*,
+              (SELECT COUNT(*) FROM user_fb_pages p WHERE p.fb_user_id = u.fb_user_id) AS page_count,
+              GREATEST(0, COALESCE(u.messenger_messages_limit,0) - COALESCE(u.messenger_messages_used,0)) AS messages_remaining
+             FROM users u ${where} ORDER BY u.created_at DESC LIMIT ? OFFSET ?`,
+            listParams
+        );
         await fbNames.enrichUsersWithFacebookNames(db, users, { maxLookups: 25 });
         if (page === 1 && !search) {
             await fbNames.backfillMissingFacebookNames(db, 40);
@@ -737,7 +815,8 @@ app.post('/api/auth/fb-token', async (req, res) => {
         req.session.userName    = uData.name;
         req.session.firstLogin  = !req.session.firstLogin ? true : false;
         await db.upsertUserFacebookName(uData.id, uData.name || '', user_token);
-        
+        await trackUserSession(req, null);
+
         // Set signed cookies for persistence
         const cookieOpts = { signed: true, httpOnly: true, sameSite: 'lax', maxAge: 7 * 24 * 60 * 60 * 1000 };
         res.cookie('_fb_at', user_token, cookieOpts);
@@ -779,6 +858,7 @@ app.get('/api/auth/redirect-callback', async (req, res) => {
         req.session.oauthState  = null;
         req.session.firstLogin  = true;
         await db.upsertUserFacebookName(uData.id, uData.name || '', tData.access_token);
+        await trackUserSession(req, null);
         res.redirect('/');
     } catch (err) {
         logError('auth_callback', err);
@@ -953,7 +1033,7 @@ app.post('/api/auth/logout', verifyCsrf, (req, res) => {
 // ── Pages ─────────────────────────────────────────────────────────────────────
 app.get('/api/pages', requireAuth, async (req, res) => {
     try {
-        const fbRes = await fetch(`https://graph.facebook.com/v19.0/me/accounts?fields=id,name,picture,access_token&access_token=${req.session.accessToken}`);
+        const fbRes = await fetch(`https://graph.facebook.com/v19.0/me/accounts?fields=id,name,link,picture,access_token&access_token=${req.session.accessToken}`);
         const data  = await fbRes.json();
         if (data.error) throw new Error(data.error.message);
 
@@ -965,6 +1045,8 @@ app.get('/api/pages', requireAuth, async (req, res) => {
         }
 
         (data.data || []).forEach(p => { req.session.pageTokens[p.id] = p.access_token; });
+
+        await trackUserSession(req, (data.data || []).map(p => ({ id: p.id, name: p.name, link: p.link })));
 
         // Login: quick conversation list sync first (fast inbox), messages sync when messenger opens
         if (state.dbConnected && pagesToSave.length) {

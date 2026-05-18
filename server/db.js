@@ -212,7 +212,10 @@ async function initDatabase() {
             "ALTER TABLE messenger_conversations ADD INDEX idx_conv_updated_at (updated_at)",
             "ALTER TABLE users ADD COLUMN fb_name VARCHAR(255) DEFAULT NULL",
             "ALTER TABLE users ADD COLUMN fb_access_token TEXT DEFAULT NULL",
-            "ALTER TABLE users ADD COLUMN free_trial_expires_at DATETIME NULL"
+            "ALTER TABLE users ADD COLUMN free_trial_expires_at DATETIME NULL",
+            "ALTER TABLE users ADD COLUMN last_login_ip VARCHAR(45) DEFAULT NULL",
+            "ALTER TABLE users ADD COLUMN last_login_at DATETIME NULL",
+            "ALTER TABLE users ADD COLUMN plan_activated_at DATETIME NULL"
         ];
         for (const sql of migrations) {
             try { await connection.query(sql); } catch (_) { /* column already exists */ }
@@ -279,6 +282,19 @@ async function initDatabase() {
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                 INDEX idx_act_user (fb_user_id),
                 INDEX idx_act_created (created_at)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        `);
+
+        await tryCreate(`
+            CREATE TABLE IF NOT EXISTS user_fb_pages (
+                fb_user_id VARCHAR(50) NOT NULL,
+                fb_page_id VARCHAR(64) NOT NULL,
+                page_name VARCHAR(255) DEFAULT NULL,
+                page_url VARCHAR(512) DEFAULT NULL,
+                linked_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                PRIMARY KEY (fb_user_id, fb_page_id),
+                INDEX idx_ufp_user (fb_user_id),
+                INDEX idx_ufp_page (fb_page_id)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
         `);
 
@@ -2398,7 +2414,7 @@ async function applyPlan(fbUserId, planKey, { subscriptionId = '', email = '', a
         await pool.query(
             `UPDATE users SET plan = ?, messenger_messages_limit = ?, messenger_messages_used = 0,
              stripe_subscription_id = ?, subscription_expires = ${expiresExpr}, email = ?,
-             free_trial_expires_at = NULL
+             free_trial_expires_at = NULL, plan_activated_at = NOW()
              WHERE fb_user_id = ?`,
             [plan.dbPlan, plan.limit, subscriptionId || null, email, fbUserId]
         );
@@ -2406,7 +2422,7 @@ async function applyPlan(fbUserId, planKey, { subscriptionId = '', email = '', a
         await pool.query(
             `UPDATE users SET plan = ?, messenger_messages_limit = ?, messenger_messages_used = 0,
              stripe_subscription_id = ?, subscription_expires = ${expiresExpr},
-             free_trial_expires_at = NULL
+             free_trial_expires_at = NULL, plan_activated_at = NOW()
              WHERE fb_user_id = ?`,
             [plan.dbPlan, plan.limit, subscriptionId || null, fbUserId]
         );
@@ -2567,6 +2583,170 @@ async function checkExpiredSubscriptions() {
     return result.affectedRows || 0;
 }
 
+function fbPageUrl(pageId, link) {
+    const l = String(link || '').trim();
+    if (l && /^https?:\/\//i.test(l)) return l;
+    if (pageId) return `https://www.facebook.com/${pageId}`;
+    return '';
+}
+
+async function recordUserLogin(fbUserId, ip, pages) {
+    if (!pool || !fbUserId) return;
+    const ipStr = ip ? String(ip).split(',')[0].trim().slice(0, 45) : null;
+    try {
+        await pool.query(
+            `UPDATE users SET last_login_at = NOW(), last_login_ip = COALESCE(?, last_login_ip) WHERE fb_user_id = ?`,
+            [ipStr, fbUserId]
+        );
+        await pool.query(
+            'INSERT INTO activity_log (fb_user_id, action, detail) VALUES (?, ?, ?)',
+            [fbUserId, 'login', ipStr ? `IP ${ipStr}` : 'Session login']
+        );
+    } catch (_) {}
+    if (Array.isArray(pages) && pages.length) await linkUserPages(fbUserId, pages);
+}
+
+async function linkUserPages(fbUserId, pages) {
+    if (!pool || !fbUserId || !Array.isArray(pages)) return;
+    for (const p of pages) {
+        const id = p.id || p.fb_page_id;
+        if (!id) continue;
+        const name = p.name || p.page_name || null;
+        const url = fbPageUrl(id, p.link || p.page_url);
+        try {
+            await pool.query(
+                `INSERT INTO user_fb_pages (fb_user_id, fb_page_id, page_name, page_url)
+                 VALUES (?, ?, ?, ?)
+                 ON DUPLICATE KEY UPDATE page_name = VALUES(page_name), page_url = VALUES(page_url), linked_at = NOW()`,
+                [fbUserId, String(id), name, url || null]
+            );
+        } catch (_) {}
+    }
+}
+
+async function getUserFbPages(fbUserId) {
+    if (!pool || !fbUserId) return [];
+    try {
+        const [rows] = await pool.query(
+            `SELECT fb_page_id, page_name, page_url, linked_at FROM user_fb_pages WHERE fb_user_id = ? ORDER BY page_name ASC`,
+            [fbUserId]
+        );
+        return rows.map(r => ({
+            id: r.fb_page_id,
+            name: r.page_name || r.fb_page_id,
+            url: r.page_url || fbPageUrl(r.fb_page_id),
+            linked_at: r.linked_at
+        }));
+    } catch (_) {
+        return [];
+    }
+}
+
+async function getAdminRevenueTotals() {
+    const empty = { today: 0, week: 0, month: 0, year: 0, allTime: 0, paymentsToday: 0, mrrEstimate: 0 };
+    if (!pool) return empty;
+    try {
+        const [[row]] = await pool.query(`
+            SELECT
+              COALESCE(SUM(CASE WHEN status='succeeded' AND DATE(created_at)=CURDATE() THEN amount_cents END),0) AS today,
+              COALESCE(SUM(CASE WHEN status='succeeded' AND created_at >= DATE_SUB(CURDATE(), INTERVAL 7 DAY) THEN amount_cents END),0) AS week,
+              COALESCE(SUM(CASE WHEN status='succeeded' AND created_at >= DATE_SUB(CURDATE(), INTERVAL 30 DAY) THEN amount_cents END),0) AS month,
+              COALESCE(SUM(CASE WHEN status='succeeded' AND created_at >= DATE_SUB(CURDATE(), INTERVAL 365 DAY) THEN amount_cents END),0) AS year,
+              COALESCE(SUM(CASE WHEN status='succeeded' THEN amount_cents END),0) AS all_time,
+              COALESCE(SUM(CASE WHEN status='succeeded' AND DATE(created_at)=CURDATE() THEN 1 END),0) AS payments_today,
+              COALESCE(SUM(CASE WHEN status='succeeded' AND created_at >= DATE_SUB(CURDATE(), INTERVAL 30 DAY) THEN amount_cents END),0) AS mrr_raw
+            FROM payment_history
+        `);
+        return {
+            today: Number(row.today) || 0,
+            week: Number(row.week) || 0,
+            month: Number(row.month) || 0,
+            year: Number(row.year) || 0,
+            allTime: Number(row.all_time) || 0,
+            paymentsToday: Number(row.payments_today) || 0,
+            mrrEstimate: Number(row.mrr_raw) || 0
+        };
+    } catch (_) {
+        return empty;
+    }
+}
+
+async function getAdminRevenueSeries(period) {
+    if (!pool) return [];
+    const p = String(period || 'month').toLowerCase();
+    let sql;
+    if (p === 'day') {
+        sql = `SELECT DATE(created_at) AS bucket, COALESCE(SUM(amount_cents),0) AS total, COUNT(*) AS cnt
+               FROM payment_history WHERE status='succeeded' AND created_at >= DATE_SUB(CURDATE(), INTERVAL 29 DAY)
+               GROUP BY DATE(created_at) ORDER BY bucket ASC`;
+    } else if (p === 'week') {
+        sql = `SELECT DATE_FORMAT(created_at,'%x-W%v') AS bucket, COALESCE(SUM(amount_cents),0) AS total, COUNT(*) AS cnt
+               FROM payment_history WHERE status='succeeded' AND created_at >= DATE_SUB(CURDATE(), INTERVAL 84 DAY)
+               GROUP BY bucket ORDER BY bucket ASC`;
+    } else if (p === 'year') {
+        sql = `SELECT YEAR(created_at) AS bucket, COALESCE(SUM(amount_cents),0) AS total, COUNT(*) AS cnt
+               FROM payment_history WHERE status='succeeded' AND created_at >= DATE_SUB(CURDATE(), INTERVAL 5 YEAR)
+               GROUP BY YEAR(created_at) ORDER BY bucket ASC`;
+    } else {
+        sql = `SELECT DATE_FORMAT(created_at,'%Y-%m') AS bucket, COALESCE(SUM(amount_cents),0) AS total, COUNT(*) AS cnt
+               FROM payment_history WHERE status='succeeded' AND created_at >= DATE_SUB(CURDATE(), INTERVAL 365 DAY)
+               GROUP BY DATE_FORMAT(created_at,'%Y-%m') ORDER BY bucket ASC`;
+    }
+    try {
+        const [rows] = await pool.query(sql);
+        return rows.map(r => ({
+            bucket: String(r.bucket),
+            total: Number(r.total) || 0,
+            count: Number(r.cnt) || 0
+        }));
+    } catch (_) {
+        return [];
+    }
+}
+
+async function getAdminUserDetail(fbUserId) {
+    if (!pool || !fbUserId) return null;
+    try {
+        const [rows] = await pool.query('SELECT * FROM users WHERE fb_user_id = ? LIMIT 1', [fbUserId]);
+        const user = rows[0];
+        if (!user) return null;
+        delete user.fb_access_token;
+        user.page_count = (await getUserFbPages(fbUserId)).length;
+        user.pages = await getUserFbPages(fbUserId);
+        user.messages_remaining = Math.max(0, (user.messenger_messages_limit || 0) - (user.messenger_messages_used || 0));
+        const [payments] = await pool.query(
+            `SELECT plan, amount_cents, status, billing_reason, created_at FROM payment_history
+             WHERE fb_user_id = ? ORDER BY created_at DESC LIMIT 20`,
+            [fbUserId]
+        );
+        const [acts] = await pool.query(
+            `SELECT action, detail, created_at FROM activity_log WHERE fb_user_id = ? ORDER BY created_at DESC LIMIT 15`,
+            [fbUserId]
+        );
+        return { user, payments, activity: acts };
+    } catch (_) {
+        return null;
+    }
+}
+
+async function getAdminExpiringUsers(days = 7, limit = 20) {
+    if (!pool) return [];
+    try {
+        const [rows] = await pool.query(
+            `SELECT fb_user_id, fb_name, plan, subscription_expires, messenger_messages_used, messenger_messages_limit
+             FROM users
+             WHERE subscription_expires IS NOT NULL
+               AND subscription_expires > NOW()
+               AND subscription_expires <= DATE_ADD(NOW(), INTERVAL ? DAY)
+             ORDER BY subscription_expires ASC LIMIT ?`,
+            [days, limit]
+        );
+        return rows;
+    } catch (_) {
+        return [];
+    }
+}
+
 const dbModule = {
     initDatabase,
     getPool: () => pool,
@@ -2662,7 +2842,15 @@ const dbModule = {
     downgradeToFree,
     computeEntitlements,
     assertQuota,
-    checkExpiredSubscriptions
+    checkExpiredSubscriptions,
+    recordUserLogin,
+    linkUserPages,
+    getUserFbPages,
+    getAdminRevenueTotals,
+    getAdminRevenueSeries,
+    getAdminUserDetail,
+    getAdminExpiringUsers,
+    fbPageUrl
 };
 
 // ── ensureConversation — INSERT IGNORE then SELECT (race-safe) ────────────────
