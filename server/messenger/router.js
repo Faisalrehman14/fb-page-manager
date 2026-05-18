@@ -124,6 +124,7 @@ function createMessengerRouter(deps) {
                         const psid = req.query.psid || null;
                         const since = req.query.since || new Date(Date.now() - 30000).toISOString();
                         let graphSynced = false;
+                        let listSynced = false;
                         if (dbConnected) {
                             const pageToken = await resolvePageToken({
                                 pageId,
@@ -133,8 +134,14 @@ function createMessengerRouter(deps) {
                                 fetchFn
                             });
                             if (pageToken) {
-                                await syncService.syncOnPoll(pageId, pageToken, { psid });
-                                graphSynced = true;
+                                if (psid) {
+                                    await syncService.syncActiveThreadOnPoll(pageId, pageToken, psid);
+                                    graphSynced = true;
+                                } else {
+                                    await syncService.syncOnPoll(pageId, pageToken, { psid: null });
+                                    graphSynced = true;
+                                    listSynced = true;
+                                }
                             }
                         }
                         let sinceForPoll = since;
@@ -172,7 +179,7 @@ function createMessengerRouter(deps) {
                             }
                         }
                         result.graph_synced = graphSynced;
-                        result.list_synced = graphSynced;
+                        result.list_synced = listSynced;
                         res.set('Cache-Control', 'no-store');
                         return res.json(result);
                     }

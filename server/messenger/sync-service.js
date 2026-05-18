@@ -149,39 +149,15 @@ class SyncService {
         if (!pageId || !pageToken) return;
         if (this.db.isPageSyncing?.(pageId)) return;
 
-        // Always refresh list metadata from Facebook (snippet, time, unread)
-        await this.syncConversationListFromFacebook(pageId, pageToken);
-
         const now = Date.now();
 
         if (psid) {
-            const key = `${pageId}:${psid}`;
-            const last = this._activeThreadSync.get(key) || 0;
-            if (now - last < ACTIVE_THREAD_SYNC_MS) return;
-            this._activeThreadSync.set(key, now);
-
-            try {
-                let conv = await this.db.getConversationIdByParticipant(pageId, psid);
-                if (!conv?.fbConvId) {
-                    await this.db.syncConversationsFromFacebook(pageId, pageToken, this.fetchFn, null, {
-                        maxPages: 2,
-                        maxTotal: 40,
-                        fbLimit: 40
-                    });
-                    conv = await this.db.getConversationIdByParticipant(pageId, psid);
-                }
-                if (conv?.fbConvId) {
-                    await this.db.syncThreadMessages(conv.fbConvId, pageId, pageToken, this.fetchFn, null);
-                    if (conv.id && this.db.touchConversationFromLatestMessage) {
-                        await this.db.touchConversationFromLatestMessage(conv.id);
-                    }
-                    clearPageCache(pageId);
-                }
-            } catch (err) {
-                this.logError('sync_on_poll_thread', err, { pageId, psid });
-            }
+            await this.syncActiveThreadOnPoll(pageId, pageToken, psid);
             return;
         }
+
+        // Inbox view (no open thread): refresh list metadata from Facebook
+        await this.syncConversationListFromFacebook(pageId, pageToken);
 
         const lastPage = this._activePageSync.get(pageId) || 0;
         if (now - lastPage < ACTIVE_PAGE_SYNC_MS) return;
@@ -193,8 +169,8 @@ class SyncService {
             if (!withFb.length) return;
 
             const tasks = withFb.map((c) => async () => {
-                await this.db.syncThreadMessages(c.fb_conv_id, pageId, pageToken, this.fetchFn, null);
-                if (c.id && this.db.touchConversationFromLatestMessage) {
+                const saved = await this.db.syncThreadMessages(c.fb_conv_id, pageId, pageToken, this.fetchFn, null);
+                if (saved > 0 && c.id && this.db.touchConversationFromLatestMessage) {
                     await this.db.touchConversationFromLatestMessage(c.id);
                 }
             });
@@ -202,6 +178,39 @@ class SyncService {
             clearPageCache(pageId);
         } catch (err) {
             this.logError('sync_on_poll_page', err, { pageId });
+        }
+    }
+
+    /** Open thread only — does not pull the full conversation list (keeps sidebar stable). */
+    async syncActiveThreadOnPoll(pageId, pageToken, psid) {
+        if (!pageId || !pageToken || !psid) return;
+        if (this.db.isPageSyncing?.(pageId)) return;
+
+        const key = `${pageId}:${psid}`;
+        const now = Date.now();
+        const last = this._activeThreadSync.get(key) || 0;
+        if (now - last < ACTIVE_THREAD_SYNC_MS) return;
+        this._activeThreadSync.set(key, now);
+
+        try {
+            let conv = await this.db.getConversationIdByParticipant(pageId, psid);
+            if (!conv?.fbConvId) {
+                await this.db.syncConversationsFromFacebook(pageId, pageToken, this.fetchFn, null, {
+                    maxPages: 2,
+                    maxTotal: 40,
+                    fbLimit: 40
+                });
+                conv = await this.db.getConversationIdByParticipant(pageId, psid);
+            }
+            if (conv?.fbConvId) {
+                const saved = await this.db.syncThreadMessages(conv.fbConvId, pageId, pageToken, this.fetchFn, null);
+                if (saved > 0 && conv.id && this.db.touchConversationFromLatestMessage) {
+                    await this.db.touchConversationFromLatestMessage(conv.id);
+                }
+                if (saved > 0) clearPageCache(pageId);
+            }
+        } catch (err) {
+            this.logError('sync_on_poll_thread', err, { pageId, psid });
         }
     }
 

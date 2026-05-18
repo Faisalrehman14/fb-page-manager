@@ -520,7 +520,13 @@ async function saveConversation(conversation) {
                 fb_conv_id = COALESCE(VALUES(fb_conv_id), fb_conv_id),
                 user_name = VALUES(user_name),
                 snippet = VALUES(snippet),
-                updated_at = VALUES(updated_at),
+                updated_at = IF(
+                    NOT (snippet <=> VALUES(snippet))
+                    OR NOT (is_unread <=> VALUES(is_unread))
+                    OR NOT (last_from_me <=> VALUES(last_from_me)),
+                    VALUES(updated_at),
+                    updated_at
+                ),
                 is_unread = GREATEST(is_unread, VALUES(is_unread)),
                 can_reply = VALUES(can_reply),
                 last_from_me = VALUES(last_from_me)
@@ -567,7 +573,13 @@ async function saveConversations(messenger_conversations) {
                     fb_conv_id = COALESCE(VALUES(fb_conv_id), fb_conv_id),
                     user_name = VALUES(user_name),
                     snippet = VALUES(snippet),
-                    updated_at = VALUES(updated_at),
+                    updated_at = IF(
+                        NOT (snippet <=> VALUES(snippet))
+                        OR NOT (is_unread <=> VALUES(is_unread))
+                        OR NOT (last_from_me <=> VALUES(last_from_me)),
+                        VALUES(updated_at),
+                        updated_at
+                    ),
                     is_unread = GREATEST(is_unread, VALUES(is_unread)),
                     can_reply = VALUES(can_reply),
                     last_from_me = VALUES(last_from_me)
@@ -1100,15 +1112,30 @@ async function touchConversationFromLatestMessage(dbConvId) {
         );
         if (!rows[0]) return;
         const att = _readAttachment(rows[0].attachment_url, rows[0].attachment_type);
+        const snippet = snippetForMessage({
+            text: rows[0].message,
+            attachment_url: att.url,
+            attachment_type: att.type
+        }).substring(0, 200);
+        const lastFromMe = rows[0].from_me === 1 || rows[0].from_me === true;
+        const createdAt = rows[0].created_at;
+
+        const [cur] = await pool.query(
+            `SELECT snippet, updated_at, last_from_me FROM messenger_conversations WHERE id = ? LIMIT 1`,
+            [dbConvId]
+        );
+        if (!cur[0]) return;
+        const sameSnippet = String(cur[0].snippet || '') === String(snippet || '');
+        const sameFrom = (cur[0].last_from_me === 1) === lastFromMe;
+        const curTs = cur[0].updated_at ? new Date(cur[0].updated_at).getTime() : 0;
+        const msgTs = createdAt ? new Date(createdAt).getTime() : 0;
+        if (sameSnippet && sameFrom && Math.abs(curTs - msgTs) < 2000) return;
+
         await updateConversationFromMessage({
             threadId: dbConvId,
-            text: snippetForMessage({
-                text: rows[0].message,
-                attachment_url: att.url,
-                attachment_type: att.type
-            }),
-            createdTime: rows[0].created_at,
-            lastFromMe: rows[0].from_me === 1 || rows[0].from_me === true
+            text: snippet,
+            createdTime: createdAt,
+            lastFromMe
         });
     } catch (err) {
         addDbError(`touchConversationFromLatestMessage: ${err.message}`);
