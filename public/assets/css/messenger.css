@@ -419,7 +419,7 @@ body.in-messenger .sidebar { display: none !important; }
 .msng-msgs::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 4px; }
 
 /* ── Message Row ─────────────────────────────────────────── */
-.msng-msg { display: flex; align-items: flex-end; gap: 8px; padding: 2px 0; max-width: 100%; }
+.msng-msg { display: flex; align-items: flex-end; gap: 8px; padding: 2px 0; max-width: 100%; contain: layout style; }
 .msng-msg.from-me { flex-direction: row-reverse; }
 
 .msng-msg-group {

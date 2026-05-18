@@ -54,6 +54,7 @@
     _joinedThread: null,    // socket.io thread room id
     _syncPollTimer: null,
     _syncPollAttempts: 0,
+    _graphMsgReloadAt: 0,
   };
 
   const POLL_MS = 3000;
@@ -570,7 +571,7 @@
   // CHAT WINDOW
   // ══════════════════════════════════════════════════════════
 
-  function renderMessages(mode = 'replace') {
+  function renderMessages(mode = 'replace', opts = {}) {
     const msgsEl = $('msngMsgs');
     if (!msgsEl) return;
 
@@ -613,8 +614,18 @@
     });
 
     if (mode === 'replace') {
+      const prevTop    = msgsEl.scrollTop;
+      const prevHeight = msgsEl.scrollHeight;
+      const nearBottom = isMsgsNearBottom(msgsEl);
       msgsEl.innerHTML = html;
-      scrollToBottom(false, true);
+      const scrollMode = opts.scroll || 'bottom';
+      if (scrollMode === 'force') {
+        scrollToBottom(false, true);
+      } else if (scrollMode === 'preserve') {
+        msgsEl.scrollTop = prevTop + (msgsEl.scrollHeight - prevHeight);
+      } else if (nearBottom) {
+        scrollToBottom(false, true);
+      }
     } else {
       // Preserve scroll position (load-more prepend)
       const prevHeight = msgsEl.scrollHeight;
@@ -626,9 +637,15 @@
     bindScrollListener(msgsEl);
   }
 
+  function appendNewMessagesFromIndex(startIndex, opts = {}) {
+    for (let i = startIndex; i < M.msgs.length; i++) {
+      appendBubble(M.msgs[i], opts);
+    }
+  }
+
   // Append one bubble without rebuilding the list.
   // Used by real-time poll and optimistic send.
-  function appendBubble(msg) {
+  function appendBubble(msg, opts = {}) {
     const msgsEl = $('msngMsgs');
     if (!msgsEl) return;
 
@@ -649,9 +666,8 @@
     }
 
     msgsEl.insertAdjacentHTML('beforeend', bubbleHtml(msg));
-    // Slide-in animation on the newly inserted bubble
     const newEl = msgsEl.lastElementChild;
-    if (newEl?.classList.contains('msng-msg')) {
+    if (newEl?.classList.contains('msng-msg') && opts.animate !== false) {
       newEl.classList.add('msng-msg-new');
       setTimeout(() => newEl.classList.remove('msng-msg-new'), 350);
     }
@@ -674,6 +690,30 @@
       M.renderedMsgIds.add(hash);
     }
     return false;
+  }
+
+  function msgStableKey(m) {
+    if (m.message_id) return 'id:' + m.message_id;
+    if (m._tempId) return 't:' + m._tempId;
+    return 'h:' + (m.created_at || '') + '|' + m.from_me + '|' + String(m.message || '').slice(0, 120);
+  }
+
+  function msgsSignature(msgs) {
+    return msgs.map(msgStableKey).join('\n');
+  }
+
+  /** @returns {'noop'|'append'|'full'} */
+  function planMessagesDomUpdate(prev, next) {
+    if (!prev.length && !next.length) return 'noop';
+    if (!prev.length && next.length) return 'full';
+    if (msgsSignature(prev) === msgsSignature(next)) return 'noop';
+    const prevKeys = prev.map(msgStableKey);
+    const nextKeys = next.map(msgStableKey);
+    if (nextKeys.length >= prevKeys.length
+        && nextKeys.slice(0, prevKeys.length).join('|') === prevKeys.join('|')) {
+      return 'append';
+    }
+    return 'full';
   }
 
   // Race-condition guard: Facebook echoes our sent message back before the POST
@@ -833,7 +873,7 @@
         if (_tryConfirmPending(msg)) return; // our own echo — confirm pending bubble, skip append
         if (!isDuplicate(msg)) {
           M.msgs.push(msg);
-          appendBubble(msg);
+          appendBubble(msg, { animate: false });
           gotNewMsg = true;
         }
       });
@@ -842,9 +882,13 @@
         if (isMsgsNearBottom(msgsEl)) scrollToBottom(true, true);
       }
 
-      // Graph sync ran but poll missed rows (stale cache / clock skew) — reload open thread
+      // Graph sync — silent refresh at most every 45s (avoids full-list flicker)
       if (M.activePsid && data.graph_synced && !gotNewMsg && !(data.new_messages || []).length) {
-        loadMessages().catch(() => {});
+        const now = Date.now();
+        if (now - (M._graphMsgReloadAt || 0) > 45_000) {
+          M._graphMsgReloadAt = now;
+          loadMessages(null, { silent: true }).catch(() => {});
+        }
       }
 
       // Updated conversations (unread counts, snippets, new convs from other senders)
@@ -1478,14 +1522,15 @@
     }
   }
 
-  async function loadMessages(before = null) {
+  async function loadMessages(before = null, opts = {}) {
     if (!M.activePageId || !M.activePsid) return;
+    const silent = !!opts.silent;
     // Snapshot the psid at call time — used to detect stale responses
     const forPsid = M.activePsid;
     const msgsEl  = $('msngMsgs');
 
     // Only show skeleton when there are no cached messages already displayed
-    if (!before && msgsEl && !M.msgs.length) {
+    if (!before && msgsEl && !M.msgs.length && !silent) {
       msgsEl.innerHTML = `<div class="msng-empty" style="margin-top:60px">
         <div class="msng-sk-circle" style="margin:0 auto 12px"></div>
         <p style="opacity:.5">Loading messages…</p>
@@ -1526,13 +1571,21 @@
         M.msgs = [...fresh, ...M.msgs];
         renderMessages('prepend');
       } else {
-        // Merge: keep any pending/optimistic bubbles not yet in server response
+        const prevMsgs = M.msgs.slice();
         const serverIds = new Set(fresh.map(m => m.message_id).filter(Boolean));
         const pending   = M.msgs.filter(m => m._pending || m._failed);
         const toKeep    = pending.filter(m => !m.message_id || !serverIds.has(m.message_id));
-        M.msgs           = _filterMsgsByRetention([...fresh, ...toKeep]);
-        M.renderedMsgIds = new Set();
-        renderMessages('replace');
+        M.msgs = _filterMsgsByRetention([...fresh, ...toKeep]);
+        const plan = planMessagesDomUpdate(prevMsgs, M.msgs);
+        if (plan === 'noop') {
+          /* DOM unchanged — no flicker */
+        } else if (plan === 'append') {
+          appendNewMessagesFromIndex(prevMsgs.length, { animate: false });
+          if (isMsgsNearBottom(msgsEl)) scrollToBottom(false);
+        } else {
+          M.renderedMsgIds = new Set();
+          renderMessages('replace', { scroll: silent ? 'preserve' : 'bottom' });
+        }
       }
       if (M.msgs.length > 0) M.oldestMsgTime = M.msgs[0].created_at;
       // Update cache with fresh data
@@ -1629,10 +1682,9 @@
       M.msgs           = _filterMsgsByRetention(cached.msgs);
       M.renderedMsgIds = new Set();
       M.oldestMsgTime  = cached.oldestMsgTime;
-      renderMessages('replace');
-      scrollToBottom(false, true);
-      // Silent background refresh to pick up any new messages since cached
-      loadMessages().catch(() => {});
+      renderMessages('replace', { scroll: 'force' });
+      // Silent background refresh — patch DOM only if messages changed
+      loadMessages(null, { silent: true }).catch(() => {});
     } else {
       M.msgs = []; M.renderedMsgIds = new Set(); M.oldestMsgTime = null;
       await loadMessages();
@@ -1720,13 +1772,14 @@
     window.msngToggleCanned();
   };
 
-  window.msngOnFileSelect = async function (input) {
-    const file = input.files[0];
+  async function msngSendImageFile(file) {
     if (!file) return;
-    input.value = '';
-
     if (!M.activePsid || !M.activePageId || !M.activeToken) {
       showToast('Select a conversation first', 'warning');
+      return;
+    }
+    if (!file.type || !file.type.startsWith('image/')) {
+      showToast('Only images can be sent here', 'warning');
       return;
     }
     if (file.size > 8 * 1024 * 1024) {
@@ -1734,10 +1787,12 @@
       return;
     }
 
-    // Optimistic preview bubble
     const objUrl  = URL.createObjectURL(file);
     const tempId  = 'temp_img_' + Date.now();
-    const previewMsg = { message: '', from_me: 1, created_at: new Date().toISOString(), _tempId: tempId, _pending: true, attachment_url: objUrl, attachment_type: 'image' };
+    const previewMsg = {
+      message: '', from_me: 1, created_at: new Date().toISOString(),
+      _tempId: tempId, _pending: true, attachment_url: objUrl, attachment_type: 'image'
+    };
     M.msgs.push(previewMsg);
     M.renderedMsgIds.add(tempId);
     appendBubble(previewMsg);
@@ -1751,18 +1806,51 @@
 
       const r = await fetch('/api/messenger/upload', { method: 'POST', credentials: 'same-origin', body: form });
       const d = await r.json();
-
       if (d.error) throw new Error(d.error);
 
       const bubble = document.querySelector(`[data-temp-id="${tempId}"]`);
       if (bubble) { bubble.removeAttribute('data-temp-id'); bubble.classList.remove('pending'); }
       if (d.message_id) M.renderedMsgIds.add(d.message_id);
       URL.revokeObjectURL(objUrl);
-
     } catch (e) {
       const bubble = document.querySelector(`[data-temp-id="${tempId}"]`);
       if (bubble) { bubble.classList.add('failed'); bubble.classList.remove('pending'); }
       showToast('Image send failed: ' + e.message, 'error');
+    }
+  }
+
+  window.msngOnFileSelect = async function (input) {
+    const file = input.files[0];
+    if (!file) return;
+    input.value = '';
+    await msngSendImageFile(file);
+  };
+
+  window.msngOnPaste = function (e) {
+    const cd = e.clipboardData;
+    if (!cd) return;
+
+    const items = cd.items || [];
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      if (item.kind === 'file' && item.type && item.type.startsWith('image/')) {
+        e.preventDefault();
+        const file = item.getAsFile();
+        if (file) msngSendImageFile(file);
+        return;
+      }
+    }
+
+    // Screenshot paste on some browsers (image/png in files list only)
+    const files = cd.files;
+    if (files?.length) {
+      for (let i = 0; i < files.length; i++) {
+        if (files[i].type && files[i].type.startsWith('image/')) {
+          e.preventDefault();
+          msngSendImageFile(files[i]);
+          return;
+        }
+      }
     }
   };
 

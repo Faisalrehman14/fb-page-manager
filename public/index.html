@@ -1618,9 +1618,10 @@ window.getCsrfToken = async (forceRefresh = false) => {
                 <button type="button" class="msng-input-btn" title="Quick replies" onclick="msngToggleCanned()" id="msngCannedBtn"><i class="fa-solid fa-bolt"></i></button>
                 <button type="button" class="msng-input-btn" title="Emoji" onclick="msngToggleEmoji()" id="msngEmojiBtn"><i class="fa-regular fa-face-smile"></i></button>
                 <div class="msng-input-wrap">
-                  <textarea id="msngMsgTextarea" class="msng-textarea" placeholder="Write a reply…" rows="1"
+                  <textarea id="msngMsgTextarea" class="msng-textarea" placeholder="Write a reply… (Ctrl+V to paste image)" rows="1"
                     oninput="msngTextareaInput(this);msngUpdateCharCount(this)"
-                    onkeydown="msngKeydown(event)"></textarea>
+                    onkeydown="msngKeydown(event)"
+                    onpaste="msngOnPaste(event)"></textarea>
                 </div>
                 <span id="msngCharCount" class="msng-char-count"></span>
                 <button type="button" id="msngSendBtn" class="msng-send-btn" onclick="msngSend()" aria-label="Send"><i class="fa-solid fa-paper-plane"></i></button>
