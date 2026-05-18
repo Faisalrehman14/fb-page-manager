@@ -1953,7 +1953,7 @@
     if (!isMore && !opts.background) {
       M.convOffset = 0;
       M.convHasMore = true;
-      if (!opts.skipCacheRestore) {
+      if (!opts.fresh && !opts.skipCacheRestore) {
         const hit = _convListCache.get(pageId);
         if (hit && Date.now() - hit.ts < CONV_LIST_CACHE_MS && hit.convs.length) {
           M.convs = hit.convs.map(c => ({ ...c }));
@@ -1968,7 +1968,7 @@
           return;
         }
       }
-      showConvSkeleton();
+      if (!opts.silentRefresh) showConvSkeleton();
     } else if (isMore) {
       _showConvLoadingMore();
     }
@@ -1977,7 +1977,9 @@
 
     try {
       const limit = CONV_PAGE_SIZE;
-      const data = await get('load_conversations', { page_id: pageId, limit, offset: M.convOffset });
+      const loadParams = { page_id: pageId, limit, offset: M.convOffset };
+      if (opts.fresh) loadParams.refresh = 1;
+      const data = await get('load_conversations', loadParams);
       if (loadSeq && loadSeq !== M._convLoadSeq) return;
       if (pageKey !== String(M.activePageId)) return;
       if (data.error) throw new Error(data.error);
@@ -2898,7 +2900,11 @@
         hideSyncBanner();
         if (M.activePageId) {
           _convListCache.delete(M.activePageId);
-          loadConvs(M.activePageId, false, { background: true });
+          loadConvs(M.activePageId, false, {
+            fresh: true,
+            silentRefresh: true,
+            loadSeq: ++M._convLoadSeq
+          });
         }
       }
     });
@@ -3020,29 +3026,17 @@
     renderPages();
     showChatEmpty();
 
-    const hit = _convListCache.get(pageId);
-    const hadCache = hit && Date.now() - hit.ts < CONV_LIST_CACHE_MS && hit.convs?.length;
-
-    if (hadCache) {
-      M.convs = hit.convs.map(c => ({ ...c }));
-      M._convOrder = hit.order?.length ? hit.order.slice() : hit.convs.map(c => String(c.psid));
-      M.convOffset = hit.offset;
-      M.convHasMore = hit.hasMore;
-      rebuildConvIndex();
-      invalidateConvListRender();
-      renderConvs({ immediate: true });
-      loadConvs(pageId, false, { loadSeq, background: true, skipCacheRestore: true });
-    } else {
-      M.convs = [];
-      M._convOrder = [];
-      M.convOffset = 0;
-      M.convHasMore = true;
-      invalidateConvListRender();
-      rebuildConvIndex();
-      showConvSkeleton();
-      renderConvs({ immediate: true });
-      loadConvs(pageId, false, { loadSeq });
-    }
+    // Never show cached list on page switch — stale previews/order flash for seconds.
+    _convListCache.delete(pageId);
+    M.convs = [];
+    M._convOrder = [];
+    M.convOffset = 0;
+    M.convHasMore = true;
+    invalidateConvListRender();
+    rebuildConvIndex();
+    showConvSkeleton();
+    renderConvs({ immediate: true });
+    loadConvs(pageId, false, { loadSeq, fresh: true });
   };
 
   // ── Outer page selector integration ─────────────────────────────────────────

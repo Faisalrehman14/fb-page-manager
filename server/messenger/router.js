@@ -97,6 +97,7 @@ function createMessengerRouter(deps) {
                             pageId,
                             limit: req.query.limit,
                             offset: req.query.offset,
+                            refresh: req.query.refresh,
                             session: req.session,
                             dbConnected,
                             fetchFn

@@ -71,14 +71,17 @@ class ConversationService {
         this.io = io;
     }
 
-    async list({ pageId, limit, offset, session, dbConnected, fetchFn }) {
+    async list({ pageId, limit, offset, session, dbConnected, fetchFn, refresh }) {
         const safeLimit = Math.min(
             parseInt(limit, 10) || CONVERSATION_INITIAL_LIMIT,
             CONVERSATION_PAGE_SIZE_MAX
         );
         const safeOffset = Math.max(parseInt(offset, 10) || 0, 0);
+        const forceRefresh = refresh === true || refresh === '1' || refresh === 'true';
 
-        if (dbConnected && safeOffset === 0 && !this.db.isPageSyncing?.(pageId)) {
+        if (forceRefresh) clearPageCache(pageId);
+
+        if (dbConnected && safeOffset === 0 && !forceRefresh && !this.db.isPageSyncing?.(pageId)) {
             const cached = getCached(pageId, safeLimit, safeOffset);
             if (cached?.conversations?.length) {
                 resolvePageToken({ pageId, session, db: this.db, dbConnected, fetchFn })
