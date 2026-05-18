@@ -10,15 +10,15 @@ body.shell-home .sidebar {
 
 #view-home.hv,
 #view-home {
-  --hd-glass: rgba(19, 21, 26, 0.88);
-  --hd-border: rgba(255, 255, 255, 0.09);
+  --hd-glass: rgba(16, 26, 56, 0.82);
+  --hd-border: rgba(139, 156, 255, 0.12);
   --hd-shadow:
-    0 0 0 1px rgba(255, 255, 255, 0.04) inset,
-    0 2px 4px rgba(0, 0, 0, 0.2),
-    0 12px 36px rgba(0, 0, 0, 0.32);
+    0 0 0 1px rgba(168, 85, 247, 0.06) inset,
+    0 4px 12px rgba(0, 0, 0, 0.25),
+    0 16px 48px rgba(30, 27, 75, 0.35);
   --hd-shadow-hover:
-    0 0 0 1px rgba(255, 255, 255, 0.1) inset,
-    0 16px 40px rgba(0, 0, 0, 0.38);
+    0 0 0 1px rgba(168, 85, 247, 0.2) inset,
+    0 20px 50px rgba(124, 58, 237, 0.18);
 
   display: flex;
   flex-direction: column;
@@ -47,8 +47,9 @@ body.shell-home .sidebar {
   padding: 32px 36px;
   border: 1px solid var(--hd-border) !important;
   background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.04) 0%, rgba(45, 212, 191, 0.06) 40%, transparent 70%),
-    linear-gradient(180deg, var(--surface2) 0%, var(--surface) 100%) !important;
+    linear-gradient(125deg, rgba(59, 130, 246, 0.2) 0%, rgba(124, 58, 237, 0.18) 42%, rgba(109, 40, 217, 0.08) 70%, transparent 100%),
+    linear-gradient(180deg, #141f45 0%, #0f1630 55%, #0a1022 100%) !important;
+  border-color: rgba(139, 156, 255, 0.14) !important;
   box-shadow: var(--hd-shadow) !important;
   backdrop-filter: blur(12px);
 }
@@ -72,10 +73,12 @@ body.shell-home .sidebar {
 }
 
 #view-home .hv-hero-orb1 {
-  background: rgba(79, 125, 245, 0.12);
+  background: rgba(59, 130, 246, 0.35);
+  filter: blur(60px);
 }
 #view-home .hv-hero-orb2 {
-  background: rgba(45, 212, 191, 0.1);
+  background: rgba(168, 85, 247, 0.32);
+  filter: blur(70px);
 }
 #view-home .hv-hero-orb3 {
   display: none;
@@ -140,9 +143,9 @@ body.shell-home .sidebar {
   border-radius: 100px;
   font-size: 12px;
   font-weight: 700;
-  background: rgba(255, 255, 255, 0.06) !important;
-  border: 1px solid var(--hd-border) !important;
-  color: var(--text2) !important;
+  background: rgba(124, 58, 237, 0.15) !important;
+  border: 1px solid rgba(168, 85, 247, 0.3) !important;
+  color: #c4b5fd !important;
 }
 
 #view-home .hv-hero-dot {
@@ -164,7 +167,7 @@ body.shell-home .sidebar {
 
 #view-home .hv-hero-name {
   display: inline;
-  background: linear-gradient(135deg, #fafafa 0%, #a1a1aa 100%);
+  background: linear-gradient(135deg, #93c5fd 0%, #c4b5fd 55%, #e9d5ff 100%);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -330,7 +333,7 @@ body.shell-home .sidebar {
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.1em;
-  color: var(--text3);
+  color: #a5b4fc;
   margin: 0 0 4px;
 }
 
@@ -442,7 +445,7 @@ body.shell-home .sidebar {
 
 #view-home .hv-kpi:hover {
   transform: translateY(-3px);
-  border-color: var(--border2);
+  border-color: rgba(168, 85, 247, 0.28);
   box-shadow: var(--hd-shadow-hover);
 }
 
@@ -548,7 +551,8 @@ body.shell-home .sidebar {
 }
 
 #view-home .hv-panel:hover {
-  border-color: var(--border2);
+  border-color: rgba(139, 156, 255, 0.22);
+  box-shadow: 0 12px 36px rgba(30, 27, 75, 0.25);
 }
 
 #view-home .hv-panel-hdr {
@@ -730,9 +734,9 @@ body.shell-home .sidebar {
 
 #view-home .hv-qa-card:hover {
   transform: translateY(-3px);
-  border-color: var(--border2);
+  border-color: rgba(168, 85, 247, 0.3);
   box-shadow: var(--hd-shadow-hover);
-  background: rgba(255, 255, 255, 0.04);
+  background: rgba(124, 58, 237, 0.08);
 }
 
 #view-home .hv-qa-card-blue,
@@ -786,18 +790,18 @@ body.shell-home .sidebar {
 
 #view-home .hv-plan-card {
   border-radius: 18px;
-  border: 1px solid var(--border2);
-  box-shadow: var(--hd-shadow);
+  border: 1px solid rgba(168, 85, 247, 0.35);
+  box-shadow: var(--hd-shadow), 0 0 48px rgba(124, 58, 237, 0.12);
 }
 
 #view-home .hv-plan-card-bg {
-  background: linear-gradient(165deg, #1a1d24 0%, #13151a 50%, #0f1014 100%);
+  background: linear-gradient(165deg, #1a1040 0%, #121a45 45%, #0c1228 100%);
 }
 
 #view-home .hv-plan-card-bg::before {
   background:
-    radial-gradient(ellipse at 90% 10%, rgba(45, 212, 191, 0.1), transparent 55%),
-    radial-gradient(ellipse at 10% 90%, rgba(79, 125, 245, 0.08), transparent 50%);
+    radial-gradient(ellipse at 90% 10%, rgba(168, 85, 247, 0.28), transparent 55%),
+    radial-gradient(ellipse at 10% 90%, rgba(59, 130, 246, 0.2), transparent 50%);
 }
 
 #view-home .hv-plan-inner {
@@ -819,12 +823,12 @@ body.shell-home .sidebar {
 }
 
 #view-home .hv-upgrade-btn {
-  background: linear-gradient(135deg, #2dd4bf, #14b8a6);
-  color: #042f2e;
+  background: linear-gradient(135deg, #a855f7, #7c3aed);
+  color: #fff;
   border: none;
   font-size: 10px;
   font-weight: 800;
-  box-shadow: 0 2px 12px rgba(45, 212, 191, 0.3);
+  box-shadow: 0 2px 14px rgba(168, 85, 247, 0.45);
 }
 
 #view-home .hv-plan-label {
@@ -857,7 +861,7 @@ body.shell-home .sidebar {
 }
 
 #view-home .hv-plan-fill {
-  background: linear-gradient(90deg, #2dd4bf, #4f7df5);
+  background: linear-gradient(90deg, #3b82f6, #a855f7, #c084fc);
   height: 8px;
   border-radius: 100px;
 }
@@ -973,16 +977,16 @@ body.shell-home .sidebar {
 
 /* Light theme */
 body.light #view-home {
-  --hd-glass: rgba(255, 255, 255, 0.95);
-  --hd-border: rgba(0, 0, 0, 0.08);
-  --hd-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
+  --hd-glass: rgba(255, 255, 255, 0.92);
+  --hd-border: rgba(99, 102, 241, 0.15);
+  --hd-shadow: 0 8px 32px rgba(99, 102, 241, 0.1);
 }
 
 body.light #view-home .hv-hero {
   background:
-    linear-gradient(135deg, rgba(79, 125, 245, 0.06) 0%, rgba(45, 212, 191, 0.04) 45%, transparent 70%),
-    linear-gradient(180deg, #fff 0%, #fafafa 100%) !important;
-  border-color: var(--border) !important;
+    linear-gradient(135deg, rgba(99, 102, 241, 0.12) 0%, rgba(168, 85, 247, 0.08) 50%, transparent 75%),
+    linear-gradient(180deg, #fff 0%, #f5f7ff 100%) !important;
+  border-color: rgba(99, 102, 241, 0.2) !important;
 }
 
 body.light #view-home .hv-hero-status {
