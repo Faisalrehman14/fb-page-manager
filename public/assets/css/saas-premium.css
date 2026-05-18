@@ -5,16 +5,17 @@
 
 /* ─── Refined tokens ─── */
 :root {
-  --premium-glass: rgba(16, 26, 56, 0.88);
-  --premium-glass-border: rgba(139, 156, 255, 0.12);
-  --premium-glass-highlight: rgba(168, 85, 247, 0.06);
+  --premium-glass: #121a32;
+  --premium-glass-border: rgba(255, 255, 255, 0.1);
+  --premium-glass-highlight: rgba(255, 255, 255, 0.06);
   --premium-shadow-card:
-    0 0 0 1px rgba(168, 85, 247, 0.06) inset,
-    0 4px 12px rgba(0, 0, 0, 0.25),
-    0 16px 48px rgba(30, 27, 75, 0.3);
+    inset 0 1px 0 rgba(255, 255, 255, 0.09),
+    0 0 0 1px rgba(255, 255, 255, 0.05),
+    0 16px 40px -10px rgba(0, 0, 0, 0.55);
   --premium-shadow-hover:
-    0 0 0 1px rgba(168, 85, 247, 0.22) inset,
-    0 20px 50px rgba(124, 58, 237, 0.2);
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    0 0 0 1px rgba(168, 85, 247, 0.35),
+    0 24px 48px -10px rgba(88, 28, 135, 0.35);
   --premium-section-pad: clamp(80px, 10vw, 128px);
 }
 
@@ -491,11 +492,14 @@ body {
 
 .hv-kpi {
   background: var(--premium-glass) !important;
-  backdrop-filter: blur(12px);
   border: 1px solid var(--premium-glass-border) !important;
   border-radius: 14px !important;
   padding: 18px 20px !important;
   box-shadow: var(--premium-shadow-card);
+}
+
+#view-home .hv-kpi {
+  backdrop-filter: none !important;
 }
 
 #view-home .hv-kpi:hover {
@@ -506,17 +510,20 @@ body {
 
 /* Per-metric colors live in home-dashboard.css + index.css */
 
-.hv-kpi-val {
-  font-size: 22px !important;
-  letter-spacing: -0.03em !important;
+#view-home .hv-kpi-val {
+  font-size: 2.125rem !important;
+  letter-spacing: -0.05em !important;
 }
 
 .hv-panel {
   background: var(--premium-glass) !important;
-  backdrop-filter: blur(14px);
   border: 1px solid var(--premium-glass-border) !important;
   border-radius: 16px !important;
   box-shadow: var(--premium-shadow-card);
+}
+
+#view-home .hv-panel {
+  backdrop-filter: none !important;
 }
 
 .hv-qa-card,

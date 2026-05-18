@@ -32,13 +32,13 @@
   --surface2: #141f45;
   --surface3: #1a2754;
 
-  --text: #f0f4ff;
-  --text2: #9aa8d4;
-  --text3: #6b7aa8;
+  --text: #ffffff;
+  --text2: #b4c0dc;
+  --text3: #7d8cb0;
 
-  --border: rgba(139, 156, 255, 0.1);
-  --border2: rgba(168, 85, 247, 0.18);
-  --border3: rgba(79, 124, 255, 0.28);
+  --border: rgba(255, 255, 255, 0.1);
+  --border2: rgba(168, 85, 247, 0.22);
+  --border3: rgba(79, 124, 255, 0.32);
 
   --green: #34d399;
   --green-light: #6ee7b7;
@@ -59,9 +59,9 @@
   --gradient-hero: linear-gradient(135deg, #1d4ed8 0%, #6d28d9 50%, #7c3aed 100%);
   --gradient-surface: linear-gradient(165deg, rgba(139, 92, 246, 0.08) 0%, rgba(59, 130, 246, 0.04) 40%, transparent 100%);
   --gradient-mesh:
-    radial-gradient(ellipse 90% 70% at 0% -10%, rgba(124, 58, 237, 0.22), transparent 50%),
-    radial-gradient(ellipse 70% 55% at 100% 0%, rgba(37, 99, 235, 0.18), transparent 48%),
-    radial-gradient(ellipse 50% 40% at 50% 100%, rgba(109, 40, 217, 0.12), transparent 55%);
+    radial-gradient(ellipse 80% 55% at 0% -8%, rgba(124, 58, 237, 0.14), transparent 52%),
+    radial-gradient(ellipse 65% 45% at 100% 0%, rgba(37, 99, 235, 0.12), transparent 50%),
+    radial-gradient(ellipse 45% 35% at 50% 100%, rgba(109, 40, 217, 0.08), transparent 55%);
   --messenger: linear-gradient(135deg, #3b82f6, #a855f7);
 
   --fbc-canvas: var(--gradient-mesh), var(--bg);
