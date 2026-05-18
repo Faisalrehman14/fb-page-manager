@@ -699,13 +699,48 @@
     return false;
   }
 
+  function isLikelyImageUrl(url) {
+    const u = String(url || '');
+    if (!u || isThumbsUpUrl(u)) return false;
+    if (/\.(jpe?g|png|gif|webp|bmp)(\?|$)/i.test(u)) return true;
+    if (/fbcdn\.net|fbsbx\.com|scontent/i.test(u)) return true;
+    return false;
+  }
+
+  function resolveMsgAttachment(msg) {
+    const atts = msg.attachments || [];
+    let url = msg.attachment_url || null;
+    let type = String(msg.attachment_type || '').toLowerCase();
+    if (!url && atts.length) {
+      const withUrl = atts.filter(a => a && a.u);
+      const best = withUrl.find(a => ['image', 'photo'].includes(String(a.t || '').toLowerCase()))
+        || withUrl.find(a => isLikelyImageUrl(a.u))
+        || withUrl[0];
+      if (best) {
+        url = best.u;
+        type = String(best.t || type).toLowerCase();
+      }
+    }
+    if (url && (!type || type === 'fallback' || type === 'file') && isLikelyImageUrl(url)) type = 'image';
+    return { attachment_url: url, attachment_type: type };
+  }
+
+  function isDisplayableImage(msg) {
+    const { attachment_url: url, attachment_type: type } = resolveMsgAttachment(msg);
+    if (!url) return false;
+    if (type === 'image' || type === 'photo') return true;
+    return isLikelyImageUrl(url);
+  }
+
   function normalizeMsg(msg) {
     if (!msg) return msg;
+    const resolved = resolveMsgAttachment(msg);
+    msg = { ...msg, ...resolved };
     if (isLikeMessage(msg)) {
       return { ...msg, message: '👍', attachment_url: null, attachment_type: 'like', _isLike: true };
     }
     let message = msg.message || '';
-    if (/^\[(sticker|like|image|attachment)\]$/i.test(message.trim())) message = '';
+    if (/^\[(sticker|like|image|attachment|photo)\]$/i.test(message.trim())) message = '';
     if (/^attachment$/i.test(message.trim())) message = '';
     return { ...msg, message };
   }
@@ -714,22 +749,33 @@
     msg = normalizeMsg(msg);
     const fromMe  = msg.from_me == 1;
     const txt     = msg.message  || '';
-    const attUrl  = msg.attachment_url;
-    const attType = msg.attachment_type;
+    const { attachment_url: attUrl, attachment_type: attType } = resolveMsgAttachment(msg);
     const tempId  = msg._tempId  || '';
 
     let content = '';
     if (isLikeMessage(msg)) {
       content = '<span class="msng-like-bubble" aria-label="Thumbs up">👍</span>';
-    } else if (attType === 'image' && attUrl) {
-      content = `<img class="msng-att-img" src="${esc(attUrl)}" alt="Image" role="button" tabindex="0">`;
-      if (txt && txt !== '[Image]') content += `<div style="margin-top:4px">${esc(txt)}</div>`;
+    } else if (isDisplayableImage(msg)) {
+      content = `<img class="msng-att-img" src="${esc(attUrl)}" alt="Photo" role="button" tabindex="0" loading="lazy">`;
+      if (txt && !/^\[(image|photo|attachment)\]$/i.test(txt.trim())) {
+        content += `<div style="margin-top:4px">${esc(txt)}</div>`;
+      }
+    } else if (attType === 'video' && attUrl) {
+      content = `<a class="msng-media-link" href="${esc(attUrl)}" target="_blank" rel="noopener">🎬 Video</a>`;
+    } else if (attType === 'audio' && attUrl) {
+      content = `<a class="msng-media-link" href="${esc(attUrl)}" target="_blank" rel="noopener">🎵 Audio</a>`;
     } else if (txt) {
       content = esc(txt).replace(/\n/g, '<br>');
     } else if (attType === 'sticker' || attType === 'like') {
       content = '<span class="msng-like-bubble" aria-label="Thumbs up">👍</span>';
+    } else if (attUrl || ['image', 'video', 'audio', 'file'].includes(attType)) {
+      const label = attType === 'image' ? '📷 Photo' : attType === 'video' ? '🎬 Video'
+        : attType === 'audio' ? '🎵 Audio' : '📎 Attachment';
+      content = attUrl
+        ? `<a class="msng-media-link" href="${esc(attUrl)}" target="_blank" rel="noopener">${label}</a>`
+        : `<span class="msng-media-placeholder">${label}</span>`;
     } else {
-      content = '<em style="opacity:.5">Attachment</em>';
+      content = '<span class="msng-media-placeholder">📷 Photo</span>';
     }
 
     const avatar = !fromMe

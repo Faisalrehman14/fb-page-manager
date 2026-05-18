@@ -1068,7 +1068,7 @@ function parseAttachments(fbAttachments) {
 async function syncMessagesFromFacebook(threadId, pageId, pageToken, fetchFn, limit = 20) {
     try {
         const response = await fetchFn(
-            `https://graph.facebook.com/v19.0/${threadId}/messages?fields=id,message,from,created_time,attachments{type,payload,sticker_id,image_data,file_url}&limit=${limit}&access_token=${pageToken}`
+            `https://graph.facebook.com/v19.0/${threadId}/messages?fields=id,message,from,created_time,${require('./messenger/message-content').FB_MESSAGE_ATTACHMENT_FIELDS}&limit=${limit}&access_token=${pageToken}`
         );
         const data = await response.json();
 
@@ -1342,7 +1342,7 @@ async function syncConversationsAll(pageId, pageToken, fetchFn, since = null, op
 }
 
 async function syncMessagesAll(threadId, pageId, pageToken, fetchFn) {
-    let nextUrl = `https://graph.facebook.com/v19.0/${threadId}/messages?fields=id,message,from,created_time,attachments{type,payload,sticker_id,image_data,file_url}&limit=100&access_token=${pageToken}`;
+    let nextUrl = `https://graph.facebook.com/v19.0/${threadId}/messages?fields=id,message,from,created_time,${require('./messenger/message-content').FB_MESSAGE_ATTACHMENT_FIELDS}&limit=100&access_token=${pageToken}`;
 
     while (nextUrl) {
         const response = await fetchFn(nextUrl);
@@ -1483,7 +1483,7 @@ async function syncThreadMessages(threadId, pageId, pageToken, fetchFn, cutoffMs
         } catch (e) { /* use fallback */ }
     }
 
-    let nextUrl = `https://graph.facebook.com/v19.0/${threadId}/messages?fields=id,message,from,created_time,attachments{type,payload,sticker_id,image_data,file_url}&limit=100&access_token=${pageToken}`;
+    let nextUrl = `https://graph.facebook.com/v19.0/${threadId}/messages?fields=id,message,from,created_time,${require('./messenger/message-content').FB_MESSAGE_ATTACHMENT_FIELDS}&limit=100&access_token=${pageToken}`;
     let saved = 0;
 
     while (nextUrl) {

@@ -41,6 +41,57 @@ function isPlaceholderAttachmentText(text) {
         || t === 'message' || t === '';
 }
 
+/** Facebook CDN / common image URL patterns (photos, stickers excluded via isThumbsUpAttachmentUrl). */
+function isLikelyImageUrl(url) {
+    const u = String(url || '');
+    if (!u || isThumbsUpAttachmentUrl(u)) return false;
+    if (/\.(jpe?g|png|gif|webp|bmp)(\?|$)/i.test(u)) return true;
+    if (/fbcdn\.net|fbsbx\.com|scontent/i.test(u)) return true;
+    return false;
+}
+
+function extractFbAttachmentUrl(a) {
+    if (!a || typeof a !== 'object') return '';
+    const p = a.payload || {};
+    return (
+        p.url
+        || a.file_url
+        || a.image_data?.url
+        || a.image_data?.preview_url
+        || p.image_url
+        || ''
+    );
+}
+
+function resolveAttachmentMimeType(a, fallbackType) {
+    const mime = String(a?.mime_type || a?.payload?.mime_type || '').toLowerCase();
+    if (mime.startsWith('image/')) return 'image';
+    if (mime.startsWith('video/')) return 'video';
+    if (mime.startsWith('audio/')) return 'audio';
+    return String(fallbackType || '').toLowerCase();
+}
+
+/** Pick best URL + type from row / attachments array (DB, Graph, webhook). */
+function resolveMessageAttachment(msg = {}) {
+    const attachments = Array.isArray(msg.attachments) ? msg.attachments.filter(Boolean) : [];
+    let url = msg.attachment_url || msg.attachmentUrl || null;
+    let type = String(msg.attachment_type || msg.attachmentType || '').toLowerCase();
+
+    const withUrl = attachments.filter(a => a && a.u);
+    if (!url && withUrl.length) {
+        const img = withUrl.find(a => ['image', 'photo'].includes(String(a.t || '').toLowerCase()))
+            || withUrl.find(a => isLikelyImageUrl(a.u))
+            || withUrl[0];
+        url = img.u;
+        type = String(img.t || type).toLowerCase();
+    }
+
+    if (url && (!type || type === 'fallback' || type === 'file')) {
+        if (isLikelyImageUrl(url)) type = 'image';
+    }
+    return { attachment_url: url || null, attachment_type: type || null };
+}
+
 /** Whether a raw Facebook list snippet was sent by the page. */
 function snippetIndicatesFromPage(snippet) {
     const raw = String(snippet || '').trim();
@@ -68,7 +119,8 @@ function isThumbsUpMessage(input = {}) {
     if (isThumbsUpText(text)) return true;
     if (attType === 'like' || attType === 'thumbs_up') return true;
     if (isThumbsUpAttachmentUrl(attUrl)) return true;
-    if (isPlaceholderAttachmentText(text) && (attType === 'sticker' || attType === 'like' || attType === 'image')) return true;
+    if (isPlaceholderAttachmentText(text) && (attType === 'sticker' || attType === 'like')) return true;
+    if (isPlaceholderAttachmentText(text) && attType === 'image' && (!attUrl || isThumbsUpAttachmentUrl(attUrl))) return true;
 
     for (const a of attachments) {
         const t = String(a.t || a.type || '').toLowerCase();
@@ -98,9 +150,12 @@ function isThumbsUpMessage(input = {}) {
 }
 
 function parseFbAttachmentItem(a) {
-    const type = String(a.type || (a.mime_type ? a.mime_type.split('/')[0] : 'file')).toLowerCase();
+    let type = String(a.type || 'file').toLowerCase();
+    type = resolveAttachmentMimeType(a, type);
     const stickerId = a.payload?.sticker_id ?? a.sticker_id ?? null;
-    const url = a.payload?.url || a.file_url || a.image_data?.url || '';
+    const url = extractFbAttachmentUrl(a);
+
+    if (type === 'fallback' && url && isLikelyImageUrl(url)) type = 'image';
 
     if (stickerId && isThumbsUpStickerId(stickerId)) {
         return { t: 'like', u: url || null, sticker_id: stickerId };
@@ -132,9 +187,11 @@ function parseWebhookAttachments(rawList) {
     if (!Array.isArray(rawList)) return [];
     return rawList.map(a => parseFbAttachmentItem({
         type: a.type,
+        mime_type: a.mime_type,
         payload: a.payload,
         sticker_id: a.payload?.sticker_id ?? a.sticker_id,
-        file_url: a.payload?.url
+        file_url: a.payload?.url,
+        image_data: a.image_data
     })).filter(a => a.t === 'like' || a.t === 'sticker' || a.u);
 }
 
@@ -163,13 +220,19 @@ function snippetForMessage(input = {}) {
  * Normalize to messenger.js row shape (message_id, message, from_me, created_at, attachment_*).
  */
 function normalizeMessengerMessage(msg = {}) {
-    const attachments = msg.attachments || (msg.attachment_type || msg.attachment_url
+    let attachments = msg.attachments || (msg.attachment_type || msg.attachment_url
         ? [{ t: msg.attachment_type, u: msg.attachment_url }]
         : []);
+    const resolved = resolveMessageAttachment({
+        ...msg,
+        attachments,
+        attachment_url: msg.attachment_url,
+        attachment_type: msg.attachment_type
+    });
     const like = isThumbsUpMessage({
         message: msg.message ?? msg.text,
-        attachment_type: msg.attachment_type,
-        attachment_url: msg.attachment_url,
+        attachment_type: resolved.attachment_type,
+        attachment_url: resolved.attachment_url,
         attachments
     });
 
@@ -189,23 +252,35 @@ function normalizeMessengerMessage(msg = {}) {
     let message = msg.message ?? msg.text ?? '';
     if (isPlaceholderAttachmentText(message)) message = '';
 
+    if (!attachments.length && resolved.attachment_url) {
+        attachments = [{ t: resolved.attachment_type, u: resolved.attachment_url }];
+    }
+
     return {
         ...msg,
         message,
         message_id: msg.message_id || msg.mid || msg.id,
         from_me: msg.from_me != null ? msg.from_me : (msg.isFromPage ? 1 : 0),
         created_at: msg.created_at || msg.createdTime,
-        attachment_url: msg.attachment_url || attachments[0]?.u || null,
-        attachment_type: msg.attachment_type || attachments[0]?.t || null,
+        attachment_url: resolved.attachment_url,
+        attachment_type: resolved.attachment_type,
+        attachments,
         is_like: false
     };
 }
 
+/** Graph API attachment subfields (nested image_data / payload URLs). */
+const FB_MESSAGE_ATTACHMENT_FIELDS =
+    'attachments{type,mime_type,payload{url,sticker_id},sticker_id,image_data{url,preview_url},file_url}';
+
 module.exports = {
     THUMBS_UP_STICKER_IDS,
+    FB_MESSAGE_ATTACHMENT_FIELDS,
     isThumbsUpMessage,
     isThumbsUpAttachmentUrl,
     isThumbsUpText,
+    isLikelyImageUrl,
+    resolveMessageAttachment,
     snippetIndicatesFromPage,
     normalizeSnippetForList,
     parseFbAttachments,
