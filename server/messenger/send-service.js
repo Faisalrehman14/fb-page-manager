@@ -112,6 +112,63 @@ class SendService {
         return { success: true, message_id: mid };
     }
 
+    async sendLike({ pageId, psid, page_token }) {
+        const token = page_token || await this.db.getPageToken(pageId);
+        if (!token) throw new Error('Page token not found');
+
+        const fbData = await this.fb.sendThumbsUpWithRetry(token, psid);
+        const mid = fbData.message_id;
+        const createdTime = new Date().toISOString();
+        const displayText = '👍';
+        const convInfo = await this.db.getConversationIdByParticipant(pageId, psid);
+        const convId = convInfo?.id || await this.db.ensureConversation(pageId, psid);
+
+        if (convId) {
+            await this.db.saveMessage({
+                id: mid,
+                threadId: convId,
+                pageId,
+                senderId: pageId,
+                text: displayText,
+                isFromPage: true,
+                createdTime,
+                attachments: [{ t: 'like', u: null }]
+            });
+            await this.db.updateConversationFromMessage({
+                threadId: convId,
+                text: displayText,
+                createdTime,
+                lastFromMe: true,
+                attachment_type: 'like'
+            }).catch(() => {});
+        }
+
+        setImmediate(() => {
+            this.io.to(`page_${pageId}`).emit('new_message', {
+                id: mid,
+                threadId: convId,
+                pageId,
+                participantId: psid,
+                text: displayText,
+                attachment_type: 'like',
+                isFromPage: true,
+                createdTime
+            });
+            this.io.to(`page_${pageId}`).emit('conversation_updated', {
+                id: convId,
+                pageId,
+                participantId: psid,
+                snippet: displayText,
+                updatedTime: new Date(),
+                isRead: true,
+                unreadCount: 0,
+                lastMessageFromPage: true
+            });
+        });
+
+        return { success: true, message_id: mid };
+    }
+
     async markRead({ pageId, psid }) {
         const convInfo = await this.db.getConversationIdByParticipant(pageId, psid);
         if (convInfo?.id) await this.db.markAsRead(convInfo.id);

@@ -202,6 +202,31 @@ function createMessengerRouter(deps) {
 
             if (method === 'POST') {
                 switch (action) {
+                    case 'send_like': {
+                        const { psid, page_token } = req.body;
+                        if (!pageId || !psid) {
+                            return res.status(400).json({ error: 'Missing fields' });
+                        }
+                        if (!_checkSendLimit(req.session?.userId)) {
+                            return res.status(429).json({ error: 'Sending too fast — slow down a moment' });
+                        }
+                        const userId = req.session?.userId;
+                        if (userId && db.assertQuota) {
+                            const quota = await db.assertQuota(userId, 1);
+                            if (!quota.ok) {
+                                return res.status(402).json({
+                                    success: false,
+                                    error: quota.message || 'Quota exceeded',
+                                    code: quota.code
+                                });
+                            }
+                        }
+                        const result = await sendService.sendLike({ pageId, psid, page_token });
+                        if (userId && db.updateUserQuota) {
+                            await db.updateUserQuota(userId, 1);
+                        }
+                        return res.json(result);
+                    }
                     case 'send_message': {
                         const { psid, message, page_token, image_url } = req.body;
                         if (!pageId || !psid || (!message && !image_url)) {

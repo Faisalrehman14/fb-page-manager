@@ -352,10 +352,17 @@
       : `<div class="${cls}-ph">${esc(initial)}</div>`;
   }
 
+  function formatConvPreview(c) {
+    let last = c.lastMsg || '';
+    if (/^\[(sticker|like)\]$/i.test(last) || last === '👍') last = '👍';
+    if (c.lastFromMe) return 'You: ' + (last || '');
+    return last || 'No messages yet';
+  }
+
   function convItemHtml(c, activePsid) {
     const isActive = c.psid === activePsid;
     const isUnread = c.unread > 0;
-    const preview  = c.lastFromMe ? 'You: ' + (c.lastMsg || '') : (c.lastMsg || 'No messages yet');
+    const preview  = formatConvPreview(c);
     const short    = preview.length > 42 ? preview.slice(0, 42) + '…' : preview;
     const badge    = isUnread ? `<span class="msng-ci-badge">${c.unread > 9 ? '9+' : c.unread}</span>` : '';
 
@@ -376,7 +383,28 @@
     </div>`;
   }
 
+  function isLikeMessage(msg) {
+    if (!msg) return false;
+    if (msg.is_like || msg._isLike || msg.attachment_type === 'like') return true;
+    const t = String(msg.message || '').trim();
+    if (t === '👍' || t === ':thumbs_up:') return true;
+    if (/^\[sticker\]$/i.test(t) || /^\[like\]$/i.test(t)) return true;
+    if (!t && msg.attachment_type === 'sticker') return true;
+    return false;
+  }
+
+  function normalizeMsg(msg) {
+    if (!msg) return msg;
+    if (isLikeMessage(msg)) {
+      return { ...msg, message: '👍', attachment_url: null, attachment_type: 'like', _isLike: true };
+    }
+    let message = msg.message || '';
+    if (/^\[(sticker|like|image)\]$/i.test(message.trim())) message = '';
+    return { ...msg, message };
+  }
+
   function bubbleHtml(msg) {
+    msg = normalizeMsg(msg);
     const fromMe  = msg.from_me == 1;
     const txt     = msg.message  || '';
     const attUrl  = msg.attachment_url;
@@ -384,11 +412,15 @@
     const tempId  = msg._tempId  || '';
 
     let content = '';
-    if (attType === 'image' && attUrl) {
+    if (isLikeMessage(msg)) {
+      content = '<span class="msng-like-bubble" aria-label="Thumbs up">👍</span>';
+    } else if (attType === 'image' && attUrl) {
       content = `<img class="msng-att-img" src="${esc(attUrl)}" alt="Image" role="button" tabindex="0">`;
       if (txt && txt !== '[Image]') content += `<div style="margin-top:4px">${esc(txt)}</div>`;
     } else if (txt) {
       content = esc(txt).replace(/\n/g, '<br>');
+    } else if (attType === 'sticker') {
+      content = '<span class="msng-like-bubble" aria-label="Sticker">👍</span>';
     } else {
       content = '<em style="opacity:.5">Attachment</em>';
     }
@@ -508,7 +540,7 @@
         node.classList.toggle('active',  isActive);
         node.classList.toggle('unread',  c.unread > 0);
 
-        const preview = c.lastFromMe ? 'You: ' + (c.lastMsg || '') : (c.lastMsg || 'No messages yet');
+        const preview = formatConvPreview(c);
         const short   = preview.length > 42 ? preview.slice(0, 42) + '…' : preview;
 
         const nameEl  = node.querySelector('.msng-ci-name');
@@ -604,7 +636,8 @@
       : '';
 
     let lastDate = '';
-    M.msgs.forEach(msg => {
+    M.msgs.forEach(raw => {
+      const msg = normalizeMsg(raw);
       const dateStr = fmtDate(msg.created_at);
       if (dateStr !== lastDate) {
         html    += `<div class="msng-date-sep"><span>${esc(dateStr)}</span></div>`;
@@ -647,6 +680,7 @@
   // Append one bubble without rebuilding the list.
   // Used by real-time poll and optimistic send.
   function appendBubble(msg, opts = {}) {
+    msg = normalizeMsg(msg);
     const msgsEl = $('msngMsgs');
     if (!msgsEl) return;
 
@@ -722,7 +756,11 @@
   // Fix: find the matching pending bubble and confirm it in-place.
   function _tryConfirmPending(msg) {
     if (msg.from_me != 1 || !msg.message_id) return false;
-    const pending = M.msgs.find(m => m._pending && !m.message_id && m.message === (msg.message || ''));
+    const pending = M.msgs.find(m => {
+      if (!m._pending || m.message_id) return false;
+      if (isLikeMessage(m) && isLikeMessage(msg)) return true;
+      return m.message === (msg.message || '');
+    });
     if (!pending) return false;
 
     pending.message_id = msg.message_id;
@@ -870,8 +908,9 @@
 
       // New messages in the open conversation — always scroll to bottom
       let gotNewMsg = false;
-      (data.new_messages || []).forEach(msg => {
-        if (_tryConfirmPending(msg)) return; // our own echo — confirm pending bubble, skip append
+      (data.new_messages || []).forEach(raw => {
+        const msg = normalizeMsg(raw);
+        if (_tryConfirmPending(msg)) return;
         if (!isDuplicate(msg)) {
           M.msgs.push(msg);
           appendBubble(msg, { animate: false });
@@ -1566,7 +1605,7 @@
         return;
       }
 
-      const fresh = _filterMsgsByRetention(data.messages || []);
+        const fresh = _filterMsgsByRetention((data.messages || []).map(normalizeMsg));
       if (before) {
         // "Load earlier" — prepend older messages
         M.msgs = [...fresh, ...M.msgs];
@@ -1738,9 +1777,19 @@
   let _typingEmitTimer = null;
   let _typingActive    = false;
 
+  function updateLikeBtnVisibility() {
+    const likeBtn = $('msngLikeBtn');
+    const ta = $('msngMsgTextarea');
+    if (!likeBtn || !ta) return;
+    const hasText = !!ta.value.trim();
+    const hasImage = !!M.pendingImage;
+    likeBtn.style.display = (hasText || hasImage) ? 'none' : 'flex';
+  }
+
   window.msngTextareaInput = function (ta) {
     ta.style.height = 'auto';
     ta.style.height = Math.min(ta.scrollHeight, 120) + 'px';
+    updateLikeBtnVisibility();
     // Emit typing_start to socket once per burst
     if (_socket?.connected && M._joinedThread && !_typingActive) {
       _typingActive = true;
@@ -1792,6 +1841,7 @@
     const img = $('msngImagePreviewImg');
     if (box) { box.style.display = 'none'; box.setAttribute('aria-hidden', 'true'); }
     if (img) img.removeAttribute('src');
+    updateLikeBtnVisibility();
   }
 
   function msngStageImageFile(file) {
@@ -1816,7 +1866,50 @@
     if (img) img.src = previewUrl;
     if (box) { box.style.display = 'flex'; box.setAttribute('aria-hidden', 'false'); }
     $('msngMsgTextarea')?.focus();
+    updateLikeBtnVisibility();
   }
+
+  window.msngSendLike = async function () {
+    if (M.ui.sending || !M.activePsid || !M.activePageId || !M.activeToken) {
+      showToast('Select a conversation first', 'warning');
+      return;
+    }
+    msngClearPendingImage();
+    const tempId = 'temp_like_' + Date.now();
+    const tempMsg = {
+      message: '👍', from_me: 1, created_at: new Date().toISOString(),
+      _tempId: tempId, _pending: true, attachment_type: 'like', _isLike: true
+    };
+    M.msgs.push(tempMsg);
+    M.renderedMsgIds.add(tempId);
+    appendBubble(tempMsg);
+    scrollToBottom(true, true);
+
+    M.ui.sending = true;
+    const likeBtn = $('msngLikeBtn');
+    if (likeBtn) likeBtn.disabled = true;
+
+    try {
+      const res = await post({
+        action: 'send_like',
+        page_id: M.activePageId,
+        psid: M.activePsid,
+        page_token: M.activeToken
+      });
+      if (res.error) throw new Error(res.error);
+      const bubble = document.querySelector(`[data-temp-id="${tempId}"]`);
+      if (bubble) { bubble.removeAttribute('data-temp-id'); bubble.classList.remove('pending'); }
+      if (res.message_id) M.renderedMsgIds.add(res.message_id);
+    } catch (e) {
+      const bubble = document.querySelector(`[data-temp-id="${tempId}"]`);
+      if (bubble) { bubble.classList.add('failed'); bubble.classList.remove('pending'); }
+      showToast('Thumbs up failed: ' + e.message, 'error');
+    } finally {
+      M.ui.sending = false;
+      if (likeBtn) likeBtn.disabled = false;
+      updateLikeBtnVisibility();
+    }
+  };
 
   async function msngSendImageFile(file) {
     if (!file) return;
@@ -2068,19 +2161,19 @@
 
       const msgPageId = String(msg.pageId);
       const msgPsid   = String(msg.participantId);
+      const normalized = normalizeMsg({
+        message_id:      msg.id             || null,
+        conversation_id: msg.threadId       || null,
+        page_id:         msg.pageId,
+        user_id:         msg.participantId,
+        message:         typeof msg.text === 'string' ? msg.text : '',
+        from_me:         msg.isFromPage ? 1 : 0,
+        created_at:      msg.createdTime    || new Date().toISOString(),
+        attachment_url:  msg.attachments?.[0]?.u || msg.attachment_url || null,
+        attachment_type: msg.attachment_type || msg.attachments?.[0]?.t || null
+      });
 
       if (msgPageId === String(M.activePageId) && msgPsid === String(M.activePsid)) {
-        const normalized = {
-          message_id:      msg.id             || null,
-          conversation_id: msg.threadId       || null,
-          page_id:         msg.pageId,
-          user_id:         msg.participantId,
-          message:         typeof msg.text === 'string' ? msg.text : '',
-          from_me:         msg.isFromPage ? 1 : 0,
-          created_at:      msg.createdTime    || new Date().toISOString(),
-          attachment_url:  msg.attachments?.[0]?.u || null,
-          attachment_type: msg.attachments?.[0]?.t || null
-        };
         const confirmedPending = _tryConfirmPending(normalized); // race-condition guard for own echo
         if (!confirmedPending && !isDuplicate(normalized)) {
           M.msgs.push(normalized);
@@ -2093,7 +2186,7 @@
 
       const conv = getConv(M.activePageId, msgPsid);
       if (conv) {
-        conv.lastMsg    = msg.text || '[Attachment]';
+        conv.lastMsg    = isLikeMessage(normalized) ? '👍' : (normalized.message || msg.text || '[Attachment]');
         conv.lastFromMe = !!msg.isFromPage;
         conv.lastMsgAt  = msg.createdTime || new Date().toISOString();
         if (msg.participantId !== M.activePsid && !msg.isFromPage) {

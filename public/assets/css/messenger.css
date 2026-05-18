@@ -594,6 +594,30 @@ body.in-messenger .sidebar { display: none !important; }
 .msng-input-btn:hover  { background: rgba(8,102,255,0.1); border-color: rgba(8,102,255,0.25); color: var(--primary-light); }
 .msng-input-btn.active { background: rgba(8,102,255,0.18); border-color: rgba(8,102,255,0.4); color: var(--primary-light); }
 
+.msng-like-btn {
+  font-size: 20px;
+  line-height: 1;
+  background: rgba(8, 102, 255, 0.12);
+  border-color: rgba(8, 102, 255, 0.25);
+}
+.msng-like-btn:hover {
+  background: rgba(8, 102, 255, 0.22);
+  transform: scale(1.05);
+}
+
+.msng-like-bubble {
+  font-size: 40px;
+  line-height: 1;
+  display: inline-block;
+  padding: 4px 2px;
+}
+.msng-msg .msng-bubble:has(.msng-like-bubble) {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  padding: 4px 8px;
+}
+
 .msng-input-wrap {
   flex: 1;
   background: rgba(255,255,255,0.05);

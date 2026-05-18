@@ -1631,6 +1631,7 @@ window.getCsrfToken = async (forceRefresh = false) => {
                     onpaste="msngOnPaste(event)"></textarea>
                 </div>
                 <span id="msngCharCount" class="msng-char-count"></span>
+                <button type="button" id="msngLikeBtn" class="msng-input-btn msng-like-btn" title="Send thumbs up" onclick="msngSendLike()" aria-label="Send thumbs up">👍</button>
                 <button type="button" id="msngSendBtn" class="msng-send-btn" onclick="msngSend()" aria-label="Send"><i class="fa-solid fa-paper-plane"></i></button>
               </footer>
               <input type="file" id="msngFileInput" accept="image/*" style="display:none" onchange="msngOnFileSelect(this)">

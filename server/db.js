@@ -885,9 +885,14 @@ async function getAllConversations() {
 
 async function saveMessage(message) {
     if (!pool) return false;
-    const { id, threadId, conversationId, pageId, senderId, text, attachments, isFromPage, createdTime } = message;
+    const { normalizeIncomingSave } = require('./messenger/message-content');
+    let { id, threadId, conversationId, pageId, senderId, text, attachments, isFromPage, createdTime } = message;
     const convId = conversationId || threadId;
     if (!isWithinMessageRetention(createdTime)) return false;
+
+    const normalized = normalizeIncomingSave({ text, attachments });
+    text = normalized.text;
+    attachments = normalized.attachments;
 
     // Split first attachment into indexed columns; store overflow in metadata JSON
     const firstUrl = attachments?.[0]?.u || null;
@@ -922,21 +927,23 @@ async function saveMessages(messenger_messages) {
         return;
     }
 
+    const { normalizeIncomingSave } = require('./messenger/message-content');
     const rows = messenger_messages
         .filter(m => isWithinMessageRetention(m.createdTime))
         .map(m => {
             const convId = m.conversationId || m.threadId;
+            const norm = normalizeIncomingSave({ text: m.text, attachments: m.attachments });
             return {
                 convId,
                 pageId: m.pageId,
                 senderId: m.senderId || null,
                 messageId: m.id,
-                text: m.text || '',
+                text: norm.text || '',
                 fromMe: m.isFromPage ? 1 : 0,
                 createdAt: m.createdTime ? new Date(m.createdTime) : new Date(),
-                firstUrl: m.attachments?.[0]?.u || null,
-                firstType: m.attachments?.[0]?.t || null,
-                metaJson: m.attachments?.length > 1 ? JSON.stringify(m.attachments) : null
+                firstUrl: norm.attachments?.[0]?.u || null,
+                firstType: norm.attachments?.[0]?.t || null,
+                metaJson: norm.attachments?.length > 1 ? JSON.stringify(norm.attachments) : null
             };
         })
         .filter(r => r.convId && r.messageId);
@@ -995,9 +1002,10 @@ async function getMessages(threadId, limit = 100, before = null) {
         const [rows] = await pool.query(query, params);
 
         // Reverse to return oldest → newest
+        const { normalizeMessengerMessage } = require('./messenger/message-content');
         return rows.reverse().map(row => {
             const att = _readAttachment(row.attachment_url, row.attachment_type);
-            return {
+            return normalizeMessengerMessage({
                 id: row.id,
                 mid: row.mid,
                 text: row.text,
@@ -1005,7 +1013,7 @@ async function getMessages(threadId, limit = 100, before = null) {
                 createdTime: row.created_time,
                 attachment_url: att.url,
                 attachment_type: att.type
-            };
+            });
         });
     } catch (err) {
         addDbError(`getMessages: ${err.message}`);
@@ -1026,21 +1034,14 @@ async function syncConversationsFromFacebook(pageId, pageToken, fetchFn, since =
 }
 
 function parseAttachments(fbAttachments) {
-    if (!fbAttachments) return [];
-    const list = fbAttachments.data || (Array.isArray(fbAttachments) ? fbAttachments : []);
-    return list.map(a => {
-        const type = a.type || (a.mime_type ? a.mime_type.split('/')[0] : 'file');
-        const url = a.payload?.url || a.file_url || a.image_data?.url || '';
-        const entry = { t: type, u: url };
-        if (a.name || a.payload?.name) entry.n = a.name || a.payload?.name;
-        return entry;
-    }).filter(a => a.u);
+    const { parseFbAttachments } = require('./messenger/message-content');
+    return parseFbAttachments(fbAttachments);
 }
 
 async function syncMessagesFromFacebook(threadId, pageId, pageToken, fetchFn, limit = 20) {
     try {
         const response = await fetchFn(
-            `https://graph.facebook.com/v19.0/${threadId}/messages?fields=id,message,from,created_time,attachments&limit=${limit}&access_token=${pageToken}`
+            `https://graph.facebook.com/v19.0/${threadId}/messages?fields=id,message,from,created_time,attachments{type,payload,sticker_id,image_data,file_url}&limit=${limit}&access_token=${pageToken}`
         );
         const data = await response.json();
 
@@ -1076,15 +1077,21 @@ async function syncMessagesFromFacebook(threadId, pageId, pageToken, fetchFn, li
 async function touchConversationFromLatestMessage(dbConvId) {
     if (!pool || !dbConvId) return;
     try {
+        const { snippetForMessage } = require('./messenger/message-content');
         const [rows] = await pool.query(
-            `SELECT message, from_me, created_at FROM messenger_messages
+            `SELECT message, from_me, created_at, attachment_url, attachment_type FROM messenger_messages
              WHERE conversation_id = ? ORDER BY created_at DESC LIMIT 1`,
             [dbConvId]
         );
         if (!rows[0]) return;
+        const att = _readAttachment(rows[0].attachment_url, rows[0].attachment_type);
         await updateConversationFromMessage({
             threadId: dbConvId,
-            text: rows[0].message || '',
+            text: snippetForMessage({
+                text: rows[0].message,
+                attachment_url: att.url,
+                attachment_type: att.type
+            }),
             createdTime: rows[0].created_at,
             lastFromMe: rows[0].from_me === 1 || rows[0].from_me === true
         });
@@ -1095,8 +1102,9 @@ async function touchConversationFromLatestMessage(dbConvId) {
 
 async function updateConversationFromMessage(message) {
     if (!pool) return;
-    const { threadId, text, createdTime, lastFromMe } = message;
-    const snippet = (text || '').substring(0, 200);
+    const { snippetForMessage } = require('./messenger/message-content');
+    const { threadId, text, createdTime, lastFromMe, attachment_type, attachment_url } = message;
+    const snippet = snippetForMessage({ text, attachment_type, attachment_url }).substring(0, 200);
     const updatedAt = createdTime ? new Date(createdTime) : new Date();
     try {
         if (lastFromMe !== undefined) {
@@ -1290,7 +1298,7 @@ async function syncConversationsAll(pageId, pageToken, fetchFn, since = null, op
 }
 
 async function syncMessagesAll(threadId, pageId, pageToken, fetchFn) {
-    let nextUrl = `https://graph.facebook.com/v19.0/${threadId}/messages?fields=id,message,from,created_time,attachments&limit=100&access_token=${pageToken}`;
+    let nextUrl = `https://graph.facebook.com/v19.0/${threadId}/messages?fields=id,message,from,created_time,attachments{type,payload,sticker_id,image_data,file_url}&limit=100&access_token=${pageToken}`;
 
     while (nextUrl) {
         const response = await fetchFn(nextUrl);
@@ -1431,7 +1439,7 @@ async function syncThreadMessages(threadId, pageId, pageToken, fetchFn, cutoffMs
         } catch (e) { /* use fallback */ }
     }
 
-    let nextUrl = `https://graph.facebook.com/v19.0/${threadId}/messages?fields=id,message,from,created_time,attachments&limit=100&access_token=${pageToken}`;
+    let nextUrl = `https://graph.facebook.com/v19.0/${threadId}/messages?fields=id,message,from,created_time,attachments{type,payload,sticker_id,image_data,file_url}&limit=100&access_token=${pageToken}`;
     let saved = 0;
 
     while (nextUrl) {

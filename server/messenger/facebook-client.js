@@ -3,6 +3,7 @@ const {
     retentionCutoffUnix,
     isWithinRetention
 } = require('./config');
+const { parseFbAttachments, normalizeMessengerMessage } = require('./message-content');
 
 const FB_TIMEOUT_MS = 12_000;
 
@@ -50,7 +51,7 @@ class FacebookClient {
     messagesUrl(fbConvId, pageToken, { limit = 50, sinceUnix = null, untilUnix = null } = {}) {
         const since = sinceUnix ?? retentionCutoffUnix();
         let url = `${FB_GRAPH_BASE}/${fbConvId}/messages` +
-            `?fields=id,message,from,created_time,attachments{image_data,file_url,type}` +
+            `?fields=id,message,from,created_time,attachments{type,payload,sticker_id,image_data,file_url,mime_type}` +
             `&limit=${limit}&since=${since}&access_token=${pageToken}`;
         if (untilUnix) url += `&until=${untilUnix}`;
         return url;
@@ -69,15 +70,37 @@ class FacebookClient {
         return (data.data || [])
             .filter(m => isWithinRetention(m.created_time))
             .reverse()
-            .map(m => ({
+            .map(m => normalizeMessengerMessage({
                 message_id: m.id,
                 message: m.message || '',
                 from_me: m.from?.id === pageId ? 1 : 0,
                 created_at: m.created_time,
-                attachment_url: m.attachments?.data?.[0]?.image_data?.url ||
-                    m.attachments?.data?.[0]?.file_url || null,
-                attachment_type: m.attachments?.data?.[0]?.type || null
+                attachments: parseFbAttachments(m.attachments)
             }));
+    }
+
+    async sendThumbsUp(pageToken, psid, useUtility = false) {
+        let data = await this.send(pageToken, psid, {
+            attachment: { type: 'like' }
+        }, useUtility);
+        if (!data.error) return data;
+        data = await this.send(pageToken, psid, { text: '👍' }, useUtility);
+        if (data.error) throw new FbApiError(data.error);
+        return data;
+    }
+
+    async sendThumbsUpWithRetry(pageToken, psid) {
+        let lastErr;
+        for (const useUtility of [false, true]) {
+            try {
+                return await this.sendThumbsUp(pageToken, psid, useUtility);
+            } catch (err) {
+                lastErr = err;
+                const fbErr = { code: err.fbCode, message: err.message };
+                if (!FacebookClient.isOutside24hWindow(fbErr)) throw err;
+            }
+        }
+        throw lastErr;
     }
 
     async send(pageToken, psid, messageObj, useUtility = false) {

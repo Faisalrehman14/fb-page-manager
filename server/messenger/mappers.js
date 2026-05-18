@@ -1,4 +1,5 @@
 /** API response shapes expected by messenger.js / web_ui.js */
+const { normalizeMessengerMessage } = require('./message-content');
 
 function mapConversation(c) {
     return {
@@ -25,7 +26,7 @@ function mapConversation(c) {
 }
 
 function mapMessage(m) {
-    return {
+    return normalizeMessengerMessage({
         ...m,
         message_id: m.mid || m.message_id || m.id,
         message: m.text || m.message || '',
@@ -34,19 +35,20 @@ function mapMessage(m) {
             : (m.isFromPage ? 1 : 0),
         created_at: m.createdTime || m.created_at,
         attachment_url: (m.attachments?.[0]?.u) || m.attachment_url || null,
-        attachment_type: (m.attachments?.[0]?.t) || m.attachment_type || null
-    };
+        attachment_type: (m.attachments?.[0]?.t) || m.attachment_type || null,
+        attachments: m.attachments
+    });
 }
 
 function mapPollMessage(m) {
-    return {
+    return normalizeMessengerMessage({
         message_id: m.mid,
         message: m.text || '',
         from_me: m.isFromPage ? 1 : 0,
         created_at: m.createdTime,
         attachment_url: m.attachment_url || null,
         attachment_type: m.attachment_type || null
-    };
+    });
 }
 
 /** Minimal payload for poll — smaller JSON over the wire */

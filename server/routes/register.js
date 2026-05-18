@@ -123,9 +123,11 @@ app.post(['/webhook', '/fb_webhook.php'], async (req, res) => {
                 const text = (event.message.text || '').trim();
                 const ts   = event.timestamp ? new Date(event.timestamp).toISOString() : new Date().toISOString();
 
-                const attachments = (event.message.attachments || [])
-                    .map(a => ({ t: a.type || 'file', u: a.payload?.url || '' }))
-                    .filter(a => a.u);
+                const { parseWebhookAttachments, normalizeIncomingSave, snippetForMessage } = require('../messenger/message-content');
+                const rawAttachments = parseWebhookAttachments(event.message.attachments || []);
+                const normalized = normalizeIncomingSave({ text, attachments: rawAttachments });
+                const saveText = normalized.text;
+                const saveAttachments = normalized.attachments;
 
                 const threadId = await db.ensureConversation(pageId, participantId);
                 if (!threadId) {
@@ -136,21 +138,28 @@ app.post(['/webhook', '/fb_webhook.php'], async (req, res) => {
                 const saved = await db.saveMessage({
                     id: mid, threadId, pageId, senderId: senderId,
                     senderType: isEcho ? 'page' : 'user',
-                    text, isFromPage: isEcho, createdTime: ts,
-                    attachments: attachments.length ? attachments : null
+                    text: saveText, isFromPage: isEcho, createdTime: ts,
+                    attachments: saveAttachments
+                });
+
+                const snippet = snippetForMessage({
+                    text: saveText,
+                    attachments: saveAttachments,
+                    attachment_type: saveAttachments?.[0]?.t
                 });
 
                 // Always update conversation metadata and emit events, even for echoes
                 if (isEcho) {
-                    await db.updateConversationFromMessage({ threadId, text: text || (attachments[0] ? `[${attachments[0].t}]` : 'Message'), createdTime: ts, lastFromMe: true }).catch(() => {});
+                    await db.updateConversationFromMessage({ threadId, text: snippet, createdTime: ts, lastFromMe: true }).catch(() => {});
                 } else {
-                    await db.onIncomingMessage(threadId, pageId, participantId, text || (attachments[0] ? `[${attachments[0].t}]` : ''));
+                    await db.onIncomingMessage(threadId, pageId, participantId, snippet);
                 }
 
-                const snippet = text || (attachments[0] ? `[${attachments[0].t}]` : 'Message');
                 io.to(`page_${pageId}`).emit('new_message', { 
-                    id: mid, threadId, pageId, participantId, text, 
-                    isFromPage: isEcho, createdTime: ts, attachments 
+                    id: mid, threadId, pageId, participantId, text: saveText, 
+                    isFromPage: isEcho, createdTime: ts,
+                    attachments: saveAttachments || [],
+                    attachment_type: saveAttachments?.[0]?.t || null
                 });
                 io.to(`page_${pageId}`).emit('conversation_updated', { 
                     id: threadId, pageId, participantId, snippet, 
