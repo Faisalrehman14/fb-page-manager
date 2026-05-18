@@ -593,18 +593,14 @@ body.light #appPage .section-title {
   color: #0f172a !important;
 }
 
-html[data-theme='light'] #appPage .page-item,
 html[data-theme='light'] #appPage .conv-item,
 html[data-theme='light'] #appPage .msg-row,
-body.light #appPage .page-item,
 body.light #appPage .conv-item,
 body.light #appPage .msg-row {
   color: #334155 !important;
 }
 
-html[data-theme='light'] #appPage .page-item.active,
 html[data-theme='light'] #appPage .conv-item.active,
-body.light #appPage .page-item.active,
 body.light #appPage .conv-item.active {
   background: #eef2ff !important;
   color: #1e3a8a !important;
@@ -670,14 +666,433 @@ body.light #appPage .modal-title {
   color: #0f172a !important;
 }
 
-html[data-theme='light'] #appPage p,
-html[data-theme='light'] #appPage span,
-html[data-theme='light'] #appPage small,
-html[data-theme='light'] #appPage .help-text,
-body.light #appPage p,
-body.light #appPage span,
-body.light #appPage small,
-body.light #appPage .help-text {
-  color: inherit;
+/* ═══════════════════════════════════════════════════════════
+   BROADCAST WORKSPACE — professional light mode
+═══════════════════════════════════════════════════════════ */
+
+/* Premium glass panels (saas-premium) */
+html[data-theme='light'] #appPage .sidebar,
+html[data-theme='light'] #appPage .compose,
+html[data-theme='light'] #appPage .compose-col,
+html[data-theme='light'] #appPage .broadcast-col,
+body.light #appPage .sidebar,
+body.light #appPage .compose,
+body.light #appPage .compose-col,
+body.light #appPage .broadcast-col {
+  background: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  box-shadow:
+    0 0 0 1px rgba(15, 23, 42, 0.03),
+    0 4px 20px rgba(15, 23, 42, 0.06) !important;
+}
+
+/* Topbar breadcrumb */
+html[data-theme='light'] #appPage .saas-topbar__breadcrumb,
+body.light #appPage .saas-topbar__breadcrumb {
+  background: #f1f5f9 !important;
+  border: 1px solid #e2e8f0 !important;
+  color: #64748b !important;
+}
+
+html[data-theme='light'] #appPage .saas-topbar__breadcrumb strong,
+body.light #appPage .saas-topbar__breadcrumb strong {
+  color: #0f172a !important;
+}
+
+html[data-theme='light'] #appPage .saas-topbar__sep-v,
+body.light #appPage .saas-topbar__sep-v {
+  background: linear-gradient(180deg, transparent, #cbd5e1, transparent) !important;
+}
+
+/* Pages sidebar */
+html[data-theme='light'] #appPage .sidebar-hdr-label-left,
+body.light #appPage .sidebar-hdr-label-left {
+  color: #334155 !important;
+}
+
+html[data-theme='light'] #appPage .page-card,
+body.light #appPage .page-card {
+  background: #ffffff !important;
+  border-color: #e2e8f0 !important;
+}
+
+html[data-theme='light'] #appPage .page-card-name,
+html[data-theme='light'] #appPage .page-name,
+body.light #appPage .page-card-name,
+body.light #appPage .page-name {
+  color: #0f172a !important;
+}
+
+html[data-theme='light'] #appPage .page-card-cat,
+html[data-theme='light'] #appPage .page-category,
+body.light #appPage .page-card-cat,
+body.light #appPage .page-category {
+  color: #64748b !important;
+}
+
+html[data-theme='light'] #appPage .page-card.active,
+html[data-theme='light'] #appPage .page-card.selected,
+body.light #appPage .page-card.active,
+body.light #appPage .page-card.selected {
+  background: #eef2ff !important;
+  border-color: rgba(99, 102, 241, 0.28) !important;
+}
+
+html[data-theme='light'] #appPage .page-card.active .page-card-name,
+html[data-theme='light'] #appPage .page-card.active .page-name,
+body.light #appPage .page-card.active .page-card-name,
+body.light #appPage .page-card.active .page-name {
+  color: #1e3a8a !important;
+}
+
+html[data-theme='light'] #appPage .sidebar-tips,
+body.light #appPage .sidebar-tips {
+  background: #f8fafc !important;
+  border-color: #e2e8f0 !important;
+}
+
+html[data-theme='light'] #appPage .sidebar-tips-hdr,
+html[data-theme='light'] #appPage .stip-item,
+body.light #appPage .sidebar-tips-hdr,
+body.light #appPage .stip-item {
+  color: #475569 !important;
+}
+
+html[data-theme='light'] #appPage .stip-green,
+body.light #appPage .stip-green {
+  color: #059669 !important;
+}
+
+html[data-theme='light'] #appPage .stip-item strong,
+body.light #appPage .stip-item strong {
+  color: #1e293b !important;
+}
+
+/* Compose / message column */
+html[data-theme='light'] #appPage .compose-hdr,
+body.light #appPage .compose-hdr {
+  background: linear-gradient(180deg, #f8fafc, #ffffff) !important;
+  border-bottom-color: #e2e8f0 !important;
+}
+
+html[data-theme='light'] #appPage .compose-hdr h3,
+html[data-theme='light'] #appPage .field-label,
+body.light #appPage .compose-hdr h3,
+body.light #appPage .field-label {
+  color: #334155 !important;
+}
+
+html[data-theme='light'] #appPage #messageText,
+body.light #appPage #messageText {
+  background: #ffffff !important;
+  border-color: #cbd5e1 !important;
+  color: #0f172a !important;
+}
+
+html[data-theme='light'] #appPage #messageText::placeholder,
+body.light #appPage #messageText::placeholder {
+  color: #94a3b8 !important;
+}
+
+html[data-theme='light'] #appPage #charCount,
+html[data-theme='light'] #appPage .msg-personalize-label,
+body.light #appPage #charCount,
+body.light #appPage .msg-personalize-label {
+  color: #64748b !important;
+}
+
+html[data-theme='light'] #appPage .img-attach-panel,
+html[data-theme='light'] #appPage .img-drop-zone,
+body.light #appPage .img-attach-panel,
+body.light #appPage .img-drop-zone {
+  background: #f8fafc !important;
+  border-color: #cbd5e1 !important;
+  color: #475569 !important;
+}
+
+html[data-theme='light'] #appPage .img-drop-zone i,
+body.light #appPage .img-drop-zone i {
+  color: #2563eb !important;
+}
+
+html[data-theme='light'] #appPage .img-drop-zone small,
+body.light #appPage .img-drop-zone small {
+  color: #64748b !important;
+}
+
+html[data-theme='light'] #appPage .compose-notice,
+body.light #appPage .compose-notice {
+  background: #eff6ff !important;
+  border-color: rgba(59, 130, 246, 0.2) !important;
+  color: #334155 !important;
+}
+
+/* Settings / delay presets */
+html[data-theme='light'] #appPage .delay-preset,
+body.light #appPage .delay-preset {
+  background: #ffffff !important;
+  border-color: #e2e8f0 !important;
+  color: #334155 !important;
+}
+
+html[data-theme='light'] #appPage .delay-preset.active,
+body.light #appPage .delay-preset.active {
+  background: #eef2ff !important;
+  border-color: rgba(99, 102, 241, 0.35) !important;
+  color: #1e3a8a !important;
+  box-shadow: 0 0 0 1px rgba(99, 102, 241, 0.12) inset !important;
+}
+
+html[data-theme='light'] #appPage .field-hint,
+html[data-theme='light'] #appPage #sendHint,
+body.light #appPage .field-hint,
+body.light #appPage #sendHint {
+  color: #475569 !important;
+  background: #f1f5f9 !important;
+  border-color: #e2e8f0 !important;
+}
+
+html[data-theme='light'] #appPage .bcast-mini-stat,
+body.light #appPage .bcast-mini-stat {
+  background: #f8fafc !important;
+  border-color: #e2e8f0 !important;
+}
+
+html[data-theme='light'] #appPage .bcast-mini-stat-lbl,
+body.light #appPage .bcast-mini-stat-lbl {
+  color: #64748b !important;
+}
+
+html[data-theme='light'] #appPage .bms-total .bcast-mini-stat-val,
+body.light #appPage .bms-total .bcast-mini-stat-val {
+  color: #0f172a !important;
+}
+
+html[data-theme='light'] #appPage .bms-sent .bcast-mini-stat-val,
+body.light #appPage .bms-sent .bcast-mini-stat-val {
+  color: #059669 !important;
+}
+
+html[data-theme='light'] #appPage .bms-failed .bcast-mini-stat-val,
+body.light #appPage .bms-failed .bcast-mini-stat-val {
+  color: #dc2626 !important;
+}
+
+/* Templates & tips */
+html[data-theme='light'] #appPage .tpl-item,
+html[data-theme='light'] #appPage .tip-item,
+body.light #appPage .tpl-item,
+body.light #appPage .tip-item {
+  background: #f8fafc !important;
+  border-color: #e2e8f0 !important;
+}
+
+html[data-theme='light'] #appPage .tpl-name,
+body.light #appPage .tpl-name {
+  color: #0f172a !important;
+}
+
+html[data-theme='light'] #appPage .tpl-preview,
+html[data-theme='light'] #appPage .tip-item,
+body.light #appPage .tpl-preview,
+body.light #appPage .tip-item {
+  color: #475569 !important;
+}
+
+/* ─── Stats panel (right column) ─── */
+html[data-theme='light'] #appPage .stats-panel,
+body.light #appPage .stats-panel {
+  background: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  box-shadow:
+    0 0 0 1px rgba(15, 23, 42, 0.03),
+    0 8px 28px rgba(15, 23, 42, 0.06) !important;
+}
+
+html[data-theme='light'] #appPage .panel-hdr > span:first-child,
+body.light #appPage .panel-hdr > span:first-child {
+  color: #334155 !important;
+}
+
+html[data-theme='light'] #appPage .quick-stat-card,
+body.light #appPage .quick-stat-card {
+  background: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04) !important;
+}
+
+html[data-theme='light'] #appPage .qs-val,
+body.light #appPage .qs-val {
+  color: #0f172a !important;
+}
+
+html[data-theme='light'] #appPage .qs-lbl,
+body.light #appPage .qs-lbl {
+  color: #64748b !important;
+}
+
+html[data-theme='light'] #appPage .qs-success .qs-val,
+body.light #appPage .qs-success .qs-val {
+  color: #059669 !important;
+}
+
+html[data-theme='light'] #appPage .qs-speed .qs-val,
+body.light #appPage .qs-speed .qs-val {
+  color: #2563eb !important;
+}
+
+html[data-theme='light'] #appPage .qs-pending .qs-val,
+body.light #appPage .qs-pending .qs-val {
+  color: #d97706 !important;
+}
+
+html[data-theme='light'] #appPage .qs-audience .qs-val,
+body.light #appPage .qs-audience .qs-val {
+  color: #7c3aed !important;
+}
+
+/* Total / Sent / Failed strip */
+html[data-theme='light'] #appPage .stat-box,
+body.light #appPage .stat-box {
+  background: #f8fafc !important;
+  border-color: #e2e8f0 !important;
+}
+
+html[data-theme='light'] #appPage .stat-lbl,
+body.light #appPage .stat-lbl {
+  color: #64748b !important;
+}
+
+html[data-theme='light'] #appPage .stat-val,
+body.light #appPage .stat-val {
+  color: #0f172a !important;
+  text-shadow: none !important;
+}
+
+html[data-theme='light'] #appPage .stat-box.s-total .stat-val,
+body.light #appPage .stat-box.s-total .stat-val {
+  color: #2563eb !important;
+}
+
+html[data-theme='light'] #appPage .stat-box.s-sent .stat-val,
+body.light #appPage .stat-box.s-sent .stat-val {
+  color: #059669 !important;
+}
+
+html[data-theme='light'] #appPage .stat-box.s-failed .stat-val,
+body.light #appPage .stat-box.s-failed .stat-val {
+  color: #dc2626 !important;
+}
+
+html[data-theme='light'] #appPage .progress-bar-area,
+body.light #appPage .progress-bar-area {
+  background: #f8fafc !important;
+  border-color: #e2e8f0 !important;
+}
+
+html[data-theme='light'] #appPage .progress-left,
+html[data-theme='light'] #appPage .eta-text,
+body.light #appPage .progress-left,
+body.light #appPage .eta-text {
+  color: #64748b !important;
+}
+
+html[data-theme='light'] #appPage .progress-pct,
+body.light #appPage .progress-pct {
+  color: #0f172a !important;
+}
+
+html[data-theme='light'] #appPage .progress-track,
+body.light #appPage .progress-track {
+  background: #e2e8f0 !important;
+}
+
+/* Campaign intelligence */
+html[data-theme='light'] #appPage .intel-card,
+html[data-theme='light'] #appPage .intel-advice,
+html[data-theme='light'] #appPage .ops-row,
+body.light #appPage .intel-card,
+body.light #appPage .intel-advice,
+body.light #appPage .ops-row {
+  background: #f8fafc !important;
+  border-color: #e2e8f0 !important;
+}
+
+html[data-theme='light'] #appPage .intel-label,
+html[data-theme='light'] #appPage .ops-row-label,
+body.light #appPage .intel-label,
+body.light #appPage .ops-row-label {
+  color: #64748b !important;
+}
+
+html[data-theme='light'] #appPage .intel-val,
+html[data-theme='light'] #appPage .intel-advice,
+body.light #appPage .intel-val,
+body.light #appPage .intel-advice {
+  color: #0f172a !important;
+}
+
+html[data-theme='light'] #appPage .intel-neutral,
+body.light #appPage .intel-neutral {
+  color: #2563eb !important;
+}
+
+html[data-theme='light'] #appPage .intel-good,
+body.light #appPage .intel-good {
+  color: #059669 !important;
+}
+
+html[data-theme='light'] #appPage .ops-badge-green,
+body.light #appPage .ops-badge-green {
+  background: rgba(16, 185, 129, 0.12) !important;
+  color: #047857 !important;
+  border-color: rgba(5, 150, 105, 0.25) !important;
+}
+
+html[data-theme='light'] #appPage .ops-badge-violet,
+body.light #appPage .ops-badge-violet {
+  background: rgba(99, 102, 241, 0.1) !important;
+  color: #4338ca !important;
+  border-color: rgba(99, 102, 241, 0.22) !important;
+}
+
+html[data-theme='light'] #appPage .ops-badge-cyan,
+body.light #appPage .ops-badge-cyan {
+  background: rgba(6, 182, 212, 0.1) !important;
+  color: #0e7490 !important;
+  border-color: rgba(6, 182, 212, 0.22) !important;
+}
+
+html[data-theme='light'] #appPage .ops-badge-amber,
+body.light #appPage .ops-badge-amber {
+  background: rgba(245, 158, 11, 0.12) !important;
+  color: #b45309 !important;
+  border-color: rgba(245, 158, 11, 0.25) !important;
+}
+
+html[data-theme='light'] #appPage .live-badge,
+body.light #appPage .live-badge {
+  background: rgba(16, 185, 129, 0.1) !important;
+  color: #047857 !important;
+  border-color: rgba(5, 150, 105, 0.22) !important;
+}
+
+html[data-theme='light'] #appPage .mode-pill:not(.active),
+html[data-theme='light'] #appPage .recipients-toggle-btn,
+html[data-theme='light'] #appPage .img-attach-toggle,
+html[data-theme='light'] #appPage .img-tab-btn,
+body.light #appPage .mode-pill:not(.active),
+body.light #appPage .recipients-toggle-btn,
+body.light #appPage .img-attach-toggle,
+body.light #appPage .img-tab-btn {
+  color: #475569 !important;
+  background: #f1f5f9 !important;
+  border-color: #e2e8f0 !important;
+}
+
+html[data-theme='light'] #appPage .mode-pills,
+body.light #appPage .mode-pills {
+  background: #f1f5f9 !important;
+  border-color: #e2e8f0 !important;
 }
 

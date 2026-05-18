@@ -433,6 +433,16 @@ body.light #view-analytics .analytics-chart-box {
   backdrop-filter: blur(12px);
 }
 
+body.light .stats-panel,
+html[data-theme='light'] .stats-panel {
+  background: #ffffff !important;
+  backdrop-filter: none;
+  border-color: rgba(99, 102, 241, 0.12) !important;
+  box-shadow:
+    0 0 0 1px rgba(15, 23, 42, 0.04),
+    0 8px 28px rgba(15, 23, 42, 0.06) !important;
+}
+
 /* ─── Landing: logo cloud ─── */
 .pro-logo-cloud {
   padding: 48px clamp(24px, 5vw, 56px);
