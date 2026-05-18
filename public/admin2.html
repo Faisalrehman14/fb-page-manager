@@ -1,0 +1,1580 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>FBCast Pro — Admin</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#08090e;--s1:#0f1117;--s2:#151820;--s3:#1d2130;--border:#252840;
+  --primary:#6366f1;--primary-d:#4f52d6;--primary-glow:rgba(99,102,241,.25);
+  --green:#22c55e;--red:#ef4444;--amber:#f59e0b;--blue:#3b82f6;--sky:#0ea5e9;--purple:#a855f7;
+  --text:#e2e8f0;--muted:#64748b;--muted2:#94a3b8;
+  --font:'Inter',system-ui,sans-serif;
+  --radius:10px;--radius-lg:14px;
+  --transition:all .18s cubic-bezier(.4,0,.2,1);
+}
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--text);font-size:14px;-webkit-font-smoothing:antialiased}
+a{color:inherit;text-decoration:none}
+button{font-family:inherit;cursor:pointer}
+input,select{font-family:inherit}
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+
+/* ══════════════════════════════════════
+   LOGIN
+══════════════════════════════════════ */
+#loginScreen{
+  display:flex;align-items:center;justify-content:center;
+  min-height:100vh;position:relative;overflow:hidden;
+}
+#loginScreen::before{
+  content:'';position:absolute;inset:0;
+  background:radial-gradient(ellipse 80% 60% at 50% 0%,rgba(99,102,241,.15) 0%,transparent 70%);
+  pointer-events:none;
+}
+.login-card{
+  background:var(--s1);border:1px solid var(--border);border-radius:20px;
+  padding:44px 40px;width:100%;max-width:400px;position:relative;z-index:1;
+  box-shadow:0 24px 60px rgba(0,0,0,.5);
+}
+.login-brand{text-align:center;margin-bottom:32px}
+.login-logo-ring{
+  width:60px;height:60px;border-radius:16px;
+  background:linear-gradient(135deg,#6366f1,#a855f7);
+  display:flex;align-items:center;justify-content:center;margin:0 auto 14px;
+  box-shadow:0 8px 24px rgba(99,102,241,.4);
+}
+.login-logo-ring svg{width:28px;height:28px;color:#fff}
+.login-brand h1{font-size:20px;font-weight:800;letter-spacing:-.3px}
+.login-brand p{color:var(--muted);font-size:13px;margin-top:4px}
+.login-field{margin-bottom:16px}
+.login-field label{display:block;font-size:12px;font-weight:600;color:var(--muted2);margin-bottom:7px;text-transform:uppercase;letter-spacing:.05em}
+.login-input-wrap{position:relative}
+.login-input-wrap input{
+  width:100%;padding:12px 44px 12px 14px;
+  background:var(--s2);border:1px solid var(--border);
+  border-radius:var(--radius);color:var(--text);font-size:14px;outline:none;
+  transition:var(--transition);
+}
+.login-input-wrap input:focus{border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-glow)}
+.login-eye{
+  position:absolute;right:12px;top:50%;transform:translateY(-50%);
+  background:none;border:none;color:var(--muted);padding:4px;
+}
+.login-eye:hover{color:var(--text)}
+.login-btn{
+  width:100%;padding:13px;margin-top:8px;
+  background:linear-gradient(135deg,#6366f1,#7c3aed);
+  color:#fff;border:none;border-radius:var(--radius);
+  font-size:14px;font-weight:700;letter-spacing:.02em;
+  transition:var(--transition);box-shadow:0 4px 16px rgba(99,102,241,.3);
+}
+.login-btn:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(99,102,241,.4)}
+.login-btn:active{transform:translateY(0)}
+.login-error{
+  color:var(--red);font-size:12px;margin-top:10px;text-align:center;
+  padding:8px;background:rgba(239,68,68,.08);border-radius:8px;
+  border:1px solid rgba(239,68,68,.2);display:none;
+}
+.login-footer{text-align:center;margin-top:20px;font-size:12px;color:var(--muted)}
+
+/* ══════════════════════════════════════
+   APP SHELL
+══════════════════════════════════════ */
+#adminApp{display:none;height:100vh;overflow:hidden}
+.shell{display:flex;height:100%}
+
+/* ── Sidebar ── */
+.sidebar{
+  width:230px;flex-shrink:0;background:var(--s1);border-right:1px solid var(--border);
+  display:flex;flex-direction:column;overflow-y:auto;overflow-x:hidden;
+  transition:width .25s ease;
+}
+.sb-brand{
+  padding:18px 16px 14px;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:10px;
+}
+.sb-brand-icon{
+  width:34px;height:34px;border-radius:9px;flex-shrink:0;
+  background:linear-gradient(135deg,#6366f1,#a855f7);
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 4px 12px rgba(99,102,241,.35);
+}
+.sb-brand-icon svg{width:16px;height:16px;color:#fff}
+.sb-brand-text .name{font-size:14px;font-weight:800;letter-spacing:-.2px}
+.sb-brand-text .sub{font-size:10px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.08em}
+.sb-nav{flex:1;padding:12px 10px}
+.sb-section{
+  font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;
+  color:var(--muted);padding:10px 8px 5px;
+}
+.sb-item{
+  display:flex;align-items:center;gap:10px;padding:9px 10px;
+  border-radius:9px;color:var(--muted);font-size:13px;font-weight:500;
+  cursor:pointer;transition:var(--transition);margin-bottom:1px;
+  position:relative;border:1px solid transparent;
+}
+.sb-item svg{width:16px;height:16px;flex-shrink:0}
+.sb-item:hover{color:var(--text);background:var(--s2)}
+.sb-item.active{
+  color:var(--primary);background:rgba(99,102,241,.1);
+  border-color:rgba(99,102,241,.2);
+}
+.sb-item.active::before{
+  content:'';position:absolute;left:-10px;top:50%;transform:translateY(-50%);
+  width:3px;height:16px;background:var(--primary);border-radius:0 2px 2px 0;
+}
+.sb-badge{
+  margin-left:auto;background:rgba(99,102,241,.2);color:var(--primary);
+  font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px;
+}
+.sb-footer{padding:12px 10px;border-top:1px solid var(--border)}
+.sb-user-card{
+  display:flex;align-items:center;gap:9px;padding:8px 10px;
+  border-radius:9px;margin-bottom:4px;
+}
+.sb-user-av{
+  width:30px;height:30px;border-radius:8px;flex-shrink:0;
+  background:linear-gradient(135deg,#6366f1,#a855f7);
+  display:flex;align-items:center;justify-content:center;
+  font-size:13px;font-weight:800;color:#fff;
+}
+.sb-user-name{font-size:12px;font-weight:600}
+.sb-user-role{font-size:10px;color:var(--muted)}
+.sb-logout{
+  display:flex;align-items:center;gap:8px;width:100%;padding:9px 10px;
+  border:none;background:none;color:var(--muted);border-radius:9px;
+  font-size:13px;font-weight:500;transition:var(--transition);
+}
+.sb-logout svg{width:15px;height:15px}
+.sb-logout:hover{background:rgba(239,68,68,.1);color:var(--red)}
+
+/* ── Main ── */
+.main{flex:1;display:flex;flex-direction:column;min-width:0;overflow:hidden}
+
+/* ── Topbar ── */
+.topbar{
+  background:var(--s1);border-bottom:1px solid var(--border);
+  padding:0 24px;height:56px;display:flex;align-items:center;
+  justify-content:space-between;flex-shrink:0;gap:16px;
+}
+.topbar-left{display:flex;align-items:center;gap:10px}
+.topbar-title{font-size:16px;font-weight:800;letter-spacing:-.2px}
+.topbar-crumb{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:4px}
+.topbar-right{display:flex;align-items:center;gap:8px}
+.tb-search{
+  display:flex;align-items:center;gap:8px;background:var(--s2);
+  border:1px solid var(--border);border-radius:9px;padding:7px 12px;
+  transition:var(--transition);
+}
+.tb-search:focus-within{border-color:var(--primary)}
+.tb-search svg{color:var(--muted);width:14px;height:14px;flex-shrink:0}
+.tb-search input{
+  background:none;border:none;outline:none;color:var(--text);
+  font-size:13px;width:170px;
+}
+.tb-btn{
+  width:34px;height:34px;border-radius:9px;border:1px solid var(--border);
+  background:var(--s2);color:var(--muted);display:flex;align-items:center;
+  justify-content:center;transition:var(--transition);
+}
+.tb-btn svg{width:15px;height:15px}
+.tb-btn:hover{color:var(--text);border-color:var(--primary)}
+.admin-chip{
+  background:rgba(99,102,241,.12);border:1px solid rgba(99,102,241,.25);
+  color:var(--primary);font-size:11px;font-weight:700;
+  padding:4px 10px;border-radius:20px;
+}
+
+/* ── Content ── */
+.content{flex:1;overflow-y:auto;padding:24px}
+
+/* ── Views ── */
+.view{display:none}
+.view.active{display:block}
+
+/* ══════════════════════════════════════
+   STAT CARDS
+══════════════════════════════════════ */
+.stats-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:22px}
+.stat-card{
+  background:var(--s1);border:1px solid var(--border);border-radius:var(--radius-lg);
+  padding:18px;position:relative;overflow:hidden;transition:var(--transition);
+}
+.stat-card:hover{border-color:rgba(99,102,241,.3);transform:translateY(-1px)}
+.stat-card::after{
+  content:'';position:absolute;top:0;left:0;right:0;height:2px;
+  opacity:0;transition:opacity .2s;
+}
+.stat-card:hover::after{opacity:1}
+.stat-card.c-purple::after{background:linear-gradient(90deg,#6366f1,#a855f7)}
+.stat-card.c-green::after{background:linear-gradient(90deg,#22c55e,#10b981)}
+.stat-card.c-amber::after{background:linear-gradient(90deg,#f59e0b,#f97316)}
+.stat-card.c-blue::after{background:linear-gradient(90deg,#3b82f6,#06b6d4)}
+.stat-card.c-indigo::after{background:linear-gradient(90deg,#818cf8,#6366f1)}
+.stat-icon{
+  width:36px;height:36px;border-radius:9px;display:flex;align-items:center;justify-content:center;margin-bottom:12px;
+}
+.stat-icon svg{width:17px;height:17px}
+.c-purple .stat-icon{background:rgba(99,102,241,.15);color:var(--primary)}
+.c-green  .stat-icon{background:rgba(34,197,94,.12);color:var(--green)}
+.c-amber  .stat-icon{background:rgba(245,158,11,.12);color:var(--amber)}
+.c-blue   .stat-icon{background:rgba(59,130,246,.12);color:var(--blue)}
+.c-indigo .stat-icon{background:rgba(129,140,248,.12);color:#818cf8}
+.stat-label{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.stat-value{font-size:28px;font-weight:900;letter-spacing:-1px;margin:4px 0 2px;line-height:1}
+.c-purple .stat-value{color:var(--primary)}
+.c-green  .stat-value{color:var(--green)}
+.c-amber  .stat-value{color:var(--amber)}
+.c-blue   .stat-value{color:var(--blue)}
+.c-indigo .stat-value{color:#818cf8}
+.stat-sub{font-size:11px;color:var(--muted)}
+
+/* ══════════════════════════════════════
+   PANELS
+══════════════════════════════════════ */
+.panel{background:var(--s1);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;margin-bottom:16px}
+.panel-head{
+  padding:14px 20px;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;
+}
+.panel-head-left{display:flex;align-items:center;gap:10px}
+.panel-title{font-size:14px;font-weight:700;letter-spacing:-.1px}
+.panel-sub{font-size:12px;color:var(--muted);margin-top:1px}
+
+/* Charts row */
+.charts-row{display:grid;grid-template-columns:2fr 1fr;gap:14px;margin-bottom:16px}
+.chart-wrap{padding:20px}
+.chart-canvas-wrap{position:relative;height:200px}
+
+/* Plan legend */
+.plan-legend{display:flex;flex-direction:column;gap:8px;padding:16px 20px}
+.plan-legend-item{display:flex;align-items:center;gap:10px}
+.plan-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.plan-legend-name{font-size:12px;font-weight:600;flex:1;text-transform:capitalize}
+.plan-legend-count{font-size:12px;font-weight:700;color:var(--muted2)}
+.plan-legend-bar{height:4px;border-radius:2px;margin-top:2px;transition:width .5s ease}
+
+/* ══════════════════════════════════════
+   TABLE
+══════════════════════════════════════ */
+.tbl-controls{
+  padding:12px 20px;display:flex;align-items:center;gap:10px;
+  flex-wrap:wrap;border-bottom:1px solid var(--border);
+}
+.tbl-search{
+  display:flex;align-items:center;gap:8px;background:var(--s2);
+  border:1px solid var(--border);border-radius:9px;padding:8px 12px;flex:1;min-width:160px;max-width:300px;
+  transition:var(--transition);
+}
+.tbl-search:focus-within{border-color:var(--primary)}
+.tbl-search svg{color:var(--muted);width:13px;height:13px;flex-shrink:0}
+.tbl-search input{background:none;border:none;outline:none;color:var(--text);font-size:13px;width:100%}
+.tbl-filter select{
+  background:var(--s2);border:1px solid var(--border);border-radius:9px;
+  color:var(--text);padding:8px 12px;font-size:13px;outline:none;cursor:pointer;
+  transition:var(--transition);
+}
+.tbl-filter select:focus{border-color:var(--primary)}
+.tbl-filter select option{background:var(--s1)}
+.tbl-count{font-size:12px;color:var(--muted);margin-left:auto}
+
+/* Bulk bar */
+.bulk-bar{
+  padding:10px 20px;background:rgba(99,102,241,.08);border-bottom:1px solid rgba(99,102,241,.2);
+  display:none;align-items:center;gap:10px;
+}
+.bulk-bar.show{display:flex}
+.bulk-count{font-size:13px;font-weight:600;color:var(--primary)}
+
+/* Table */
+.tbl-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse}
+thead th{
+  padding:10px 16px;font-size:11px;text-transform:uppercase;
+  letter-spacing:.07em;color:var(--muted);font-weight:700;
+  border-bottom:1px solid var(--border);background:var(--s2);
+  text-align:left;white-space:nowrap;user-select:none;
+}
+thead th.sortable{cursor:pointer}
+thead th.sortable:hover{color:var(--text)}
+thead th .sort-indicator{display:inline-flex;flex-direction:column;gap:1px;margin-left:5px;vertical-align:middle}
+thead th .sort-indicator span{
+  width:0;height:0;display:block;
+  border-left:3px solid transparent;border-right:3px solid transparent;
+}
+thead th .sort-indicator .up{border-bottom:4px solid var(--border)}
+thead th .sort-indicator .dn{border-top:4px solid var(--border)}
+thead th.sort-asc .sort-indicator .up{border-bottom-color:var(--primary)}
+thead th.sort-desc .sort-indicator .dn{border-top-color:var(--primary)}
+tbody tr{border-bottom:1px solid var(--border);transition:background .1s}
+tbody tr:last-child{border-bottom:none}
+tbody tr:hover{background:rgba(255,255,255,.02)}
+tbody tr.selected{background:rgba(99,102,241,.06)}
+tbody td{padding:12px 16px;font-size:13px;vertical-align:middle}
+.td-check{width:40px;text-align:center}
+input[type=checkbox]{
+  width:15px;height:15px;cursor:pointer;accent-color:var(--primary);
+  border-radius:4px;
+}
+
+/* User cell */
+.user-cell{display:flex;align-items:center;gap:10px}
+.u-av{
+  width:34px;height:34px;border-radius:9px;flex-shrink:0;
+  background:linear-gradient(135deg,#6366f1,#a855f7);
+  display:flex;align-items:center;justify-content:center;
+  font-size:13px;font-weight:800;color:#fff;
+}
+.u-name{font-weight:600;font-size:13px;white-space:nowrap;max-width:180px;overflow:hidden;text-overflow:ellipsis}
+.u-id{font-size:11px;color:var(--muted);font-family:monospace;letter-spacing:-.2px}
+
+/* Plan badge */
+.badge{display:inline-block;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em}
+.badge-free    {background:rgba(100,116,139,.15);color:#94a3b8}
+.badge-basic   {background:rgba(59,130,246,.15);color:#60a5fa}
+.badge-pro     {background:rgba(99,102,241,.18);color:#818cf8}
+.badge-gold    {background:rgba(245,158,11,.15);color:#fbbf24}
+.badge-sapphire{background:rgba(14,165,233,.15);color:#38bdf8}
+.badge-platinum{background:rgba(168,85,247,.18);color:#c084fc}
+.badge-unknown {background:rgba(100,116,139,.12);color:#64748b}
+
+/* Quota */
+.quota-cell{min-width:110px}
+.quota-bar{width:100%;height:5px;background:var(--s3);border-radius:3px;overflow:hidden;margin-bottom:4px}
+.quota-fill{height:100%;border-radius:3px;transition:width .3s}
+.qf-ok  {background:linear-gradient(90deg,#22c55e,#10b981)}
+.qf-warn{background:linear-gradient(90deg,#f59e0b,#f97316)}
+.qf-hot {background:linear-gradient(90deg,#ef4444,#dc2626)}
+.quota-txt{font-size:11px;color:var(--muted)}
+
+/* Action btns */
+.actions{display:flex;gap:5px;flex-wrap:nowrap}
+.btn{
+  display:inline-flex;align-items:center;gap:5px;
+  border-radius:8px;font-size:12px;font-weight:600;border:1px solid transparent;
+  transition:var(--transition);white-space:nowrap;
+}
+.btn svg{width:13px;height:13px}
+.btn-sm{padding:5px 10px}
+.btn-md{padding:8px 16px}
+.btn-lg{padding:10px 20px}
+.btn-primary{background:var(--primary);color:#fff;border-color:var(--primary)}
+.btn-primary:hover{background:var(--primary-d)}
+.btn-ghost{background:transparent;color:var(--muted);border-color:var(--border)}
+.btn-ghost:hover{color:var(--text);border-color:var(--muted2)}
+.btn-danger{background:rgba(239,68,68,.1);color:var(--red);border-color:rgba(239,68,68,.2)}
+.btn-danger:hover{background:rgba(239,68,68,.2)}
+.btn-success{background:rgba(34,197,94,.1);color:var(--green);border-color:rgba(34,197,94,.2)}
+.btn-success:hover{background:rgba(34,197,94,.2)}
+.btn-amber{background:rgba(245,158,11,.1);color:var(--amber);border-color:rgba(245,158,11,.2)}
+.btn-amber:hover{background:rgba(245,158,11,.2)}
+
+/* Pagination */
+.pagination{display:flex;align-items:center;justify-content:space-between;padding:12px 20px;border-top:1px solid var(--border)}
+.pg-info{font-size:12px;color:var(--muted)}
+.pg-btns{display:flex;gap:4px;align-items:center}
+.pg-btn{
+  min-width:30px;height:30px;padding:0 8px;border-radius:7px;border:1px solid var(--border);
+  background:var(--s2);color:var(--muted);font-size:12px;font-weight:600;
+  transition:var(--transition);display:flex;align-items:center;justify-content:center;
+}
+.pg-btn:hover:not(:disabled){border-color:var(--primary);color:var(--primary)}
+.pg-btn.active{background:var(--primary);border-color:var(--primary);color:#fff}
+.pg-btn:disabled{opacity:.35;cursor:default}
+.pg-sep{color:var(--muted);font-size:12px;padding:0 2px}
+
+/* ══════════════════════════════════════
+   ACTIVITY LOG
+══════════════════════════════════════ */
+.activity-list{padding:4px 0}
+.act-item{
+  display:flex;align-items:flex-start;gap:14px;
+  padding:13px 20px;border-bottom:1px solid var(--border);
+  transition:background .1s;
+}
+.act-item:last-child{border-bottom:none}
+.act-item:hover{background:rgba(255,255,255,.015)}
+.act-icon{
+  width:32px;height:32px;border-radius:9px;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;margin-top:1px;
+}
+.act-icon svg{width:14px;height:14px}
+.ai-login  {background:rgba(34,197,94,.1);color:var(--green)}
+.ai-send   {background:rgba(59,130,246,.1);color:var(--blue)}
+.ai-default{background:rgba(99,102,241,.1);color:var(--primary)}
+.ai-error  {background:rgba(239,68,68,.1);color:var(--red)}
+.act-body{flex:1;min-width:0}
+.act-action{font-size:13px;font-weight:600;display:flex;align-items:center;gap:7px}
+.act-badge{font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px;text-transform:uppercase;letter-spacing:.04em}
+.ab-login  {background:rgba(34,197,94,.12);color:var(--green)}
+.ab-send   {background:rgba(59,130,246,.12);color:var(--blue)}
+.ab-default{background:rgba(99,102,241,.12);color:var(--primary)}
+.ab-error  {background:rgba(239,68,68,.12);color:var(--red)}
+.act-detail{font-size:12px;color:var(--muted);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:500px}
+.act-user{font-size:11px;color:var(--primary);margin-top:2px;font-family:monospace}
+.act-time{font-size:11px;color:var(--muted);white-space:nowrap;padding-left:10px;margin-top:3px}
+
+/* ══════════════════════════════════════
+   EMPTY / LOADING STATES
+══════════════════════════════════════ */
+.empty{text-align:center;padding:52px 20px}
+.empty-icon{
+  width:52px;height:52px;border-radius:14px;background:var(--s2);
+  display:flex;align-items:center;justify-content:center;margin:0 auto 14px;
+}
+.empty-icon svg{width:22px;height:22px;color:var(--muted)}
+.empty h3{font-size:15px;font-weight:700;margin-bottom:6px}
+.empty p{font-size:13px;color:var(--muted)}
+
+/* Skeleton */
+.skeleton{background:linear-gradient(90deg,var(--s2) 25%,var(--s3) 50%,var(--s2) 75%);background-size:200% 100%;animation:shimmer 1.4s infinite;border-radius:6px}
+@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+.skel-row{height:52px;margin:0;border-bottom:1px solid var(--border)}
+
+/* Spinner */
+.spinner{display:inline-block;width:16px;height:16px;border:2px solid rgba(255,255,255,.2);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite}
+.spinner-lg{width:28px;height:28px;border-width:3px;border-color:var(--border);border-top-color:var(--primary)}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-center{display:flex;align-items:center;justify-content:center;padding:52px}
+
+/* ══════════════════════════════════════
+   MODAL
+══════════════════════════════════════ */
+.overlay{
+  display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);
+  backdrop-filter:blur(6px);z-index:1000;align-items:center;justify-content:center;
+  padding:20px;
+}
+.overlay.open{display:flex}
+.modal{
+  background:var(--s1);border:1px solid var(--border);border-radius:18px;
+  width:100%;max-width:480px;position:relative;max-height:90vh;overflow-y:auto;
+  animation:modal-in .2s cubic-bezier(.34,1.56,.64,1);
+}
+@keyframes modal-in{from{opacity:0;transform:scale(.94) translateY(10px)}to{opacity:1;transform:none}}
+.modal-head{padding:22px 24px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.modal-title{font-size:16px;font-weight:800;letter-spacing:-.2px}
+.modal-close{
+  width:30px;height:30px;border-radius:8px;border:none;background:var(--s2);
+  color:var(--muted);display:flex;align-items:center;justify-content:center;
+  transition:var(--transition);
+}
+.modal-close:hover{color:var(--text)}
+.modal-close svg{width:16px;height:16px}
+.modal-body{padding:22px 24px}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.form-row{display:flex;flex-direction:column;gap:6px}
+.form-row.full{grid-column:1/-1}
+.form-label{font-size:11px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.06em}
+.form-input{
+  padding:10px 13px;background:var(--s2);border:1px solid var(--border);
+  border-radius:9px;color:var(--text);font-size:13px;outline:none;
+  transition:var(--transition);
+}
+.form-input:focus{border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-glow)}
+.form-input[readonly]{opacity:.6;cursor:default}
+select.form-input option{background:var(--s1)}
+.modal-foot{padding:16px 24px;border-top:1px solid var(--border);display:flex;gap:10px;justify-content:flex-end}
+
+/* Confirm modal */
+.confirm-modal{max-width:400px}
+.confirm-icon{
+  width:48px;height:48px;border-radius:14px;display:flex;align-items:center;justify-content:center;margin-bottom:16px;
+}
+.confirm-icon.danger{background:rgba(239,68,68,.12)}
+.confirm-icon.danger svg{width:22px;height:22px;color:var(--red)}
+.confirm-modal .modal-body h3{font-size:16px;font-weight:800;margin-bottom:6px}
+.confirm-modal .modal-body p{font-size:13px;color:var(--muted);line-height:1.6}
+
+/* ══════════════════════════════════════
+   TOAST
+══════════════════════════════════════ */
+.toast{
+  position:fixed;bottom:24px;right:24px;z-index:9999;
+  background:var(--s1);border:1px solid var(--border);border-radius:12px;
+  padding:12px 16px;display:flex;align-items:center;gap:10px;
+  min-width:250px;max-width:360px;font-size:13px;font-weight:600;
+  box-shadow:0 8px 24px rgba(0,0,0,.4);
+  transform:translateY(80px) scale(.95);opacity:0;
+  transition:all .28s cubic-bezier(.34,1.56,.64,1);pointer-events:none;
+}
+.toast.show{transform:none;opacity:1;pointer-events:auto}
+.toast-icon{width:28px;height:28px;border-radius:8px;flex-shrink:0;display:flex;align-items:center;justify-content:center}
+.toast-icon svg{width:14px;height:14px}
+.toast.t-success .toast-icon{background:rgba(34,197,94,.15);color:var(--green)}
+.toast.t-error   .toast-icon{background:rgba(239,68,68,.15);color:var(--red)}
+.toast.t-info    .toast-icon{background:rgba(59,130,246,.15);color:var(--blue)}
+.toast-close{margin-left:auto;background:none;border:none;color:var(--muted);padding:2px;cursor:pointer}
+.toast-close svg{width:13px;height:13px}
+
+/* ══════════════════════════════════════
+   RESPONSIVE
+══════════════════════════════════════ */
+@media(max-width:1100px){
+  .stats-grid{grid-template-columns:repeat(3,1fr)}
+  .charts-row{grid-template-columns:1fr}
+}
+@media(max-width:768px){
+  .sidebar{display:none}
+  .stats-grid{grid-template-columns:1fr 1fr}
+  .tb-search{display:none}
+}
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════
+     LOGIN SCREEN
+══════════════════════════════════════ -->
+<div id="loginScreen">
+  <div class="login-card">
+    <div class="login-brand">
+      <div class="login-logo-ring">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      </div>
+      <h1>FBCast Pro</h1>
+      <p>Admin Control Panel</p>
+    </div>
+    <div class="login-field">
+      <label>Admin Password</label>
+      <div class="login-input-wrap">
+        <input type="password" id="loginPass" placeholder="Enter your password" autocomplete="current-password"/>
+        <button class="login-eye" onclick="togglePass()" title="Show/hide">
+          <svg id="eyeShow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          <svg id="eyeHide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16" style="display:none"><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+        </button>
+      </div>
+    </div>
+    <button class="login-btn" id="loginBtn" onclick="doLogin()">Sign In to Admin</button>
+    <div class="login-error" id="loginErr">Incorrect password. Please try again.</div>
+    <div class="login-footer">FBCast Pro &copy; 2025 — Restricted Area</div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     ADMIN APP
+══════════════════════════════════════ -->
+<div id="adminApp">
+  <div class="shell">
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+      <div class="sb-brand">
+        <div class="sb-brand-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        </div>
+        <div class="sb-brand-text">
+          <div class="name">FBCast Pro</div>
+          <div class="sub">Admin Panel</div>
+        </div>
+      </div>
+
+      <nav class="sb-nav">
+        <div class="sb-section">Overview</div>
+        <div class="sb-item active" id="nav-dashboard" onclick="App.switchView('dashboard')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+          Dashboard
+          <span class="sb-badge" id="liveIndicator">LIVE</span>
+        </div>
+
+        <div class="sb-section">Management</div>
+        <div class="sb-item" id="nav-users" onclick="App.switchView('users')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+          Users
+          <span class="sb-badge" id="navUserCount" style="display:none">0</span>
+        </div>
+        <div class="sb-item" id="nav-activity" onclick="App.switchView('activity')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+          Activity Log
+        </div>
+      </nav>
+
+      <div class="sb-footer">
+        <div class="sb-user-card">
+          <div class="sb-user-av">A</div>
+          <div><div class="sb-user-name">Administrator</div><div class="sb-user-role">Super Admin</div></div>
+        </div>
+        <button class="sb-logout" onclick="doLogout()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+          Sign Out
+        </button>
+      </div>
+    </aside>
+
+    <!-- MAIN -->
+    <div class="main">
+      <div class="topbar">
+        <div class="topbar-left">
+          <div class="topbar-title" id="topbarTitle">Dashboard</div>
+        </div>
+        <div class="topbar-right">
+          <div class="tb-search" id="globalSearch" style="display:none">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+            <input type="text" id="userSearchInput" placeholder="Search users…" oninput="App.users.debouncedSearch()"/>
+          </div>
+          <button class="tb-btn" onclick="App.refresh()" title="Refresh">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg>
+          </button>
+          <span class="admin-chip">ADMIN</span>
+        </div>
+      </div>
+
+      <div class="content">
+
+        <!-- ── DASHBOARD VIEW ── -->
+        <div class="view active" id="view-dashboard">
+          <!-- Stat cards -->
+          <div class="stats-grid">
+            <div class="stat-card c-purple">
+              <div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg></div>
+              <div class="stat-label">Total Users</div>
+              <div class="stat-value" id="sTotal">—</div>
+              <div class="stat-sub">Registered accounts</div>
+            </div>
+            <div class="stat-card c-green">
+              <div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg></div>
+              <div class="stat-label">Paid Users</div>
+              <div class="stat-value" id="sPaid">—</div>
+              <div class="stat-sub">Active subscriptions</div>
+            </div>
+            <div class="stat-card c-amber">
+              <div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div>
+              <div class="stat-label">Free Plan</div>
+              <div class="stat-value" id="sFree">—</div>
+              <div class="stat-sub">Free tier users</div>
+            </div>
+            <div class="stat-card c-blue">
+              <div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="23" y1="11" x2="17" y2="11"/></svg></div>
+              <div class="stat-label">Today Logins</div>
+              <div class="stat-value" id="sLogins">—</div>
+              <div class="stat-sub">Active today</div>
+            </div>
+            <div class="stat-card c-indigo">
+              <div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></div>
+              <div class="stat-label">Messages Sent</div>
+              <div class="stat-value" id="sMsgs">—</div>
+              <div class="stat-sub">All-time total</div>
+            </div>
+          </div>
+
+          <!-- Charts -->
+          <div class="charts-row">
+            <div class="panel">
+              <div class="panel-head">
+                <div class="panel-head-left">
+                  <div>
+                    <div class="panel-title">User Growth</div>
+                    <div class="panel-sub">New registrations — last 30 days</div>
+                  </div>
+                </div>
+              </div>
+              <div class="chart-wrap">
+                <div class="chart-canvas-wrap">
+                  <canvas id="growthChart"></canvas>
+                </div>
+              </div>
+            </div>
+            <div class="panel">
+              <div class="panel-head">
+                <div class="panel-title">Plan Distribution</div>
+              </div>
+              <div style="padding:16px 20px 8px">
+                <div style="position:relative;height:160px;width:160px;margin:0 auto">
+                  <canvas id="planChart"></canvas>
+                  <div id="planChartCenter" style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none">
+                    <div id="planCenterVal" style="font-size:22px;font-weight:900;line-height:1"></div>
+                    <div style="font-size:11px;color:var(--muted);font-weight:600">total</div>
+                  </div>
+                </div>
+              </div>
+              <div class="plan-legend" id="planLegend"></div>
+            </div>
+          </div>
+
+          <!-- Recent Users + Top Usage -->
+          <div style="display:grid;grid-template-columns:1.5fr 1fr;gap:14px">
+            <div class="panel">
+              <div class="panel-head">
+                <div class="panel-title">Recent Users</div>
+                <button class="btn btn-ghost btn-sm" onclick="App.switchView('users')">View all →</button>
+              </div>
+              <div class="tbl-wrap">
+                <table>
+                  <thead><tr><th>User</th><th>Plan</th><th>Messages</th><th>Joined</th></tr></thead>
+                  <tbody id="dashUserBody"><tr><td colspan="4"><div class="loading-center"><span class="spinner spinner-lg"></span></div></td></tr></tbody>
+                </table>
+              </div>
+            </div>
+            <div class="panel">
+              <div class="panel-head">
+                <div class="panel-title">Top Usage</div>
+                <div class="panel-sub" style="margin-top:1px">By messages sent</div>
+              </div>
+              <div id="topUsersBody" style="padding:8px 0">
+                <div class="loading-center"><span class="spinner spinner-lg"></span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── USERS VIEW ── -->
+        <div class="view" id="view-users">
+          <div class="panel">
+            <div class="tbl-controls">
+              <div class="tbl-search">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+                <input type="text" id="usersSearch" placeholder="Search by ID or email…" oninput="App.users.debouncedSearch()"/>
+              </div>
+              <div class="tbl-filter">
+                <select id="planFilter" onchange="App.users.filterChange()">
+                  <option value="">All Plans</option>
+                  <option value="free">Free</option>
+                  <option value="basic">Basic</option>
+                  <option value="pro">Pro</option>
+                  <option value="gold">Gold</option>
+                  <option value="sapphire">Sapphire</option>
+                  <option value="platinum">Platinum</option>
+                </select>
+              </div>
+              <div class="tbl-count" id="usersCount"></div>
+              <button class="btn btn-ghost btn-sm" onclick="App.users.exportCSV()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:13px;height:13px"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                Export
+              </button>
+            </div>
+            <div class="bulk-bar" id="bulkBar">
+              <span class="bulk-count" id="bulkCount">0 selected</span>
+              <div style="margin-left:4px;display:flex;gap:6px;flex-wrap:wrap">
+                <button class="btn btn-amber btn-sm" onclick="App.users.bulkPlanOpen()">Change Plan</button>
+                <button class="btn btn-success btn-sm" onclick="App.users.bulkResetQuota()">Reset Quota</button>
+                <button class="btn btn-danger btn-sm" onclick="App.users.bulkDeleteConfirm()">Delete Selected</button>
+              </div>
+              <button class="btn btn-ghost btn-sm" style="margin-left:auto" onclick="App.users.clearSelection()">Clear</button>
+            </div>
+            <div class="tbl-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th class="td-check"><input type="checkbox" id="selectAll" onchange="App.users.toggleSelectAll(this)"/></th>
+                    <th class="sortable" onclick="App.users.sort('email')">User<span class="sort-indicator"><span class="up"></span><span class="dn"></span></span></th>
+                    <th class="sortable" onclick="App.users.sort('plan')">Plan<span class="sort-indicator"><span class="up"></span><span class="dn"></span></span></th>
+                    <th>Quota</th>
+                    <th>Subscription</th>
+                    <th class="sortable" onclick="App.users.sort('created_at')">Joined<span class="sort-indicator"><span class="up"></span><span class="dn"></span></span></th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="usersBody">
+                  <tr><td colspan="7"><div class="loading-center"><span class="spinner spinner-lg"></span></div></td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="pagination" id="usersPagination" style="display:none">
+              <div class="pg-info" id="pgInfo"></div>
+              <div class="pg-btns" id="pgBtns"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── ACTIVITY VIEW ── -->
+        <div class="view" id="view-activity">
+          <div class="panel">
+            <div class="panel-head">
+              <div class="panel-head-left">
+                <div>
+                  <div class="panel-title">Activity Log</div>
+                  <div class="panel-sub">Last 50 events per page</div>
+                </div>
+              </div>
+              <div style="display:flex;gap:8px;align-items:center">
+                <select id="actFilter" onchange="App.activity.filterChange()" style="background:var(--s2);border:1px solid var(--border);border-radius:9px;color:var(--text);padding:7px 12px;font-size:12px;outline:none">
+                  <option value="">All Actions</option>
+                  <option value="login">Login</option>
+                  <option value="send">Send</option>
+                </select>
+                <button class="btn btn-ghost btn-sm" onclick="App.activity.load()">↻ Refresh</button>
+              </div>
+            </div>
+            <div class="activity-list" id="activityList">
+              <div class="loading-center"><span class="spinner spinner-lg"></span></div>
+            </div>
+            <div class="pagination" id="actPagination" style="display:none">
+              <div class="pg-info" id="actPgInfo"></div>
+              <div class="pg-btns" id="actPgBtns"></div>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /content -->
+    </div><!-- /main -->
+  </div><!-- /shell -->
+</div><!-- /adminApp -->
+
+<!-- ══ EDIT USER MODAL ══ -->
+<div class="overlay" id="editOverlay">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-title" id="editModalTitle">Edit User</div>
+      <button class="modal-close" onclick="App.modal.close('editOverlay')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="editId"/>
+      <div class="form-grid">
+        <div class="form-row full">
+          <label class="form-label">User ID</label>
+          <input class="form-input" id="editUserIdShow" readonly/>
+        </div>
+        <div class="form-row full">
+          <label class="form-label">Email</label>
+          <input class="form-input" id="editEmail" readonly/>
+        </div>
+        <div class="form-row">
+          <label class="form-label">Plan</label>
+          <select class="form-input" id="editPlan">
+            <option value="free">Free</option>
+            <option value="basic">Basic</option>
+            <option value="pro">Pro</option>
+            <option value="gold">Gold</option>
+            <option value="sapphire">Sapphire</option>
+            <option value="platinum">Platinum</option>
+            <option value="unknown">Unknown</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <label class="form-label">Message Limit</label>
+          <input class="form-input" id="editLimit" type="number" min="0"/>
+        </div>
+        <div class="form-row full">
+          <label class="form-label">Messages Used</label>
+          <input class="form-input" id="editUsed" type="number" min="0"/>
+        </div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost btn-md" onclick="App.modal.close('editOverlay')">Cancel</button>
+      <button class="btn btn-primary btn-md" onclick="App.users.save()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:13px;height:13px"><polyline points="20 6 9 17 4 12"/></svg>
+        Save Changes
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ CONFIRM MODAL ══ -->
+<div class="overlay" id="confirmOverlay">
+  <div class="modal confirm-modal">
+    <div class="modal-body" style="padding:28px 28px 20px">
+      <div class="confirm-icon danger">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+      </div>
+      <h3 id="confirmTitle">Confirm Action</h3>
+      <p id="confirmMsg">Are you sure?</p>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost btn-md" onclick="App.modal.close('confirmOverlay')">Cancel</button>
+      <button class="btn btn-danger btn-md" id="confirmBtn">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ BULK PLAN MODAL ══ -->
+<div class="overlay" id="bulkPlanOverlay">
+  <div class="modal" style="max-width:360px">
+    <div class="modal-head">
+      <div class="modal-title">Change Plan (Bulk)</div>
+      <button class="modal-close" onclick="App.modal.close('bulkPlanOverlay')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row">
+        <label class="form-label">New Plan for selected users</label>
+        <select class="form-input" id="bulkPlanSelect">
+          <option value="free">Free</option>
+          <option value="basic">Basic</option>
+          <option value="pro">Pro</option>
+          <option value="gold">Gold</option>
+          <option value="sapphire">Sapphire</option>
+          <option value="platinum">Platinum</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost btn-md" onclick="App.modal.close('bulkPlanOverlay')">Cancel</button>
+      <button class="btn btn-primary btn-md" onclick="App.users.bulkPlanApply()">Apply to Selected</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ TOAST ══ -->
+<div class="toast" id="toast">
+  <div class="toast-icon" id="toastIcon"></div>
+  <div id="toastMsg"></div>
+  <button class="toast-close" onclick="App.toast.hide()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+</div>
+
+<script>
+'use strict';
+
+// ══════════════════════════════════════════════════════════════
+//  UTILITY
+// ══════════════════════════════════════════════════════════════
+const $ = id => document.getElementById(id);
+const esc = s => s == null ? '' : String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const fmt = n => n != null ? Number(n).toLocaleString() : '0';
+const fmtDate = d => {
+  if(!d) return '—';
+  try{ return new Date(d).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}); }catch(e){ return d; }
+};
+const fmtTime = d => {
+  if(!d) return '—';
+  try{
+    const dt = new Date(d), now = new Date(), diff = Math.floor((now-dt)/1000);
+    if(diff < 60) return `${diff}s ago`;
+    if(diff < 3600) return `${Math.floor(diff/60)}m ago`;
+    if(diff < 86400) return `${Math.floor(diff/3600)}h ago`;
+    return fmtDate(d);
+  }catch(e){ return d; }
+};
+const debounce = (fn, ms) => { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; };
+const planColors = { free:'#64748b', basic:'#60a5fa', pro:'#818cf8', gold:'#fbbf24', sapphire:'#38bdf8', platinum:'#c084fc', unknown:'#475569' };
+const planBg = { free:'rgba(100,116,139,.15)', basic:'rgba(59,130,246,.15)', pro:'rgba(99,102,241,.18)', gold:'rgba(245,158,11,.15)', sapphire:'rgba(14,165,233,.15)', platinum:'rgba(168,85,247,.18)', unknown:'rgba(71,85,105,.12)' };
+
+function animateNumber(el, target, duration = 800) {
+  const start = Date.now(), from = 0;
+  const tick = () => {
+    const p = Math.min(1, (Date.now()-start)/duration);
+    const ease = 1 - Math.pow(1-p, 3);
+    el.textContent = fmt(Math.round(from + (target - from) * ease));
+    if(p < 1) requestAnimationFrame(tick);
+  };
+  requestAnimationFrame(tick);
+}
+
+function fillDates(data, days) {
+  const counts = {};
+  for(const d of data) counts[String(d.date).split('T')[0]] = d.count;
+  const result = [];
+  for(let i = days-1; i >= 0; i--) {
+    const dt = new Date(); dt.setDate(dt.getDate()-i);
+    const key = dt.toISOString().split('T')[0];
+    result.push({ date: key, count: counts[key] || 0 });
+  }
+  return result;
+}
+
+// ══════════════════════════════════════════════════════════════
+//  MAIN APP
+// ══════════════════════════════════════════════════════════════
+const App = {
+  state: {
+    view: 'dashboard',
+    users: { page:1, total:0, pages:1, search:'', plan:'', sortCol:'created_at', sortDir:'desc', selected: new Set(), allData:[] },
+    activity: { page:1, action:'' }
+  },
+  charts: {},
+  refreshTimer: null,
+
+  // ── Init ──────────────────────────────────────────────────
+  init() {
+    this.dashboard.load();
+    this.startAutoRefresh();
+    document.addEventListener('keydown', e => { if(e.key==='Escape') { document.querySelectorAll('.overlay.open').forEach(o=>o.classList.remove('open')); } });
+  },
+
+  refresh() {
+    const v = this.state.view;
+    if(v==='dashboard') this.dashboard.load();
+    else if(v==='users') this.users.load();
+    else if(v==='activity') this.activity.load();
+  },
+
+  startAutoRefresh() {
+    clearInterval(this.refreshTimer);
+    this.refreshTimer = setInterval(() => {
+      if(this.state.view === 'dashboard') this.dashboard.loadStats();
+    }, 60000);
+  },
+
+  switchView(v) {
+    this.state.view = v;
+    document.querySelectorAll('.view').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.sb-item').forEach(el => el.classList.remove('active'));
+    $('view-'+v).classList.add('active');
+    $('nav-'+v)?.classList.add('active');
+    const titles = { dashboard:'Dashboard', users:'User Management', activity:'Activity Log' };
+    $('topbarTitle').textContent = titles[v] || v;
+    $('globalSearch').style.display = v==='users' ? 'flex' : 'none';
+    if(v==='dashboard') this.dashboard.load();
+    else if(v==='users') { this.state.users.page=1; this.users.load(); }
+    else if(v==='activity') { this.state.activity.page=1; this.activity.load(); }
+  },
+
+  // ── Modal ─────────────────────────────────────────────────
+  modal: {
+    open(id) { $(id).classList.add('open'); },
+    close(id) { $(id).classList.remove('open'); }
+  },
+
+  // ── Toast ─────────────────────────────────────────────────
+  toast: {
+    _timer: null,
+    show(msg, type='success') {
+      const t = $('toast'), icon = $('toastIcon'), msgEl = $('toastMsg');
+      t.className = `toast t-${type}`;
+      msgEl.textContent = msg;
+      const icons = {
+        success: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>',
+        error:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>',
+        info:    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>',
+      };
+      icon.innerHTML = icons[type] || icons.info;
+      requestAnimationFrame(() => t.classList.add('show'));
+      clearTimeout(this._timer);
+      this._timer = setTimeout(() => this.hide(), 3500);
+    },
+    hide() { $('toast').classList.remove('show'); }
+  },
+
+  // ══════════════════════════════════════════════════════════
+  //  DASHBOARD
+  // ══════════════════════════════════════════════════════════
+  dashboard: {
+    async load() {
+      await Promise.all([this.loadStats(), this.loadCharts(), this.loadRecentUsers()]);
+    },
+
+    async loadStats() {
+      try {
+        const r = await fetch('/api/admin/stats');
+        if(!r.ok) throw new Error();
+        const d = await r.json();
+        animateNumber($('sTotal'),  d.users || 0);
+        animateNumber($('sPaid'),   d.paidPlan || 0);
+        animateNumber($('sFree'),   d.freePlan || 0);
+        animateNumber($('sLogins'), d.todayLogins || 0);
+        animateNumber($('sMsgs'),   d.totalMessages || 0);
+        $('navUserCount').textContent = fmt(d.users || 0);
+        $('navUserCount').style.display = d.users ? '' : 'none';
+      } catch(e) {}
+    },
+
+    async loadCharts() {
+      try {
+        const r = await fetch('/api/admin/charts');
+        if(!r.ok) throw new Error();
+        const d = await r.json();
+        this.renderGrowthChart(d.userGrowth || []);
+        this.renderPlanChart(d.planDistribution || {});
+        this.renderTopUsers(d.topUsers || []);
+      } catch(e) {}
+    },
+
+    renderGrowthChart(rawData) {
+      const data = fillDates(rawData, 30);
+      const labels = data.map(d => {
+        const dt = new Date(d.date + 'T00:00:00');
+        return dt.toLocaleDateString('en-US',{month:'short',day:'numeric'});
+      });
+      const values = data.map(d => d.count);
+      if(App.charts.growth) App.charts.growth.destroy();
+      const ctx = $('growthChart').getContext('2d');
+      const grad = ctx.createLinearGradient(0,0,0,200);
+      grad.addColorStop(0, 'rgba(99,102,241,.35)');
+      grad.addColorStop(1, 'rgba(99,102,241,0)');
+      App.charts.growth = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [{
+            data: values, label: 'New Users',
+            borderColor: '#6366f1', backgroundColor: grad,
+            borderWidth: 2.5, fill: true,
+            tension: 0.4, pointRadius: 0, pointHoverRadius: 5,
+            pointHoverBackgroundColor: '#6366f1', pointHoverBorderColor: '#fff', pointHoverBorderWidth: 2
+          }]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false, animation: { duration: 600 },
+          interaction: { intersect: false, mode: 'index' },
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              backgroundColor: 'rgba(15,17,23,.95)', borderColor: '#252840', borderWidth: 1,
+              titleColor: '#94a3b8', bodyColor: '#e2e8f0', padding: 10, cornerRadius: 9,
+              callbacks: { title: items => items[0].label, label: item => ` ${item.raw} new user${item.raw!==1?'s':''}` }
+            }
+          },
+          scales: {
+            x: { grid: { color: 'rgba(37,40,64,.6)', drawBorder: false }, ticks: { color: '#64748b', font:{size:10}, maxRotation:0, maxTicksLimit:8 } },
+            y: { grid: { color: 'rgba(37,40,64,.6)', drawBorder: false }, ticks: { color: '#64748b', font:{size:10}, precision:0 }, beginAtZero: true }
+          }
+        }
+      });
+    },
+
+    renderPlanChart(dist) {
+      const order = ['free','basic','pro','gold','sapphire','platinum','unknown'];
+      const keys = order.filter(k => (dist[k]||0) > 0);
+      const total = keys.reduce((s,k) => s + (dist[k]||0), 0);
+      $('planCenterVal').textContent = fmt(total);
+      if(App.charts.plan) App.charts.plan.destroy();
+      if(!total) { $('planLegend').innerHTML = '<div style="text-align:center;padding:16px;color:var(--muted);font-size:12px">No users yet</div>'; return; }
+      App.charts.plan = new Chart($('planChart').getContext('2d'), {
+        type: 'doughnut',
+        data: {
+          labels: keys.map(k => k.charAt(0).toUpperCase()+k.slice(1)),
+          datasets: [{ data: keys.map(k=>dist[k]||0), backgroundColor: keys.map(k=>planColors[k]||'#6366f1'), borderWidth: 0, hoverOffset: 6 }]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false, cutout: '72%',
+          animation: { duration: 700 },
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              backgroundColor:'rgba(15,17,23,.95)',borderColor:'#252840',borderWidth:1,
+              titleColor:'#94a3b8',bodyColor:'#e2e8f0',padding:10,cornerRadius:9,
+              callbacks: { label: item => ` ${item.raw} users (${Math.round(item.raw/total*100)}%)` }
+            }
+          }
+        }
+      });
+      $('planLegend').innerHTML = keys.map(k => {
+        const pct = total ? Math.round((dist[k]||0)/total*100) : 0;
+        return `<div class="plan-legend-item">
+          <div class="plan-dot" style="background:${planColors[k]||'#6366f1'}"></div>
+          <div style="flex:1">
+            <div style="display:flex;justify-content:space-between">
+              <span class="plan-legend-name">${k}</span>
+              <span class="plan-legend-count">${fmt(dist[k]||0)}</span>
+            </div>
+            <div class="plan-legend-bar" style="background:${planBg[k]||'rgba(99,102,241,.18)'}">
+              <div style="height:4px;border-radius:2px;background:${planColors[k]};width:${pct}%;transition:width .5s ease"></div>
+            </div>
+          </div>
+        </div>`;
+      }).join('');
+    },
+
+    async loadRecentUsers() {
+      try {
+        const r = await fetch('/api/admin/users?p=1');
+        if(!r.ok) throw new Error();
+        const d = await r.json();
+        const body = $('dashUserBody');
+        if(!d.users?.length){ body.innerHTML='<tr><td colspan="4"><div class="empty"><p>No users yet</p></div></td></tr>'; return; }
+        body.innerHTML = d.users.slice(0,6).map(u => `
+          <tr>
+            <td><div class="user-cell">
+              <div class="u-av">${(u.email||u.fb_user_id||'?')[0].toUpperCase()}</div>
+              <div><div class="u-name">${esc(u.email||'No email')}</div><div class="u-id">${esc(u.fb_user_id)}</div></div>
+            </div></td>
+            <td><span class="badge badge-${u.plan||'unknown'}">${u.plan||'?'}</span></td>
+            <td style="font-size:12px">${fmt(u.messenger_messages_used||0)} / ${fmt(u.messenger_messages_limit||0)}</td>
+            <td style="font-size:12px;color:var(--muted)">${fmtDate(u.created_at)}</td>
+          </tr>`).join('');
+      } catch(e) { $('dashUserBody').innerHTML='<tr><td colspan="4" style="text-align:center;padding:24px;color:var(--muted);font-size:13px">Could not load users</td></tr>'; }
+    },
+
+    renderTopUsers(users) {
+      const el = $('topUsersBody');
+      if(!users?.length){ el.innerHTML='<div class="empty"><div class="empty-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:22px;height:22px"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></div><p>No data yet</p></div>'; return; }
+      el.innerHTML = users.map((u,i) => {
+        const pct = u.messenger_messages_limit ? Math.min(100, Math.round(u.messenger_messages_used/u.messenger_messages_limit*100)) : 0;
+        const cls = pct>=90?'qf-hot':pct>=70?'qf-warn':'qf-ok';
+        return `<div style="padding:10px 20px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--border)${i===users.length-1?';border:none':''}">
+          <div style="font-size:18px;font-weight:900;color:var(--muted);min-width:22px;text-align:right">${i+1}</div>
+          <div class="u-av" style="width:28px;height:28px;border-radius:7px;font-size:11px">${(u.email||u.fb_user_id||'?')[0].toUpperCase()}</div>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(u.email||u.fb_user_id||'—')}</div>
+            <div class="quota-bar" style="margin-top:4px;margin-bottom:0"><div class="quota-fill ${cls}" style="width:${pct}%"></div></div>
+          </div>
+          <div style="font-size:12px;font-weight:700;color:var(--muted2);white-space:nowrap">${fmt(u.messenger_messages_used||0)}</div>
+        </div>`;
+      }).join('');
+    }
+  },
+
+  // ══════════════════════════════════════════════════════════
+  //  USERS
+  // ══════════════════════════════════════════════════════════
+  users: {
+    debouncedSearch: debounce(function() {
+      const s = App.state.users;
+      s.search = ($('usersSearch')?.value || $('userSearchInput')?.value || '').trim();
+      s.page = 1;
+      App.users.load();
+    }, 350),
+
+    filterChange() {
+      App.state.users.plan = $('planFilter').value;
+      App.state.users.page = 1;
+      this.load();
+    },
+
+    sort(col) {
+      const s = App.state.users;
+      if(s.sortCol === col) s.sortDir = s.sortDir==='asc'?'desc':'asc';
+      else { s.sortCol = col; s.sortDir = 'desc'; }
+      s.page = 1;
+      this.load();
+      document.querySelectorAll('thead th').forEach(th => {
+        th.classList.remove('sort-asc','sort-desc');
+        if(th.getAttribute('onclick')?.includes(col)) th.classList.add(s.sortDir==='asc'?'sort-asc':'sort-desc');
+      });
+    },
+
+    async load(page) {
+      if(page) App.state.users.page = page;
+      const s = App.state.users;
+      const body = $('usersBody');
+      body.innerHTML = '<tr><td colspan="7"><div class="loading-center"><span class="spinner spinner-lg"></span></div></td></tr>';
+      try {
+        const p = new URLSearchParams({ p: s.page });
+        if(s.search) p.set('q', s.search);
+        if(s.plan)   p.set('plan', s.plan);
+        const r = await fetch('/api/admin/users?'+p);
+        const d = await r.json();
+        s.total = d.total || 0; s.pages = d.pages || 1;
+        s.allData = d.users || [];
+        this.render(d);
+        this.updateBulkBar();
+      } catch(e) {
+        body.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:32px;color:var(--red);font-size:13px">Failed to load users</td></tr>';
+      }
+    },
+
+    render(d) {
+      const s = App.state.users;
+      const body = $('usersBody');
+      $('usersCount').textContent = s.total ? `${fmt(s.total)} users` : '';
+      if(!d.users?.length){
+        body.innerHTML = `<tr><td colspan="7"><div class="empty">
+          <div class="empty-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></div>
+          <h3>No users found</h3><p>Try a different search or filter</p>
+        </div></td></tr>`;
+        $('usersPagination').style.display = 'none';
+        return;
+      }
+      body.innerHTML = d.users.map(u => {
+        const used=u.messenger_messages_used||0, limit=u.messenger_messages_limit||2000;
+        const pct = limit ? Math.min(100,Math.round(used/limit*100)) : 0;
+        const cls = pct>=90?'qf-hot':pct>=70?'qf-warn':'qf-ok';
+        const sel = s.selected.has(u.fb_user_id);
+        const hasSub = u.stripe_subscription_id;
+        const ud = JSON.stringify(u).replace(/"/g,'&quot;');
+        return `<tr class="${sel?'selected':''}" id="row-${esc(u.fb_user_id)}">
+          <td class="td-check"><input type="checkbox" ${sel?'checked':''} onchange="App.users.toggleRow('${esc(u.fb_user_id)}',this)"/></td>
+          <td><div class="user-cell">
+            <div class="u-av">${(u.email||u.fb_user_id||'?')[0].toUpperCase()}</div>
+            <div><div class="u-name">${esc(u.email||'No email')}</div><div class="u-id">${esc(u.fb_user_id)}</div></div>
+          </div></td>
+          <td><span class="badge badge-${u.plan||'unknown'}">${u.plan||'?'}</span></td>
+          <td class="quota-cell">
+            <div class="quota-bar"><div class="quota-fill ${cls}" style="width:${pct}%"></div></div>
+            <div class="quota-txt">${fmt(used)} / ${fmt(limit)} (${pct}%)</div>
+          </td>
+          <td>
+            ${hasSub ? `<span style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--green);font-weight:600"><span style="width:7px;height:7px;border-radius:50%;background:var(--green);flex-shrink:0"></span>Active</span>`
+                      : `<span style="font-size:12px;color:var(--muted)">—</span>`}
+          </td>
+          <td style="font-size:12px;color:var(--muted);white-space:nowrap">${fmtDate(u.created_at)}</td>
+          <td>
+            <div class="actions">
+              <button class="btn btn-ghost btn-sm" onclick='App.users.openEdit(${ud})' title="Edit">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+              </button>
+              <button class="btn btn-success btn-sm" onclick="App.users.resetQuota('${esc(u.fb_user_id)}')" title="Reset Quota">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg>
+              </button>
+              <button class="btn btn-danger btn-sm" onclick="App.users.deleteConfirm('${esc(u.fb_user_id)}')" title="Delete">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg>
+              </button>
+            </div>
+          </td>
+        </tr>`;
+      }).join('');
+      this.renderPagination();
+    },
+
+    renderPagination() {
+      const s = App.state.users;
+      const pg = $('usersPagination');
+      if(s.pages <= 1){ pg.style.display='none'; return; }
+      pg.style.display = 'flex';
+      const start = (s.page-1)*20+1, end = Math.min(s.page*20, s.total);
+      $('pgInfo').textContent = `Showing ${fmt(start)}–${fmt(end)} of ${fmt(s.total)}`;
+      let html = `<button class="pg-btn" onclick="App.users.load(${s.page-1})" ${s.page===1?'disabled':''}>‹</button>`;
+      for(let i=1;i<=s.pages;i++){
+        if(i===1||i===s.pages||Math.abs(i-s.page)<=1) html+=`<button class="pg-btn ${i===s.page?'active':''}" onclick="App.users.load(${i})">${i}</button>`;
+        else if(Math.abs(i-s.page)===2) html+=`<span class="pg-sep">…</span>`;
+      }
+      html += `<button class="pg-btn" onclick="App.users.load(${s.page+1})" ${s.page===s.pages?'disabled':''}>›</button>`;
+      $('pgBtns').innerHTML = html;
+    },
+
+    // ── Selection ─────────────────────────────────────────
+    toggleRow(id, cb) {
+      const s = App.state.users.selected;
+      if(cb.checked) s.add(id); else s.delete(id);
+      const row = document.getElementById('row-'+id);
+      if(row) row.classList.toggle('selected', cb.checked);
+      this.updateBulkBar();
+    },
+
+    toggleSelectAll(cb) {
+      const s = App.state.users;
+      s.allData.forEach(u => {
+        if(cb.checked) s.selected.add(u.fb_user_id); else s.selected.delete(u.fb_user_id);
+      });
+      document.querySelectorAll('#usersBody input[type=checkbox]').forEach(c => c.checked = cb.checked);
+      document.querySelectorAll('#usersBody tr').forEach(r => r.classList.toggle('selected', cb.checked));
+      this.updateBulkBar();
+    },
+
+    clearSelection() {
+      App.state.users.selected.clear();
+      document.querySelectorAll('#usersBody input[type=checkbox]').forEach(c => c.checked=false);
+      document.querySelectorAll('#usersBody tr').forEach(r => r.classList.remove('selected'));
+      $('selectAll').checked = false;
+      this.updateBulkBar();
+    },
+
+    updateBulkBar() {
+      const n = App.state.users.selected.size;
+      const bar = $('bulkBar');
+      bar.classList.toggle('show', n > 0);
+      $('bulkCount').textContent = `${n} user${n!==1?'s':''} selected`;
+    },
+
+    // ── Edit ──────────────────────────────────────────────
+    openEdit(u) {
+      $('editId').value        = u.fb_user_id;
+      $('editUserIdShow').value = u.fb_user_id;
+      $('editEmail').value     = u.email || '';
+      $('editPlan').value      = u.plan || 'free';
+      $('editLimit').value     = u.messenger_messages_limit || 2000;
+      $('editUsed').value      = u.messenger_messages_used  || 0;
+      $('editModalTitle').textContent = 'Edit — '+esc(u.email||u.fb_user_id);
+      App.modal.open('editOverlay');
+    },
+
+    async save() {
+      const id = $('editId').value;
+      const body = { plan: $('editPlan').value, messages_limit: $('editLimit').value, messages_used: $('editUsed').value };
+      try {
+        const r = await fetch(`/api/admin/users/${encodeURIComponent(id)}/update`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+        if(r.ok){ App.modal.close('editOverlay'); App.toast.show('User updated successfully','success'); this.load(); }
+        else App.toast.show('Failed to update','error');
+      } catch(e){ App.toast.show('Request failed','error'); }
+    },
+
+    resetQuota(id) {
+      this._confirm(`Reset quota for "${id}"?`,'This will set their messages used back to 0.', async () => {
+        try {
+          const r = await fetch(`/api/admin/users/${encodeURIComponent(id)}/reset-quota`,{method:'POST'});
+          if(r.ok){ App.toast.show('Quota reset','success'); this.load(); }
+          else App.toast.show('Reset failed','error');
+        } catch(e){ App.toast.show('Request failed','error'); }
+      });
+    },
+
+    deleteConfirm(id) {
+      this._confirm(`Delete user "${id}"?`,'This is permanent and cannot be undone.', async () => {
+        try {
+          const r = await fetch(`/api/admin/users/${encodeURIComponent(id)}`,{method:'DELETE'});
+          if(r.ok){ App.toast.show('User deleted','success'); App.state.users.selected.delete(id); this.load(); }
+          else App.toast.show('Delete failed','error');
+        } catch(e){ App.toast.show('Request failed','error'); }
+      });
+    },
+
+    // ── Bulk actions ──────────────────────────────────────
+    bulkPlanOpen() { App.modal.open('bulkPlanOverlay'); },
+
+    async bulkPlanApply() {
+      const plan = $('bulkPlanSelect').value;
+      const ids = [...App.state.users.selected];
+      App.modal.close('bulkPlanOverlay');
+      let ok = 0;
+      await Promise.all(ids.map(async id => {
+        try {
+          const r = await fetch(`/api/admin/users/${encodeURIComponent(id)}/update`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({plan})});
+          if(r.ok) ok++;
+        } catch(e){}
+      }));
+      App.toast.show(`Plan updated for ${ok} user${ok!==1?'s':''}`, ok>0?'success':'error');
+      this.clearSelection();
+      this.load();
+    },
+
+    async bulkResetQuota() {
+      const ids = [...App.state.users.selected];
+      this._confirm(`Reset quota for ${ids.length} user${ids.length!==1?'s':''}?`,'All selected users will have their message count reset to 0.', async () => {
+        let ok = 0;
+        await Promise.all(ids.map(async id => {
+          try{
+            const r = await fetch(`/api/admin/users/${encodeURIComponent(id)}/reset-quota`,{method:'POST'});
+            if(r.ok) ok++;
+          }catch(e){}
+        }));
+        App.toast.show(`Quota reset for ${ok} user${ok!==1?'s':''}`, ok>0?'success':'error');
+        this.clearSelection();
+        this.load();
+      });
+    },
+
+    bulkDeleteConfirm() {
+      const ids = [...App.state.users.selected];
+      this._confirm(`Delete ${ids.length} user${ids.length!==1?'s':''}?`,'This is permanent and cannot be undone for any selected user.', async () => {
+        let ok = 0;
+        await Promise.all(ids.map(async id => {
+          try{
+            const r = await fetch(`/api/admin/users/${encodeURIComponent(id)}`,{method:'DELETE'});
+            if(r.ok) ok++;
+          }catch(e){}
+        }));
+        App.toast.show(`${ok} user${ok!==1?'s':''} deleted`, ok>0?'success':'error');
+        App.state.users.selected.clear();
+        this.load();
+      });
+    },
+
+    exportCSV() {
+      const s = App.state.users;
+      if(!s.allData.length){ App.toast.show('No data to export','info'); return; }
+      const rows = [['ID','Email','Plan','Messages Used','Limit','Subscription','Joined']];
+      s.allData.forEach(u => rows.push([u.fb_user_id,u.email||'',u.plan||'',u.messenger_messages_used||0,u.messenger_messages_limit||0,u.stripe_subscription_id||'',u.created_at||'']));
+      const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
+      const a = document.createElement('a');
+      a.href = 'data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
+      a.download = `fbcast-users-${new Date().toISOString().split('T')[0]}.csv`;
+      a.click();
+      App.toast.show('CSV exported','success');
+    },
+
+    _confirm(title, msg, onConfirm) {
+      $('confirmTitle').textContent = title;
+      $('confirmMsg').textContent = msg;
+      $('confirmBtn').onclick = () => { App.modal.close('confirmOverlay'); onConfirm(); };
+      App.modal.open('confirmOverlay');
+    }
+  },
+
+  // ══════════════════════════════════════════════════════════
+  //  ACTIVITY
+  // ══════════════════════════════════════════════════════════
+  activity: {
+    filterChange() { App.state.activity.page=1; App.state.activity.action=$('actFilter').value; this.load(); },
+
+    async load(page) {
+      if(page) App.state.activity.page = page;
+      const s = App.state.activity;
+      $('activityList').innerHTML = '<div class="loading-center"><span class="spinner spinner-lg"></span></div>';
+      try {
+        const p = new URLSearchParams({ p: s.page });
+        if(s.action) p.set('action', s.action);
+        const r = await fetch('/api/admin/activity?'+p);
+        const d = await r.json();
+        this.render(d);
+      } catch(e) {
+        $('activityList').innerHTML = '<div class="empty"><p style="color:var(--red)">Failed to load activity</p></div>';
+      }
+    },
+
+    render(d) {
+      const el = $('activityList');
+      if(!d.logs?.length){ el.innerHTML='<div class="empty"><div class="empty-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div><h3>No activity yet</h3><p>Events will appear here once users start using the app</p></div>'; $('actPagination').style.display='none'; return; }
+      const iconMap = {
+        login: { icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>', cls:'ai-login', bcls:'ab-login' },
+        send:  { icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>', cls:'ai-send', bcls:'ab-send' },
+      };
+      el.innerHTML = '<div class="activity-list">'+d.logs.map(l => {
+        const ic = iconMap[l.action] || { icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/></svg>', cls:'ai-default', bcls:'ab-default' };
+        return `<div class="act-item">
+          <div class="act-icon ${ic.cls}">${ic.icon}</div>
+          <div class="act-body">
+            <div class="act-action">
+              <span class="act-badge ${ic.bcls}">${esc(l.action||'event')}</span>
+              ${l.fb_user_id?`<span class="act-user">${esc(l.fb_user_id)}</span>`:''}
+            </div>
+            ${l.detail?`<div class="act-detail">${esc(l.detail)}</div>`:''}
+          </div>
+          <div class="act-time">${fmtTime(l.created_at)}</div>
+        </div>`;
+      }).join('')+'</div>';
+
+      // Pagination
+      const pg = $('actPagination');
+      if((d.pages||1) <= 1){ pg.style.display='none'; return; }
+      pg.style.display='flex';
+      const s = App.state.activity, tot=d.total||0, p=s.page, pages=d.pages||1;
+      const start=(p-1)*50+1, end=Math.min(p*50,tot);
+      $('actPgInfo').textContent=`Showing ${fmt(start)}–${fmt(end)} of ${fmt(tot)}`;
+      let html=`<button class="pg-btn" onclick="App.activity.load(${p-1})" ${p===1?'disabled':''}>‹</button>`;
+      for(let i=1;i<=pages;i++){
+        if(i===1||i===pages||Math.abs(i-p)<=1) html+=`<button class="pg-btn ${i===p?'active':''}" onclick="App.activity.load(${i})">${i}</button>`;
+        else if(Math.abs(i-p)===2) html+=`<span class="pg-sep">…</span>`;
+      }
+      html+=`<button class="pg-btn" onclick="App.activity.load(${p+1})" ${p===pages?'disabled':''}>›</button>`;
+      $('actPgBtns').innerHTML=html;
+    }
+  }
+};
+
+// ══════════════════════════════════════════════════════════════
+//  LOGIN
+// ══════════════════════════════════════════════════════════════
+function togglePass() {
+  const inp = $('loginPass');
+  const isPass = inp.type === 'password';
+  inp.type = isPass ? 'text' : 'password';
+  $('eyeShow').style.display = isPass ? 'none' : '';
+  $('eyeHide').style.display = isPass ? '' : 'none';
+}
+
+$('loginPass').addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); });
+
+async function doLogin() {
+  const pass = $('loginPass').value.trim();
+  if(!pass) return;
+  const btn = $('loginBtn');
+  btn.innerHTML = '<span class="spinner"></span> Signing in…';
+  btn.disabled = true;
+  $('loginErr').style.display = 'none';
+  try {
+    const r = await fetch('/api/admin/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:pass})});
+    if(r.ok){
+      $('loginScreen').style.display = 'none';
+      $('adminApp').style.display = 'block';
+      App.init();
+    } else {
+      $('loginErr').style.display = 'block';
+    }
+  } catch(e){ App.toast.show('Connection error','error'); }
+  btn.innerHTML = 'Sign In to Admin';
+  btn.disabled = false;
+}
+
+async function doLogout() {
+  await fetch('/api/admin/logout',{method:'POST'});
+  location.reload();
+}
+
+// Auto-check session
+fetch('/api/admin/stats').then(r => {
+  if(r.ok){
+    $('loginScreen').style.display = 'none';
+    $('adminApp').style.display = 'block';
+    App.init();
+  }
+}).catch(()=>{});
+</script>
+</body>
+</html>

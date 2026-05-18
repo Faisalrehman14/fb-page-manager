@@ -1,0 +1,28 @@
+{
+  "name": "facebook-page-inbox-demo",
+  "version": "1.0.0",
+  "description": "Customer Support Inbox Demo for Facebook Page Admins - Meta App Review",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "node --watch index.js"
+  },
+  "keywords": [
+    "facebook",
+    "messenger",
+    "customer-support",
+    "page-inbox"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "axios": "^1.16.1",
+    "cors": "^2.8.6",
+    "dotenv": "^16.4.5",
+    "express": "^4.18.2",
+    "express-session": "^1.18.0",
+    "helmet": "^8.1.0",
+    "mysql2": "^3.22.3",
+    "socket.io": "^4.8.3"
+  }
+}
