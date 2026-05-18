@@ -10,9 +10,10 @@ class MessageService {
         this.fb = new FacebookClient(fetchFn);
     }
 
-    async load({ pageId, psid, limit, before, session, dbConnected }) {
+    async load({ pageId, psid, limit, before, refresh, session, dbConnected }) {
         const safeLimit = Math.min(parseInt(limit, 10) || 50, MESSAGE_PAGE_SIZE_MAX);
         const cutoff = retentionCutoff();
+        const forceRefresh = refresh === true || refresh === '1' || refresh === 'true';
 
         let dbConvId = null;
         let fbConvId = null;
@@ -22,13 +23,6 @@ class MessageService {
             if (convInfo) {
                 dbConvId = convInfo.id;
                 fbConvId = convInfo.fbConvId || null;
-                const cached = await this.db.getMessages(dbConvId, safeLimit, before);
-                if (cached.length > 0) {
-                    return {
-                        messages: cached.map(mapMessage),
-                        conv_id: dbConvId
-                    };
-                }
             }
         }
 
@@ -47,6 +41,12 @@ class MessageService {
             fetchFn: this.fb.fetch
         });
         if (!token) {
+            if (dbConvId) {
+                const cached = await this.db.getMessages(dbConvId, safeLimit, before);
+                if (cached.length > 0) {
+                    return { messages: cached.map(mapMessage), conv_id: dbConvId };
+                }
+            }
             return { messages: [], error: 'No page token found. Please reload the pages list.' };
         }
 
@@ -61,6 +61,28 @@ class MessageService {
                         messages: [],
                         error: 'No conversation found. This user may not have messaged this page yet.'
                     };
+                }
+            }
+
+            // Always pull latest from Facebook when opening chat (not "load earlier").
+            // Fixes missing customer messages sent/replied via Meta Business Suite.
+            if (!before && fbConvId) {
+                await this.db.syncThreadMessages(fbConvId, pageId, token, this.fb.fetch, null);
+                if (!dbConvId) dbConvId = await this.db.ensureConversation(pageId, psid);
+                if (dbConvId && this.db.touchConversationFromLatestMessage) {
+                    await this.db.touchConversationFromLatestMessage(dbConvId);
+                }
+            } else if (forceRefresh && fbConvId) {
+                await this.db.syncThreadMessages(fbConvId, pageId, token, this.fb.fetch, null);
+                if (dbConvId && this.db.touchConversationFromLatestMessage) {
+                    await this.db.touchConversationFromLatestMessage(dbConvId);
+                }
+            }
+
+            if (dbConvId) {
+                const rows = await this.db.getMessages(dbConvId, safeLimit, before);
+                if (rows.length > 0) {
+                    return { messages: rows.map(mapMessage), conv_id: dbConvId };
                 }
             }
 
@@ -85,12 +107,21 @@ class MessageService {
                             : null
                     }));
                     await this.db.saveMessages(dbMsgs).catch(() => {});
+                    if (this.db.touchConversationFromLatestMessage) {
+                        await this.db.touchConversationFromLatestMessage(dbConvId);
+                    }
                 }
             }
 
             return { messages, conv_id: dbConvId || fbConvId };
         } catch (err) {
             this.logError('load_messages_fb', err, { pageId, psid });
+            if (dbConvId) {
+                const fallback = await this.db.getMessages(dbConvId, safeLimit, before);
+                if (fallback.length > 0) {
+                    return { messages: fallback.map(mapMessage), conv_id: dbConvId };
+                }
+            }
             return {
                 messages: [],
                 error: 'Network error fetching messages: ' + err.message

@@ -27,7 +27,7 @@ const CONVERSATION_RETENTION_DAYS = parseInt(process.env.MESSENGER_CONV_RETENTIO
 /** Re-login / return visit: full sync if last sync older than this (default 15 min). */
 const RELOGIN_SYNC_GAP_MS = parseInt(process.env.MESSENGER_RELOGIN_SYNC_MS || String(15 * 60 * 1000), 10);
 /** While inbox is open: refresh open thread from Graph (Business Suite / external replies). */
-const ACTIVE_THREAD_SYNC_MS = parseInt(process.env.MESSENGER_ACTIVE_THREAD_SYNC_MS || '8000', 10);
+const ACTIVE_THREAD_SYNC_MS = parseInt(process.env.MESSENGER_ACTIVE_THREAD_SYNC_MS || '5000', 10);
 /** While inbox is open (no thread): refresh hottest convs from Graph. */
 const ACTIVE_PAGE_SYNC_MS = parseInt(process.env.MESSENGER_ACTIVE_PAGE_SYNC_MS || '30000', 10);
 const HOT_CONV_SYNC_LIMIT = parseInt(process.env.MESSENGER_HOT_CONV_SYNC || '10', 10);

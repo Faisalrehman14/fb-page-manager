@@ -7,6 +7,7 @@ const { SendService } = require('./send-service');
 const { PollService } = require('./poll-service');
 const { SearchService } = require('./search-service');
 const { resolvePageToken } = require('./token-resolver');
+const { mapPollMessage } = require('./mappers');
 
 /**
  * Build messenger HTTP handlers (action-based API for backward compatibility).
@@ -112,6 +113,7 @@ function createMessengerRouter(deps) {
                             psid,
                             limit: req.query.limit,
                             before: req.query.before || null,
+                            refresh: req.query.refresh,
                             session: req.session,
                             dbConnected
                         });
@@ -121,6 +123,7 @@ function createMessengerRouter(deps) {
                         if (!pageId) return res.status(400).json({ error: 'page_id required' });
                         const psid = req.query.psid || null;
                         const since = req.query.since || new Date(Date.now() - 30000).toISOString();
+                        let graphSynced = false;
                         if (dbConnected) {
                             const pageToken = await resolvePageToken({
                                 pageId,
@@ -131,6 +134,7 @@ function createMessengerRouter(deps) {
                             });
                             if (pageToken) {
                                 await syncService.syncOnPoll(pageId, pageToken, { psid });
+                                graphSynced = true;
                             }
                         }
                         const result = await pollService.poll({
@@ -139,6 +143,27 @@ function createMessengerRouter(deps) {
                             since,
                             dbConnected
                         });
+                        if (psid && dbConnected) {
+                            const conv = await db.getConversationIdByParticipant(pageId, psid);
+                            if (conv?.id) {
+                                const sinceDate = new Date(since);
+                                const wideSince = new Date(
+                                    (isNaN(sinceDate.getTime()) ? Date.now() : sinceDate.getTime()) - 120000
+                                );
+                                const wide = await db.getNewMessagesSince(conv.id, wideSince);
+                                const seen = new Set(
+                                    (result.new_messages || []).map((m) => m.mid || m.message_id).filter(Boolean)
+                                );
+                                for (const row of wide) {
+                                    const mid = row.mid || row.message_id;
+                                    if (mid && seen.has(mid)) continue;
+                                    result.new_messages.push(mapPollMessage(row));
+                                    if (mid) seen.add(mid);
+                                }
+                                if (wide.length) result.has_changes = true;
+                            }
+                        }
+                        result.graph_synced = graphSynced && !!psid;
                         res.set('Cache-Control', 'no-store');
                         return res.json(result);
                     }

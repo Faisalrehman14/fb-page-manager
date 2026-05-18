@@ -798,6 +798,7 @@ async function saveMessage(message) {
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON DUPLICATE KEY UPDATE
                 message = VALUES(message),
+                from_me = VALUES(from_me),
                 attachment_url = COALESCE(VALUES(attachment_url), attachment_url),
                 attachment_type = COALESCE(VALUES(attachment_type), attachment_type),
                 created_at = VALUES(created_at)
@@ -851,6 +852,7 @@ async function saveMessages(messenger_messages) {
                 VALUES ${placeholders}
                 ON DUPLICATE KEY UPDATE
                     message = VALUES(message),
+                    from_me = VALUES(from_me),
                     attachment_url = COALESCE(VALUES(attachment_url), attachment_url),
                     attachment_type = COALESCE(VALUES(attachment_type), attachment_type),
                     created_at = VALUES(created_at)
@@ -964,6 +966,27 @@ async function syncMessagesFromFacebook(threadId, pageId, pageToken, fetchFn, li
         console.error('DB: syncMessages error:', err.message);
         if (pool) return await getMessages(threadId);
         return [];
+    }
+}
+
+/** After Graph sync — bump list snippet/time from newest stored message. */
+async function touchConversationFromLatestMessage(dbConvId) {
+    if (!pool || !dbConvId) return;
+    try {
+        const [rows] = await pool.query(
+            `SELECT message, from_me, created_at FROM messenger_messages
+             WHERE conversation_id = ? ORDER BY created_at DESC LIMIT 1`,
+            [dbConvId]
+        );
+        if (!rows[0]) return;
+        await updateConversationFromMessage({
+            threadId: dbConvId,
+            text: rows[0].message || '',
+            createdTime: rows[0].created_at,
+            lastFromMe: rows[0].from_me === 1 || rows[0].from_me === true
+        });
+    } catch (err) {
+        addDbError(`touchConversationFromLatestMessage: ${err.message}`);
     }
 }
 
@@ -1333,7 +1356,12 @@ async function syncThreadMessages(threadId, pageId, pageToken, fetchFn, cutoffMs
             saved += messenger_messages.length;
         }
         // No cutoff = incremental: first page (newest 100 msgs) is enough
-        if (!cutoffMs) break;
+        if (!cutoffMs) {
+            if (saved > 0 && dbConvId) {
+                await touchConversationFromLatestMessage(dbConvId).catch(() => {});
+            }
+            break;
+        }
         // FB returns DESC: last element in array is the oldest on this page
         if (messenger_messages.length > 0) {
             const oldestMs = new Date(messenger_messages[messenger_messages.length - 1].createdTime).getTime();
@@ -2341,6 +2369,7 @@ const dbModule = {
     MESSAGE_RETENTION_DAYS,
     CONVERSATION_RETENTION_DAYS,
     ensureConversation,
+    touchConversationFromLatestMessage,
     onIncomingMessage,
     migrateSchedules,
     createSchedule,

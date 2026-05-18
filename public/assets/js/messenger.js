@@ -769,7 +769,7 @@
 
   function startPolling() {
     stopPolling();
-    M.poll.since    = new Date(Date.now() - 5000).toISOString().replace('T', ' ').slice(0, 19);
+    M.poll.since    = new Date(Date.now() - 5000).toISOString();
     M.poll.failures = 0;
     schedulePoll(nextPollDelayMs());
   }
@@ -798,7 +798,7 @@
         return;
       }
       const wasOffline = M.poll.failures >= 3;
-      M.poll.since    = data.server_time || new Date().toISOString().replace('T', ' ').slice(0, 19);
+      M.poll.since    = data.server_time || new Date().toISOString();
       M.poll.failures = 0;
       if (wasOffline) { hideConnBanner(); showToast('Back online', 'success', 2500); }
 
@@ -819,6 +819,11 @@
         }
       });
       if (gotNewMsg) scrollToBottom(true);
+
+      // Graph sync ran but poll missed rows (stale cache / clock skew) — reload open thread
+      if (M.activePsid && data.graph_synced && !gotNewMsg && !(data.new_messages || []).length) {
+        loadMessages().catch(() => {});
+      }
 
       // Updated conversations (unread counts, snippets, new convs from other senders)
       let convListDirty = false;
