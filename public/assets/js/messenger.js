@@ -608,8 +608,7 @@
     const msgsEl = $('msngMsgs');
     if (!msgsEl) return;
 
-    // Sort by timestamp (oldest first)
-    M.msgs.sort((a, b) => new Date(a.created_at || 0) - new Date(b.created_at || 0));
+    sortMsgsInPlace();
 
     if (!M.msgs.length) {
       msgsEl.innerHTML = `<div class="msng-empty" style="margin-top:60px">
@@ -673,7 +672,9 @@
 
   function appendNewMessagesFromIndex(startIndex, opts = {}) {
     for (let i = startIndex; i < M.msgs.length; i++) {
-      appendBubble(M.msgs[i], opts);
+      const msg = M.msgs[i];
+      if (isDuplicate(msg)) continue;
+      appendBubble(msg, opts);
     }
   }
 
@@ -737,6 +738,61 @@
     return msgs.map(msgStableKey).join('\n');
   }
 
+  function msgTimeMs(m) {
+    const t = new Date(m?.created_at || 0).getTime();
+    return Number.isFinite(t) ? t : 0;
+  }
+
+  /** True when an optimistic outgoing bubble matches a server row (avoid duplicates on reload). */
+  function pendingMatchesServer(pending, server) {
+    if (!pending || !server) return false;
+    if (pending.from_me != 1 || server.from_me != 1) return false;
+    if (pending.message_id && server.message_id && pending.message_id === server.message_id) return true;
+    if (isLikeMessage(pending) && isLikeMessage(server)) {
+      return Math.abs(msgTimeMs(pending) - msgTimeMs(server)) < 180_000;
+    }
+    if (pending.attachment_type === 'image' && server.attachment_type === 'image') {
+      return Math.abs(msgTimeMs(pending) - msgTimeMs(server)) < 180_000;
+    }
+    const pt = String(pending.message || '').trim();
+    const st = String(server.message || '').trim();
+    if (!pt || !st || pt !== st) return false;
+    return Math.abs(msgTimeMs(pending) - msgTimeMs(server)) < 180_000;
+  }
+
+  /** Drop pending rows that already exist on the server; confirm matching bubbles in the DOM. */
+  function reconcilePendingWithFresh(fresh, pending) {
+    const serverIds = new Set(fresh.map(m => m.message_id).filter(Boolean));
+    const keep = [];
+    for (const p of pending) {
+      if (p._failed) {
+        keep.push(p);
+        continue;
+      }
+      if (p.message_id && serverIds.has(p.message_id)) continue;
+      const match = fresh.find(s => pendingMatchesServer(p, s));
+      if (match) {
+        if (p._pending) {
+          _tryConfirmPending({
+            from_me: 1,
+            message_id: match.message_id,
+            message: match.message || p.message,
+            created_at: match.created_at || p.created_at,
+            attachment_type: match.attachment_type || p.attachment_type,
+            attachment_url: match.attachment_url || p.attachment_url
+          });
+        }
+        continue;
+      }
+      keep.push(p);
+    }
+    return keep;
+  }
+
+  function sortMsgsInPlace() {
+    M.msgs.sort((a, b) => msgTimeMs(a) - msgTimeMs(b));
+  }
+
   /** @returns {'noop'|'append'|'full'} */
   function planMessagesDomUpdate(prev, next) {
     if (!prev.length && !next.length) return 'noop';
@@ -758,13 +814,17 @@
     if (msg.from_me != 1 || !msg.message_id) return false;
     const pending = M.msgs.find(m => {
       if (!m._pending || m.message_id) return false;
-      if (isLikeMessage(m) && isLikeMessage(msg)) return true;
-      return m.message === (msg.message || '');
+      if (pendingMatchesServer(m, msg)) return true;
+      return (m.message || '').trim() === (msg.message || '').trim();
     });
     if (!pending) return false;
 
     pending.message_id = msg.message_id;
     pending._pending   = false;
+    if (msg.attachment_url && pending.attachment_type === 'image') {
+      pending.attachment_url = msg.attachment_url;
+    }
+    if (msg.message && !pending.message) pending.message = msg.message;
     M.renderedMsgIds.add(msg.message_id);
 
     if (pending._tempId) {
@@ -923,7 +983,7 @@
       }
 
       // Graph sync — silent refresh at most every 45s (avoids full-list flicker)
-      if (M.activePsid && data.graph_synced && !gotNewMsg && !(data.new_messages || []).length) {
+      if (M.activePsid && data.graph_synced && !gotNewMsg && !(data.new_messages || []).length && !M.ui.sending) {
         const now = Date.now();
         if (now - (M._graphMsgReloadAt || 0) > 45_000) {
           M._graphMsgReloadAt = now;
@@ -1565,6 +1625,7 @@
   async function loadMessages(before = null, opts = {}) {
     if (!M.activePageId || !M.activePsid) return;
     const silent = !!opts.silent;
+    if (silent && M.ui.sending) return;
     // Snapshot the psid at call time — used to detect stale responses
     const forPsid = M.activePsid;
     const msgsEl  = $('msngMsgs');
@@ -1609,13 +1670,14 @@
       if (before) {
         // "Load earlier" — prepend older messages
         M.msgs = [...fresh, ...M.msgs];
+        sortMsgsInPlace();
         renderMessages('prepend');
       } else {
         const prevMsgs = M.msgs.slice();
-        const serverIds = new Set(fresh.map(m => m.message_id).filter(Boolean));
         const pending   = M.msgs.filter(m => m._pending || m._failed);
-        const toKeep    = pending.filter(m => !m.message_id || !serverIds.has(m.message_id));
+        const toKeep    = reconcilePendingWithFresh(fresh, pending);
         M.msgs = _filterMsgsByRetention([...fresh, ...toKeep]);
+        sortMsgsInPlace();
         const plan = planMessagesDomUpdate(prevMsgs, M.msgs);
         if (plan === 'noop') {
           /* DOM unchanged — no flicker */
@@ -1669,7 +1731,9 @@
 
   function _cacheSave(psid) {
     if (!psid || !M.msgs.length) return;
-    _msgCache.set(psid, { msgs: _filterMsgsByRetention(M.msgs), oldestMsgTime: M.oldestMsgTime });
+    const stable = M.msgs.filter(m => !m._pending && !m._failed);
+    if (!stable.length) return;
+    _msgCache.set(psid, { msgs: _filterMsgsByRetention(stable), oldestMsgTime: M.oldestMsgTime });
     // Evict oldest entry when over limit
     if (_msgCache.size > MSG_CACHE_MAX) {
       _msgCache.delete(_msgCache.keys().next().value);
@@ -1898,11 +1962,26 @@
       });
       if (res.error) throw new Error(res.error);
       const bubble = document.querySelector(`[data-temp-id="${tempId}"]`);
-      if (bubble) { bubble.removeAttribute('data-temp-id'); bubble.classList.remove('pending'); }
+      if (bubble) {
+        bubble.removeAttribute('data-temp-id');
+        bubble.classList.remove('pending');
+        if (res.message_id) bubble.dataset.msgId = res.message_id;
+      }
+      const entry = M.msgs.find(m => m._tempId === tempId);
+      if (entry) {
+        entry.message_id = res.message_id;
+        entry._pending = false;
+        delete entry._tempId;
+      }
       if (res.message_id) M.renderedMsgIds.add(res.message_id);
+      const conv = M.convs.find(c => c.psid === M.activePsid);
+      if (conv) { conv.lastMsg = '👍'; conv.lastFromMe = true; conv.lastMsgAt = entry?.created_at || new Date().toISOString(); }
+      renderConvs();
     } catch (e) {
       const bubble = document.querySelector(`[data-temp-id="${tempId}"]`);
       if (bubble) { bubble.classList.add('failed'); bubble.classList.remove('pending'); }
+      const entry = M.msgs.find(m => m._tempId === tempId);
+      if (entry) entry._failed = true;
       showToast('Thumbs up failed: ' + e.message, 'error');
     } finally {
       M.ui.sending = false;
@@ -1948,12 +2027,43 @@
       if (d.error) throw new Error(d.error);
 
       const bubble = document.querySelector(`[data-temp-id="${tempId}"]`);
-      if (bubble) { bubble.removeAttribute('data-temp-id'); bubble.classList.remove('pending'); }
+      const entry = M.msgs.find(m => m._tempId === tempId);
+      if (bubble) {
+        bubble.removeAttribute('data-temp-id');
+        bubble.classList.remove('pending');
+        if (d.message_id) bubble.dataset.msgId = d.message_id;
+        const tickEl = bubble.querySelector('.msng-tick');
+        if (tickEl) {
+          tickEl.className = 'msng-tick msng-tick--sent';
+          tickEl.title = 'Sent';
+          tickEl.innerHTML = '<i class="fa-solid fa-check"></i>';
+        }
+        if (d.attachment_url) {
+          const img = bubble.querySelector('.msng-att-img');
+          if (img) img.src = d.attachment_url;
+        }
+      }
+      if (entry) {
+        entry.message_id = d.message_id;
+        entry._pending = false;
+        delete entry._tempId;
+        if (d.attachment_url) entry.attachment_url = d.attachment_url;
+        if (!entry.message) entry.message = d.message || '[Image]';
+      }
       if (d.message_id) M.renderedMsgIds.add(d.message_id);
+      const conv = M.convs.find(c => c.psid === M.activePsid);
+      if (conv) {
+        conv.lastMsg = entry?.message || '[Image]';
+        conv.lastFromMe = true;
+        conv.lastMsgAt = entry?.created_at || new Date().toISOString();
+      }
+      renderConvs();
       URL.revokeObjectURL(objUrl);
     } catch (e) {
       const bubble = document.querySelector(`[data-temp-id="${tempId}"]`);
       if (bubble) { bubble.classList.add('failed'); bubble.classList.remove('pending'); }
+      const entry = M.msgs.find(m => m._tempId === tempId);
+      if (entry) entry._failed = true;
       showToast('Image send failed: ' + e.message, 'error');
     }
   }
