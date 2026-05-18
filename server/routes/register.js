@@ -18,7 +18,8 @@ module.exports = function registerRoutes(app, deps) {
   const { MAX_LOGS } = require('../lib/logger');
   const fbNames = require('../services/facebook-user-names');
   const entitlementsSvc = require('../services/entitlements.service');
-    const express = require('express');
+  const { threadHasLiveViewers } = require('../socket');
+  const express = require('express');
 
   function stripUserTokens(users) {
     if (!Array.isArray(users)) return users;
@@ -161,7 +162,13 @@ app.post(['/webhook', '/fb_webhook.php'], async (req, res) => {
                     const snippet = snippetForMessage(clientMsg);
 
                     if (saved?.inserted === true) {
-                        await db.onIncomingMessage(threadId, pageId, participantId, snippet);
+                        const viewedLive = threadHasLiveViewers(io, threadId);
+                        if (viewedLive) {
+                            await db.updateConversationFromMessage({ threadId, text: snippet, createdTime: ts, lastFromMe: false }).catch(() => {});
+                            await db.markAsRead(threadId).catch(() => {});
+                        } else {
+                            await db.onIncomingMessage(threadId, pageId, participantId, snippet);
+                        }
                         io.to(`page_${pageId}`).emit('new_message', {
                             id: rxMid, threadId, pageId, participantId,
                             text: clientMsg.message,
@@ -173,8 +180,8 @@ app.post(['/webhook', '/fb_webhook.php'], async (req, res) => {
                         });
                         io.to(`page_${pageId}`).emit('conversation_updated', {
                             id: threadId, pageId, participantId, snippet,
-                            updatedTime: new Date(), isRead: false,
-                            unreadCount: 1, lastMessageFromPage: false
+                            updatedTime: new Date(), isRead: viewedLive,
+                            unreadCount: viewedLive ? 0 : 1, lastMessageFromPage: false
                         });
                     }
                     continue;
@@ -229,10 +236,17 @@ app.post(['/webhook', '/fb_webhook.php'], async (req, res) => {
                         await db.updateConversationFromMessage({ threadId, text: snippet, createdTime: ts, lastFromMe: true }).catch(() => {});
                     }
                 } else if (isNewMessage) {
-                    await db.onIncomingMessage(threadId, pageId, participantId, snippet);
+                    const viewedLive = threadHasLiveViewers(io, threadId);
+                    if (viewedLive) {
+                        await db.updateConversationFromMessage({ threadId, text: snippet, createdTime: ts, lastFromMe: false }).catch(() => {});
+                        await db.markAsRead(threadId).catch(() => {});
+                    } else {
+                        await db.onIncomingMessage(threadId, pageId, participantId, snippet);
+                    }
                 }
 
                 if (isNewMessage) {
+                    const viewedLive = !isEcho && threadHasLiveViewers(io, threadId);
                     io.to(`page_${pageId}`).emit('new_message', {
                         id: mid, threadId, pageId, participantId,
                         text: clientMsg.message,
@@ -244,8 +258,8 @@ app.post(['/webhook', '/fb_webhook.php'], async (req, res) => {
                     });
                     io.to(`page_${pageId}`).emit('conversation_updated', {
                         id: threadId, pageId, participantId, snippet,
-                        updatedTime: new Date(), isRead: isEcho,
-                        unreadCount: isEcho ? 0 : 1, lastMessageFromPage: isEcho
+                        updatedTime: new Date(), isRead: isEcho || viewedLive,
+                        unreadCount: (isEcho || viewedLive) ? 0 : 1, lastMessageFromPage: isEcho
                     });
                 }
             } catch (err) {

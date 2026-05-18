@@ -1,4 +1,11 @@
 const state = require('../lib/state');
+const db = require('../db');
+
+function threadHasLiveViewers(io, threadId) {
+    if (!threadId) return false;
+    const room = io.sockets.adapter.rooms.get(`thread_${threadId}`);
+    return !!(room && room.size > 0);
+}
 
 function setupSocket(io, sessionMiddleware) {
     io.use((socket, next) => {
@@ -35,11 +42,25 @@ function setupSocket(io, sessionMiddleware) {
             if (threadId) socket.to(`thread_${threadId}`).emit('agent_typing', { threadId, typing: false });
         });
         // Agent presence — let other agents know who is viewing which thread
-        socket.on('viewing_thread', ({ pageId, threadId, agentName }) => {
+        socket.on('viewing_thread', async ({ pageId, threadId, psid, agentName }) => {
             if (!pageId || !threadId) return;
             socket.to(`page_${pageId}`).emit('agent_viewing', {
                 pageId, threadId, agentName: agentName || 'Agent', socketId: socket.id
             });
+            if (state.dbConnected) {
+                try {
+                    await db.markAsRead(threadId);
+                    io.to(`page_${pageId}`).emit('thread_read', { pageId, psid, threadId });
+                    io.to(`page_${pageId}`).emit('conversation_updated', {
+                        id: threadId,
+                        pageId,
+                        participantId: psid || null,
+                        isRead: true,
+                        unreadCount: 0,
+                        isLive: true
+                    });
+                } catch (_) { /* non-fatal */ }
+            }
         });
         socket.on('disconnect', () => {
             state.connectedSockets.delete(socket.id);
@@ -47,4 +68,4 @@ function setupSocket(io, sessionMiddleware) {
     });
 }
 
-module.exports = { setupSocket };
+module.exports = { setupSocket, threadHasLiveViewers };

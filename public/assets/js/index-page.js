@@ -13,7 +13,8 @@ const DELAY_DRAFT_KEY = 'fbcast_delay_draft';
 const ANALYTICS_QUEUE_KEY = 'fbcast_analytics_queue';
 const SESSION_ID_KEY = 'fbcast_session_id';
 const MODAL_IDS = ['upgradeModal', 'privacyModal', 'termsModal'];
-const TRACK_SYNC_MIN_INTERVAL_MS = 30000;
+const TRACK_SYNC_MIN_INTERVAL_MS = 60000;
+const TRACK_SYNC_PERIODIC_MS = 90000;
 
 let _trackUserInFlight = null;
 let _lastTrackUserSyncAt = 0;
@@ -258,14 +259,14 @@ async function requestTrackUserWithBackoff(userToken, options = {}) {
     _trackUserFailureCount += 1;
     const holdMs = Math.min(120000, 8000 * _trackUserFailureCount);
     const rateLimited = isRateLimitError(e);
-    const holdFor = rateLimited ? Math.max(30000, holdMs) : holdMs;
+    const holdFor = rateLimited ? Math.max(60000, holdMs) : holdMs;
     _trackUserBackoffUntil = Date.now() + holdFor;
-    if (background || silent) {
+    if ((background || silent) && _trackUserFailureCount >= 2) {
       showNetworkBanner(
         'banner-recovering',
         rateLimited
-          ? 'Server rate limit reached. Auto-retrying shortly…'
-          : 'Server unstable. Auto-retrying in background…'
+          ? 'Sync paused briefly (server busy). Will retry automatically…'
+          : 'Connection slow. Retrying in background…'
       );
     }
     if (!silent && !rateLimited) {
@@ -1444,7 +1445,7 @@ setInterval(async()=>{
   }catch(e){
     // Keep background sync quiet to avoid noisy console/log spam on unstable hosting.
   }
-},45000);
+}, TRACK_SYNC_PERIODIC_MS);
 
 /* Unload guard */
 window.addEventListener('beforeunload',(e)=>{

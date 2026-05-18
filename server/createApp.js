@@ -76,16 +76,34 @@ function createApp() {
         crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' }
     }));
     app.use(compression());
-    app.use(rateLimit({
-        windowMs: 60000,
-        max: 200,
-        skip: req => req.url.includes('webhook') || req.url.includes('/api/billing/webhook')
-    }));
-    app.use((req, res, next) => { trackRequest(req); next(); });
 
-    // Serve static files BEFORE session middleware so MySQL errors don't affect assets
+    // Static assets must not consume API rate budget (CSS/JS alone can exceed 200/min)
     app.use(express.static(paths.PUBLIC, { maxAge: '1h', etag: true, index: false }));
     app.use('/uploads', require('express').static(paths.UPLOADS));
+
+    const apiRateLimit = rateLimit({
+        windowMs: 60_000,
+        max: 500,
+        standardHeaders: true,
+        legacyHeaders: false,
+        skip: (req) => {
+            const p = (req.path || req.url || '').split('?')[0];
+            return p.includes('webhook')
+                || p.includes('/api/billing/webhook')
+                || p === '/api/health'
+                || p === '/api/auth/track'
+                || p === '/track_user.php';
+        },
+        message: { error: 'Too many requests — please wait a moment' }
+    });
+    app.use((req, res, next) => {
+        const p = req.path || '';
+        if (p.startsWith('/api/') || /\.php$/i.test(p)) {
+            return apiRateLimit(req, res, next);
+        }
+        next();
+    });
+    app.use((req, res, next) => { trackRequest(req); next(); });
 
     app.use(express.json({ verify: (req, res, buf) => { req.rawBody = buf; } }));
     app.use(express.urlencoded({ extended: true }));

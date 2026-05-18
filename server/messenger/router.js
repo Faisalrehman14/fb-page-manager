@@ -54,7 +54,7 @@ function createMessengerRouter(deps) {
 
     const pollLimiter = rateLimit({
         windowMs: 60_000,
-        max: 200,
+        max: 360,
         standardHeaders: true,
         legacyHeaders: false,
         message: { error: 'Poll rate limit — slow down' }
@@ -294,12 +294,41 @@ function createMessengerRouter(deps) {
                     case 'mark_read': {
                         const { psid, page_token } = req.body;
                         if (!pageId || !psid) return res.status(400).json({ error: 'Missing fields' });
+                        let threadId = null;
                         if (dbConnected) {
-                            await sendService.markRead({ pageId, psid, page_token });
+                            const result = await sendService.markRead({ pageId, psid, page_token });
+                            threadId = result?.threadId || null;
                         }
-                        // Broadcast to other agents so their unread badge updates instantly
-                        io.to(`page_${pageId}`).emit('thread_read', { pageId, psid });
-                        return res.json({ success: true });
+                        io.to(`page_${pageId}`).emit('thread_read', { pageId, psid, threadId });
+                        if (threadId) {
+                            io.to(`page_${pageId}`).emit('conversation_updated', {
+                                id: threadId,
+                                pageId,
+                                participantId: psid,
+                                isRead: true,
+                                unreadCount: 0,
+                                isLive: true
+                            });
+                        }
+                        return res.json({ success: true, threadId });
+                    }
+                    case 'mark_unread': {
+                        const { psid } = req.body;
+                        if (!pageId || !psid) return res.status(400).json({ error: 'Missing fields' });
+                        if (!dbConnected) return res.json({ success: true });
+                        const convInfo = await db.getConversationIdByParticipant(pageId, psid);
+                        if (convInfo?.id) {
+                            await db.markAsUnread(convInfo.id);
+                            io.to(`page_${pageId}`).emit('conversation_updated', {
+                                id: convInfo.id,
+                                pageId,
+                                participantId: psid,
+                                isRead: false,
+                                unreadCount: 1,
+                                isLive: true
+                            });
+                        }
+                        return res.json({ success: true, threadId: convInfo?.id || null });
                     }
                     default:
                         break;

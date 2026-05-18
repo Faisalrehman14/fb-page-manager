@@ -67,6 +67,9 @@
     _convOrder: [],       // Meta order: updated_at DESC from API
     _renderConvsRaf: 0,
     _readLocked: new Set(),
+    _readLockAt: new Map(),     // psid → ms when marked read locally
+    _readMarkTimers: new Map(), // psid → debounce timer
+    _readMarkInflight: new Map(), // psid → Promise
     _lastNotifKey: '',
     _lastNotifAt: 0,
     cannedReplies: [],
@@ -328,7 +331,10 @@
   }
 
   function lockConvRead(psid) {
-    if (psid) M._readLocked.add(String(psid));
+    if (!psid) return;
+    const key = String(psid);
+    M._readLocked.add(key);
+    M._readLockAt.set(key, Date.now());
   }
 
   function isConvReadLocked(psid) {
@@ -336,18 +342,116 @@
   }
 
   function clearConvReadLock(psid) {
-    if (psid) M._readLocked.delete(String(psid));
+    if (!psid) return;
+    const key = String(psid);
+    M._readLocked.delete(key);
+    M._readLockAt.delete(key);
+    const t = M._readMarkTimers.get(key);
+    if (t) clearTimeout(t);
+    M._readMarkTimers.delete(key);
   }
 
-  /** Open / marked-read stay 0; real new unread from server clears the lock. */
-  function resolveConvUnread(psid, serverUnread) {
+  /**
+   * Resolve unread count: respects read locks, active thread, and message timestamps
+   * so stale DB is_unread rows do not resurrect badges after mark-read.
+   */
+  function resolveConvUnread(psid, serverUnread, updatedAt) {
+    const key = String(psid);
     const nu = parseInt(serverUnread, 10) || 0;
+    const lockAt = M._readLockAt.get(key) || 0;
+    const msgAt = updatedAt ? new Date(updatedAt).getTime() : 0;
+
+    if (nu > 0 && lockAt && msgAt && msgAt <= lockAt + 1200) {
+      return 0;
+    }
+
     if (nu > 0) {
+      if (key === String(M.activePsid)) {
+        queueMarkConvRead(key, { immediate: true });
+        return 0;
+      }
       clearConvReadLock(psid);
       return nu;
     }
-    if (String(psid) === String(M.activePsid) || isConvReadLocked(psid)) return 0;
+
+    if (key === String(M.activePsid) || isConvReadLocked(psid)) return 0;
     return 0;
+  }
+
+  function commitConvReadState(psid, unread) {
+    const conv = getConv(M.activePageId, psid);
+    if (conv) conv.unread = Math.max(0, parseInt(unread, 10) || 0);
+    if (conv && conv.unread === 0) lockConvRead(psid);
+    else clearConvReadLock(psid);
+    invalidateConvListRender();
+    renderConvs({ immediate: true });
+    syncPageBadge(M.activePageId);
+  }
+
+  async function runMarkReadRequest(psid) {
+    const key = String(psid);
+    if (!M.activePageId || !key) return;
+    if (M._readMarkInflight.has(key)) return M._readMarkInflight.get(key);
+
+    const job = (async () => {
+      let attempt = 0;
+      while (attempt < 4) {
+        attempt++;
+        try {
+          const res = await post({
+            action: 'mark_read',
+            page_id: M.activePageId,
+            psid: key,
+            page_token: M.activeToken
+          });
+          if (res && res.error) throw new Error(res.error);
+          lockConvRead(key);
+          commitConvReadState(key, 0);
+          return;
+        } catch (e) {
+          if (attempt >= 4) {
+            console.warn('[Messenger] mark_read failed:', e.message || e);
+            return;
+          }
+          await new Promise(r => setTimeout(r, 400 * attempt));
+        }
+      }
+    })();
+
+    M._readMarkInflight.set(key, job);
+    try {
+      await job;
+    } finally {
+      M._readMarkInflight.delete(key);
+    }
+  }
+
+  function queueMarkConvRead(psid, opts = {}) {
+    if (!psid || !M.activePageId) return;
+    const key = String(psid);
+
+    if (opts.markUnread) {
+      clearConvReadLock(key);
+      commitConvReadState(key, 1);
+      post({
+        action: 'mark_unread',
+        page_id: M.activePageId,
+        psid: key
+      }).catch(() => showToast('Could not mark unread', 'warning', 2500));
+      return;
+    }
+
+    lockConvRead(key);
+    commitConvReadState(key, 0);
+
+    const prev = M._readMarkTimers.get(key);
+    if (prev) clearTimeout(prev);
+    const delay = opts.immediate ? 0 : 350;
+    const timer = setTimeout(() => {
+      M._readMarkTimers.delete(key);
+      runMarkReadRequest(key);
+    }, delay);
+    M._readMarkTimers.set(key, timer);
   }
 
   /** Re-sort sidebar to match Meta (updated_at DESC from API). */
@@ -464,7 +568,7 @@
       if (ex) {
         const patch = { ...row };
         if (patch.lastMsg != null) patch.lastMsg = normalizePreviewText(patch.lastMsg);
-        patch.unread = resolveConvUnread(key, patch.unread);
+        patch.unread = resolveConvUnread(key, patch.unread, patch.lastMsgAt);
         if (ex.unread !== patch.unread || ex.lastMsg !== patch.lastMsg
             || ex.name !== patch.name || ex.lastFromMe !== patch.lastFromMe) {
           Object.assign(ex, patch);
@@ -494,7 +598,7 @@
       const existing = M._convByPsid.get(key);
       if (existing) {
         let rowChanged = false;
-        const nu = resolveConvUnread(uc.fb_user_id, uc.is_unread);
+        const nu = resolveConvUnread(uc.fb_user_id, uc.is_unread, uc.updated_at || uc.last_msg_at);
         const prevSnippet = normalizePreviewText(existing.lastMsg || '');
         if (existing.unread !== nu) {
           existing.unread = nu;
@@ -524,7 +628,7 @@
           lastMsg: normalizePreviewText(uc.snippet || uc.last_msg || ''),
           lastFromMe: uc.last_from_me == 1,
           lastMsgAt: uc.updated_at || uc.last_msg_at,
-          unread: resolveConvUnread(uc.fb_user_id, uc.is_unread),
+          unread: resolveConvUnread(uc.fb_user_id, uc.is_unread, uc.updated_at || uc.last_msg_at),
           page_id: M.activePageId,
         };
         M.convs.push(row);
@@ -1382,11 +1486,19 @@
   //   Saves server load and battery on background tabs.
   // ══════════════════════════════════════════════════════════
 
+  function resetReadState() {
+    M._readLocked.clear();
+    M._readLockAt.clear();
+    M._readMarkTimers.forEach(t => clearTimeout(t));
+    M._readMarkTimers.clear();
+    M._readMarkInflight.clear();
+  }
+
   function startPolling() {
     stopPolling();
     M.poll.since    = new Date(Date.now() - 3000).toISOString();
     M._metaListRefreshAt = 0;
-    M._readLocked.clear();
+    resetReadState();
     M.poll.failures = 0;
     schedulePoll(nextPollDelayMs());
     startConvListAutoRefresh();
@@ -2190,7 +2302,7 @@
       lastMsg:    c.last_msg     || c.snippet || '',
       lastFromMe: c.last_from_me == 1,
       lastMsgAt:  c.last_msg_at  || c.updated_at,
-      unread:     resolveConvUnread(c.fb_user_id, c.is_unread),
+      unread:     resolveConvUnread(c.fb_user_id, c.is_unread, c.updated_at || c.updated_time),
       page_id:    c.page_id,
     }));
   }
@@ -2487,6 +2599,7 @@
         _socket.emit('viewing_thread', {
           pageId: M.activePageId,
           threadId: M._joinedThread,
+          psid: M.activePsid,
           agentName: M._agentName || 'Agent'
         });
       }
@@ -2512,14 +2625,7 @@
       await loadMessages();
     }
 
-    post({
-      action: 'mark_read',
-      page_id: M.activePageId,
-      psid,
-      page_token: M.activeToken
-    })
-      .then(() => { lockConvRead(psid); })
-      .catch(() => {});
+    queueMarkConvRead(psid, { immediate: true });
 
     $('msngMsgTextarea')?.focus();
     updateLikeBtnVisibility();
@@ -3178,19 +3284,14 @@
 
   window.msngMarkRead = function () {
     if (!M.activePsid || !M.activePageId) return;
-    lockConvRead(M.activePsid);
-    post({
-      action: 'mark_read',
-      page_id: M.activePageId,
-      psid: M.activePsid,
-      page_token: M.activeToken
-    });
-    const conv = M.convs.find(c => c.psid === M.activePsid);
-    if (conv) {
-      conv.unread = 0;
-      renderConvs();
-      syncPageBadge(M.activePageId);
-    }
+    queueMarkConvRead(M.activePsid, { immediate: true });
+    showToast('Marked as read', 'success', 1800);
+  };
+
+  window.msngMarkUnread = function () {
+    if (!M.activePsid || !M.activePageId) return;
+    queueMarkConvRead(M.activePsid, { markUnread: true });
+    showToast('Marked as unread', 'info', 1800);
   };
 
   // ── Page Selector Column Renderer ────────────────────────────────────────────
@@ -3323,6 +3424,9 @@
         conv.lastMsgAt  = msg.createdTime || new Date().toISOString();
         if (!isOpenConv && !msg.isFromPage) {
           conv.unread = (conv.unread || 0) + 1;
+        } else if (isOpenConv && !msg.isFromPage) {
+          conv.unread = 0;
+          queueMarkConvRead(msgPsid, { immediate: true });
         }
         resortConvsByMeta();
         renderConvs();
@@ -3408,7 +3512,11 @@
           }
         }
         if (data.participantId !== M.activePsid) {
-          const nu = resolveConvUnread(conv.psid, data.unreadCount != null ? data.unreadCount : 1);
+          const nu = resolveConvUnread(
+            conv.psid,
+            data.unreadCount != null ? data.unreadCount : 1,
+            data.updatedTime || conv.lastMsgAt
+          );
           if (conv.unread !== nu) {
             conv.unread = nu;
             changed = true;
@@ -3593,7 +3701,7 @@
     M.activePageId = pageId;
     M.activeToken  = (M.pages.find(p => p.id === pageId) || {}).access_token || null;
     M.activePsid   = null;
-    M._readLocked.clear();
+    resetReadState();
     M.search.query = '';
     M.search.active = false;
     M.search.cache.clear();

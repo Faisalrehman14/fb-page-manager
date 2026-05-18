@@ -184,7 +184,7 @@ class SendService {
 
         const convInfo = await this.db.getConversationIdByParticipant(pageId, psid);
         if (convInfo?.id) await this.db.markAsRead(convInfo.id);
-        return { success: true, meta_marked: metaMarked };
+        return { success: true, meta_marked: metaMarked, threadId: convInfo?.id || null };
     }
 }
 
