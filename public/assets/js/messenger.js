@@ -778,6 +778,31 @@
     listEl.querySelectorAll('.msng-skeleton, #msngConvLoadMore').forEach(el => el.remove());
   }
 
+  /** Unread filter empty state — must clear before showing conversation rows again. */
+  function clearConvListEmptyState(listEl) {
+    if (!listEl) return;
+    listEl.querySelectorAll('.msng-empty').forEach(el => el.remove());
+  }
+
+  /** Count unread conversations (matches Unread filter chip). */
+  function countUnreadConvsForPage(pageId) {
+    if (String(pageId) !== String(M.activePageId) || !M.convs.length) return null;
+    return M.convs.filter(c => (c.unread || 0) > 0).length;
+  }
+
+  /**
+   * Page sidebar badge — on the active page use loaded conv list so the badge
+   * matches what the Unread filter shows (poll DB totals can lag behind read locks).
+   */
+  function syncPageBadge(pageId, serverHint) {
+    if (!pageId) return;
+    const local = countUnreadConvsForPage(pageId);
+    const n = local != null
+      ? local
+      : (typeof serverHint === 'number' ? serverHint : (M.pageUnread[pageId] || 0));
+    updatePageBadge(pageId, n);
+  }
+
   function renderConvsNow(opts) {
     if (M.search.active) return; // search results own the list — don't overwrite them
     const listEl = $('msngConvList');
@@ -789,10 +814,13 @@
     const sig  = list.map(convRowSig).join('\n');
     const order = list.map(c => c.psid).join(',');
 
-    updatePageBadge(M.activePageId, M.convs.reduce((s, c) => s + (c.unread || 0), 0));
+    syncPageBadge(M.activePageId);
     updateMessengerChrome();
 
-    if (list.length) clearConvListPlaceholders(listEl);
+    if (list.length) {
+      clearConvListPlaceholders(listEl);
+      clearConvListEmptyState(listEl);
+    }
 
     if (!list.length) {
       invalidateConvListRender();
@@ -1289,7 +1317,9 @@
         ts: Date.now()
       });
       if (typeof data.total_unread === 'number') {
-        updatePageBadge(M.activePageId, data.total_unread);
+        syncPageBadge(M.activePageId, data.total_unread);
+      } else {
+        syncPageBadge(M.activePageId);
       }
       return merged || reordered;
     } catch (e) {
@@ -1355,7 +1385,9 @@
       if (wasOffline) { hideConnBanner(); showToast('Back online', 'success', 2500); }
 
       if (typeof data.total_unread === 'number') {
-        updatePageBadge(M.activePageId, data.total_unread);
+        syncPageBadge(M.activePageId, data.total_unread);
+      } else {
+        syncPageBadge(M.activePageId);
       }
 
       // Quiet poll — badge already updated; skip DOM
@@ -2550,7 +2582,10 @@
       el.classList.toggle('active', el.dataset.filter === M.convFilter);
     });
     invalidateConvListRender();
+    const listEl = $('msngConvList');
+    if (M.convFilter === 'all' && listEl) clearConvListEmptyState(listEl);
     renderConvs({ immediate: true, forceRebuild: true });
+    syncPageBadge(M.activePageId);
   };
 
   window.msngLoadMore = async function () {
@@ -2608,7 +2643,11 @@
     lockConvRead(M.activePsid);
     post({ action: 'mark_read', page_id: M.activePageId, psid: M.activePsid });
     const conv = M.convs.find(c => c.psid === M.activePsid);
-    if (conv) { conv.unread = 0; renderConvs(); }
+    if (conv) {
+      conv.unread = 0;
+      renderConvs();
+      syncPageBadge(M.activePageId);
+    }
   };
 
   // ── Page Selector Column Renderer ────────────────────────────────────────────
@@ -2877,6 +2916,7 @@
       if (conv) {
         conv.unread = 0;
         renderConvs();
+        syncPageBadge(M.activePageId);
       }
     });
 
