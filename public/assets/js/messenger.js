@@ -242,10 +242,22 @@
 
   function $(id) { return document.getElementById(id); }
 
+  function parseMsgDate(dateStr) {
+    if (!dateStr) return null;
+    const d = new Date(dateStr);
+    if (!isNaN(d.getTime())) return d;
+    const s = String(dateStr).trim();
+    if (!s) return null;
+    const local = new Date(s.includes('T') ? s : s.replace(' ', 'T'));
+    if (!isNaN(local.getTime())) return local;
+    const utc = new Date(s.replace(' ', 'T') + 'Z');
+    return isNaN(utc.getTime()) ? null : utc;
+  }
+
   function fmtTime(dateStr) {
     if (!dateStr) return '';
-    const d    = new Date(dateStr);
-    if (isNaN(d)) return '';
+    const d = parseMsgDate(dateStr);
+    if (!d) return '';
     const diff  = Date.now() - d.getTime();
     const mins  = Math.floor(diff / 60_000);
     const hours = Math.floor(diff / 3_600_000);
@@ -259,14 +271,14 @@
 
   function fmtMsgTime(dateStr) {
     if (!dateStr) return '';
-    const d = new Date(dateStr);
-    return isNaN(d) ? '' : d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+    const d = parseMsgDate(dateStr);
+    return !d ? '' : d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
   }
 
   function fmtDate(dateStr) {
     if (!dateStr) return '';
-    const d     = new Date(dateStr);
-    if (isNaN(d)) return '';
+    const d = parseMsgDate(dateStr);
+    if (!d) return '';
     const today  = new Date(); today.setHours(0,0,0,0);
     const msgDay = new Date(d); msgDay.setHours(0,0,0,0);
     const diff   = Math.round((today - msgDay) / 86_400_000);
@@ -303,12 +315,17 @@
   function moveConvToTop(psid) {
     const id = String(psid);
     if (!id) return false;
-    const idx = M._convOrder.indexOf(id);
+    let idx = M._convOrder.indexOf(id);
+    if (idx < 0) {
+      M._convOrder.unshift(id);
+      invalidateConvListRender();
+      return true;
+    }
     if (idx === 0) return false;
-    if (idx > 0) M._convOrder.splice(idx, 1);
+    M._convOrder.splice(idx, 1);
     M._convOrder.unshift(id);
     invalidateConvListRender();
-    return idx !== 0;
+    return true;
   }
 
   /** After we send from this inbox — bump sidebar row to top immediately. */
@@ -317,9 +334,14 @@
     if (!conv) return;
     if (lastMsg != null) conv.lastMsg = lastMsg;
     conv.lastFromMe = true;
-    if (lastMsgAt != null) conv.lastMsgAt = lastMsgAt;
+    conv.lastMsgAt = lastMsgAt != null ? lastMsgAt : new Date().toISOString();
     moveConvToTop(psid);
-    renderConvs();
+    const cached = _convListCache.get(M.activePageId);
+    if (cached) {
+      cached.convs = M.convs;
+      cached.order = M._convOrder.slice();
+    }
+    renderConvs({ immediate: true });
   }
 
   /** True when poll/socket data indicates a real new message, not FB timestamp drift. */
@@ -345,6 +367,7 @@
       c.psid,
       c.unread || 0,
       preview,
+      fmtTime(c.lastMsgAt),
       c.name || '',
       c.lastFromMe ? 1 : 0
     ].join('|');
@@ -767,11 +790,7 @@
     const wanted = new Set(list.map(c => String(c.psid)));
     Object.keys(existing).forEach(psid => { if (!wanted.has(psid)) existing[psid].remove(); });
 
-    const orderNodes = orderChanged
-      ? Array.from(listEl.querySelectorAll('.msng-conv-item[data-psid]'))
-      : null;
-
-    list.forEach((c, i) => {
+    list.forEach((c) => {
       let node = existing[c.psid];
 
       if (node) {
@@ -783,15 +802,7 @@
         existing[c.psid] = node;
       }
 
-      if (orderChanged) {
-        const target = orderNodes[i];
-        if (node !== target) {
-          if (target) listEl.insertBefore(node, target);
-          else listEl.appendChild(node);
-        }
-      } else if (!node.parentNode) {
-        listEl.appendChild(node);
-      }
+      listEl.appendChild(node);
     });
   }
 
@@ -1309,8 +1320,8 @@
     }
 
     const tempId = retryTempId || ('temp_' + Date.now());
-    const now    = new Date().toISOString().replace('T', ' ').slice(0, 19);
-    const tempMsg = { message: text, from_me: 1, created_at: now, _tempId: tempId, _pending: true };
+    const nowIso = new Date().toISOString();
+    const tempMsg = { message: text, from_me: 1, created_at: nowIso, _tempId: tempId, _pending: true };
 
     M.msgs.push(tempMsg);
     M.renderedMsgIds.add(tempId);
@@ -1332,7 +1343,7 @@
         bubble.classList.remove('pending');
         if (res.message_id) {
           bubble.dataset.msgId = res.message_id;
-          if (now) bubble.dataset.createdTs = new Date(now).getTime();
+          if (nowIso) bubble.dataset.createdTs = new Date(nowIso).getTime();
           M.renderedMsgIds.add(res.message_id);
         }
         // Clock → single checkmark (sent)
@@ -1346,7 +1357,7 @@
       const entry = M.msgs.find(m => m._tempId === tempId);
       if (entry) { entry.message_id = res.message_id; entry._pending = false; delete entry._tempId; }
 
-      bumpConvAfterPageSend(M.activePsid, { lastMsg: text, lastMsgAt: now });
+      bumpConvAfterPageSend(M.activePsid, { lastMsg: text, lastMsgAt: nowIso });
 
     } catch (e) {
       showToast('Send failed — tap Retry to try again', 'error');
