@@ -1863,9 +1863,10 @@
 
     } catch (e) {
       let errMsg = (e && (e.message || e.error)) ? String(e.message || e.error) : '';
-      const fbDetail = e?.data?.fbMessage || e?.data?.fbCode;
-      if (fbDetail && errMsg && !errMsg.includes(String(fbDetail))) {
-        errMsg = `${errMsg} (Facebook #${e.data.fbCode}: ${e.data.fbMessage})`;
+      const fbRaw = e?.data?.fbMessage ? String(e.data.fbMessage) : '';
+      const isThreadControl = /another app|thread control|page inbox|conversation routing/i.test(errMsg + fbRaw);
+      if (fbRaw && errMsg && !errMsg.includes(fbRaw) && !isThreadControl) {
+        errMsg = `${errMsg} (Facebook #${e.data.fbCode}: ${fbRaw})`;
       }
       showToast(errMsg || 'Send failed — tap Retry to try again', 'error', errMsg ? 10000 : 5000);
 

@@ -203,14 +203,28 @@ class FacebookClient {
         };
     }
 
+    /** Meta #10 is used for permissions, 24h window, AND handover — match message text, not code alone. */
+    static isThreadControlError(fbError) {
+        if (!fbError) return false;
+        const code = fbError.code ?? fbError.fbCode;
+        const msg = (fbError.message || '').toLowerCase();
+        if (code === 2018300 || code === 2534001) return true;
+        if (msg.includes('another app') && msg.includes('control')) return true;
+        if (msg.includes('not the thread owner')) return true;
+        if (msg.includes('pass_thread') || msg.includes('take_thread') || msg.includes('request_thread')) return true;
+        if (msg.includes('thread') && (msg.includes('control') || msg.includes('owner') || msg.includes('handover'))) return true;
+        if (code === 10 && (msg.includes('controlling') || msg.includes('another app'))) return true;
+        return false;
+    }
+
     static needsThreadControlBeforeSend(err) {
         if (!err) return false;
+        if (FacebookClient.isThreadControlError(err)) return true;
         const msg = (err.message || '').toLowerCase();
         const code = err.fbCode ?? err.code;
-        return code === 100 || code === 2534001 || code === 2018300 ||
-            msg.includes('thread') || msg.includes('control') || msg.includes('owner') ||
+        return code === 100 ||
             msg.includes('handover') || msg.includes('not authorized') ||
-            msg.includes('cannot send') || msg.includes('pass_thread');
+            msg.includes('cannot send');
     }
 
     async _runSendStrategies(strategies) {
@@ -247,19 +261,36 @@ class FacebookClient {
     async send(pageToken, psid, messageObj, useUtility = false, pageId = null, options = {}) {
         const { passToPageInbox = false } = options;
         const plainStrategies = this._plainSendStrategies(pageToken, psid, messageObj, useUtility, pageId);
+        const castmeId = String(FB_CASTME_APP_ID);
+        const inboxId = String(FB_PAGE_INBOX_APP_ID);
+
+        let acquired = null;
+        if (pageId && FB_HANDOVER_ENABLED) {
+            try {
+                const owner = await this.getThreadOwner(pageId, pageToken, psid);
+                const ownerId = owner?.appId ? String(owner.appId) : null;
+                if (ownerId && ownerId !== castmeId) {
+                    acquired = await this.acquireThreadForCastmeSend(pageId, pageToken, psid);
+                }
+            } catch (err) {
+                console.warn('[FacebookClient] pre-send thread acquire:', err.message || err);
+            }
+        }
 
         let result = await this._runSendStrategies(plainStrategies);
         if (!result.error) return result;
 
         let lastErr = result.error;
 
-        if (pageId && FB_HANDOVER_ENABLED) {
-            const acquired = await this.acquireThreadForCastmeSend(pageId, pageToken, psid).catch(() => ({ ok: false }));
+        const needsAcquire = FacebookClient.needsThreadControlBeforeSend(lastErr)
+            || (acquired && acquired.ok === false);
+        if (pageId && FB_HANDOVER_ENABLED && needsAcquire) {
+            acquired = await this.acquireThreadForCastmeSend(pageId, pageToken, psid).catch(() => ({ ok: false }));
             if (acquired?.ok) {
                 result = await this._runSendStrategies(plainStrategies);
                 if (!result.error) return result;
                 lastErr = result.error;
-            } else if (acquired?.threadOwnerAppId === String(FB_PAGE_INBOX_APP_ID)) {
+            } else if (acquired?.threadOwnerAppId === inboxId) {
                 throw new FbApiError({
                     message: 'Meta Page Inbox owns this chat. Set castme as the default Conversation Routing app in Facebook Page settings, then reconnect Facebook.',
                     code: 2018300
@@ -275,6 +306,20 @@ class FacebookClient {
             result = await this._runSendStrategies(passStrategies);
             if (!result.error) return result;
             lastErr = result.error;
+        }
+
+        if (FacebookClient.isThreadControlError(lastErr)) {
+            const owner = acquired?.threadOwnerAppId;
+            if (owner === inboxId) {
+                throw new FbApiError({
+                    message: 'Meta Page Inbox owns this chat. Set castme as the default Conversation Routing app in Facebook Page settings, then reconnect Facebook.',
+                    code: 2018300
+                });
+            }
+            throw new FbApiError({
+                message: `Cannot send: another Meta app controls this chat${owner ? ` (app ${owner})` : ''}. In Facebook Page settings → Conversation routing, set castme as the default app, then reconnect Facebook in FBCast Settings.`,
+                code: 2018300
+            });
         }
 
         if (lastErr instanceof FbApiError) throw lastErr;
@@ -432,7 +477,7 @@ class FacebookClient {
         for (const attempt of controlAttempts) {
             try {
                 const r = await attempt();
-                await new Promise(res => setTimeout(res, 400));
+                await new Promise(res => setTimeout(res, 650));
                 const owner = await this.getThreadOwner(pageId, pageToken, psid);
                 ownerId = owner?.appId ? String(owner.appId) : ownerId;
                 if (ownerId === castmeId) {
@@ -583,13 +628,18 @@ class FacebookClient {
 
     static isOutside24hWindow(fbError) {
         if (!fbError) return false;
+        if (FacebookClient.isThreadControlError(fbError)) return false;
         const code = fbError.code ?? fbError.fbCode;
         const msg = (fbError.message || '').toLowerCase();
         if (code === 10 && (msg.includes('permission') || msg.includes('does not have'))) return false;
-        return code === 10 || code === 551 ||
-            msg.includes('outside of allowed window') ||
-            msg.includes('24 hour') ||
-            msg.includes('messaging window');
+        if (code === 551) return true;
+        if (msg.includes('outside of allowed window') || msg.includes('24 hour') || msg.includes('messaging window')) {
+            return true;
+        }
+        if (code === 10 && (msg.includes('window') || msg.includes('allowed window') || msg.includes('cannot message'))) {
+            return true;
+        }
+        return false;
     }
 
     static formatSendError(fbError) {
@@ -597,6 +647,16 @@ class FacebookClient {
         const msg = fbError.message || String(fbError);
         const code = fbError.code ?? fbError.fbCode;
         const lower = msg.toLowerCase();
+
+        if (FacebookClient.isThreadControlError(fbError)) {
+            if (code === 2018300 && lower.includes('page inbox')) return msg;
+            if (lower.includes('page inbox') || msg.includes(String(FB_PAGE_INBOX_APP_ID))) {
+                return 'Cannot send: Meta Page Inbox owns this chat. In Facebook Page settings → Conversation routing, set castme as the default app (not Page Inbox), then reconnect Facebook in FBCast Settings.';
+            }
+            return msg.includes('castme') || msg.includes('Conversation routing')
+                ? msg
+                : 'Cannot send: another Meta app controls this chat. In Facebook Page settings → Conversation routing, set castme as the default app, then reconnect Facebook in FBCast Settings.';
+        }
         if (FacebookClient.isOutside24hWindow(fbError)) {
             return 'Cannot send: the 24-hour reply window has ended. Ask the customer to message your page first, then try again.';
         }
@@ -605,12 +665,6 @@ class FacebookClient {
         }
         if (code === 190 || lower.includes('access token')) {
             return 'Page session expired. Refresh the page or reconnect Facebook.';
-        }
-        if (code === 2018300 || (lower.includes('thread') && (lower.includes('control') || lower.includes('owner')))) {
-            return 'Cannot send: Meta Page Inbox owns this chat. In Facebook Page settings → Conversation routing, set castme as the default app (not Page Inbox), then reconnect Facebook.';
-        }
-        if (lower.includes('another app') || lower.includes('not the thread owner')) {
-            return 'Cannot send from FBCast: another Meta app controls this chat. Set castme as default routing app in Page settings.';
         }
         return msg.replace(/^\(#\d+\)\s*/i, '').trim() || `Facebook error (#${code || '?'})`;
     }
