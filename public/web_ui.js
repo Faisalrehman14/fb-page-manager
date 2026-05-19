@@ -300,6 +300,11 @@ function renderPages(pages, opts) {
       <div class="page-indicator"></div>
     `;
     card.addEventListener('click', () => {
+      if (document.body.classList.contains('shell-scheduling')) {
+        card.classList.toggle('sched-selected');
+        if (typeof svUpdateSidebarPageCount === 'function') svUpdateSidebarPageCount();
+        return;
+      }
       if (isManualBroadcastRunning && activeBroadcastPageId && p.id !== activeBroadcastPageId) {
         showStatus('Broadcast is running on another page. Pause/Stop first.', 'warning');
         return;
@@ -341,8 +346,44 @@ function renderPages(pages, opts) {
     updateCampaignIntel();
   }
   scrollEl.scrollTop = scrollTop;
-  if (typeof svPopulatePages === 'function') svPopulatePages();
+  if (document.body.classList.contains('shell-scheduling') && typeof svInitSchedulingPageSelection === 'function') {
+    svInitSchedulingPageSelection();
+  }
 }
+
+function svGetSchedulePagesFromSidebar() {
+  const cards = Array.from(document.querySelectorAll('#pageCards .page-card.sched-selected'));
+  const pages = window.loadedPages || [];
+  return cards.map(card => {
+    const p = pages.find(x => x.id === card.dataset.id);
+    if (!p) return null;
+    return { id: p.id, name: p.name || p.id, token: p.access_token || '' };
+  }).filter(Boolean);
+}
+
+window.svUpdateSidebarPageCount = function () {
+  const el = $('svSidebarPageCount');
+  if (!el) return;
+  const n = document.querySelectorAll('#pageCards .page-card.sched-selected').length;
+  const total = (window.loadedPages || []).length;
+  el.textContent = n === total && total > 0 ? `All ${n} pages selected` : `${n} selected`;
+};
+
+window.svInitSchedulingPageSelection = function () {
+  const cards = document.querySelectorAll('#pageCards .page-card');
+  if (!cards.length) return;
+  cards.forEach(c => {
+    if (!c.classList.contains('sched-selected')) c.classList.add('sched-selected');
+  });
+  svUpdateSidebarPageCount();
+};
+
+window.svClearSchedulingPageSelection = function () {
+  document.querySelectorAll('#pageCards .page-card.sched-selected').forEach(c => {
+    c.classList.remove('sched-selected');
+  });
+  svUpdateSidebarPageCount();
+};
 
 function getFilteredRecipients() {
   const filter = $('recipientFilter')?.value || 'all';
@@ -885,42 +926,16 @@ window.svUpdateCharCount = function () {
 };
 
 window.svSelectAllPages = function () {
-  document.querySelectorAll('#svPagesList .sv2-page-item').forEach(el => {
-    el.classList.add('selected');
-    const cb = el.querySelector('input[type=checkbox]');
-    if (cb) cb.checked = true;
-  });
+  document.querySelectorAll('#pageCards .page-card').forEach(c => c.classList.add('sched-selected'));
+  svUpdateSidebarPageCount();
 };
 window.svSelectNonePages = function () {
-  document.querySelectorAll('#svPagesList .sv2-page-item').forEach(el => {
-    el.classList.remove('selected');
-    const cb = el.querySelector('input[type=checkbox]');
-    if (cb) cb.checked = false;
-  });
+  document.querySelectorAll('#pageCards .page-card').forEach(c => c.classList.remove('sched-selected'));
+  svUpdateSidebarPageCount();
 };
 
 function svPopulatePages() {
-  const box = $('svPagesList');
-  if (!box) return;
-  const pages = window.loadedPages || [];
-  if (!pages.length) {
-    box.innerHTML = '<div class="sv2-pages-empty"><i class="fa-solid fa-circle-info"></i> No pages connected yet.</div>';
-    return;
-  }
-  box.innerHTML = pages.map(p => {
-    const picUrl  = p.picture?.data?.url || p.picture || '';
-    const initial = (p.name || p.id || '?')[0].toUpperCase();
-    const avatarContent = picUrl
-      ? `<img src="${escHtml(picUrl)}" class="sv2-page-avatar-img" alt="${escHtml(initial)}" onerror="this.outerHTML='${initial}'">`
-      : initial;
-    return `<div class="sv2-page-item" onclick="this.classList.toggle('selected');this.querySelector('input').checked=this.classList.contains('selected')">
-      <input type="checkbox" value="${escHtml(p.id)}" data-token="${escHtml(p.access_token || '')}" data-name="${escHtml(p.name || p.id)}" checked style="display:none">
-      <div class="sv2-page-avatar">${avatarContent}</div>
-      <div class="sv2-page-name">${escHtml(p.name || p.id)}</div>
-      <i class="fa-solid fa-circle-check sv2-page-check-icon"></i>
-    </div>`;
-  }).join('');
-  box.querySelectorAll('.sv2-page-item').forEach(el => el.classList.add('selected'));
+  if (document.body.classList.contains('shell-scheduling')) svInitSchedulingPageSelection();
 }
 
 window.svLoadSchedules = async function () {
@@ -1043,10 +1058,8 @@ window.svCancelSchedule = async function (id) {
 };
 
 window.svSaveSchedule = async function () {
-  const checks = Array.from(document.querySelectorAll('#svPagesList input[type=checkbox]:checked'));
-  if (!checks.length) { showStatus('Select at least one page.', 'warning'); return; }
-
-  const pages = checks.map(cb => ({ id: cb.value, name: cb.dataset.name, token: cb.dataset.token }));
+  const pages = svGetSchedulePagesFromSidebar();
+  if (!pages.length) { showStatus('Select at least one page in the sidebar.', 'warning'); return; }
   const message = ($('svMessage')?.value || '').trim();
   const imageUrl    = ($('svImageUrl')?.value || '').trim();
   if (!message && !imageUrl) { showStatus('Write a message or add an image.', 'warning'); return; }

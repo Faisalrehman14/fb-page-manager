@@ -976,6 +976,10 @@ window.getCsrfToken = async (forceRefresh = false) => {
           </div>
           <div style="display:flex;align-items:center;gap:6px;">
             <span class="sidebar-page-count" id="sidebarPageCount" style="display:none">0</span>
+            <div class="sidebar-sched-actions" id="sidebarSchedActions" aria-hidden="true">
+              <button type="button" class="sidebar-sched-chip" onclick="svSelectAllPages()" title="Select all pages">All</button>
+              <button type="button" class="sidebar-sched-chip" onclick="svSelectNonePages()" title="Clear selection">None</button>
+            </div>
             <button id="btnFetchPages" class="sidebar-sync-btn" title="Sync pages from Facebook">
               <i class="fa-solid fa-rotate"></i>
             </button>
@@ -1834,15 +1838,11 @@ window.getCsrfToken = async (forceRefresh = false) => {
         <!-- LEFT: COMPOSE PANEL -->
         <div class="sv2-compose">
 
-          <!-- Pages -->
-          <div class="sv2-section">
-            <div class="sv2-section-label"><i class="fa-solid fa-flag"></i> Target Pages <span class="sv2-req">*</span></div>
-            <div class="sv2-pages-grid" id="svPagesList">
-              <div class="sv2-pages-loading"><i class="fa-solid fa-rotate fa-spin"></i> Loading pages…</div>
-            </div>
-            <div class="sv2-pages-actions">
-              <button class="sv2-chip" onclick="svSelectAllPages()"><i class="fa-solid fa-check-double"></i> All</button>
-              <button class="sv2-chip" onclick="svSelectNonePages()"><i class="fa-solid fa-xmark"></i> None</button>
+          <div class="sv2-sidebar-hint" id="svSidebarHint">
+            <i class="fa-solid fa-flag"></i>
+            <div>
+              <strong>Select pages in the sidebar</strong> — click each page to include or exclude it from this broadcast.
+              <span class="sv2-sidebar-hint-count" id="svSidebarPageCount">0 selected</span>
             </div>
           </div>
 
@@ -1882,18 +1882,18 @@ window.getCsrfToken = async (forceRefresh = false) => {
           </div>
 
           <!-- Schedule time + Delay -->
-          <div class="sv2-row">
+          <div class="sv2-row sv2-row--timing">
             <div class="sv2-section sv2-section--grow">
               <div class="sv2-section-label"><i class="fa-regular fa-calendar"></i> Date &amp; Time <span class="sv2-req">*</span></div>
               <input class="sv2-input" id="svDateTime" type="datetime-local">
             </div>
-            <div class="sv2-section sv2-section--fixed">
+            <div class="sv2-section sv2-section--delay">
               <div class="sv2-section-label"><i class="fa-solid fa-gauge"></i> Send Delay</div>
-              <select class="sv2-input" id="svDelay">
-                <option value="800">800ms — Fast</option>
-                <option value="1200" selected>1200ms — Balanced</option>
-                <option value="2000">2000ms — Safe</option>
-                <option value="3000">3000ms — Careful</option>
+              <select class="sv2-input sv2-delay-select" id="svDelay" title="Delay between each message send">
+                <option value="800">Fast · 0.8s</option>
+                <option value="1200" selected>Balanced · 1.2s</option>
+                <option value="2000">Safe · 2s</option>
+                <option value="3000">Careful · 3s</option>
               </select>
             </div>
           </div>

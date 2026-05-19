@@ -51,9 +51,12 @@
       hideSidebar: false,
       bodyClass: 'shell-scheduling',
       onEnter() {
-        if (typeof svPopulatePages === 'function') svPopulatePages();
+        if (typeof svInitSchedulingPageSelection === 'function') svInitSchedulingPageSelection();
         if (typeof svSetMinDatetime === 'function') svSetMinDatetime();
         if (typeof svLoadSchedules === 'function') svLoadSchedules();
+      },
+      onLeave() {
+        if (typeof svClearSchedulingPageSelection === 'function') svClearSchedulingPageSelection();
       }
     },
     analytics: {

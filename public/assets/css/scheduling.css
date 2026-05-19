@@ -207,7 +207,17 @@
 .sv2-section { display: flex; flex-direction: column; gap: 10px; }
 .sv2-section--grow { flex: 1; }
 .sv2-section--fixed { flex: 0 0 auto; }
-.sv2-row { display: grid; grid-template-columns: 1fr 140px; gap: 12px; }
+.sv2-row { display: grid; grid-template-columns: 1fr minmax(168px, 38%); gap: 12px; align-items: end; }
+.sv2-row--timing { grid-template-columns: minmax(0, 1fr) minmax(172px, 40%); }
+.sv2-section--delay { min-width: 0; }
+.sv2-delay-select {
+  width: 100%;
+  min-width: 0;
+  padding-right: 2rem;
+  text-overflow: ellipsis;
+  appearance: auto;
+  cursor: pointer;
+}
 
 .sv2-section-label {
   font-size: 11px;
@@ -893,8 +903,9 @@
 
 .sv2-compose > .sv2-row {
   display: grid;
-  grid-template-columns: 1fr 140px;
+  grid-template-columns: minmax(0, 1fr) minmax(172px, 40%);
   gap: 12px;
+  align-items: end;
 }
 
 .sv2-compose > .sv2-row > .sv2-section {
@@ -954,12 +965,50 @@ body.light #view-scheduling .sv2-compose > .sv2-row {
   }
 }
 
+@media (max-width: 720px) {
+  .sv2-row,
+  .sv2-compose > .sv2-row,
+  .sv2-row--timing {
+    grid-template-columns: 1fr;
+  }
+}
+
 @media (max-width: 640px) {
   .sv2-hero { padding: 18px 16px; }
   .sv2-compose { padding: 16px; }
   .sv2-list-hdr,
   .sv2-list-inner { padding-left: 16px; padding-right: 16px; }
-  .sv2-row { grid-template-columns: 1fr; }
+}
+
+/* Sidebar page picker hint */
+.sv2-sidebar-hint {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.12), rgba(99, 102, 241, 0.06));
+  border: 1px solid rgba(139, 92, 246, 0.28);
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text2, #94a3b8);
+}
+
+.sv2-sidebar-hint > i {
+  color: #a78bfa;
+  font-size: 18px;
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+
+.sv2-sidebar-hint strong { color: var(--text, #e2e8f0); }
+
+.sv2-sidebar-hint-count {
+  display: block;
+  margin-top: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #c4b5fd;
 }
 
 /* ─── Light theme ─── */
@@ -1025,6 +1074,23 @@ body.light #view-scheduling .sv2-pages-grid {
 html[data-theme='light'] #view-scheduling .sv2-page-name,
 body.light #view-scheduling .sv2-page-name {
   color: #0f172a !important;
+}
+
+html[data-theme='light'] #view-scheduling .sv2-sidebar-hint,
+body.light #view-scheduling .sv2-sidebar-hint {
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.08), rgba(139, 92, 246, 0.04));
+  border-color: rgba(99, 102, 241, 0.22);
+  color: #475569;
+}
+
+html[data-theme='light'] #view-scheduling .sv2-sidebar-hint strong,
+body.light #view-scheduling .sv2-sidebar-hint strong {
+  color: #0f172a;
+}
+
+html[data-theme='light'] #view-scheduling .sv2-sidebar-hint-count,
+body.light #view-scheduling .sv2-sidebar-hint-count {
+  color: #6366f1;
 }
 
 html[data-theme='light'] #view-scheduling .sv2-page-item.selected,
