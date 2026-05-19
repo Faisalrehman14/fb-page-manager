@@ -605,8 +605,10 @@ body.light {
 body.light .feat,
 body.light .step,
 body.light .price-card,
-body.light .hv-kpi,
-body.light .hv-panel {
+body.light #view-broadcast .hv-kpi,
+body.light #view-analytics .hv-kpi,
+body.light #view-broadcast .hv-panel,
+body.light #view-analytics .hv-panel {
   background: #fff !important;
 }
 

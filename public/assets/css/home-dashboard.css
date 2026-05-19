@@ -48,12 +48,16 @@ body.shell-home .sidebar {
   border-radius: 20px;
   padding: 32px 36px;
   border: 1px solid var(--hd-border) !important;
-  background:
-    linear-gradient(125deg, rgba(59, 130, 246, 0.2) 0%, rgba(124, 58, 237, 0.18) 42%, rgba(109, 40, 217, 0.08) 70%, transparent 100%),
-    linear-gradient(180deg, #141f45 0%, #0f1630 55%, #0a1022 100%) !important;
   border-color: rgba(139, 156, 255, 0.14) !important;
   box-shadow: var(--hd-shadow) !important;
   backdrop-filter: blur(12px);
+}
+
+html[data-theme='dark'] #view-home .hv-hero,
+html.theme-dark #view-home .hv-hero {
+  background:
+    linear-gradient(125deg, rgba(59, 130, 246, 0.2) 0%, rgba(124, 58, 237, 0.18) 42%, rgba(109, 40, 217, 0.08) 70%, transparent 100%),
+    linear-gradient(180deg, #141f45 0%, #0f1630 55%, #0a1022 100%) !important;
 }
 
 #view-home .hv-hero-glows {
@@ -977,21 +981,7 @@ body.shell-home .sidebar {
   color: #fff;
 }
 
-/* Light theme */
-body.light #view-home {
-  --hd-glass: rgba(255, 255, 255, 0.92);
-  --hd-border: rgba(99, 102, 241, 0.15);
-  --hd-shadow: 0 8px 32px rgba(99, 102, 241, 0.1);
-}
-
-body.light #view-home .hv-hero {
-  background:
-    linear-gradient(135deg, rgba(99, 102, 241, 0.12) 0%, rgba(168, 85, 247, 0.08) 50%, transparent 75%),
-    linear-gradient(180deg, #fff 0%, #f5f7ff 100%) !important;
-  border-color: rgba(99, 102, 241, 0.2) !important;
-}
-
-/* ─── Dark theme: full dashboard (no white KPI wash) ─── */
+/* ─── Dark theme: full dashboard ─── */
 html[data-theme='dark'] #view-home,
 html.theme-dark #view-home {
   --hd-glass: rgba(14, 22, 48, 0.94);
@@ -1030,16 +1020,4 @@ html.theme-dark #view-home .hv-metrics-eyebrow {
   color: #94a3b8 !important;
 }
 
-/* ─── Light theme: soft canvas (not flat white page) ─── */
-html[data-theme='light'] #view-home,
-html.theme-light #view-home,
-body.light #view-home {
-  --hd-glass: #ffffff;
-  --hd-border: rgba(99, 102, 241, 0.16);
-  background: linear-gradient(180deg, #e8eeff 0%, #f1f5ff 55%, #eef2ff 100%);
-}
-
-html[data-theme='light'] #view-home .hv-metrics-eyebrow,
-body.light #view-home .hv-metrics-eyebrow {
-  color: #6366f1 !important;
-}
+/* Light theme home: see home-dashboard-light.css (loads last) */

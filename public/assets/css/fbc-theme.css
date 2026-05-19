@@ -174,9 +174,15 @@ html.theme-dark #view-home {
   background: transparent;
 }
 
-.hv-kpi {
+html[data-theme='dark'] .hv-kpi,
+html.theme-dark .hv-kpi {
   background: linear-gradient(165deg, rgba(20, 31, 69, 0.95), rgba(16, 26, 56, 0.9)) !important;
   border: 1px solid var(--border) !important;
+  transition: border-color 0.22s ease, transform 0.22s ease, box-shadow 0.22s ease;
+}
+
+.hv-kpi {
+  border: 1px solid var(--border);
   transition: border-color 0.22s ease, transform 0.22s ease, box-shadow 0.22s ease;
 }
 
