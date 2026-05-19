@@ -8,6 +8,34 @@ const { PollService } = require('./poll-service');
 const { SearchService } = require('./search-service');
 const { resolvePageToken } = require('./token-resolver');
 const { mapPollMessage } = require('./mappers');
+const { FbApiError, FacebookClient } = require('./facebook-client');
+
+function messengerErrorResponse(err) {
+    if (err instanceof FbApiError || err?.name === 'FbApiError') {
+        return {
+            status: 400,
+            body: {
+                error: FacebookClient.formatSendError(err),
+                code: 'FACEBOOK_API_ERROR',
+                fbCode: err.fbCode ?? null
+            }
+        };
+    }
+    const msg = err?.message || 'Request failed';
+    if (/page token not found/i.test(msg)) {
+        return {
+            status: 400,
+            body: {
+                error: 'Page not connected. Open Settings and reconnect Facebook.',
+                code: 'PAGE_TOKEN_MISSING'
+            }
+        };
+    }
+    if (/missing fields|action required|not allowed/i.test(msg)) {
+        return { status: 400, body: { error: msg } };
+    }
+    return { status: 500, body: { error: msg } };
+}
 
 /**
  * Build messenger HTTP handlers (action-based API for backward compatibility).
@@ -338,7 +366,8 @@ function createMessengerRouter(deps) {
             return res.status(405).json({ error: 'Method or action not allowed' });
         } catch (err) {
             logError('messenger_api', err, { action, pageId });
-            return res.status(500).json({ error: err.message });
+            const { status, body } = messengerErrorResponse(err);
+            return res.status(status).json(body);
         }
     });
 

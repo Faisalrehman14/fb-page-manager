@@ -1,4 +1,4 @@
-const { FacebookClient } = require('./facebook-client');
+const { FacebookClient, FbApiError } = require('./facebook-client');
 
 const RETRY_DELAYS = [300, 1200]; // 2 retries: 300ms then 1.2s
 
@@ -74,14 +74,19 @@ class SendService {
 
         let lastMid;
         for (const part of parts) {
-            let fbData = await this._fbSendWithRetry(token, psid, part.msgObj, false, pageId);
-
-            // Outside 24h window: retry as UTILITY message type
-            if (fbData.error && FacebookClient.isOutside24hWindow(fbData.error)) {
-                fbData = await this._fbSendWithRetry(token, psid, part.msgObj, true, pageId);
+            let fbData;
+            try {
+                fbData = await this._fbSendWithRetry(token, psid, part.msgObj, false, pageId);
+            } catch (err) {
+                if (err instanceof FbApiError && FacebookClient.isOutside24hWindow(err)) {
+                    fbData = await this._fbSendWithRetry(token, psid, part.msgObj, true, pageId);
+                } else {
+                    throw err;
+                }
             }
-
-            if (fbData.error) throw new Error(fbData.error.message);
+            if (!fbData?.message_id) {
+                throw new FbApiError({ message: 'Facebook did not confirm delivery', code: 0 });
+            }
             lastMid = fbData.message_id;
         }
 

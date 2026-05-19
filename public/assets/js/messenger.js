@@ -227,7 +227,12 @@
     if (r.status === 401) return { error: 'Session expired — please reload the page' };
     if (r.status === 429) return { error: 'Too many requests — slow down' };
     if (!r.ok) {
-      try { return await r.json(); } catch { return { error: 'Server error (' + r.status + ')' }; }
+      let data = {};
+      try { data = await r.json(); } catch { /* ignore */ }
+      const msg = (data && (data.error || data.message))
+        ? String(data.error || data.message)
+        : 'Server error (' + r.status + ')';
+      throw new Error(msg);
     }
     return r.json();
   }
@@ -1843,7 +1848,8 @@
       queueMarkConvRead(M.activePsid, { immediate: true });
 
     } catch (e) {
-      showToast('Send failed — tap Retry to try again', 'error');
+      const errMsg = (e && (e.message || e.error)) ? String(e.message || e.error) : '';
+      showToast(errMsg || 'Send failed — tap Retry to try again', 'error', errMsg ? 8000 : 5000);
 
       // Mark the specific bubble as failed — do NOT remove it
       const bubble = document.querySelector(`[data-temp-id="${tempId}"]`);

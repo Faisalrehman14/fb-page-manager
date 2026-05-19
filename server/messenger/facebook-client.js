@@ -121,14 +121,51 @@ class FacebookClient {
         return data;
     }
 
-    async send(pageToken, psid, messageObj, useUtility = false, pageId = null) {
-        const body = {
-            messaging_product: 'facebook',
-            recipient: { id: String(psid) },
-            message: messageObj
-        };
-        if (useUtility) body.messaging_type = 'UTILITY';
+    _extractMessageId(data) {
+        if (!data || data.error) return null;
+        return data.message_id || data.messageId || data.id || null;
+    }
 
+    async _sendLegacyForm(pageToken, psid, messageObj, useUtility = false, pageId = null) {
+        const payload = { recipient: { id: String(psid) }, message: messageObj };
+        if (useUtility) payload.messaging_type = 'UTILITY';
+
+        const endpoints = [];
+        if (pageId) {
+            endpoints.push(`${FB_GRAPH_BASE}/${pageId}/messages?access_token=${encodeURIComponent(pageToken)}`);
+        }
+        endpoints.push(`${FB_GRAPH_BASE}/me/messages?access_token=${encodeURIComponent(pageToken)}`);
+
+        let lastErr;
+        for (const formUrl of endpoints) {
+            const formBody = new URLSearchParams();
+            for (const [k, v] of Object.entries(payload)) {
+                formBody.append(k, typeof v === 'object' ? JSON.stringify(v) : String(v));
+            }
+            try {
+                const r = await this._fetchWithTimeout(formUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: formBody.toString()
+                });
+                const data = await r.json();
+                if (data.error) throw new FbApiError(data.error);
+                const mid = this._extractMessageId(data);
+                if (!mid) throw new FbApiError({ message: 'No message_id in response', code: 0 });
+                return { ...data, message_id: mid };
+            } catch (err) {
+                lastErr = err;
+            }
+        }
+        throw lastErr;
+    }
+
+    async _sendJsonBody(pageToken, psid, messageObj, pageId, bodyExtra = {}) {
+        const body = {
+            recipient: { id: String(psid) },
+            message: messageObj,
+            ...bodyExtra
+        };
         const urls = [];
         if (pageId) urls.push(this._messagesUrl(pageId, pageToken));
         urls.push(this._messagesUrl(null, pageToken));
@@ -136,27 +173,42 @@ class FacebookClient {
         let lastErr;
         for (const url of urls) {
             try {
-                return await this._postJson(url, body);
+                const data = await this._postJson(url, body);
+                const mid = this._extractMessageId(data);
+                if (mid) return { ...data, message_id: mid };
+                lastErr = new FbApiError({ message: 'No message_id in response', code: 0 });
             } catch (err) {
                 lastErr = err;
                 if (!FacebookClient.isTransient(err)) break;
             }
         }
+        throw lastErr;
+    }
 
-        const formUrl = `${FB_GRAPH_BASE}/me/messages?access_token=${encodeURIComponent(pageToken)}`;
-        const formBody = new URLSearchParams();
-        formBody.append('messaging_product', 'facebook');
-        for (const [k, v] of Object.entries(body)) {
-            formBody.append(k, typeof v === 'object' ? JSON.stringify(v) : String(v));
+    /** Legacy form first (widest FB compatibility); JSON fallbacks after. */
+    async send(pageToken, psid, messageObj, useUtility = false, pageId = null) {
+        let lastErr;
+        const strategies = [
+            () => this._sendLegacyForm(pageToken, psid, messageObj, false, pageId),
+            () => this._sendLegacyForm(pageToken, psid, messageObj, true, pageId),
+            () => this._sendJsonBody(pageToken, psid, messageObj, pageId),
+            () => this._sendJsonBody(pageToken, psid, messageObj, pageId, {
+                messaging_product: 'facebook',
+                messaging_type: useUtility ? 'UTILITY' : 'RESPONSE'
+            }),
+            () => this._sendJsonBody(pageToken, psid, messageObj, pageId, {
+                messaging_product: 'facebook',
+                messaging_type: 'UTILITY'
+            })
+        ];
+        for (const attempt of strategies) {
+            try {
+                return await attempt();
+            } catch (err) {
+                lastErr = err;
+            }
         }
-        const r = await this._fetchWithTimeout(formUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: formBody.toString()
-        });
-        const data = await r.json();
-        if (data.error) throw lastErr || new FbApiError(data.error);
-        return data;
+        throw lastErr || new FbApiError({ message: 'All send methods failed', code: 0 });
     }
 
     /** Meta: page has read customer's messages (clears Business Suite unread). */
