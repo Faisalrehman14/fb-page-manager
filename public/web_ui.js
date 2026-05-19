@@ -931,17 +931,53 @@ window.svLoadSchedules = async function () {
   } catch (_) {}
 };
 
+function svEnsureScheduleListHeader() {
+  const panel = document.querySelector('#view-scheduling .sv2-list-panel');
+  if (!panel || panel.querySelector('.sv2-list-hdr')) return;
+  const hdr = document.createElement('div');
+  hdr.className = 'sv2-list-hdr';
+  hdr.innerHTML = [
+    '<div class="sv2-list-hdr-top">',
+    '  <div><h2 class="sv2-list-title">Your schedule</h2>',
+    '  <p class="sv2-list-sub">Upcoming and completed broadcasts across all pages</p></div>',
+    '</div>',
+    '<div class="sv2-stats" id="svStatsRow" aria-label="Schedule statistics">',
+    '  <div class="sv2-stat"><span class="sv2-stat-val" id="svStatTotal">0</span><span class="sv2-stat-lbl">Total</span></div>',
+    '  <div class="sv2-stat sv2-stat--pending"><span class="sv2-stat-val" id="svStatPending">0</span><span class="sv2-stat-lbl">Pending</span></div>',
+    '  <div class="sv2-stat sv2-stat--running"><span class="sv2-stat-val" id="svStatRunning">0</span><span class="sv2-stat-lbl">Sending</span></div>',
+    '  <div class="sv2-stat sv2-stat--done"><span class="sv2-stat-val" id="svStatDone">0</span><span class="sv2-stat-lbl">Done</span></div>',
+    '</div>'
+  ].join('');
+  const listInner = $('svList');
+  if (listInner) panel.insertBefore(hdr, listInner);
+}
+
+function svUpdateScheduleStats(list) {
+  const total = list.length;
+  const pending = list.filter(s => s.status === 'pending').length;
+  const running = list.filter(s => s.status === 'running').length;
+  const done = list.filter(s => s.status === 'done').length;
+  const set = (id, n) => { const el = document.getElementById(id); if (el) el.textContent = String(n); };
+  set('svStatTotal', total);
+  set('svStatPending', pending);
+  set('svStatRunning', running);
+  set('svStatDone', done);
+}
+
 function svRenderSchedules(list) {
   const listEl  = $('svList');
   const emptyEl = $('svListEmpty');
   const badge   = $('svBadge');
   if (!listEl) return;
 
-  const pending = list.filter(s => s.status === 'pending' || s.status === 'running');
+  svEnsureScheduleListHeader();
+  svUpdateScheduleStats(list);
+
+  const active = list.filter(s => s.status === 'pending' || s.status === 'running');
   if (badge) {
     const countEl = document.getElementById('svBadgeCount');
-    if (countEl) countEl.textContent = pending.length;
-    badge.style.display = pending.length ? '' : 'none';
+    if (countEl) countEl.textContent = active.length;
+    badge.style.display = active.length ? '' : 'none';
   }
 
   if (!list.length) {
