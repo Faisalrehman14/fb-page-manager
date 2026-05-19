@@ -85,7 +85,6 @@ class SendService {
         if (!parts.length) throw new Error('No message content');
 
         let lastMid;
-        let sentWithInboxPass = false;
         for (let i = 0; i < parts.length; i++) {
             const part = parts[i];
             let fbData;
@@ -162,16 +161,16 @@ class SendService {
         const convIdBg = convId;
         const tokenBg = token;
         setImmediate(() => {
-            this._markThreadReadOnMetaAndDb(pageIdBg, psidBg, convIdBg, tokenBg).catch((err) => {
-                console.warn('[SendService] background meta read:', err.message || err);
-            });
+            if (convIdBg) this.db.markAsRead(convIdBg).catch(() => {});
+            if (tokenBg && psidBg) {
+                this.fb.markSeen(tokenBg, psidBg, pageIdBg).catch(() => {});
+            }
         });
 
         return {
             success: true,
             message_id: mid,
-            meta_read: { ok: true, pending: true },
-            sent_with_inbox_pass: sentWithInboxPass
+            meta_read: { ok: true }
         };
     }
 
@@ -227,10 +226,11 @@ class SendService {
                 unreadCount: 0,
                 lastMessageFromPage: true
             });
-            this._markThreadReadOnMetaAndDb(pageId, psid, convId, token).catch(() => {});
+            if (convId) this.db.markAsRead(convId).catch(() => {});
+            if (token && psid) this.fb.markSeen(token, psid, pageId).catch(() => {});
         });
 
-        return { success: true, message_id: mid, meta_read: { ok: true, pending: true } };
+        return { success: true, message_id: mid, meta_read: { ok: true } };
     }
 
     async markRead({ pageId, psid, page_token }) {
@@ -239,9 +239,7 @@ class SendService {
 
         if (token && psid) {
             try {
-                await this.fb.markSeenWithRetry(token, psid, pageId, {
-                    passToInbox: FB_HANDOVER_ENABLED && FB_PASS_TO_INBOX_ON_MARK_READ
-                });
+                await this.fb.markSeen(token, psid, pageId);
                 metaMarked = true;
             } catch (err) {
                 console.warn('[markRead] Meta mark_seen failed:', err.message || err);

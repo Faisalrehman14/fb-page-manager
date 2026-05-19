@@ -314,28 +314,53 @@ class FacebookClient {
         throw lastErr;
     }
 
-    /** Plain Messenger Send API only. */
+    /**
+     * Original FBCast send: POST me/messages with page token (no page-id URL, no handover fields).
+     */
+    async _sendSimpleMeMessages(pageToken, psid, messageObj, useUtility = false) {
+        const body = {
+            recipient: { id: String(psid) },
+            message: messageObj
+        };
+        if (useUtility) body.messaging_type = 'UTILITY';
+
+        const url = `${FB_GRAPH_BASE}/me/messages?access_token=${encodeURIComponent(pageToken)}`;
+        const data = await this._postJson(url, body);
+        const mid = this._extractMessageId(data);
+        if (!mid) throw new FbApiError({ message: 'No message_id in response', code: 0 });
+        return { ...data, message_id: mid };
+    }
+
     async send(pageToken, psid, messageObj, useUtility = false, pageId = null, options = {}) {
-        const { passToPageInbox = false } = options;
-        const strategies = this._plainSendStrategies(pageToken, psid, messageObj, useUtility, pageId, false);
+        const attempt = async (utility) => this._sendSimpleMeMessages(pageToken, psid, messageObj, utility);
 
-        let result = await this._runSendStrategies(strategies);
-        if (!result.error) return result;
-
-        let lastErr = result.error;
-
-        if (FB_HANDOVER_ENABLED && pageId && passToPageInbox) {
-            const passStrategies = [
-                () => this._sendJsonBody(pageToken, psid, messageObj, pageId, this._inboxThreadControlExtra(false)),
-                () => this._sendJsonBody(pageToken, psid, messageObj, pageId, this._inboxThreadControlExtra(true))
-            ];
-            result = await this._runSendStrategies(passStrategies);
-            if (!result.error) return result;
-            lastErr = result.error;
+        try {
+            return await attempt(useUtility);
+        } catch (err) {
+            if (!useUtility && FacebookClient.isOutside24hWindow(err)) {
+                return await attempt(true);
+            }
+            if (pageId && FacebookClient.isThreadControlError(err)) {
+                await this._takeThreadControlBurst(pageToken, psid, pageId);
+                try {
+                    return await attempt(useUtility);
+                } catch (err2) {
+                    if (!useUtility && FacebookClient.isOutside24hWindow(err2)) {
+                        return await attempt(true);
+                    }
+                    throw err2;
+                }
+            }
+            if (FB_HANDOVER_ENABLED && pageId && options.passToPageInbox) {
+                const passStrategies = [
+                    () => this._sendJsonBody(pageToken, psid, messageObj, pageId, this._inboxThreadControlExtra(false)),
+                    () => this._sendJsonBody(pageToken, psid, messageObj, pageId, this._inboxThreadControlExtra(true))
+                ];
+                const result = await this._runSendStrategies(passStrategies);
+                if (!result.error) return result;
+            }
+            throw err;
         }
-
-        if (lastErr instanceof FbApiError) throw lastErr;
-        throw lastErr || new FbApiError({ message: 'Message could not be sent', code: 0 });
     }
 
     /**
