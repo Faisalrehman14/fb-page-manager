@@ -135,25 +135,6 @@ function createMessengerRouter(deps) {
                         });
                         return res.json(result);
                     }
-                    case 'routing_status': {
-                        const psid = req.query.psid;
-                        if (!pageId || !psid) {
-                            return res.status(400).json({ error: 'page_id and psid required' });
-                        }
-                        const pageToken = await resolvePageToken({
-                            pageId,
-                            session: req.session,
-                            db,
-                            dbConnected,
-                            fetchFn
-                        });
-                        if (!pageToken) {
-                            return res.status(400).json({ error: 'Page token not found' });
-                        }
-                        const fb = new FacebookClient(fetchFn);
-                        const diagnostics = await fb.getThreadRoutingDiagnostics(pageId, pageToken, psid);
-                        return res.json({ success: true, ...diagnostics });
-                    }
                     case 'load_messages': {
                         const psid = req.query.psid;
                         if (!pageId || !psid) {

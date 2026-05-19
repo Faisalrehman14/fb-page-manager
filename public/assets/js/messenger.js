@@ -1873,15 +1873,8 @@
 
     } catch (e) {
       const data = e?.data || {};
-      let errMsg = data.error || (e && (e.message || e.error)) ? String(e.message || e.error) : '';
-      const fbRaw = data.fbMessage ? String(data.fbMessage) : '';
-      const isThreadControl = /another app|thread control|page inbox|conversation routing/i.test(
-        errMsg + fbRaw + (data.code || '')
-      );
-      if (fbRaw && errMsg && !errMsg.includes(fbRaw) && !isThreadControl) {
-        errMsg = `${errMsg} (Facebook #${data.fbCode}: ${fbRaw})`;
-      }
-      showToast(errMsg || 'Send failed — tap Retry to try again', 'error', errMsg ? 14000 : 5000);
+      const errMsg = data.error || data.fbMessage || e?.message || 'Send failed';
+      showToast(errMsg, 'error', 6000);
 
       // Mark the specific bubble as failed — do NOT remove it
       const bubble = document.querySelector(`[data-temp-id="${tempId}"]`);
