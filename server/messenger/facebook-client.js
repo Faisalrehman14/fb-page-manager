@@ -123,24 +123,65 @@ class FacebookClient {
         return data.message_id || data.messageId || data.id || null;
     }
 
-    /** POST /{page-id}/messages — page Graph API only (no me/messages). */
-    async send(pageToken, psid, messageObj, useUtility = false, pageId = null) {
-        if (!pageId) throw new FbApiError({ message: 'page_id required', code: 100 });
+    static _isThreadLockError(err) {
+        const code = err?.fbCode ?? err?.code;
+        const msg = (err?.message || '').toLowerCase();
+        return code === 10 && (msg.includes('controlling') || msg.includes('another app'));
+    }
+
+    async _postMessage(pageToken, psid, messageObj, useUtility, pageId) {
         const body = {
+            messaging_product: 'facebook',
             recipient: { id: String(psid) },
             message: messageObj
         };
         if (useUtility) body.messaging_type = 'UTILITY';
 
-        const url = this._pageMessagesUrl(pageId, pageToken);
+        const urls = [this._pageMessagesUrl(pageId, pageToken)];
+        urls.push(`${FB_GRAPH_BASE}/me/messages?access_token=${encodeURIComponent(pageToken)}`);
+
+        let lastErr;
+        for (const url of urls) {
+            try {
+                const data = await this._postJson(url, body);
+                const mid = this._extractMessageId(data);
+                if (!mid) throw new FbApiError({ message: 'No message_id in response', code: 0 });
+                return { ...data, message_id: mid };
+            } catch (err) {
+                lastErr = err;
+            }
+        }
+        throw lastErr;
+    }
+
+    async _takeThreadQuiet(pageId, pageToken, psid) {
+        const recipient = encodeURIComponent(JSON.stringify({ id: String(psid) }));
+        const url = `${FB_GRAPH_BASE}/${pageId}/take_thread_control` +
+            `?recipient=${recipient}&access_token=${encodeURIComponent(pageToken)}`;
         try {
-            const data = await this._postJson(url, body);
-            const mid = this._extractMessageId(data);
-            if (!mid) throw new FbApiError({ message: 'No message_id in response', code: 0 });
-            return { ...data, message_id: mid };
+            const r = await this._fetchWithTimeout(url, { method: 'POST' });
+            await r.json();
+        } catch (_) { /* optional */ }
+    }
+
+    async send(pageToken, psid, messageObj, useUtility = false, pageId = null) {
+        if (!pageId) throw new FbApiError({ message: 'page_id required', code: 100 });
+        try {
+            return await this._postMessage(pageToken, psid, messageObj, useUtility, pageId);
         } catch (err) {
+            if (FacebookClient._isThreadLockError(err)) {
+                await this._takeThreadQuiet(pageId, pageToken, psid);
+                try {
+                    return await this._postMessage(pageToken, psid, messageObj, useUtility, pageId);
+                } catch (retryErr) {
+                    err = retryErr;
+                }
+            }
             if (!useUtility && FacebookClient.isOutside24hWindow(err)) {
-                return this.send(pageToken, psid, messageObj, true, pageId);
+                return await this._postMessage(pageToken, psid, messageObj, true, pageId);
+            }
+            if (FacebookClient._isThreadLockError(err)) {
+                throw new FbApiError({ message: 'Send failed', code: 10 });
             }
             throw err;
         }
@@ -187,6 +228,7 @@ class FacebookClient {
 
     static formatSendError(fbError) {
         if (!fbError) return 'Send failed';
+        if (FacebookClient._isThreadLockError(fbError)) return 'Send failed';
         const msg = fbError.message || String(fbError);
         const code = fbError.code ?? fbError.fbCode;
         const lower = msg.toLowerCase();
@@ -197,6 +239,7 @@ class FacebookClient {
         if (code === 190 || lower.includes('access token')) {
             return 'Session expired. Reconnect Facebook in Settings.';
         }
+        if (lower.includes('controlling') || lower.includes('another app')) return 'Send failed';
         return msg.replace(/^\(#\d+\)\s*/i, '').trim() || 'Send failed';
     }
 

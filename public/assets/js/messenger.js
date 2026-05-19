@@ -1859,22 +1859,9 @@
       bumpConvAfterPageSend(M.activePsid, { lastMsg: text, lastMsgAt: nowIso });
       queueMarkConvRead(M.activePsid, { immediate: true });
 
-      const mr = res.meta_read;
-      if (mr && mr.ok === false) {
-        const hint = mr.handoverError || (mr.fbUnread != null ? `Meta still shows ${mr.fbUnread} unread` : '');
-        showToast(
-          hint
-            ? `Sent. Meta inbox may still show unread: ${hint}`
-            : 'Sent. Meta inbox may still show unread.',
-          'warning',
-          8000
-        );
-      }
-
     } catch (e) {
       const data = e?.data || {};
-      const errMsg = data.error || data.fbMessage || e?.message || 'Send failed';
-      showToast(errMsg, 'error', 6000);
+      showToast(data.error || 'Send failed', 'error', 5000);
 
       // Mark the specific bubble as failed — do NOT remove it
       const bubble = document.querySelector(`[data-temp-id="${tempId}"]`);
