@@ -186,7 +186,6 @@ class FacebookClient {
                 lastErr = new FbApiError({ message: 'No message_id in response', code: 0 });
             } catch (err) {
                 lastErr = err;
-                if (!FacebookClient.isTransient(err)) break;
             }
         }
         throw lastErr;
@@ -226,13 +225,8 @@ class FacebookClient {
         return { error: lastErr };
     }
 
-    /**
-     * Acquire castme thread ownership, then plain send (required when Page Inbox is default routing app).
-     */
-    async send(pageToken, psid, messageObj, useUtility = false, pageId = null, options = {}) {
-        const { passToPageInbox = false } = options;
-
-        const plainStrategies = [
+    _plainSendStrategies(pageToken, psid, messageObj, useUtility, pageId) {
+        return [
             () => this._sendLegacyForm(pageToken, psid, messageObj, false, pageId),
             () => this._sendLegacyForm(pageToken, psid, messageObj, true, pageId),
             () => this._sendJsonBody(pageToken, psid, messageObj, pageId, {
@@ -244,27 +238,33 @@ class FacebookClient {
                 messaging_type: 'UTILITY'
             })
         ];
+    }
 
-        const tryPlainSend = async () => this._runSendStrategies(plainStrategies);
+    /**
+     * Plain send first; on failure try take_thread_control + acquire, then retry.
+     * Avoids pre-send handover that breaks when Page Inbox is Meta's default app.
+     */
+    async send(pageToken, psid, messageObj, useUtility = false, pageId = null, options = {}) {
+        const { passToPageInbox = false } = options;
+        const plainStrategies = this._plainSendStrategies(pageToken, psid, messageObj, useUtility, pageId);
 
-        if (pageId && FB_HANDOVER_ENABLED) {
-            const acquired = await this.acquireThreadForCastmeSend(pageId, pageToken, psid);
-            if (!acquired.ok && acquired.threadOwnerAppId === String(FB_PAGE_INBOX_APP_ID)) {
-                console.warn(
-                    `[FacebookClient] castme does not own thread page=${pageId} psid=${psid}: ${acquired.error || ''}`
-                );
-            }
-        }
-
-        let result = await tryPlainSend();
+        let result = await this._runSendStrategies(plainStrategies);
         if (!result.error) return result;
 
         let lastErr = result.error;
-        if (pageId) {
-            await this.acquireThreadForCastmeSend(pageId, pageToken, psid).catch(() => {});
-            result = await tryPlainSend();
-            if (!result.error) return result;
-            lastErr = result.error;
+
+        if (pageId && FB_HANDOVER_ENABLED) {
+            const acquired = await this.acquireThreadForCastmeSend(pageId, pageToken, psid).catch(() => ({ ok: false }));
+            if (acquired?.ok) {
+                result = await this._runSendStrategies(plainStrategies);
+                if (!result.error) return result;
+                lastErr = result.error;
+            } else if (acquired?.threadOwnerAppId === String(FB_PAGE_INBOX_APP_ID)) {
+                throw new FbApiError({
+                    message: 'Meta Page Inbox owns this chat. Set castme as the default Conversation Routing app in Facebook Page settings, then reconnect Facebook.',
+                    code: 2018300
+                });
+            }
         }
 
         if (passToPageInbox) {
@@ -277,16 +277,7 @@ class FacebookClient {
             lastErr = result.error;
         }
 
-        const acquire = pageId
-            ? await this.acquireThreadForCastmeSend(pageId, pageToken, psid).catch(() => ({ ok: false }))
-            : null;
-        if (acquire && !acquire.ok && acquire.threadOwnerAppId === String(FB_PAGE_INBOX_APP_ID)) {
-            throw new FbApiError({
-                message: 'Only Meta Page Inbox can send while it owns this chat. Set castme as the default Conversation Routing app in Facebook Page settings, then reconnect.',
-                code: 2018300
-            });
-        }
-
+        if (lastErr instanceof FbApiError) throw lastErr;
         throw lastErr || new FbApiError({ message: 'All send methods failed', code: 0 });
     }
 

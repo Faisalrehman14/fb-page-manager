@@ -17,7 +17,8 @@ function messengerErrorResponse(err) {
             body: {
                 error: FacebookClient.formatSendError(err),
                 code: 'FACEBOOK_API_ERROR',
-                fbCode: err.fbCode ?? null
+                fbCode: err.fbCode ?? null,
+                fbMessage: err.message || null
             }
         };
     }

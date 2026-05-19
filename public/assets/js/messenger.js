@@ -1862,8 +1862,12 @@
       }
 
     } catch (e) {
-      const errMsg = (e && (e.message || e.error)) ? String(e.message || e.error) : '';
-      showToast(errMsg || 'Send failed — tap Retry to try again', 'error', errMsg ? 8000 : 5000);
+      let errMsg = (e && (e.message || e.error)) ? String(e.message || e.error) : '';
+      const fbDetail = e?.data?.fbMessage || e?.data?.fbCode;
+      if (fbDetail && errMsg && !errMsg.includes(String(fbDetail))) {
+        errMsg = `${errMsg} (Facebook #${e.data.fbCode}: ${e.data.fbMessage})`;
+      }
+      showToast(errMsg || 'Send failed — tap Retry to try again', 'error', errMsg ? 10000 : 5000);
 
       // Mark the specific bubble as failed — do NOT remove it
       const bubble = document.querySelector(`[data-temp-id="${tempId}"]`);
