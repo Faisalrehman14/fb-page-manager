@@ -314,12 +314,21 @@ body.light #view-analytics .analytics-chart-box {
   padding: 0;
 }
 
-#view-settings .settings-card,
-#view-settings .saas-billing-card {
+html[data-theme='dark'] #view-settings .settings-card,
+html[data-theme='dark'] #view-settings .saas-billing-card,
+html.theme-dark #view-settings .settings-card,
+html.theme-dark #view-settings .saas-billing-card {
   border-radius: 16px;
   border: 1px solid rgba(255, 255, 255, 0.08);
   background: rgba(12, 24, 48, 0.65);
   backdrop-filter: blur(12px);
+  padding: 22px 24px;
+  transition: border-color 0.2s ease;
+}
+
+#view-settings .settings-card,
+#view-settings .saas-billing-card {
+  border-radius: 16px;
   padding: 22px 24px;
   transition: border-color 0.2s ease;
 }
@@ -355,7 +364,8 @@ body.light #view-analytics .analytics-chart-box {
   box-shadow: 0 0 0 1px rgba(8, 102, 255, 0.2) inset;
 }
 
-#view-settings .settings-toggle {
+html[data-theme='dark'] #view-settings .settings-toggle,
+html.theme-dark #view-settings .settings-toggle {
   display: flex;
   align-items: center;
   gap: 12px;
@@ -368,8 +378,20 @@ body.light #view-analytics .analytics-chart-box {
   transition: background 0.15s ease;
 }
 
-#view-settings .settings-toggle:hover {
+html[data-theme='dark'] #view-settings .settings-toggle:hover,
+html.theme-dark #view-settings .settings-toggle:hover {
   background: rgba(8, 102, 255, 0.08);
+}
+
+#view-settings .settings-toggle {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  margin-top: 8px;
+  cursor: pointer;
+  transition: background 0.15s ease;
 }
 
 #view-settings .settings-toggle input {
