@@ -1814,7 +1814,11 @@ async function sendNormalMessage(text, token) {
     throw new Error('Page access token is missing. Please re-connect your page.');
   }
 
-  const resp = await fbPost('me/messages', token, {
+  if (!currentChatPageId) {
+    throw new Error('Page ID is missing. Please re-select the page.');
+  }
+
+  const resp = await fbPost(`${currentChatPageId}/messages`, token, {
     recipient: { id: cleanId },
     message: { text: text }
   });
@@ -1824,9 +1828,10 @@ async function sendNormalMessage(text, token) {
 
 async function sendBroadcastMessage(text, token) {
   const cleanId = cleanPsid(currentChatPsid);
-  // 24hr window closed - try sending anyway (may fail if no prior opt-in)
-  // Remove the tag since it requires Facebook approval
-  const resp = await fbPost('me/messages', token, {
+  if (!currentChatPageId) {
+    throw new Error('Page ID is missing. Please re-select the page.');
+  }
+  const resp = await fbPost(`${currentChatPageId}/messages`, token, {
     recipient: { id: cleanId },
     message: { text: text }
   });

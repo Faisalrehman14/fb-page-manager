@@ -1,30 +1,9 @@
 const { FacebookClient, FbApiError } = require('./facebook-client');
-const RETRY_DELAYS = [300, 1200]; // 2 retries: 300ms then 1.2s
-
-function sleep(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
-}
-
 class SendService {
     constructor({ db, io, fetchFn }) {
         this.db = db;
         this.io = io;
         this.fb = new FacebookClient(fetchFn);
-    }
-
-    // Retries on transient network failures only; throws on FB API errors.
-    async _fbSendWithRetry(token, psid, msgObj, useUtility = false, pageId = null, sendOptions = {}) {
-        let lastErr;
-        for (let i = 0; i <= RETRY_DELAYS.length; i++) {
-            if (i > 0) await sleep(RETRY_DELAYS[i - 1]);
-            try {
-                return await this.fb.send(token, psid, msgObj, useUtility, pageId, sendOptions);
-            } catch (err) {
-                if (FacebookClient.isTransient(err)) { lastErr = err; continue; }
-                throw err;
-            }
-        }
-        throw lastErr;
     }
 
     async send({ pageId, psid, message, image_url, page_token }) {
@@ -47,18 +26,8 @@ class SendService {
         if (!parts.length) throw new Error('No message content');
 
         let lastMid;
-        for (let i = 0; i < parts.length; i++) {
-            const part = parts[i];
-            let fbData;
-            try {
-                fbData = await this._fbSendWithRetry(token, psid, part.msgObj, false, pageId, {});
-            } catch (err) {
-                if (err instanceof FbApiError && FacebookClient.isOutside24hWindow(err)) {
-                    fbData = await this._fbSendWithRetry(token, psid, part.msgObj, true, pageId, {});
-                } else {
-                    throw err;
-                }
-            }
+        for (const part of parts) {
+            const fbData = await this.fb.send(token, psid, part.msgObj, false, pageId);
             if (!fbData?.message_id) {
                 throw new FbApiError({ message: 'Facebook did not confirm delivery', code: 0 });
             }
@@ -125,7 +94,7 @@ class SendService {
         setImmediate(() => {
             if (convIdBg) this.db.markAsRead(convIdBg).catch(() => {});
             if (tokenBg && psidBg) {
-                this.fb.markSeen(tokenBg, psidBg).catch(() => {});
+                this.fb.markSeen(tokenBg, psidBg, pageIdBg).catch(() => {});
             }
         });
 
@@ -189,7 +158,7 @@ class SendService {
                 lastMessageFromPage: true
             });
             if (convId) this.db.markAsRead(convId).catch(() => {});
-            if (token && psid) this.fb.markSeen(token, psid).catch(() => {});
+            if (token && psid) this.fb.markSeen(token, psid, pageId).catch(() => {});
         });
 
         return { success: true, message_id: mid, meta_read: { ok: true } };
@@ -201,7 +170,7 @@ class SendService {
 
         if (token && psid) {
             try {
-                await this.fb.markSeen(token, psid);
+                await this.fb.markSeen(token, psid, pageId);
                 metaMarked = true;
             } catch (err) {
                 console.warn('[markRead] Meta mark_seen failed:', err.message || err);

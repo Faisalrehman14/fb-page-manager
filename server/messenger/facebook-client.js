@@ -102,10 +102,9 @@ class FacebookClient {
         throw lastErr;
     }
 
-    _messagesUrl(pageId, pageToken) {
-        const pid = pageId ? String(pageId) : null;
-        const base = pid ? `${FB_GRAPH_BASE}/${pid}/messages` : `${FB_GRAPH_BASE}/me/messages`;
-        return `${base}?access_token=${encodeURIComponent(pageToken)}`;
+    _pageMessagesUrl(pageId, pageToken) {
+        if (!pageId) throw new FbApiError({ message: 'page_id required', code: 100 });
+        return `${FB_GRAPH_BASE}/${pageId}/messages?access_token=${encodeURIComponent(pageToken)}`;
     }
 
     async _postJson(url, body) {
@@ -124,45 +123,43 @@ class FacebookClient {
         return data.message_id || data.messageId || data.id || null;
     }
 
-    async _sendSimpleMeMessages(pageToken, psid, messageObj, useUtility = false) {
+    /** POST /{page-id}/messages — page Graph API only (no me/messages). */
+    async send(pageToken, psid, messageObj, useUtility = false, pageId = null) {
+        if (!pageId) throw new FbApiError({ message: 'page_id required', code: 100 });
         const body = {
             recipient: { id: String(psid) },
             message: messageObj
         };
         if (useUtility) body.messaging_type = 'UTILITY';
 
-        const url = `${FB_GRAPH_BASE}/me/messages?access_token=${encodeURIComponent(pageToken)}`;
-        const data = await this._postJson(url, body);
-        const mid = this._extractMessageId(data);
-        if (!mid) throw new FbApiError({ message: 'No message_id in response', code: 0 });
-        return { ...data, message_id: mid };
-    }
-
-    async send(pageToken, psid, messageObj, useUtility = false, pageId = null) {
+        const url = this._pageMessagesUrl(pageId, pageToken);
         try {
-            return await this._sendSimpleMeMessages(pageToken, psid, messageObj, useUtility);
+            const data = await this._postJson(url, body);
+            const mid = this._extractMessageId(data);
+            if (!mid) throw new FbApiError({ message: 'No message_id in response', code: 0 });
+            return { ...data, message_id: mid };
         } catch (err) {
             if (!useUtility && FacebookClient.isOutside24hWindow(err)) {
-                return await this._sendSimpleMeMessages(pageToken, psid, messageObj, true);
+                return this.send(pageToken, psid, messageObj, true, pageId);
             }
             throw err;
         }
     }
 
-    async markSeen(pageToken, psid) {
-        const url = `${FB_GRAPH_BASE}/me/messages?access_token=${encodeURIComponent(pageToken)}`;
+    async markSeen(pageToken, psid, pageId) {
+        const url = this._pageMessagesUrl(pageId, pageToken);
         return this._postJson(url, {
             recipient: { id: String(psid) },
             sender_action: 'mark_seen'
         });
     }
 
-    async markSeenWithRetry(pageToken, psid) {
+    async markSeenWithRetry(pageToken, psid, pageId) {
         let lastErr;
         for (let i = 0; i <= 2; i++) {
             if (i > 0) await new Promise((r) => setTimeout(r, 400 * i));
             try {
-                await this.markSeen(pageToken, psid);
+                await this.markSeen(pageToken, psid, pageId);
                 return { metaMarked: true };
             } catch (err) {
                 lastErr = err;
@@ -203,7 +200,7 @@ class FacebookClient {
         return msg.replace(/^\(#\d+\)\s*/i, '').trim() || 'Send failed';
     }
 
-    async sendAttachment(pageToken, psid, fileBuffer, mime, filename, useUtility = false) {
+    async sendAttachment(pageToken, psid, pageId, fileBuffer, mime, filename, useUtility = false) {
         const attachType = mime.startsWith('image/') ? 'image'
             : mime.startsWith('video/') ? 'video' : 'file';
         const form = new FormData();
@@ -213,15 +210,15 @@ class FacebookClient {
         }));
         if (useUtility) form.append('messaging_type', 'UTILITY');
         form.append('filedata', new Blob([fileBuffer], { type: mime }), filename || 'upload');
-        const url = `${FB_GRAPH_BASE}/me/messages?access_token=${pageToken}`;
+        const url = this._pageMessagesUrl(pageId, pageToken);
         const r = await this._fetchWithTimeout(url, { method: 'POST', body: form });
         return r.json();
     }
 
-    async sendAttachmentWithRetry(pageToken, psid, fileBuffer, mime, filename) {
-        let data = await this.sendAttachment(pageToken, psid, fileBuffer, mime, filename, false);
+    async sendAttachmentWithRetry(pageToken, psid, pageId, fileBuffer, mime, filename) {
+        let data = await this.sendAttachment(pageToken, psid, pageId, fileBuffer, mime, filename, false);
         if (data.error && FacebookClient.isOutside24hWindow(data.error)) {
-            data = await this.sendAttachment(pageToken, psid, fileBuffer, mime, filename, true);
+            data = await this.sendAttachment(pageToken, psid, pageId, fileBuffer, mime, filename, true);
         }
         if (data.error) throw new FbApiError(data.error);
         return data;

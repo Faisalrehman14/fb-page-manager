@@ -240,7 +240,7 @@ app.post(['/webhook', '/fb_webhook.php'], async (req, res) => {
                                 const token = await db.getPageToken(pageId);
                                 if (token && participantId) {
                                     const { FacebookClient } = require('../messenger/facebook-client');
-                                    await new FacebookClient(fetch).markSeenWithRetry(token, participantId);
+                                    await new FacebookClient(fetch).markSeenWithRetry(token, participantId, pageId);
                                 }
                             } catch (err) {
                                 logError('echo_mark_seen_meta', err, { pageId, threadId, participantId });
@@ -1310,7 +1310,7 @@ app.post('/api/threads/:threadId/read', requireAuth, verifyCsrf, async (req, res
                 const token = await db.getPageToken(pageId);
                 if (psid && token) {
                     const { FacebookClient } = require('../messenger/facebook-client');
-                    await new FacebookClient(fetch).markSeenWithRetry(token, psid);
+                    await new FacebookClient(fetch).markSeenWithRetry(token, psid, pageId);
                 }
             } catch (err) {
                 logError('thread_mark_read_meta', err, { pageId, threadId });
@@ -1417,7 +1417,7 @@ app.post('/api/threads/:threadId/attach', requireAuth, verifyCsrf, upload.single
         const attachType = mime.startsWith('image/') ? 'image' : mime.startsWith('video/') ? 'video' : 'file';
         const fbClient = new FacebookClient(fetch);
         const data = await fbClient.sendAttachmentWithRetry(
-            token, recipientId, file.buffer, mime, file.originalname || 'upload'
+            token, recipientId, pageId, file.buffer, mime, file.originalname || 'upload'
         );
         const createdTime = new Date().toISOString();
         if (state.dbConnected) {
@@ -1451,7 +1451,7 @@ app.post('/api/messenger/upload', requireAuth, upload.single('file'), async (req
         const mime = file.mimetype || 'image/png';
         const fbClient = new FacebookClient(fetch);
         const data = await fbClient.sendAttachmentWithRetry(
-            token, psid, file.buffer, mime, file.originalname || 'image.png'
+            token, psid, pageId, file.buffer, mime, file.originalname || 'image.png'
         );
         const attachType = mime.startsWith('image/') ? 'image' : mime.startsWith('video/') ? 'video' : 'file';
 
