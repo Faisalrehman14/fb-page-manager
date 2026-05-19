@@ -9,18 +9,30 @@ const { SearchService } = require('./search-service');
 const { resolvePageToken } = require('./token-resolver');
 const { mapPollMessage } = require('./mappers');
 const { FbApiError, FacebookClient } = require('./facebook-client');
+const { FB_PAGE_INBOX_APP_ID, FB_CASTME_APP_ID } = require('./config');
 
 function messengerErrorResponse(err) {
     if (err instanceof FbApiError || err?.name === 'FbApiError') {
-        return {
-            status: 400,
-            body: {
-                error: FacebookClient.formatSendError(err),
-                code: 'FACEBOOK_API_ERROR',
-                fbCode: err.fbCode ?? null,
-                fbMessage: err.message || null
-            }
+        const ownerId = err.threadOwnerAppId || null;
+        const inboxOwns = err.inboxOwns === true || ownerId === String(FB_PAGE_INBOX_APP_ID);
+        const body = {
+            error: FacebookClient.formatSendError(err),
+            code: inboxOwns ? 'THREAD_LOCKED_BY_PAGE_INBOX' : 'FACEBOOK_API_ERROR',
+            fbCode: err.fbCode ?? null,
+            fbMessage: err.message || null,
+            thread_owner_app_id: ownerId,
+            owner_is_page_inbox: inboxOwns,
+            castme_app_id: FB_CASTME_APP_ID,
+            page_inbox_app_id: FB_PAGE_INBOX_APP_ID
         };
+        if (FacebookClient.isThreadControlError(err)) {
+            body.fix = {
+                social_routing: 'Facebook Page → Settings → Advanced messaging → Conversation routing → Social entry → your FBCast app',
+                avoid_business_suite: 'For this chat, do not reply in Meta Business Suite; use FBCast only',
+                optional_unset_default: 'Or leave Conversation routing Default unset (all apps can reply)'
+            };
+        }
+        return { status: 400, body };
     }
     const msg = err?.message || 'Request failed';
     if (/page token not found/i.test(msg)) {
@@ -134,6 +146,25 @@ function createMessengerRouter(deps) {
                             fetchFn
                         });
                         return res.json(result);
+                    }
+                    case 'routing_status': {
+                        const psid = req.query.psid;
+                        if (!pageId || !psid) {
+                            return res.status(400).json({ error: 'page_id and psid required' });
+                        }
+                        const pageToken = await resolvePageToken({
+                            pageId,
+                            session: req.session,
+                            db,
+                            dbConnected,
+                            fetchFn
+                        });
+                        if (!pageToken) {
+                            return res.status(400).json({ error: 'Page token not found' });
+                        }
+                        const fb = new FacebookClient(fetchFn);
+                        const diagnostics = await fb.getThreadRoutingDiagnostics(pageId, pageToken, psid);
+                        return res.json({ success: true, ...diagnostics });
                     }
                     case 'load_messages': {
                         const psid = req.query.psid;

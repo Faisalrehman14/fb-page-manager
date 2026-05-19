@@ -220,13 +220,27 @@ class FacebookClient {
     }
 
     static routingGuidanceShort() {
-        return 'Leave Conversation Routing default unset (recommended for FBCast), or reply from FBCast before using Meta Business Suite for this chat.';
+        return 'Page settings → Conversation routing: set Social entry to your FBCast app (castme), or leave Default unset. '
+            + 'For this thread: do not reply in Business Suite first — use FBCast only.';
     }
 
-    static threadControlUserMessage() {
-        return 'This chat is locked by Meta Page Inbox / Business Suite. '
-            + 'Open a new customer message in FBCast and reply here first, or in Page settings → Conversation routing set Social entry to your FBCast app. '
-            + 'You do not need castme as Default for every page.';
+    static threadControlUserMessage(ownerAppId = null) {
+        const owner = ownerAppId ? ` (owner app ${ownerAppId})` : '';
+        const inbox = String(FB_PAGE_INBOX_APP_ID);
+        if (ownerAppId === inbox) {
+            return `Meta Page Inbox controls this chat${owner}. `
+                + 'FBCast cannot send while Business Suite owns the thread. '
+                + 'Fix: Page settings → Conversation routing → Social/organic entry → select your FBCast app, '
+                + 'then start a new customer chat OR wait until the customer messages again and reply only from FBCast.';
+        }
+        return `Another Meta app controls this chat${owner}. ${FacebookClient.routingGuidanceShort()}`;
+    }
+
+    static attachThreadControlMeta(err, meta = {}) {
+        if (!err || typeof err !== 'object') return err;
+        if (meta.threadOwnerAppId != null) err.threadOwnerAppId = meta.threadOwnerAppId;
+        if (meta.inboxOwns != null) err.inboxOwns = meta.inboxOwns;
+        return err;
     }
 
     static needsThreadControlBeforeSend(err) {
@@ -305,6 +319,10 @@ class FacebookClient {
             async () => {
                 await this.requestThreadControl(pageToken, psid, pageId).catch(() => {});
                 return this._sendLegacyForm(pageToken, psid, messageObj, false, pageId);
+            },
+            async () => {
+                await this.passThreadControlToCastme(pageToken, psid, pageId).catch(() => {});
+                return this._sendLegacyForm(pageToken, psid, messageObj, false, pageId);
             }
         ];
         for (const fn of tries) {
@@ -332,6 +350,7 @@ class FacebookClient {
 
         if (pageId && FB_HANDOVER_ENABLED) {
             await this._takeThreadControlBurst(pageToken, psid, pageId);
+            await this._waitForThreadOwner(pageId, pageToken, psid, castmeId, { maxMs: 900, stepMs: 300 });
         }
 
         let result = await this._runSendStrategies(
@@ -376,21 +395,42 @@ class FacebookClient {
         }
 
         if (FacebookClient.isThreadControlError(lastErr)) {
-            const owner = acquired?.threadOwnerAppId;
-            if (owner === inboxId || acquired?.inboxOwns) {
-                throw new FbApiError({
-                    message: FacebookClient.threadControlUserMessage(),
-                    code: 2018300
-                });
+            let owner = acquired?.threadOwnerAppId || null;
+            if (!owner && pageId) {
+                try {
+                    const o = await this.getThreadOwner(pageId, pageToken, psid);
+                    owner = o?.appId ? String(o.appId) : null;
+                } catch (_) { /* hidden when not default app */ }
             }
-            throw new FbApiError({
-                message: `Cannot send: another Meta app controls this chat${owner ? ` (app ${owner})` : ''}. ${FacebookClient.routingGuidanceShort()}`,
-                code: 2018300
-            });
+            const inboxOwns = owner === inboxId || acquired?.inboxOwns === true;
+            throw FacebookClient.attachThreadControlMeta(lastErr, { threadOwnerAppId: owner, inboxOwns });
         }
 
         if (lastErr instanceof FbApiError) throw lastErr;
         throw lastErr || new FbApiError({ message: 'All send methods failed', code: 0 });
+    }
+
+    async getThreadRoutingDiagnostics(pageId, pageToken, psid) {
+        const castmeId = String(FB_CASTME_APP_ID);
+        const inboxId = String(FB_PAGE_INBOX_APP_ID);
+        let ownerId = null;
+        let ownerVisible = false;
+        try {
+            const owner = await this.getThreadOwner(pageId, pageToken, psid);
+            ownerId = owner?.appId ? String(owner.appId) : null;
+            ownerVisible = true;
+        } catch (_) { /* not default app — owner hidden */ }
+        return {
+            castme_app_id: castmeId,
+            page_inbox_app_id: inboxId,
+            thread_owner_app_id: ownerId,
+            thread_owner_visible: ownerVisible,
+            inbox_owns: ownerId === inboxId,
+            castme_owns: ownerId === castmeId,
+            can_send_hint: ownerId === castmeId || ownerId === null
+                ? 'likely_ok'
+                : (ownerId === inboxId ? 'blocked_by_page_inbox' : 'blocked_by_other_app')
+        };
     }
 
     /**
@@ -631,14 +671,14 @@ class FacebookClient {
     }
 
     /** Meta-documented query-string format for pass_thread_control. */
-    async passThreadControlQuery(pageToken, psid, pageId) {
+    async passThreadControlQuery(pageToken, psid, pageId, targetAppId = FB_PAGE_INBOX_APP_ID) {
         if (!FB_HANDOVER_ENABLED || !pageId) {
             return { skipped: true, reason: 'handover_disabled_or_no_page' };
         }
         const recipient = encodeURIComponent(JSON.stringify({ id: String(psid) }));
         const url = `${FB_GRAPH_BASE}/${pageId}/pass_thread_control` +
             `?recipient=${recipient}` +
-            `&target_app_id=${encodeURIComponent(FB_PAGE_INBOX_APP_ID)}` +
+            `&target_app_id=${encodeURIComponent(String(targetAppId))}` +
             `&metadata=${encodeURIComponent('FBCast Pro — handled')}` +
             `&access_token=${encodeURIComponent(pageToken)}`;
         const r = await this._fetchWithTimeout(url, { method: 'POST' });
@@ -646,6 +686,10 @@ class FacebookClient {
         if (data.error) throw new FbApiError(data.error);
         if (data.success === false) throw new FbApiError({ message: 'pass_thread_control returned success=false', code: 0 });
         return { success: true, data, method: 'pass_thread_control_query' };
+    }
+
+    async passThreadControlToCastme(pageToken, psid, pageId) {
+        return this.passThreadControlQuery(pageToken, psid, pageId, FB_CASTME_APP_ID);
     }
 
     async passThreadControlToPageInbox(pageToken, psid, pageId) {
@@ -798,13 +842,17 @@ class FacebookClient {
         const lower = msg.toLowerCase();
 
         if (FacebookClient.isThreadControlError(fbError)) {
-            if (msg.includes('castme') || msg.includes('Conversation routing') || msg.includes('Business Suite')) {
-                return msg;
+            const owner = fbError.threadOwnerAppId || null;
+            if (fbError.inboxOwns || owner === String(FB_PAGE_INBOX_APP_ID)) {
+                return FacebookClient.threadControlUserMessage(String(FB_PAGE_INBOX_APP_ID));
             }
-            if (lower.includes('page inbox') || msg.includes(String(FB_PAGE_INBOX_APP_ID))) {
+            if (owner) {
+                return FacebookClient.threadControlUserMessage(owner);
+            }
+            if (lower.includes('another app') && lower.includes('control')) {
                 return FacebookClient.threadControlUserMessage();
             }
-            return `Cannot send: another Meta app controls this chat. ${FacebookClient.routingGuidanceShort()}`;
+            return FacebookClient.threadControlUserMessage(owner);
         }
         if (FacebookClient.isOutside24hWindow(fbError)) {
             return 'Cannot send: the 24-hour reply window has ended. Ask the customer to message your page first, then try again.';

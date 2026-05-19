@@ -1873,13 +1873,22 @@
       }
 
     } catch (e) {
-      let errMsg = (e && (e.message || e.error)) ? String(e.message || e.error) : '';
-      const fbRaw = e?.data?.fbMessage ? String(e.data.fbMessage) : '';
-      const isThreadControl = /another app|thread control|page inbox|conversation routing/i.test(errMsg + fbRaw);
-      if (fbRaw && errMsg && !errMsg.includes(fbRaw) && !isThreadControl) {
-        errMsg = `${errMsg} (Facebook #${e.data.fbCode}: ${fbRaw})`;
+      const data = e?.data || {};
+      let errMsg = data.error || (e && (e.message || e.error)) ? String(e.message || e.error) : '';
+      if (data.owner_is_page_inbox && data.fix) {
+        errMsg = data.error || errMsg;
+        if (data.fix.social_routing) {
+          errMsg += '\n\n' + data.fix.social_routing;
+        }
       }
-      showToast(errMsg || 'Send failed — tap Retry to try again', 'error', errMsg ? 10000 : 5000);
+      const fbRaw = data.fbMessage ? String(data.fbMessage) : '';
+      const isThreadControl = /another app|thread control|page inbox|conversation routing|THREAD_LOCKED/i.test(
+        errMsg + fbRaw + (data.code || '')
+      );
+      if (fbRaw && errMsg && !errMsg.includes(fbRaw) && !isThreadControl) {
+        errMsg = `${errMsg} (Facebook #${data.fbCode}: ${fbRaw})`;
+      }
+      showToast(errMsg || 'Send failed — tap Retry to try again', 'error', errMsg ? 14000 : 5000);
 
       // Mark the specific bubble as failed — do NOT remove it
       const bubble = document.querySelector(`[data-temp-id="${tempId}"]`);
