@@ -40,6 +40,9 @@ const CONVERSATION_LIST_SYNC_ACTIVE_MS = parseInt(process.env.MESSENGER_LIST_SYN
 const CONVERSATION_LIST_SINCE_SEC = parseInt(process.env.MESSENGER_LIST_SINCE_SEC || '900', 10);
 const FB_GRAPH_VERSION = process.env.FB_GRAPH_VERSION || 'v19.0';
 const FB_GRAPH_BASE = `https://graph.facebook.com/${FB_GRAPH_VERSION}`;
+/** Meta Page Inbox app — pass thread here so Business Suite shows read after FBCast reply. */
+const FB_PAGE_INBOX_APP_ID = process.env.FB_PAGE_INBOX_APP_ID || '263902037430900';
+const FB_HANDOVER_ENABLED = process.env.FB_HANDOVER_ENABLED !== '0';
 
 function retentionCutoff() {
     return new Date(Date.now() - MESSAGE_RETENTION_DAYS * 24 * 60 * 60 * 1000);
@@ -89,6 +92,8 @@ module.exports = {
     CONVERSATION_LIST_SINCE_SEC,
     FB_GRAPH_VERSION,
     FB_GRAPH_BASE,
+    FB_PAGE_INBOX_APP_ID,
+    FB_HANDOVER_ENABLED,
     retentionCutoff,
     retentionCutoffUnix,
     isWithinRetention

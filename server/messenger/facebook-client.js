@@ -1,7 +1,9 @@
 const {
     FB_GRAPH_BASE,
     retentionCutoffUnix,
-    isWithinRetention
+    isWithinRetention,
+    FB_PAGE_INBOX_APP_ID,
+    FB_HANDOVER_ENABLED
 } = require('./config');
 const { graphMessageAttachments, normalizeMessengerMessage, FB_MESSAGE_ATTACHMENT_FIELDS } = require('./message-content');
 
@@ -259,21 +261,76 @@ class FacebookClient {
     }
 
     /**
-     * Mark read on Meta (retry until unread_count clears or attempts exhausted).
+     * Pass thread to Meta Page Inbox — clears unread in Business Suite when castme owns routing.
+     * Never call take_thread_control before send (breaks when castme is default app).
+     */
+    async passThreadControlToPageInbox(pageToken, psid, pageId) {
+        if (!FB_HANDOVER_ENABLED || !pageId) {
+            return { skipped: true, reason: 'handover_disabled_or_no_page' };
+        }
+        const url = `${FB_GRAPH_BASE}/${pageId}/pass_thread_control?access_token=${encodeURIComponent(pageToken)}`;
+        const data = await this._postJson(url, {
+            recipient: { id: String(psid) },
+            target_app_id: String(FB_PAGE_INBOX_APP_ID),
+            metadata: 'FBCast Pro — handled'
+        });
+        return { success: true, data };
+    }
+
+    async releaseThreadControl(pageToken, psid, pageId) {
+        if (!pageId) return { skipped: true };
+        const url = `${FB_GRAPH_BASE}/${pageId}/release_thread_control?access_token=${encodeURIComponent(pageToken)}`;
+        return this._postJson(url, {
+            recipient: { id: String(psid) },
+            metadata: 'FBCast Pro — released to default app'
+        });
+    }
+
+    /**
+     * Clear unread in Meta Business Suite: pass to Page Inbox + mark_seen (with retries).
      */
     async markThreadReadOnMeta(pageId, pageToken, psid) {
+        let handover = { skipped: true };
+        let handoverError = null;
+        if (pageId && FB_HANDOVER_ENABLED) {
+            try {
+                handover = await this.passThreadControlToPageInbox(pageToken, psid, pageId);
+            } catch (err) {
+                handoverError = err.message || String(err);
+                console.warn(`[FacebookClient] pass_thread_control failed page=${pageId} psid=${psid}: ${handoverError}`);
+                try {
+                    await this.releaseThreadControl(pageToken, psid, pageId);
+                    handover = { success: true, released: true };
+                    handoverError = null;
+                } catch (relErr) {
+                    console.warn('[FacebookClient] release_thread_control failed:', relErr.message || relErr);
+                }
+            }
+        }
+
         let fb = null;
         const maxAttempts = pageId ? 4 : 2;
         for (let attempt = 0; attempt < maxAttempts; attempt++) {
-            await this.markSeen(pageToken, psid, pageId);
-            await new Promise(r => setTimeout(r, 350 + attempt * 200));
+            try {
+                await this.markSeen(pageToken, psid, pageId);
+            } catch (err) {
+                console.warn(`[FacebookClient] mark_seen attempt ${attempt + 1}:`, err.message || err);
+            }
+            await new Promise(r => setTimeout(r, 400 + attempt * 250));
             if (!pageId) break;
             try {
                 fb = await this.getConversationUnreadCount(pageId, psid, pageToken);
                 if (!fb || fb.unreadCount === 0) break;
             } catch (_) { /* verify optional */ }
         }
-        return { metaMarked: true, fbUnread: fb?.unreadCount ?? null, fbConvId: fb?.fbConvId ?? null };
+
+        return {
+            metaMarked: true,
+            handoverOk: !!(handover.success || handover.released),
+            handoverError,
+            fbUnread: fb?.unreadCount ?? null,
+            fbConvId: fb?.fbConvId ?? null
+        };
     }
 
     async markSeenWithRetry(pageToken, psid, pageId = null) {

@@ -1145,7 +1145,7 @@ app.get('/api/pages', requireAuth, async (req, res) => {
         for (const p of (data.data || [])) {
             fetch(`https://graph.facebook.com/v19.0/${p.id}/subscribed_apps`, {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ subscribed_fields: ['messages', 'messaging_postbacks', 'message_deliveries', 'message_reads', 'message_reactions', 'conversations'], access_token: p.access_token })
+                body: JSON.stringify({ subscribed_fields: ['messages', 'messaging_postbacks', 'message_deliveries', 'message_reads', 'message_reactions', 'messaging_handovers', 'standby', 'conversations'], access_token: p.access_token })
             }).then(async r => {
                 const d = await r.json().catch(() => ({}));
                 if (!r.ok || d.error) logError('webhook_subscribe', new Error(d.error?.message || 'subscribe failed'), { pageId: p.id });

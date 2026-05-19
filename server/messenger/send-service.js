@@ -38,7 +38,10 @@ class SendService {
         try {
             const result = await this.fb.markSeenWithRetry(token, psid, pageId);
             if (result?.fbUnread > 0) {
-                console.warn(`[SendService] Meta unread_count still ${result.fbUnread} for psid ${psid} after mark_seen`);
+                console.warn(
+                    `[SendService] Meta Business Suite still unread (${result.fbUnread}) psid=${psid}` +
+                    (result.handoverOk ? '' : ' — handover to Page Inbox may need reconnect')
+                );
             } else if (convId && result?.fbUnread === 0) {
                 await this.db.markAsRead(convId).catch(() => {});
             }
@@ -69,9 +72,6 @@ class SendService {
         }
         if (!parts.length) throw new Error('No message content');
 
-        const convInfoEarly = await this.db.getConversationIdByParticipant(pageId, psid);
-        await this._markThreadReadOnMetaAndDb(pageId, psid, convInfoEarly?.id || null, token);
-
         let lastMid;
         for (const part of parts) {
             let fbData;
@@ -93,29 +93,35 @@ class SendService {
         const mid = lastMid;
         const createdTime = new Date().toISOString();
         const displayText = message || '[Image]';
-        const convInfo = await this.db.getConversationIdByParticipant(pageId, psid);
-        const convId = convInfo?.id || await this.db.ensureConversation(pageId, psid);
-
-        if (convId) {
-            await this.db.saveMessage({
-                id: mid,
-                threadId: convId,
-                pageId,
-                senderId: pageId,
-                text: displayText,
-                isFromPage: true,
-                createdTime,
-                attachments: image_url ? [{ u: image_url, t: 'image' }] : null
-            });
-            await this.db.updateConversationFromMessage({
-                threadId: convId,
-                text: displayText,
-                createdTime,
-                lastFromMe: true
-            }).catch(() => {});
+        let convId = null;
+        try {
+            const convInfo = await this.db.getConversationIdByParticipant(pageId, psid);
+            convId = convInfo?.id || await this.db.ensureConversation(pageId, psid);
+            if (convId) {
+                await this.db.saveMessage({
+                    id: mid,
+                    threadId: convId,
+                    pageId,
+                    senderId: pageId,
+                    text: displayText,
+                    isFromPage: true,
+                    createdTime,
+                    attachments: image_url ? [{ u: image_url, t: 'image' }] : null
+                });
+                await this.db.updateConversationFromMessage({
+                    threadId: convId,
+                    text: displayText,
+                    createdTime,
+                    lastFromMe: true
+                }).catch(() => {});
+            }
+        } catch (dbErr) {
+            console.warn('[SendService] DB save after send failed (message was delivered):', dbErr.message || dbErr);
         }
 
-        await this._markThreadReadOnMetaAndDb(pageId, psid, convId, token);
+        setImmediate(() => {
+            this._markThreadReadOnMetaAndDb(pageId, psid, convId, token).catch(() => {});
+        });
 
         setImmediate(() => {
             this.io.to(`page_${pageId}`).emit('new_message', {
@@ -148,8 +154,6 @@ class SendService {
         const token = page_token || await this.db.getPageToken(pageId);
         if (!token) throw new Error('Page token not found');
 
-        await this._markThreadReadOnMetaAndDb(pageId, psid, null, token);
-
         const fbData = await this.fb.sendThumbsUpWithRetry(token, psid, pageId);
         const mid = fbData.message_id;
         const createdTime = new Date().toISOString();
@@ -177,7 +181,9 @@ class SendService {
             }).catch(() => {});
         }
 
-        await this._markThreadReadOnMetaAndDb(pageId, psid, convId, token);
+        setImmediate(() => {
+            this._markThreadReadOnMetaAndDb(pageId, psid, convId, token).catch(() => {});
+        });
 
         setImmediate(() => {
             this.io.to(`page_${pageId}`).emit('new_message', {
