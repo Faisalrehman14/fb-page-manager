@@ -592,6 +592,30 @@ app.get(['/api/auth/callback', '/oauth_callback.php'], async (req, res) => {
     }
 });
 
+// ── Public topbar announcement (no auth) ───────────────────────────────────
+async function sendAnnouncementPayload(req, res) {
+    try {
+        const payload = await db.getAnnouncementPayload();
+        res.json({ success: true, ...payload });
+    } catch (_) {
+        res.json({
+            success: true,
+            enabled: false,
+            active: false,
+            type: 'text',
+            text: '',
+            media_url: '',
+            link_url: ''
+        });
+    }
+}
+
+app.get('/api/announcement', sendAnnouncementPayload);
+app.get('/api/admin', (req, res, next) => {
+    if (req.query.action === 'announcement') return sendAnnouncementPayload(req, res);
+    next();
+});
+
 // ── Admin Panel ──────────────────────────────────────────────────────────────
 // Serve admin HTML
 app.get('/admin', (req, res) => {

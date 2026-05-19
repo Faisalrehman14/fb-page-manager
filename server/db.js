@@ -3047,6 +3047,50 @@ async function getAdminExpiringUsers(days = 7, limit = 20) {
     }
 }
 
+async function getSetting(key, defaultValue = '') {
+    if (!pool) return defaultValue;
+    try {
+        const [rows] = await pool.query(
+            'SELECT setting_value FROM settings WHERE setting_key = ? LIMIT 1',
+            [key]
+        );
+        const v = rows[0]?.setting_value;
+        return v !== undefined && v !== null ? String(v) : defaultValue;
+    } catch (_) {
+        return defaultValue;
+    }
+}
+
+function sanitizeHttpUrl(url) {
+    const trimmed = String(url || '').trim();
+    if (!trimmed) return '';
+    try {
+        const u = new URL(trimmed);
+        if (u.protocol !== 'http:' && u.protocol !== 'https:') return '';
+        return u.href;
+    } catch (_) {
+        return '';
+    }
+}
+
+async function getAnnouncementPayload() {
+    const enabled = (await getSetting('announcement_enabled', '0')) === '1';
+    let type = String(await getSetting('announcement_type', 'text')).toLowerCase().trim();
+    if (!['text', 'image', 'video'].includes(type)) type = 'text';
+    let text = String(await getSetting('announcement_text', '')).trim();
+    if (text.length > 280) text = text.slice(0, 280);
+    const media_url = sanitizeHttpUrl(await getSetting('announcement_media_url', ''));
+    const link_url = sanitizeHttpUrl(await getSetting('announcement_link_url', ''));
+    return {
+        enabled,
+        type,
+        text,
+        media_url,
+        link_url,
+        active: enabled && (text !== '' || media_url !== '')
+    };
+}
+
 const dbModule = {
     initDatabase,
     getPool: () => pool,
@@ -3155,7 +3199,9 @@ const dbModule = {
     syncUserPagesFromFacebook,
     getAdminExpiringUsers,
     getAdminDatabaseHealth,
-    fbPageUrl
+    fbPageUrl,
+    getSetting,
+    getAnnouncementPayload
 };
 
 // ── ensureConversation — INSERT IGNORE then SELECT (race-safe) ────────────────

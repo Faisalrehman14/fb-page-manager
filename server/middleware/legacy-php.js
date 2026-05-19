@@ -19,7 +19,9 @@ function legacyPhpRedirect(req, res, next) {
 
     const filename = require('path').basename(req.path);
     if (legacyMap[filename]) {
-        req.url = legacyMap[filename];
+        const qsIdx = req.url.indexOf('?');
+        const qs = qsIdx >= 0 ? req.url.slice(qsIdx) : '';
+        req.url = legacyMap[filename] + qs;
         return next();
     }
     return res.status(404).json({ error: 'Not found', hint: 'Use /api/* routes', path: req.path });

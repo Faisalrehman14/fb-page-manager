@@ -533,11 +533,22 @@ function renderAnnouncementBar(data) {
   bar.hidden = false;
 }
 
+function isAnnouncementBarEnabled() {
+  const bar = document.getElementById('announcementBar');
+  if (!bar) return false;
+  if (bar.hasAttribute('hidden')) return false;
+  const style = bar.getAttribute('style') || '';
+  if (/display\s*:\s*none/i.test(style)) return false;
+  return true;
+}
+
 async function fetchTopbarAnnouncement(options = {}) {
+  if (!isAnnouncementBarEnabled()) return;
   if (options.background && document.hidden) return;
   try {
-    const data = await fetchJsonWithRetry('admin.php?action=announcement', {
+    const data = await fetchJsonWithRetry('/api/announcement', {
       method: 'GET',
+      credentials: 'same-origin',
       headers: { 'Accept': 'application/json' }
     }, {
       attempts: options.background ? 1 : 2,
@@ -554,6 +565,7 @@ async function fetchTopbarAnnouncement(options = {}) {
 
 function startAnnouncementPolling() {
   if (_announcementPollStarted) return;
+  if (!isAnnouncementBarEnabled()) return;
   _announcementPollStarted = true;
   fetchTopbarAnnouncement({ background: true });
   _announcementPollTimer = setInterval(function () {
