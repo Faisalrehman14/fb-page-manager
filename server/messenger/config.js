@@ -40,17 +40,6 @@ const CONVERSATION_LIST_SYNC_ACTIVE_MS = parseInt(process.env.MESSENGER_LIST_SYN
 const CONVERSATION_LIST_SINCE_SEC = parseInt(process.env.MESSENGER_LIST_SINCE_SEC || '900', 10);
 const FB_GRAPH_VERSION = process.env.FB_GRAPH_VERSION || 'v19.0';
 const FB_GRAPH_BASE = `https://graph.facebook.com/${FB_GRAPH_VERSION}`;
-/** Meta Page Inbox app — pass thread here so Business Suite shows read after FBCast reply. */
-const FB_PAGE_INBOX_APP_ID = process.env.FB_PAGE_INBOX_APP_ID || '263902037430900';
-/** castme app from Conversation Routing (must match Railway FB_APP_ID). */
-const FB_CASTME_APP_ID = process.env.FB_CASTME_APP_ID || '1841422713196772';
-/** Off by default — plain Send API works with Meta default (Page Inbox) routing. Set FB_HANDOVER_ENABLED=1 only if you configured handover in Meta. */
-const FB_HANDOVER_ENABLED = process.env.FB_HANDOVER_ENABLED === '1';
-/** Off by default — passing to Page Inbox after every reply breaks the next send when Inbox is default routing. */
-const FB_PASS_TO_INBOX_AFTER_SEND = process.env.FB_PASS_TO_INBOX_AFTER_SEND === '1';
-/** Optional Business Suite unread sync on mark-read only (not after send). */
-const FB_PASS_TO_INBOX_ON_MARK_READ = process.env.FB_PASS_TO_INBOX_ON_MARK_READ === '1';
-
 function retentionCutoff() {
     return new Date(Date.now() - MESSAGE_RETENTION_DAYS * 24 * 60 * 60 * 1000);
 }
@@ -99,11 +88,6 @@ module.exports = {
     CONVERSATION_LIST_SINCE_SEC,
     FB_GRAPH_VERSION,
     FB_GRAPH_BASE,
-    FB_PAGE_INBOX_APP_ID,
-    FB_CASTME_APP_ID,
-    FB_HANDOVER_ENABLED,
-    FB_PASS_TO_INBOX_AFTER_SEND,
-    FB_PASS_TO_INBOX_ON_MARK_READ,
     retentionCutoff,
     retentionCutoffUnix,
     isWithinRetention

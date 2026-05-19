@@ -1,6 +1,4 @@
 const { FacebookClient, FbApiError } = require('./facebook-client');
-const { FB_HANDOVER_ENABLED, FB_PASS_TO_INBOX_AFTER_SEND, FB_PASS_TO_INBOX_ON_MARK_READ } = require('./config');
-
 const RETRY_DELAYS = [300, 1200]; // 2 retries: 300ms then 1.2s
 
 function sleep(ms) {
@@ -27,42 +25,6 @@ class SendService {
             }
         }
         throw lastErr;
-    }
-
-    /** Clear unread in our DB and on Meta Business Suite (pass to Page Inbox + mark_seen). */
-    async _markThreadReadOnMetaAndDb(pageId, psid, convId, pageToken) {
-        if (convId) {
-            await this.db.markAsRead(convId).catch(() => {});
-        }
-        const token = pageToken || await this.db.getPageToken(pageId);
-        if (!token || !psid) return { ok: false, reason: 'no_token_or_psid' };
-        try {
-            const result = await this.fb.markSeenWithRetry(token, psid, pageId, {
-                passToInbox: FB_HANDOVER_ENABLED && FB_PASS_TO_INBOX_AFTER_SEND
-            });
-            if (result?.fbUnread > 0) {
-                console.warn(
-                    `[SendService] Meta Business Suite still unread (${result.fbUnread}) psid=${psid}` +
-                    (result.handoverOk ? ` handover=${result.handoverMethod}` : ` pass failed: ${result.handoverError || 'unknown'}`)
-                );
-            } else if (convId && result?.fbUnread === 0) {
-                await this.db.markAsRead(convId).catch(() => {});
-            }
-            return {
-                ok: result?.handoverOk === true || result?.fbUnread === 0,
-                handoverOk: result?.handoverOk,
-                handoverMethod: result?.handoverMethod,
-                threadOwnerAppId: result?.threadOwnerAppId,
-                fbUnread: result?.fbUnread,
-                handoverError: result?.handoverError || null
-            };
-        } catch (err) {
-            const detail = err.fbCode != null
-                ? `code=${err.fbCode} ${err.message}`
-                : (err.message || String(err));
-            console.warn(`[SendService] Meta mark read failed page=${pageId} psid=${psid}: ${detail}`);
-            return { ok: false, error: detail };
-        }
     }
 
     async send({ pageId, psid, message, image_url, page_token }) {
@@ -163,7 +125,7 @@ class SendService {
         setImmediate(() => {
             if (convIdBg) this.db.markAsRead(convIdBg).catch(() => {});
             if (tokenBg && psidBg) {
-                this.fb.markSeen(tokenBg, psidBg, pageIdBg).catch(() => {});
+                this.fb.markSeen(tokenBg, psidBg).catch(() => {});
             }
         });
 
@@ -227,7 +189,7 @@ class SendService {
                 lastMessageFromPage: true
             });
             if (convId) this.db.markAsRead(convId).catch(() => {});
-            if (token && psid) this.fb.markSeen(token, psid, pageId).catch(() => {});
+            if (token && psid) this.fb.markSeen(token, psid).catch(() => {});
         });
 
         return { success: true, message_id: mid, meta_read: { ok: true } };
@@ -239,7 +201,7 @@ class SendService {
 
         if (token && psid) {
             try {
-                await this.fb.markSeen(token, psid, pageId);
+                await this.fb.markSeen(token, psid);
                 metaMarked = true;
             } catch (err) {
                 console.warn('[markRead] Meta mark_seen failed:', err.message || err);

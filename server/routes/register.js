@@ -240,7 +240,7 @@ app.post(['/webhook', '/fb_webhook.php'], async (req, res) => {
                                 const token = await db.getPageToken(pageId);
                                 if (token && participantId) {
                                     const { FacebookClient } = require('../messenger/facebook-client');
-                                    await new FacebookClient(fetch).markSeenWithRetry(token, participantId, pageId);
+                                    await new FacebookClient(fetch).markSeenWithRetry(token, participantId);
                                 }
                             } catch (err) {
                                 logError('echo_mark_seen_meta', err, { pageId, threadId, participantId });
@@ -255,16 +255,6 @@ app.post(['/webhook', '/fb_webhook.php'], async (req, res) => {
                     } else {
                         await db.onIncomingMessage(threadId, pageId, participantId, snippet);
                     }
-                    setImmediate(async () => {
-                        try {
-                            const token = await db.getPageToken(pageId);
-                            if (!token) return;
-                            const { ensureCastmeThreadControl } = require('../messenger/handover-setup');
-                            await ensureCastmeThreadControl(pageId, token, participantId, fetch);
-                        } catch (err) {
-                            logError('webhook_take_thread', err, { pageId, participantId });
-                        }
-                    });
                 }
 
                 if (isNewMessage) {
@@ -1179,30 +1169,12 @@ app.get('/api/pages', requireAuth, async (req, res) => {
         for (const p of (data.data || [])) {
             fetch(`https://graph.facebook.com/v19.0/${p.id}/subscribed_apps`, {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ subscribed_fields: ['messages', 'messaging_postbacks', 'message_deliveries', 'message_reads', 'message_reactions', 'messaging_handovers', 'standby', 'conversations'], access_token: p.access_token })
+                body: JSON.stringify({ subscribed_fields: ['messages', 'messaging_postbacks', 'message_deliveries', 'message_reads', 'message_reactions', 'conversations'], access_token: p.access_token })
             }).then(async r => {
                 const d = await r.json().catch(() => ({}));
                 if (!r.ok || d.error) logError('webhook_subscribe', new Error(d.error?.message || 'subscribe failed'), { pageId: p.id });
             }).catch(err => logError('webhook_subscribe_net', err, { pageId: p.id }));
 
-            const { verifyPageHandoverReceivers } = require('../messenger/handover-setup');
-            verifyPageHandoverReceivers(p.id, p.access_token, fetch).then((v) => {
-                if (!v.hasInbox) {
-                    console.warn(
-                        `[pages] page=${p.id}: configure Meta App → Messenger → Handover: ` +
-                        'Primary = FBCast (castme), Secondary = Page Inbox. ' +
-                        'Optional: Page Settings → Conversation routing → Default = FBCast.'
-                    );
-                }
-            }).catch(() => {});
-        }
-
-        const castmeId = (process.env.FB_CASTME_APP_ID || '1841422713196772').trim();
-        const appId = (process.env.FB_APP_ID || '').trim();
-        if (appId && castmeId && appId !== castmeId) {
-            logError('fb_app_id_mismatch', new Error(
-                `FB_APP_ID (${appId}) does not match castme routing app (${castmeId}). Meta inbox pass will fail.`
-            ), {});
         }
 
         const pageIds      = (data.data || []).map(p => p.id);
@@ -1338,7 +1310,7 @@ app.post('/api/threads/:threadId/read', requireAuth, verifyCsrf, async (req, res
                 const token = await db.getPageToken(pageId);
                 if (psid && token) {
                     const { FacebookClient } = require('../messenger/facebook-client');
-                    await new FacebookClient(fetch).markSeenWithRetry(token, psid, pageId);
+                    await new FacebookClient(fetch).markSeenWithRetry(token, psid);
                 }
             } catch (err) {
                 logError('thread_mark_read_meta', err, { pageId, threadId });

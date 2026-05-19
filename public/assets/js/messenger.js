@@ -2642,9 +2642,6 @@
     if (typingEl) { clearTimeout(typingEl._hideTimer); typingEl.classList.remove('visible'); }
 
     showChatWindow(name, picture);
-    if (pageId || M.activePageId) {
-      get('prepare_send', { page_id: pageId || M.activePageId, psid }).catch(() => {});
-    }
 
     const cached = _cacheLoad(psid);
     if (cached && cached.msgs.length) {
