@@ -1,0 +1,30 @@
+const { FB_GRAPH_BASE, FB_PAGE_INBOX_APP_ID } = require('./config');
+
+/**
+ * Verify Page Inbox is a secondary receiver for handover / conversation routing.
+ * Without this, pass_thread_control to 263902037430900 fails silently in production.
+ */
+async function verifyPageHandoverReceivers(pageId, pageToken, fetchFn) {
+    if (!pageId || !pageToken) return { ok: false, reason: 'missing_page_or_token' };
+    const fetch = fetchFn || global.fetch;
+    try {
+        const url = `${FB_GRAPH_BASE}/${pageId}/secondary_receivers?platform=messenger&access_token=${encodeURIComponent(pageToken)}`;
+        const r = await fetch(url);
+        const data = await r.json();
+        if (data.error) {
+            return { ok: false, reason: 'api_error', error: data.error.message || JSON.stringify(data.error) };
+        }
+        const receivers = (data.data || []).map(row => String(row.id || row.app_id || ''));
+        const hasInbox = receivers.includes(String(FB_PAGE_INBOX_APP_ID));
+        return {
+            ok: hasInbox,
+            hasInbox,
+            receivers,
+            pageInboxAppId: FB_PAGE_INBOX_APP_ID
+        };
+    } catch (err) {
+        return { ok: false, reason: 'network', error: err.message || String(err) };
+    }
+}
+
+module.exports = { verifyPageHandoverReceivers };

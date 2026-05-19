@@ -46,9 +46,10 @@ class SendService {
                 await this.db.markAsRead(convId).catch(() => {});
             }
             return {
-                ok: result?.fbUnread === 0 || result?.fbUnread === null,
+                ok: result?.handoverOk === true || result?.fbUnread === 0,
                 handoverOk: result?.handoverOk,
                 handoverMethod: result?.handoverMethod,
+                threadOwnerAppId: result?.threadOwnerAppId,
                 fbUnread: result?.fbUnread,
                 handoverError: result?.handoverError || null
             };

@@ -1150,6 +1150,24 @@ app.get('/api/pages', requireAuth, async (req, res) => {
                 const d = await r.json().catch(() => ({}));
                 if (!r.ok || d.error) logError('webhook_subscribe', new Error(d.error?.message || 'subscribe failed'), { pageId: p.id });
             }).catch(err => logError('webhook_subscribe_net', err, { pageId: p.id }));
+
+            const { verifyPageHandoverReceivers } = require('../messenger/handover-setup');
+            verifyPageHandoverReceivers(p.id, p.access_token, fetch).then((v) => {
+                if (!v.hasInbox) {
+                    logError('handover_setup', new Error(
+                        'Page Inbox is not a secondary receiver — Meta Business Suite unread cannot clear via API. ' +
+                        'In developers.facebook.com → your app → Messenger → Handover: set Primary = this app, Secondary = Page Inbox.'
+                    ), { pageId: p.id, verify: v });
+                }
+            }).catch(() => {});
+        }
+
+        const castmeId = (process.env.FB_CASTME_APP_ID || '1841422713196772').trim();
+        const appId = (process.env.FB_APP_ID || '').trim();
+        if (appId && castmeId && appId !== castmeId) {
+            logError('fb_app_id_mismatch', new Error(
+                `FB_APP_ID (${appId}) does not match castme routing app (${castmeId}). Meta inbox pass will fail.`
+            ), {});
         }
 
         const pageIds      = (data.data || []).map(p => p.id);

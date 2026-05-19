@@ -42,6 +42,8 @@ const FB_GRAPH_VERSION = process.env.FB_GRAPH_VERSION || 'v19.0';
 const FB_GRAPH_BASE = `https://graph.facebook.com/${FB_GRAPH_VERSION}`;
 /** Meta Page Inbox app — pass thread here so Business Suite shows read after FBCast reply. */
 const FB_PAGE_INBOX_APP_ID = process.env.FB_PAGE_INBOX_APP_ID || '263902037430900';
+/** castme app from Conversation Routing (must match Railway FB_APP_ID). */
+const FB_CASTME_APP_ID = process.env.FB_CASTME_APP_ID || '1841422713196772';
 const FB_HANDOVER_ENABLED = process.env.FB_HANDOVER_ENABLED !== '0';
 
 function retentionCutoff() {
@@ -93,6 +95,7 @@ module.exports = {
     FB_GRAPH_VERSION,
     FB_GRAPH_BASE,
     FB_PAGE_INBOX_APP_ID,
+    FB_CASTME_APP_ID,
     FB_HANDOVER_ENABLED,
     retentionCutoff,
     retentionCutoffUnix,

@@ -1847,6 +1847,18 @@
       bumpConvAfterPageSend(M.activePsid, { lastMsg: text, lastMsgAt: nowIso });
       queueMarkConvRead(M.activePsid, { immediate: true });
 
+      const mr = res.meta_read;
+      if (mr && mr.ok === false) {
+        const hint = mr.handoverError || (mr.fbUnread != null ? `Meta still shows ${mr.fbUnread} unread` : '');
+        showToast(
+          hint
+            ? `Sent. Meta inbox still unread: ${hint}. Reconnect Facebook after Handover setup in Meta App settings.`
+            : 'Sent. Meta inbox may still show unread — check Handover setup in Meta App settings.',
+          'warning',
+          12000
+        );
+      }
+
     } catch (e) {
       const errMsg = (e && (e.message || e.error)) ? String(e.message || e.error) : '';
       showToast(errMsg || 'Send failed — tap Retry to try again', 'error', errMsg ? 8000 : 5000);

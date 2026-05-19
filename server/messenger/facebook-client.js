@@ -3,6 +3,7 @@ const {
     retentionCutoffUnix,
     isWithinRetention,
     FB_PAGE_INBOX_APP_ID,
+    FB_CASTME_APP_ID,
     FB_HANDOVER_ENABLED
 } = require('./config');
 const { graphMessageAttachments, normalizeMessengerMessage, FB_MESSAGE_ATTACHMENT_FIELDS } = require('./message-content');
@@ -322,6 +323,44 @@ class FacebookClient {
      * Pass thread to Meta Page Inbox — clears unread in Business Suite when castme owns routing.
      * Never call take_thread_control before send (breaks when castme is default app).
      */
+    async getThreadOwner(pageId, pageToken, psid) {
+        if (!pageId || !psid) return null;
+        const url = `${FB_GRAPH_BASE}/${pageId}/thread_owner?recipient=${encodeURIComponent(String(psid))}&access_token=${encodeURIComponent(pageToken)}`;
+        const data = await this.getJson(url);
+        const owner = data?.data?.[0]?.thread_owner;
+        if (!owner) return { appId: null, expiration: null };
+        return { appId: owner.app_id ? String(owner.app_id) : null, expiration: owner.expiration || null };
+    }
+
+    async takeThreadControl(pageToken, psid, pageId) {
+        if (!pageId) return { skipped: true };
+        const url = `${FB_GRAPH_BASE}/${pageId}/take_thread_control?access_token=${encodeURIComponent(pageToken)}`;
+        const data = await this._postJson(url, {
+            messaging_product: 'facebook',
+            recipient: { id: String(psid) },
+            metadata: 'FBCast Pro'
+        });
+        return { success: true, data };
+    }
+
+    /** Meta-documented query-string format for pass_thread_control. */
+    async passThreadControlQuery(pageToken, psid, pageId) {
+        if (!FB_HANDOVER_ENABLED || !pageId) {
+            return { skipped: true, reason: 'handover_disabled_or_no_page' };
+        }
+        const recipient = encodeURIComponent(JSON.stringify({ id: String(psid) }));
+        const url = `${FB_GRAPH_BASE}/${pageId}/pass_thread_control` +
+            `?recipient=${recipient}` +
+            `&target_app_id=${encodeURIComponent(FB_PAGE_INBOX_APP_ID)}` +
+            `&metadata=${encodeURIComponent('FBCast Pro — handled')}` +
+            `&access_token=${encodeURIComponent(pageToken)}`;
+        const r = await this._fetchWithTimeout(url, { method: 'POST' });
+        const data = await r.json();
+        if (data.error) throw new FbApiError(data.error);
+        if (data.success === false) throw new FbApiError({ message: 'pass_thread_control returned success=false', code: 0 });
+        return { success: true, data, method: 'pass_thread_control_query' };
+    }
+
     async passThreadControlToPageInbox(pageToken, psid, pageId) {
         if (!FB_HANDOVER_ENABLED || !pageId) {
             return { skipped: true, reason: 'handover_disabled_or_no_page' };
@@ -333,7 +372,7 @@ class FacebookClient {
             target_app_id: String(FB_PAGE_INBOX_APP_ID),
             metadata: 'FBCast Pro — handled'
         });
-        return { success: true, data, method: 'pass_thread_control' };
+        return { success: true, data, method: 'pass_thread_control_json' };
     }
 
     /**
@@ -344,39 +383,53 @@ class FacebookClient {
         let handover = { skipped: true };
         let handoverError = null;
         let handoverMethod = null;
+        let threadOwnerAppId = null;
 
         if (pageId && FB_HANDOVER_ENABLED) {
+            try {
+                await this.takeThreadControl(pageToken, psid, pageId);
+            } catch (err) {
+                console.warn('[FacebookClient] take_thread_control (post-send):', err.message || err);
+            }
+
             const passAttempts = [
-                () => this.passInboxWithMarkSeenViaSendApi(pageToken, psid, pageId),
-                () => this.passThreadControlToPageInbox(pageToken, psid, pageId)
+                () => this.passThreadControlQuery(pageToken, psid, pageId),
+                () => this.passThreadControlToPageInbox(pageToken, psid, pageId),
+                () => this.passInboxWithMarkSeenViaSendApi(pageToken, psid, pageId)
             ];
             for (const attempt of passAttempts) {
                 try {
                     handover = await attempt();
                     handoverMethod = handover.method || 'pass';
                     handoverError = null;
-                    break;
+                    await new Promise(r => setTimeout(r, 400));
+                    try {
+                        const owner = await this.getThreadOwner(pageId, pageToken, psid);
+                        threadOwnerAppId = owner?.appId || null;
+                        if (threadOwnerAppId === String(FB_PAGE_INBOX_APP_ID)) break;
+                    } catch (_) { /* optional */ }
+                    if (handover.success) break;
                 } catch (err) {
-                    handoverError = err.message || String(err);
+                    handoverError = err.fbCode != null
+                        ? `(#${err.fbCode}) ${err.message}`
+                        : (err.message || String(err));
                     console.warn(
-                        `[FacebookClient] inbox pass attempt failed page=${pageId} psid=${psid}:`,
+                        `[FacebookClient] inbox pass failed page=${pageId} psid=${psid}:`,
                         handoverError
                     );
                 }
             }
-            // Do NOT release_thread_control on failure — that returns thread to castme (default)
-            // and Business Suite stays unread.
         }
 
         let fb = null;
-        const maxAttempts = pageId ? 5 : 2;
+        const maxAttempts = pageId ? 6 : 2;
         for (let attempt = 0; attempt < maxAttempts; attempt++) {
             try {
                 await this.markSeen(pageToken, psid, pageId);
             } catch (err) {
                 console.warn(`[FacebookClient] mark_seen attempt ${attempt + 1}:`, err.message || err);
             }
-            await new Promise(r => setTimeout(r, 500 + attempt * 300));
+            await new Promise(r => setTimeout(r, 500 + attempt * 350));
             if (!pageId) break;
             try {
                 fb = await this.getConversationUnreadCount(pageId, psid, pageToken);
@@ -384,11 +437,15 @@ class FacebookClient {
             } catch (_) { /* verify optional */ }
         }
 
+        const inboxOwns = threadOwnerAppId === String(FB_PAGE_INBOX_APP_ID);
         return {
             metaMarked: true,
-            handoverOk: !!handover.success,
+            handoverOk: !!(handover.success && (inboxOwns || fb?.unreadCount === 0)),
             handoverMethod,
             handoverError,
+            threadOwnerAppId,
+            expectedInboxAppId: FB_PAGE_INBOX_APP_ID,
+            castmeAppId: FB_CASTME_APP_ID,
             fbUnread: fb?.unreadCount ?? null,
             fbConvId: fb?.fbConvId ?? null
         };
