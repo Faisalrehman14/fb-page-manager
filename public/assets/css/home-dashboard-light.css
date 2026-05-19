@@ -151,6 +151,61 @@ body.light #appPage #view-home .hv-panel:hover {
   box-shadow: var(--hd-shadow-hover) !important;
 }
 
+/* Key metrics icons */
+html[data-theme='light'] #appPage #view-home .hv-kpi-icon,
+body.light #appPage #view-home .hv-kpi-icon {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 44px !important;
+  height: 44px !important;
+  min-width: 44px !important;
+  min-height: 44px !important;
+  border-radius: 11px !important;
+  font-size: 18px !important;
+  color: #ffffff !important;
+  flex-shrink: 0 !important;
+  position: relative !important;
+  z-index: 1 !important;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.12) !important;
+}
+
+html[data-theme='light'] #appPage #view-home .hv-kpi-icon i,
+body.light #appPage #view-home .hv-kpi-icon i {
+  color: #ffffff !important;
+  line-height: 1 !important;
+}
+
+html[data-theme='light'] #appPage #view-home .hv-kpi-icon.hv-kpi-blue,
+body.light #appPage #view-home .hv-kpi-icon.hv-kpi-blue {
+  background: linear-gradient(135deg, #3b82f6, #2563eb) !important;
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35) !important;
+}
+
+html[data-theme='light'] #appPage #view-home .hv-kpi-icon.hv-kpi-green,
+body.light #appPage #view-home .hv-kpi-icon.hv-kpi-green {
+  background: linear-gradient(135deg, #22c55e, #16a34a) !important;
+  box-shadow: 0 4px 14px rgba(34, 197, 94, 0.35) !important;
+}
+
+html[data-theme='light'] #appPage #view-home .hv-kpi-icon.hv-kpi-indigo,
+body.light #appPage #view-home .hv-kpi-icon.hv-kpi-indigo {
+  background: linear-gradient(135deg, #818cf8, #6366f1) !important;
+  box-shadow: 0 4px 14px rgba(99, 102, 241, 0.35) !important;
+}
+
+html[data-theme='light'] #appPage #view-home .hv-kpi-icon.hv-kpi-amber,
+body.light #appPage #view-home .hv-kpi-icon.hv-kpi-amber {
+  background: linear-gradient(135deg, #fbbf24, #d97706) !important;
+  box-shadow: 0 4px 14px rgba(245, 158, 11, 0.35) !important;
+}
+
+html[data-theme='light'] #appPage #view-home .hv-kpi-icon.hv-kpi-red,
+body.light #appPage #view-home .hv-kpi-icon.hv-kpi-red {
+  background: linear-gradient(135deg, #f87171, #ef4444) !important;
+  box-shadow: 0 4px 14px rgba(239, 68, 68, 0.35) !important;
+}
+
 html[data-theme='light'] #appPage #view-home .hv-panel-hdr,
 body.light #appPage #view-home .hv-panel-hdr {
   background: #f8fafc !important;

@@ -273,7 +273,8 @@ html.theme-dark #view-home .hv-hero-sched-card {
   opacity: 1 !important;
 }
 
-#view-home .hv-kpi-icon {
+html[data-theme='dark'] #view-home .hv-kpi-icon,
+html.theme-dark #view-home .hv-kpi-icon {
   width: 48px !important;
   height: 48px !important;
   border-radius: 12px !important;

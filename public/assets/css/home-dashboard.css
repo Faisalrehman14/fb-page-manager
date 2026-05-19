@@ -469,23 +469,23 @@ html.theme-dark #view-home .hv-hero {
   color: #fff !important;
 }
 
-#view-home .hv-kpi-blue .hv-kpi-icon {
+#view-home .hv-kpi-icon.hv-kpi-blue {
   background: linear-gradient(135deg, #4f7df5, #3d66e0) !important;
   box-shadow: 0 4px 14px rgba(79, 125, 245, 0.35) !important;
 }
-#view-home .hv-kpi-green .hv-kpi-icon {
+#view-home .hv-kpi-icon.hv-kpi-green {
   background: linear-gradient(135deg, #22c55e, #16a34a) !important;
   box-shadow: 0 4px 14px rgba(34, 197, 94, 0.35) !important;
 }
-#view-home .hv-kpi-indigo .hv-kpi-icon {
+#view-home .hv-kpi-icon.hv-kpi-indigo {
   background: linear-gradient(135deg, #818cf8, #6366f1) !important;
   box-shadow: 0 4px 14px rgba(99, 102, 241, 0.35) !important;
 }
-#view-home .hv-kpi-red .hv-kpi-icon {
+#view-home .hv-kpi-icon.hv-kpi-red {
   background: linear-gradient(135deg, #f87171, #ef4444) !important;
   box-shadow: 0 4px 14px rgba(239, 68, 68, 0.35) !important;
 }
-#view-home .hv-kpi-amber .hv-kpi-icon {
+#view-home .hv-kpi-icon.hv-kpi-amber {
   background: linear-gradient(135deg, #fbbf24, #d97706) !important;
   box-shadow: 0 4px 14px rgba(245, 158, 11, 0.35) !important;
 }

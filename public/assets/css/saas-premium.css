@@ -616,7 +616,8 @@ body.light .pricing-grid--6 .price-card--gold {
   background: linear-gradient(160deg, rgba(8, 102, 255, 0.06), #fff 50%) !important;
 }
 
-body.light .hv-kpi-icon {
+body.light #view-broadcast .hv-kpi-icon,
+body.light #view-analytics .hv-kpi-icon {
   background: var(--primary-dim) !important;
   color: var(--primary) !important;
 }
