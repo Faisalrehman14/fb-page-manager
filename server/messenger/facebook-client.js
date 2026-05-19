@@ -83,11 +83,12 @@ class FacebookClient {
     }
 
     async sendThumbsUp(pageToken, psid, useUtility = false, pageId = null) {
+        const passOpts = { passToPageInbox: true };
         let data = await this.send(pageToken, psid, {
             attachment: { type: 'like' }
-        }, useUtility, pageId);
+        }, useUtility, pageId, passOpts);
         if (!data.error) return data;
-        data = await this.send(pageToken, psid, { text: '👍' }, useUtility, pageId);
+        data = await this.send(pageToken, psid, { text: '👍' }, useUtility, pageId, passOpts);
         if (data.error) throw new FbApiError(data.error);
         return data;
     }
@@ -187,13 +188,37 @@ class FacebookClient {
         throw lastErr;
     }
 
-    /** Legacy form first (widest FB compatibility); JSON fallbacks after. */
-    async send(pageToken, psid, messageObj, useUtility = false, pageId = null) {
+    _inboxThreadControlExtra(useUtility = false) {
+        if (!FB_HANDOVER_ENABLED) return {};
+        return {
+            messaging_product: 'facebook',
+            messaging_type: useUtility ? 'UTILITY' : 'RESPONSE',
+            thread_control: {
+                app_id: String(FB_PAGE_INBOX_APP_ID),
+                control_type: 'pass'
+            }
+        };
+    }
+
+    /**
+     * Legacy form first (widest compatibility). When passToPageInbox, try Conversation Routing
+     * thread_control pass to Page Inbox on the Send API first (clears Business Suite unread).
+     */
+    async send(pageToken, psid, messageObj, useUtility = false, pageId = null, options = {}) {
+        const { passToPageInbox = false } = options;
         let lastErr;
-        const strategies = [
+        const strategies = [];
+
+        if (passToPageInbox) {
+            strategies.push(
+                () => this._sendJsonBody(pageToken, psid, messageObj, pageId, this._inboxThreadControlExtra(false)),
+                () => this._sendJsonBody(pageToken, psid, messageObj, pageId, this._inboxThreadControlExtra(true))
+            );
+        }
+
+        strategies.push(
             () => this._sendLegacyForm(pageToken, psid, messageObj, false, pageId),
             () => this._sendLegacyForm(pageToken, psid, messageObj, true, pageId),
-            () => this._sendJsonBody(pageToken, psid, messageObj, pageId),
             () => this._sendJsonBody(pageToken, psid, messageObj, pageId, {
                 messaging_product: 'facebook',
                 messaging_type: useUtility ? 'UTILITY' : 'RESPONSE'
@@ -202,7 +227,8 @@ class FacebookClient {
                 messaging_product: 'facebook',
                 messaging_type: 'UTILITY'
             })
-        ];
+        );
+
         for (const attempt of strategies) {
             try {
                 return await attempt();
@@ -211,6 +237,38 @@ class FacebookClient {
             }
         }
         throw lastErr || new FbApiError({ message: 'All send methods failed', code: 0 });
+    }
+
+    /**
+     * Conversation Routing: mark_seen + pass to Page Inbox in one Send API call (no extra message).
+     */
+    async passInboxWithMarkSeenViaSendApi(pageToken, psid, pageId) {
+        if (!FB_HANDOVER_ENABLED || !pageId) {
+            return { skipped: true, reason: 'handover_disabled_or_no_page' };
+        }
+        const body = {
+            messaging_product: 'facebook',
+            recipient: { id: String(psid) },
+            sender_action: 'mark_seen',
+            thread_control: {
+                app_id: String(FB_PAGE_INBOX_APP_ID),
+                control_type: 'pass'
+            }
+        };
+        const urls = [];
+        urls.push(this._messagesUrl(pageId, pageToken));
+        urls.push(this._messagesUrl(null, pageToken));
+
+        let lastErr;
+        for (const url of urls) {
+            try {
+                const data = await this._postJson(url, body);
+                return { success: true, data, method: 'send_api_mark_seen_pass' };
+            } catch (err) {
+                lastErr = err;
+            }
+        }
+        throw lastErr;
     }
 
     /** Meta: page has read customer's messages (clears Business Suite unread). */
@@ -270,53 +328,55 @@ class FacebookClient {
         }
         const url = `${FB_GRAPH_BASE}/${pageId}/pass_thread_control?access_token=${encodeURIComponent(pageToken)}`;
         const data = await this._postJson(url, {
+            messaging_product: 'facebook',
             recipient: { id: String(psid) },
             target_app_id: String(FB_PAGE_INBOX_APP_ID),
             metadata: 'FBCast Pro — handled'
         });
-        return { success: true, data };
-    }
-
-    async releaseThreadControl(pageToken, psid, pageId) {
-        if (!pageId) return { skipped: true };
-        const url = `${FB_GRAPH_BASE}/${pageId}/release_thread_control?access_token=${encodeURIComponent(pageToken)}`;
-        return this._postJson(url, {
-            recipient: { id: String(psid) },
-            metadata: 'FBCast Pro — released to default app'
-        });
+        return { success: true, data, method: 'pass_thread_control' };
     }
 
     /**
-     * Clear unread in Meta Business Suite: pass to Page Inbox + mark_seen (with retries).
+     * Clear unread in Meta Business Suite (Conversation Routing).
+     * mark_seen alone does NOT clear Page Inbox — must pass thread to Page Inbox (263902037430900).
      */
     async markThreadReadOnMeta(pageId, pageToken, psid) {
         let handover = { skipped: true };
         let handoverError = null;
+        let handoverMethod = null;
+
         if (pageId && FB_HANDOVER_ENABLED) {
-            try {
-                handover = await this.passThreadControlToPageInbox(pageToken, psid, pageId);
-            } catch (err) {
-                handoverError = err.message || String(err);
-                console.warn(`[FacebookClient] pass_thread_control failed page=${pageId} psid=${psid}: ${handoverError}`);
+            const passAttempts = [
+                () => this.passInboxWithMarkSeenViaSendApi(pageToken, psid, pageId),
+                () => this.passThreadControlToPageInbox(pageToken, psid, pageId)
+            ];
+            for (const attempt of passAttempts) {
                 try {
-                    await this.releaseThreadControl(pageToken, psid, pageId);
-                    handover = { success: true, released: true };
+                    handover = await attempt();
+                    handoverMethod = handover.method || 'pass';
                     handoverError = null;
-                } catch (relErr) {
-                    console.warn('[FacebookClient] release_thread_control failed:', relErr.message || relErr);
+                    break;
+                } catch (err) {
+                    handoverError = err.message || String(err);
+                    console.warn(
+                        `[FacebookClient] inbox pass attempt failed page=${pageId} psid=${psid}:`,
+                        handoverError
+                    );
                 }
             }
+            // Do NOT release_thread_control on failure — that returns thread to castme (default)
+            // and Business Suite stays unread.
         }
 
         let fb = null;
-        const maxAttempts = pageId ? 4 : 2;
+        const maxAttempts = pageId ? 5 : 2;
         for (let attempt = 0; attempt < maxAttempts; attempt++) {
             try {
                 await this.markSeen(pageToken, psid, pageId);
             } catch (err) {
                 console.warn(`[FacebookClient] mark_seen attempt ${attempt + 1}:`, err.message || err);
             }
-            await new Promise(r => setTimeout(r, 400 + attempt * 250));
+            await new Promise(r => setTimeout(r, 500 + attempt * 300));
             if (!pageId) break;
             try {
                 fb = await this.getConversationUnreadCount(pageId, psid, pageToken);
@@ -326,7 +386,8 @@ class FacebookClient {
 
         return {
             metaMarked: true,
-            handoverOk: !!(handover.success || handover.released),
+            handoverOk: !!handover.success,
+            handoverMethod,
             handoverError,
             fbUnread: fb?.unreadCount ?? null,
             fbConvId: fb?.fbConvId ?? null

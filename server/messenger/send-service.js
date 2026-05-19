@@ -14,12 +14,12 @@ class SendService {
     }
 
     // Retries on transient network failures only; throws on FB API errors.
-    async _fbSendWithRetry(token, psid, msgObj, useUtility = false, pageId = null) {
+    async _fbSendWithRetry(token, psid, msgObj, useUtility = false, pageId = null, sendOptions = {}) {
         let lastErr;
         for (let i = 0; i <= RETRY_DELAYS.length; i++) {
             if (i > 0) await sleep(RETRY_DELAYS[i - 1]);
             try {
-                return await this.fb.send(token, psid, msgObj, useUtility, pageId);
+                return await this.fb.send(token, psid, msgObj, useUtility, pageId, sendOptions);
             } catch (err) {
                 if (FacebookClient.isTransient(err)) { lastErr = err; continue; }
                 throw err;
@@ -28,28 +28,36 @@ class SendService {
         throw lastErr;
     }
 
-    /** Clear unread in our DB and on Meta (Business Suite / Page Inbox). */
+    /** Clear unread in our DB and on Meta Business Suite (pass to Page Inbox + mark_seen). */
     async _markThreadReadOnMetaAndDb(pageId, psid, convId, pageToken) {
         if (convId) {
             await this.db.markAsRead(convId).catch(() => {});
         }
         const token = pageToken || await this.db.getPageToken(pageId);
-        if (!token || !psid) return;
+        if (!token || !psid) return { ok: false, reason: 'no_token_or_psid' };
         try {
             const result = await this.fb.markSeenWithRetry(token, psid, pageId);
             if (result?.fbUnread > 0) {
                 console.warn(
                     `[SendService] Meta Business Suite still unread (${result.fbUnread}) psid=${psid}` +
-                    (result.handoverOk ? '' : ' — handover to Page Inbox may need reconnect')
+                    (result.handoverOk ? ` handover=${result.handoverMethod}` : ` pass failed: ${result.handoverError || 'unknown'}`)
                 );
             } else if (convId && result?.fbUnread === 0) {
                 await this.db.markAsRead(convId).catch(() => {});
             }
+            return {
+                ok: result?.fbUnread === 0 || result?.fbUnread === null,
+                handoverOk: result?.handoverOk,
+                handoverMethod: result?.handoverMethod,
+                fbUnread: result?.fbUnread,
+                handoverError: result?.handoverError || null
+            };
         } catch (err) {
             const detail = err.fbCode != null
                 ? `code=${err.fbCode} ${err.message}`
                 : (err.message || String(err));
-            console.warn(`[SendService] mark_seen failed page=${pageId} psid=${psid}: ${detail}`);
+            console.warn(`[SendService] Meta mark read failed page=${pageId} psid=${psid}: ${detail}`);
+            return { ok: false, error: detail };
         }
     }
 
@@ -73,13 +81,17 @@ class SendService {
         if (!parts.length) throw new Error('No message content');
 
         let lastMid;
-        for (const part of parts) {
+        let sentWithInboxPass = false;
+        for (let i = 0; i < parts.length; i++) {
+            const part = parts[i];
+            const isLast = i === parts.length - 1;
+            const sendOpts = isLast ? { passToPageInbox: true } : {};
             let fbData;
             try {
-                fbData = await this._fbSendWithRetry(token, psid, part.msgObj, false, pageId);
+                fbData = await this._fbSendWithRetry(token, psid, part.msgObj, false, pageId, sendOpts);
             } catch (err) {
                 if (err instanceof FbApiError && FacebookClient.isOutside24hWindow(err)) {
-                    fbData = await this._fbSendWithRetry(token, psid, part.msgObj, true, pageId);
+                    fbData = await this._fbSendWithRetry(token, psid, part.msgObj, true, pageId, sendOpts);
                 } else {
                     throw err;
                 }
@@ -88,6 +100,7 @@ class SendService {
                 throw new FbApiError({ message: 'Facebook did not confirm delivery', code: 0 });
             }
             lastMid = fbData.message_id;
+            if (isLast && sendOpts.passToPageInbox) sentWithInboxPass = true;
         }
 
         const mid = lastMid;
@@ -119,9 +132,7 @@ class SendService {
             console.warn('[SendService] DB save after send failed (message was delivered):', dbErr.message || dbErr);
         }
 
-        setImmediate(() => {
-            this._markThreadReadOnMetaAndDb(pageId, psid, convId, token).catch(() => {});
-        });
+        const metaRead = await this._markThreadReadOnMetaAndDb(pageId, psid, convId, token);
 
         setImmediate(() => {
             this.io.to(`page_${pageId}`).emit('new_message', {
@@ -147,7 +158,12 @@ class SendService {
             });
         });
 
-        return { success: true, message_id: mid };
+        return {
+            success: true,
+            message_id: mid,
+            meta_read: metaRead,
+            sent_with_inbox_pass: sentWithInboxPass
+        };
     }
 
     async sendLike({ pageId, psid, page_token }) {
@@ -181,9 +197,7 @@ class SendService {
             }).catch(() => {});
         }
 
-        setImmediate(() => {
-            this._markThreadReadOnMetaAndDb(pageId, psid, convId, token).catch(() => {});
-        });
+        const metaRead = await this._markThreadReadOnMetaAndDb(pageId, psid, convId, token);
 
         setImmediate(() => {
             this.io.to(`page_${pageId}`).emit('new_message', {
@@ -208,7 +222,7 @@ class SendService {
             });
         });
 
-        return { success: true, message_id: mid };
+        return { success: true, message_id: mid, meta_read: metaRead };
     }
 
     async markRead({ pageId, psid, page_token }) {
