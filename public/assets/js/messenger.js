@@ -414,12 +414,11 @@
           commitConvReadState(key, 0);
           const mr = res.meta_read;
           if (mr && mr.ok === false) {
-            const owner = mr.threadOwnerAppId ? ` (thread owner: ${mr.threadOwnerAppId})` : '';
             const hint = mr.handoverError || (mr.fbUnread != null ? `Meta still shows ${mr.fbUnread} unread` : '');
             showToast(
               hint
-                ? `Meta inbox still unread: ${hint}${owner}. Add Page Inbox as secondary receiver in Meta App → Messenger, then reconnect Facebook.`
-                : `Meta inbox may still show unread${owner} — check Handover / Page Inbox in Meta App settings.`,
+                ? `Meta inbox still unread: ${hint}. In Meta App → Messenger → Handover: add Page Inbox as secondary receiver, then reconnect Facebook.`
+                : 'Meta inbox may still show unread — check Handover / Page Inbox setup in Meta App settings.',
               'warning',
               12000
             );
@@ -1861,12 +1860,11 @@
 
       const mr = res.meta_read;
       if (mr && mr.ok === false) {
-        const owner = mr.threadOwnerAppId ? ` (thread owner: ${mr.threadOwnerAppId})` : '';
         const hint = mr.handoverError || (mr.fbUnread != null ? `Meta still shows ${mr.fbUnread} unread` : '');
         showToast(
           hint
-            ? `Sent. Meta inbox still unread: ${hint}${owner}. Add Page Inbox as secondary receiver, then reconnect Facebook.`
-            : `Sent. Meta inbox may still show unread${owner} — check Handover setup in Meta App settings.`,
+            ? `Sent. Meta inbox still unread: ${hint}. Reconnect Facebook after Handover setup in Meta App settings.`
+            : 'Sent. Meta inbox may still show unread — check Handover setup in Meta App settings.',
           'warning',
           12000
         );

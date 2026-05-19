@@ -202,92 +202,22 @@ class FacebookClient {
     }
 
     /**
-     * Pass thread to Page Inbox and poll until Meta reports inbox as thread owner.
-     * Business Suite unread only clears when 263902037430900 owns the thread.
-     */
-    async ensureInboxOwnership(pageId, pageToken, psid, maxMs = 9000) {
-        if (!FB_HANDOVER_ENABLED || !pageId || !psid) {
-            return { ok: false, reason: 'handover_disabled_or_no_page' };
-        }
-        const inboxId = String(FB_PAGE_INBOX_APP_ID);
-        const passAttempts = [
-            () => this.passInboxWithMarkSeenViaSendApi(pageToken, psid, pageId),
-            () => this.passThreadControlQuery(pageToken, psid, pageId),
-            () => this.passThreadControlToPageInbox(pageToken, psid, pageId)
-        ];
-        const deadline = Date.now() + maxMs;
-        let handoverMethod = null;
-        let handoverError = null;
-
-        while (Date.now() < deadline) {
-            for (const attempt of passAttempts) {
-                try {
-                    const handover = await attempt();
-                    handoverMethod = handover.method || 'pass';
-                    handoverError = null;
-                } catch (err) {
-                    handoverError = err.fbCode != null
-                        ? `(#${err.fbCode}) ${err.message}`
-                        : (err.message || String(err));
-                }
-                await new Promise(r => setTimeout(r, 400));
-                try {
-                    const owner = await this.getThreadOwner(pageId, pageToken, psid);
-                    if (owner?.appId === inboxId) {
-                        return {
-                            ok: true,
-                            handoverMethod,
-                            threadOwnerAppId: owner.appId,
-                            handoverError: null
-                        };
-                    }
-                } catch (_) { /* retry */ }
-            }
-            await new Promise(r => setTimeout(r, 600));
-        }
-
-        let threadOwnerAppId = null;
-        try {
-            const owner = await this.getThreadOwner(pageId, pageToken, psid);
-            threadOwnerAppId = owner?.appId || null;
-            if (threadOwnerAppId === inboxId) {
-                return { ok: true, handoverMethod, threadOwnerAppId, handoverError: null };
-            }
-        } catch (_) { /* final check */ }
-
-        return {
-            ok: false,
-            handoverMethod,
-            threadOwnerAppId,
-            handoverError: handoverError || `thread still owned by ${threadOwnerAppId || 'unknown'}, expected ${inboxId}`
-        };
-    }
-
-    /**
-     * When passToPageInbox: try Send API with thread_control pass first (required for Meta Inbox read).
-     * Legacy send does NOT pass control — we call ensureInboxOwnership after legacy fallback.
+     * Legacy form first (widest compatibility). When passToPageInbox, try Conversation Routing
+     * thread_control pass to Page Inbox on the Send API first (clears Business Suite unread).
      */
     async send(pageToken, psid, messageObj, useUtility = false, pageId = null, options = {}) {
         const { passToPageInbox = false } = options;
         let lastErr;
+        const strategies = [];
 
-        if (passToPageInbox && pageId) {
-            const inboxSendAttempts = [
+        if (passToPageInbox) {
+            strategies.push(
                 () => this._sendJsonBody(pageToken, psid, messageObj, pageId, this._inboxThreadControlExtra(false)),
                 () => this._sendJsonBody(pageToken, psid, messageObj, pageId, this._inboxThreadControlExtra(true))
-            ];
-            for (const attempt of inboxSendAttempts) {
-                try {
-                    const data = await attempt();
-                    const own = await this.ensureInboxOwnership(pageId, pageToken, psid, 5000);
-                    return { ...data, inboxPassOnSend: own.ok === true };
-                } catch (err) {
-                    lastErr = err;
-                }
-            }
+            );
         }
 
-        const fallbackStrategies = [
+        strategies.push(
             () => this._sendLegacyForm(pageToken, psid, messageObj, false, pageId),
             () => this._sendLegacyForm(pageToken, psid, messageObj, true, pageId),
             () => this._sendJsonBody(pageToken, psid, messageObj, pageId, {
@@ -298,22 +228,11 @@ class FacebookClient {
                 messaging_product: 'facebook',
                 messaging_type: 'UTILITY'
             })
-        ];
+        );
 
-        for (const attempt of fallbackStrategies) {
+        for (const attempt of strategies) {
             try {
-                const data = await attempt();
-                let inboxPassOnSend = false;
-                if (passToPageInbox && pageId) {
-                    const own = await this.ensureInboxOwnership(pageId, pageToken, psid, 9000);
-                    inboxPassOnSend = own.ok === true;
-                    if (!inboxPassOnSend) {
-                        console.warn(
-                            `[FacebookClient] message sent but Page Inbox did not take thread page=${pageId} psid=${psid}: ${own.handoverError || 'unknown'}`
-                        );
-                    }
-                }
-                return { ...data, inboxPassOnSend };
+                return await attempt();
             } catch (err) {
                 lastErr = err;
             }
@@ -458,58 +377,77 @@ class FacebookClient {
 
     /**
      * Clear unread in Meta Business Suite (Conversation Routing).
-     * Requires Page Inbox (263902037430900) as thread owner — Graph unread_count alone is not enough.
+     * mark_seen alone does NOT clear Page Inbox — must pass thread to Page Inbox (263902037430900).
      */
     async markThreadReadOnMeta(pageId, pageToken, psid) {
-        const inboxId = String(FB_PAGE_INBOX_APP_ID);
-        let handoverMethod = null;
+        let handover = { skipped: true };
         let handoverError = null;
+        let handoverMethod = null;
         let threadOwnerAppId = null;
 
         if (pageId && FB_HANDOVER_ENABLED) {
-            const own = await this.ensureInboxOwnership(pageId, pageToken, psid, 9000);
-            handoverMethod = own.handoverMethod || null;
-            handoverError = own.handoverError || null;
-            threadOwnerAppId = own.threadOwnerAppId || null;
-            if (!own.ok) {
-                console.warn(
-                    `[FacebookClient] Page Inbox did not take thread page=${pageId} psid=${psid}: ${handoverError || 'unknown'}`
-                );
+            try {
+                await this.takeThreadControl(pageToken, psid, pageId);
+            } catch (err) {
+                console.warn('[FacebookClient] take_thread_control (post-send):', err.message || err);
+            }
+
+            const passAttempts = [
+                () => this.passThreadControlQuery(pageToken, psid, pageId),
+                () => this.passThreadControlToPageInbox(pageToken, psid, pageId),
+                () => this.passInboxWithMarkSeenViaSendApi(pageToken, psid, pageId)
+            ];
+            for (const attempt of passAttempts) {
+                try {
+                    handover = await attempt();
+                    handoverMethod = handover.method || 'pass';
+                    handoverError = null;
+                    await new Promise(r => setTimeout(r, 400));
+                    try {
+                        const owner = await this.getThreadOwner(pageId, pageToken, psid);
+                        threadOwnerAppId = owner?.appId || null;
+                        if (threadOwnerAppId === String(FB_PAGE_INBOX_APP_ID)) break;
+                    } catch (_) { /* optional */ }
+                    if (handover.success) break;
+                } catch (err) {
+                    handoverError = err.fbCode != null
+                        ? `(#${err.fbCode}) ${err.message}`
+                        : (err.message || String(err));
+                    console.warn(
+                        `[FacebookClient] inbox pass failed page=${pageId} psid=${psid}:`,
+                        handoverError
+                    );
+                }
             }
         }
 
-        const inboxOwns = threadOwnerAppId === inboxId;
         let fb = null;
-        const maxAttempts = pageId ? 8 : 2;
+        const maxAttempts = pageId ? 6 : 2;
         for (let attempt = 0; attempt < maxAttempts; attempt++) {
             try {
                 await this.markSeen(pageToken, psid, pageId);
             } catch (err) {
                 console.warn(`[FacebookClient] mark_seen attempt ${attempt + 1}:`, err.message || err);
             }
-            await new Promise(r => setTimeout(r, 450 + attempt * 400));
+            await new Promise(r => setTimeout(r, 500 + attempt * 350));
             if (!pageId) break;
             try {
                 fb = await this.getConversationUnreadCount(pageId, psid, pageToken);
-                const owner = await this.getThreadOwner(pageId, pageToken, psid);
-                threadOwnerAppId = owner?.appId || threadOwnerAppId;
-                if (threadOwnerAppId === inboxId && (!fb || fb.unreadCount === 0)) break;
+                if (!fb || fb.unreadCount === 0) break;
             } catch (_) { /* verify optional */ }
         }
 
-        const inboxOwnsFinal = threadOwnerAppId === inboxId;
-        const graphClear = fb?.unreadCount === 0;
+        const inboxOwns = threadOwnerAppId === String(FB_PAGE_INBOX_APP_ID);
         return {
             metaMarked: true,
-            handoverOk: inboxOwnsFinal,
+            handoverOk: !!(handover.success && (inboxOwns || fb?.unreadCount === 0)),
             handoverMethod,
-            handoverError: inboxOwnsFinal ? null : (handoverError || `owner=${threadOwnerAppId || 'unknown'}`),
+            handoverError,
             threadOwnerAppId,
             expectedInboxAppId: FB_PAGE_INBOX_APP_ID,
             castmeAppId: FB_CASTME_APP_ID,
             fbUnread: fb?.unreadCount ?? null,
-            fbConvId: fb?.fbConvId ?? null,
-            graphUnreadClear: graphClear
+            fbConvId: fb?.fbConvId ?? null
         };
     }
 
