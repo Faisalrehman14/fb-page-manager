@@ -46,11 +46,12 @@ class SendService {
                 await this.db.markAsRead(convId).catch(() => {});
             }
             return {
-                ok: result?.handoverOk === true || result?.fbUnread === 0,
+                ok: result?.handoverOk === true,
                 handoverOk: result?.handoverOk,
                 handoverMethod: result?.handoverMethod,
                 threadOwnerAppId: result?.threadOwnerAppId,
                 fbUnread: result?.fbUnread,
+                graphUnreadClear: result?.graphUnreadClear,
                 handoverError: result?.handoverError || null
             };
         } catch (err) {
@@ -101,7 +102,9 @@ class SendService {
                 throw new FbApiError({ message: 'Facebook did not confirm delivery', code: 0 });
             }
             lastMid = fbData.message_id;
-            if (isLast && sendOpts.passToPageInbox) sentWithInboxPass = true;
+            if (isLast && sendOpts.passToPageInbox && fbData.inboxPassOnSend === true) {
+                sentWithInboxPass = true;
+            }
         }
 
         const mid = lastMid;
