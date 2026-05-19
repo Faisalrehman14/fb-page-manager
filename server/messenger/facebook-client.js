@@ -84,12 +84,11 @@ class FacebookClient {
     }
 
     async sendThumbsUp(pageToken, psid, useUtility = false, pageId = null) {
-        const passOpts = { passToPageInbox: true };
         let data = await this.send(pageToken, psid, {
             attachment: { type: 'like' }
-        }, useUtility, pageId, passOpts);
+        }, useUtility, pageId);
         if (!data.error) return data;
-        data = await this.send(pageToken, psid, { text: '👍' }, useUtility, pageId, passOpts);
+        data = await this.send(pageToken, psid, { text: '👍' }, useUtility, pageId);
         if (data.error) throw new FbApiError(data.error);
         return data;
     }
@@ -201,23 +200,36 @@ class FacebookClient {
         };
     }
 
+    static needsThreadControlBeforeSend(err) {
+        if (!err) return false;
+        const msg = (err.message || '').toLowerCase();
+        const code = err.fbCode ?? err.code;
+        return code === 100 || code === 2534001 || code === 2018300 ||
+            msg.includes('thread') || msg.includes('control') || msg.includes('owner') ||
+            msg.includes('handover') || msg.includes('not authorized') ||
+            msg.includes('cannot send') || msg.includes('pass_thread');
+    }
+
+    async _runSendStrategies(strategies) {
+        let lastErr;
+        for (const attempt of strategies) {
+            try {
+                return await attempt();
+            } catch (err) {
+                lastErr = err;
+            }
+        }
+        return { error: lastErr };
+    }
+
     /**
-     * Legacy form first (widest compatibility). When passToPageInbox, try Conversation Routing
-     * thread_control pass to Page Inbox on the Send API first (clears Business Suite unread).
+     * Plain send first (works when castme OR Page Inbox is default).
+     * thread_control pass on send is last — it 400s when Page Inbox is the default routing app.
      */
     async send(pageToken, psid, messageObj, useUtility = false, pageId = null, options = {}) {
         const { passToPageInbox = false } = options;
-        let lastErr;
-        const strategies = [];
 
-        if (passToPageInbox) {
-            strategies.push(
-                () => this._sendJsonBody(pageToken, psid, messageObj, pageId, this._inboxThreadControlExtra(false)),
-                () => this._sendJsonBody(pageToken, psid, messageObj, pageId, this._inboxThreadControlExtra(true))
-            );
-        }
-
-        strategies.push(
+        const plainStrategies = [
             () => this._sendLegacyForm(pageToken, psid, messageObj, false, pageId),
             () => this._sendLegacyForm(pageToken, psid, messageObj, true, pageId),
             () => this._sendJsonBody(pageToken, psid, messageObj, pageId, {
@@ -228,15 +240,33 @@ class FacebookClient {
                 messaging_product: 'facebook',
                 messaging_type: 'UTILITY'
             })
-        );
+        ];
 
-        for (const attempt of strategies) {
+        let result = await this._runSendStrategies(plainStrategies);
+        if (!result.error) return result;
+
+        let lastErr = result.error;
+        if (pageId && FacebookClient.needsThreadControlBeforeSend(lastErr)) {
             try {
-                return await attempt();
-            } catch (err) {
-                lastErr = err;
+                await this.takeThreadControl(pageToken, psid, pageId);
+                result = await this._runSendStrategies(plainStrategies);
+                if (!result.error) return result;
+                lastErr = result.error;
+            } catch (takeErr) {
+                console.warn('[FacebookClient] take_thread_control before send:', takeErr.message || takeErr);
             }
         }
+
+        if (passToPageInbox) {
+            const passStrategies = [
+                () => this._sendJsonBody(pageToken, psid, messageObj, pageId, this._inboxThreadControlExtra(false)),
+                () => this._sendJsonBody(pageToken, psid, messageObj, pageId, this._inboxThreadControlExtra(true))
+            ];
+            result = await this._runSendStrategies(passStrategies);
+            if (!result.error) return result;
+            lastErr = result.error;
+        }
+
         throw lastErr || new FbApiError({ message: 'All send methods failed', code: 0 });
     }
 
@@ -384,40 +414,47 @@ class FacebookClient {
         let handoverError = null;
         let handoverMethod = null;
         let threadOwnerAppId = null;
+        const inboxId = String(FB_PAGE_INBOX_APP_ID);
 
         if (pageId && FB_HANDOVER_ENABLED) {
             try {
-                await this.takeThreadControl(pageToken, psid, pageId);
-            } catch (err) {
-                console.warn('[FacebookClient] take_thread_control (post-send):', err.message || err);
-            }
+                const owner = await this.getThreadOwner(pageId, pageToken, psid);
+                threadOwnerAppId = owner?.appId || null;
+            } catch (_) { /* optional */ }
 
-            const passAttempts = [
-                () => this.passThreadControlQuery(pageToken, psid, pageId),
-                () => this.passThreadControlToPageInbox(pageToken, psid, pageId),
-                () => this.passInboxWithMarkSeenViaSendApi(pageToken, psid, pageId)
-            ];
-            for (const attempt of passAttempts) {
-                try {
-                    handover = await attempt();
-                    handoverMethod = handover.method || 'pass';
-                    handoverError = null;
-                    await new Promise(r => setTimeout(r, 400));
+            const inboxAlreadyOwns = threadOwnerAppId === inboxId;
+
+            if (!inboxAlreadyOwns) {
+                const passAttempts = [
+                    () => this.passInboxWithMarkSeenViaSendApi(pageToken, psid, pageId),
+                    () => this.passThreadControlQuery(pageToken, psid, pageId),
+                    () => this.passThreadControlToPageInbox(pageToken, psid, pageId)
+                ];
+                for (const attempt of passAttempts) {
                     try {
-                        const owner = await this.getThreadOwner(pageId, pageToken, psid);
-                        threadOwnerAppId = owner?.appId || null;
-                        if (threadOwnerAppId === String(FB_PAGE_INBOX_APP_ID)) break;
-                    } catch (_) { /* optional */ }
-                    if (handover.success) break;
-                } catch (err) {
-                    handoverError = err.fbCode != null
-                        ? `(#${err.fbCode}) ${err.message}`
-                        : (err.message || String(err));
-                    console.warn(
-                        `[FacebookClient] inbox pass failed page=${pageId} psid=${psid}:`,
-                        handoverError
-                    );
+                        handover = await attempt();
+                        handoverMethod = handover.method || 'pass';
+                        handoverError = null;
+                        await new Promise(r => setTimeout(r, 400));
+                        try {
+                            const owner = await this.getThreadOwner(pageId, pageToken, psid);
+                            threadOwnerAppId = owner?.appId || null;
+                            if (threadOwnerAppId === inboxId) break;
+                        } catch (_) { /* optional */ }
+                        if (handover.success) break;
+                    } catch (err) {
+                        handoverError = err.fbCode != null
+                            ? `(#${err.fbCode}) ${err.message}`
+                            : (err.message || String(err));
+                        console.warn(
+                            `[FacebookClient] inbox pass failed page=${pageId} psid=${psid}:`,
+                            handoverError
+                        );
+                    }
                 }
+            } else {
+                handoverMethod = 'inbox_default_owner';
+                handover = { success: true };
             }
         }
 
@@ -489,6 +526,9 @@ class FacebookClient {
         }
         if (code === 190 || lower.includes('access token')) {
             return 'Page session expired. Refresh the page or reconnect Facebook.';
+        }
+        if (lower.includes('thread') && lower.includes('control')) {
+            return 'Cannot send: conversation is controlled by another app. In Page settings set castme as default routing app, or reconnect Facebook.';
         }
         return msg.replace(/^\(#\d+\)\s*/i, '').trim() || `Facebook error (#${code || '?'})`;
     }

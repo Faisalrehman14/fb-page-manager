@@ -85,8 +85,9 @@ class SendService {
         let sentWithInboxPass = false;
         for (let i = 0; i < parts.length; i++) {
             const part = parts[i];
-            const isLast = i === parts.length - 1;
-            const sendOpts = isLast ? { passToPageInbox: true } : {};
+            // Do not pass thread_control on send — breaks when Page Inbox is Meta default app (400).
+            // Meta read clear runs after send via markThreadReadOnMeta.
+            const sendOpts = {};
             let fbData;
             try {
                 fbData = await this._fbSendWithRetry(token, psid, part.msgObj, false, pageId, sendOpts);
@@ -101,7 +102,7 @@ class SendService {
                 throw new FbApiError({ message: 'Facebook did not confirm delivery', code: 0 });
             }
             lastMid = fbData.message_id;
-            if (isLast && sendOpts.passToPageInbox) sentWithInboxPass = true;
+            if (isLast && fbData?.message_id) sentWithInboxPass = false;
         }
 
         const mid = lastMid;
