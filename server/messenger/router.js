@@ -323,9 +323,11 @@ function createMessengerRouter(deps) {
                         const { psid, page_token } = req.body;
                         if (!pageId || !psid) return res.status(400).json({ error: 'Missing fields' });
                         let threadId = null;
+                        let metaRead = null;
                         if (dbConnected) {
                             const result = await sendService.markRead({ pageId, psid, page_token });
                             threadId = result?.threadId || null;
+                            metaRead = result?.meta_read || null;
                         }
                         io.to(`page_${pageId}`).emit('thread_read', { pageId, psid, threadId });
                         if (threadId) {
@@ -338,7 +340,7 @@ function createMessengerRouter(deps) {
                                 isLive: true
                             });
                         }
-                        return res.json({ success: true, threadId });
+                        return res.json({ success: true, threadId, meta_read: metaRead });
                     }
                     case 'mark_unread': {
                         const { psid } = req.body;

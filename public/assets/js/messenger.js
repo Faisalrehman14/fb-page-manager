@@ -412,6 +412,17 @@
           if (res && res.error) throw new Error(res.error);
           lockConvRead(key);
           commitConvReadState(key, 0);
+          const mr = res.meta_read;
+          if (mr && mr.ok === false) {
+            const hint = mr.handoverError || (mr.fbUnread != null ? `Meta still shows ${mr.fbUnread} unread` : '');
+            showToast(
+              hint
+                ? `Meta inbox still unread: ${hint}. In Meta App → Messenger → Handover: add Page Inbox as secondary receiver, then reconnect Facebook.`
+                : 'Meta inbox may still show unread — check Handover / Page Inbox setup in Meta App settings.',
+              'warning',
+              12000
+            );
+          }
           return;
         } catch (e) {
           if (attempt >= 4) {
