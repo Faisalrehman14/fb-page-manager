@@ -148,11 +148,16 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,te
   margin-bottom:26px;
 }
 html[data-theme='dark'] .hero-h1,
-body:not(.light) .hero-h1{
+html:not([data-theme='light']) body:not(.light) .hero-h1{
   background:linear-gradient(165deg,#fff 25%,rgba(195,215,255,.78) 100%);
   -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
 }
+html[data-theme='light'] .hero-h1{
+  background:none;-webkit-background-clip:unset;background-clip:unset;
+  -webkit-text-fill-color:#0c1222;color:#0c1222;
+}
 .hero-h1 .grad{background:linear-gradient(135deg,#6AB4FF 10%,#C8A8FF 90%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+html[data-theme='light'] .hero-h1 .grad{background:linear-gradient(135deg,#2563eb 0%,#6d28d9 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
 
 /* Hero subtitle */
 .hero-sub{font-size:19px;color:var(--text2);max-width:560px;line-height:1.75;margin-bottom:44px;position:relative;z-index:1;font-weight:400}
