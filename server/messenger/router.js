@@ -284,9 +284,19 @@ function createMessengerRouter(deps) {
                         return res.json(result);
                     }
                     case 'send_message': {
-                        const { psid, message, page_token, image_url } = req.body;
+                        const { psid, message, image_url } = req.body;
+                        let page_token = req.body.page_token;
                         if (!pageId || !psid || (!message && !image_url)) {
                             return res.status(400).json({ error: 'Missing fields' });
+                        }
+                        if (!page_token && dbConnected) {
+                            page_token = await resolvePageToken({
+                                pageId,
+                                session: req.session,
+                                db,
+                                dbConnected,
+                                fetchFn
+                            });
                         }
                         if (!_checkSendLimit(req.session?.userId)) {
                             return res.status(429).json({ error: 'Sending too fast — slow down a moment' });

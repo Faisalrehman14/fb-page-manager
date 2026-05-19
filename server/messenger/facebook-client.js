@@ -130,7 +130,11 @@ class FacebookClient {
     }
 
     async _sendLegacyForm(pageToken, psid, messageObj, useUtility = false, pageId = null) {
-        const payload = { recipient: { id: String(psid) }, message: messageObj };
+        const payload = {
+            messaging_product: 'facebook',
+            recipient: { id: String(psid) },
+            message: messageObj
+        };
         if (useUtility) payload.messaging_type = 'UTILITY';
 
         const endpoints = [];
@@ -223,8 +227,7 @@ class FacebookClient {
     }
 
     /**
-     * Plain send first (works when castme OR Page Inbox is default).
-     * thread_control pass on send is last — it 400s when Page Inbox is the default routing app.
+     * Acquire castme thread ownership, then plain send (required when Page Inbox is default routing app).
      */
     async send(pageToken, psid, messageObj, useUtility = false, pageId = null, options = {}) {
         const { passToPageInbox = false } = options;
@@ -242,19 +245,26 @@ class FacebookClient {
             })
         ];
 
-        let result = await this._runSendStrategies(plainStrategies);
+        const tryPlainSend = async () => this._runSendStrategies(plainStrategies);
+
+        if (pageId && FB_HANDOVER_ENABLED) {
+            const acquired = await this.acquireThreadForCastmeSend(pageId, pageToken, psid);
+            if (!acquired.ok && acquired.threadOwnerAppId === String(FB_PAGE_INBOX_APP_ID)) {
+                console.warn(
+                    `[FacebookClient] castme does not own thread page=${pageId} psid=${psid}: ${acquired.error || ''}`
+                );
+            }
+        }
+
+        let result = await tryPlainSend();
         if (!result.error) return result;
 
         let lastErr = result.error;
-        if (pageId && FacebookClient.needsThreadControlBeforeSend(lastErr)) {
-            try {
-                await this.takeThreadControl(pageToken, psid, pageId);
-                result = await this._runSendStrategies(plainStrategies);
-                if (!result.error) return result;
-                lastErr = result.error;
-            } catch (takeErr) {
-                console.warn('[FacebookClient] take_thread_control before send:', takeErr.message || takeErr);
-            }
+        if (pageId) {
+            await this.acquireThreadForCastmeSend(pageId, pageToken, psid).catch(() => {});
+            result = await tryPlainSend();
+            if (!result.error) return result;
+            lastErr = result.error;
         }
 
         if (passToPageInbox) {
@@ -265,6 +275,16 @@ class FacebookClient {
             result = await this._runSendStrategies(passStrategies);
             if (!result.error) return result;
             lastErr = result.error;
+        }
+
+        const acquire = pageId
+            ? await this.acquireThreadForCastmeSend(pageId, pageToken, psid).catch(() => ({ ok: false }))
+            : null;
+        if (acquire && !acquire.ok && acquire.threadOwnerAppId === String(FB_PAGE_INBOX_APP_ID)) {
+            throw new FbApiError({
+                message: 'Only Meta Page Inbox can send while it owns this chat. Set castme as the default Conversation Routing app in Facebook Page settings, then reconnect.',
+                code: 2018300
+            });
         }
 
         throw lastErr || new FbApiError({ message: 'All send methods failed', code: 0 });
@@ -371,6 +391,74 @@ class FacebookClient {
             metadata: 'FBCast Pro'
         });
         return { success: true, data };
+    }
+
+    async requestThreadControl(pageToken, psid, pageId) {
+        if (!pageId) return { skipped: true };
+        const recipient = encodeURIComponent(JSON.stringify({ id: String(psid) }));
+        const url = `${FB_GRAPH_BASE}/${pageId}/request_thread_control` +
+            `?recipient=${recipient}` +
+            `&metadata=${encodeURIComponent('FBCast Pro — send')}` +
+            `&access_token=${encodeURIComponent(pageToken)}`;
+        const r = await this._fetchWithTimeout(url, { method: 'POST' });
+        const data = await r.json();
+        if (data.error) throw new FbApiError(data.error);
+        return { success: true, data, method: 'request_thread_control_query' };
+    }
+
+    /**
+     * When Page Inbox is Meta's default routing app, castme must own the thread before Send API works.
+     */
+    async acquireThreadForCastmeSend(pageId, pageToken, psid) {
+        if (!pageId || !psid || !FB_HANDOVER_ENABLED) return { ok: false, reason: 'disabled' };
+        const castmeId = String(FB_CASTME_APP_ID);
+        const inboxId = String(FB_PAGE_INBOX_APP_ID);
+
+        let ownerId = null;
+        try {
+            const owner = await this.getThreadOwner(pageId, pageToken, psid);
+            ownerId = owner?.appId ? String(owner.appId) : null;
+        } catch (_) { /* thread may be idle */ }
+
+        if (ownerId === castmeId) return { ok: true, threadOwnerAppId: ownerId, method: 'already_castme' };
+        if (!ownerId) {
+            try {
+                await this.takeThreadControl(pageToken, psid, pageId);
+                await new Promise(r => setTimeout(r, 300));
+                const owner = await this.getThreadOwner(pageId, pageToken, psid);
+                ownerId = owner?.appId ? String(owner.appId) : null;
+                if (ownerId === castmeId) return { ok: true, threadOwnerAppId: ownerId, method: 'take_idle' };
+            } catch (err) {
+                console.warn('[FacebookClient] take (idle thread):', err.message || err);
+            }
+        }
+
+        const controlAttempts = [
+            () => this.takeThreadControl(pageToken, psid, pageId),
+            () => this.requestThreadControl(pageToken, psid, pageId)
+        ];
+        let lastErr = null;
+        for (const attempt of controlAttempts) {
+            try {
+                const r = await attempt();
+                await new Promise(res => setTimeout(res, 400));
+                const owner = await this.getThreadOwner(pageId, pageToken, psid);
+                ownerId = owner?.appId ? String(owner.appId) : ownerId;
+                if (ownerId === castmeId) {
+                    return { ok: true, threadOwnerAppId: ownerId, method: r.method || 'take_or_request' };
+                }
+            } catch (err) {
+                lastErr = err;
+            }
+        }
+
+        return {
+            ok: ownerId === castmeId,
+            threadOwnerAppId: ownerId,
+            expectedAppId: castmeId,
+            inboxAppId: inboxId,
+            error: lastErr ? (lastErr.message || String(lastErr)) : `owner is ${ownerId || 'unknown'}`
+        };
     }
 
     /** Meta-documented query-string format for pass_thread_control. */
@@ -527,8 +615,11 @@ class FacebookClient {
         if (code === 190 || lower.includes('access token')) {
             return 'Page session expired. Refresh the page or reconnect Facebook.';
         }
-        if (lower.includes('thread') && lower.includes('control')) {
-            return 'Cannot send: conversation is controlled by another app. In Page settings set castme as default routing app, or reconnect Facebook.';
+        if (code === 2018300 || (lower.includes('thread') && (lower.includes('control') || lower.includes('owner')))) {
+            return 'Cannot send: Meta Page Inbox owns this chat. In Facebook Page settings → Conversation routing, set castme as the default app (not Page Inbox), then reconnect Facebook.';
+        }
+        if (lower.includes('another app') || lower.includes('not the thread owner')) {
+            return 'Cannot send from FBCast: another Meta app controls this chat. Set castme as default routing app in Page settings.';
         }
         return msg.replace(/^\(#\d+\)\s*/i, '').trim() || `Facebook error (#${code || '?'})`;
     }
