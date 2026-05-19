@@ -133,9 +133,6 @@ class SendService {
             console.warn('[SendService] DB save after send failed (message was delivered):', dbErr.message || dbErr);
         }
 
-        await this.fb.retainCastmeThreadAfterPageSend(pageId, token, psid);
-        const metaRead = await this._markThreadReadOnMetaAndDb(pageId, psid, convId, token);
-
         setImmediate(() => {
             this.io.to(`page_${pageId}`).emit('new_message', {
                 id: mid,
@@ -160,10 +157,21 @@ class SendService {
             });
         });
 
+        const pageIdBg = pageId;
+        const psidBg = psid;
+        const convIdBg = convId;
+        const tokenBg = token;
+        setImmediate(() => {
+            this.fb.retainCastmeThreadAfterPageSend(pageIdBg, tokenBg, psidBg).catch(() => {});
+            this._markThreadReadOnMetaAndDb(pageIdBg, psidBg, convIdBg, tokenBg).catch((err) => {
+                console.warn('[SendService] background meta read:', err.message || err);
+            });
+        });
+
         return {
             success: true,
             message_id: mid,
-            meta_read: metaRead,
+            meta_read: { ok: true, pending: true },
             sent_with_inbox_pass: sentWithInboxPass
         };
     }
@@ -199,8 +207,6 @@ class SendService {
             }).catch(() => {});
         }
 
-        const metaRead = await this._markThreadReadOnMetaAndDb(pageId, psid, convId, token);
-
         setImmediate(() => {
             this.io.to(`page_${pageId}`).emit('new_message', {
                 id: mid,
@@ -222,9 +228,11 @@ class SendService {
                 unreadCount: 0,
                 lastMessageFromPage: true
             });
+            this.fb.retainCastmeThreadAfterPageSend(pageId, token, psid).catch(() => {});
+            this._markThreadReadOnMetaAndDb(pageId, psid, convId, token).catch(() => {});
         });
 
-        return { success: true, message_id: mid, meta_read: metaRead };
+        return { success: true, message_id: mid, meta_read: { ok: true, pending: true } };
     }
 
     async markRead({ pageId, psid, page_token }) {

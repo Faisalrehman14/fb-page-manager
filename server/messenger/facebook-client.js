@@ -224,9 +224,9 @@ class FacebookClient {
     }
 
     static threadControlUserMessage() {
-        return 'Meta Page Inbox controls this chat (common when Page Inbox is your routing default or you replied in Business Suite). '
-            + 'You do not need to set castme as default for every page: leave Conversation Routing default as None/unset, '
-            + 'or open the chat in FBCast and send here before replying in Business Suite.';
+        return 'Meta Page Inbox controls this chat — FBCast cannot send until your page allows it. '
+            + 'Fix (pick one): Page settings → Conversation routing → leave Default unset, OR set Social entry to castme, '
+            + 'OR send from FBCast first (do not reply in Business Suite for this thread).';
     }
 
     static needsThreadControlBeforeSend(err) {
@@ -251,8 +251,8 @@ class FacebookClient {
         return { error: lastErr };
     }
 
-    _plainSendStrategies(pageToken, psid, messageObj, useUtility, pageId) {
-        return [
+    _plainSendStrategies(pageToken, psid, messageObj, useUtility, pageId, fast = false) {
+        const full = [
             () => this._sendLegacyForm(pageToken, psid, messageObj, false, pageId),
             () => this._sendLegacyForm(pageToken, psid, messageObj, true, pageId),
             () => this._sendJsonBody(pageToken, psid, messageObj, pageId, {
@@ -264,6 +264,8 @@ class FacebookClient {
                 messaging_type: 'UTILITY'
             })
         ];
+        if (!fast) return full;
+        return full.slice(0, 2);
     }
 
     /**
@@ -272,46 +274,46 @@ class FacebookClient {
      */
     async send(pageToken, psid, messageObj, useUtility = false, pageId = null, options = {}) {
         const { passToPageInbox = false } = options;
-        const plainStrategies = this._plainSendStrategies(pageToken, psid, messageObj, useUtility, pageId);
         const castmeId = String(FB_CASTME_APP_ID);
         const inboxId = String(FB_PAGE_INBOX_APP_ID);
 
         let acquired = null;
-        if (pageId && FB_HANDOVER_ENABLED) {
-            try {
-                const owner = await this.getThreadOwner(pageId, pageToken, psid);
-                const ownerId = owner?.appId ? String(owner.appId) : null;
-                if (ownerId !== castmeId) {
-                    acquired = await this.acquireThreadForCastmeSend(pageId, pageToken, psid);
-                }
-            } catch (err) {
-                console.warn('[FacebookClient] pre-send thread acquire:', err.message || err);
-            }
-        }
 
-        let result = await this._runSendStrategies(plainStrategies);
+        let result = await this._runSendStrategies(
+            this._plainSendStrategies(pageToken, psid, messageObj, useUtility, pageId, true)
+        );
         if (!result.error) return result;
 
         let lastErr = result.error;
 
-        const needsAcquire = FacebookClient.needsThreadControlBeforeSend(lastErr)
-            || (acquired && acquired.ok === false);
-        if (pageId && FB_HANDOVER_ENABLED && needsAcquire) {
-            acquired = await this.acquireThreadForCastmeSend(pageId, pageToken, psid).catch(() => ({ ok: false }));
-            if (acquired?.ok) {
-                result = await this._runSendStrategies(plainStrategies);
-                if (!result.error) return result;
-                lastErr = result.error;
-            } else if (acquired?.inboxOwns || acquired?.threadOwnerAppId === inboxId) {
+        if (pageId && FB_HANDOVER_ENABLED && FacebookClient.needsThreadControlBeforeSend(lastErr)) {
+            let ownerId = null;
+            try {
+                const owner = await this.getThreadOwner(pageId, pageToken, psid);
+                ownerId = owner?.appId ? String(owner.appId) : null;
+            } catch (_) { /* hidden when not default */ }
+
+            if (ownerId === inboxId) {
                 throw new FbApiError({
                     message: FacebookClient.threadControlUserMessage(),
                     code: 2018300
                 });
-            } else if (acquired && !acquired.ok) {
-                result = await this._runSendStrategies(plainStrategies);
-                if (!result.error) return result;
-                lastErr = result.error;
             }
+
+            acquired = await this.acquireThreadForCastmeSend(pageId, pageToken, psid, { maxMs: 3500, rounds: 1 })
+                .catch(() => ({ ok: false }));
+
+            if (acquired?.inboxOwns || acquired?.threadOwnerAppId === inboxId) {
+                throw new FbApiError({
+                    message: FacebookClient.threadControlUserMessage(),
+                    code: 2018300
+                });
+            }
+
+            const retryStrategies = this._plainSendStrategies(pageToken, psid, messageObj, useUtility, pageId, false);
+            result = await this._runSendStrategies(retryStrategies);
+            if (!result.error) return result;
+            lastErr = result.error;
         }
 
         if (passToPageInbox) {
@@ -515,10 +517,12 @@ class FacebookClient {
      * Conversation Routing: request control from Page Inbox (when castme is default app), then take if idle.
      * thread_owner may be empty even when another app controls the thread.
      */
-    async acquireThreadForCastmeSend(pageId, pageToken, psid) {
+    async acquireThreadForCastmeSend(pageId, pageToken, psid, opts = {}) {
         if (!pageId || !psid || !FB_HANDOVER_ENABLED) return { ok: false, reason: 'disabled' };
         const castmeId = String(FB_CASTME_APP_ID);
         const inboxId = String(FB_PAGE_INBOX_APP_ID);
+        const deadline = Date.now() + Math.max(1200, Number(opts.maxMs) || 3500);
+        const maxRounds = Math.max(1, Number(opts.rounds) || 1);
 
         let ownerId = null;
         try {
@@ -527,8 +531,10 @@ class FacebookClient {
         } catch (_) { /* hidden or idle */ }
 
         if (ownerId === castmeId) return { ok: true, threadOwnerAppId: ownerId, method: 'already_castme' };
+        if (ownerId === inboxId) {
+            return { ok: false, threadOwnerAppId: ownerId, inboxOwns: true, expectedAppId: castmeId, inboxAppId: inboxId };
+        }
 
-        const inboxOwns = ownerId === inboxId;
         const takeAttempts = [
             () => this.takeThreadControlQuery(pageToken, psid, pageId),
             () => this.takeThreadControl(pageToken, psid, pageId)
@@ -537,25 +543,22 @@ class FacebookClient {
             () => this.requestThreadControl(pageToken, psid, pageId),
             () => this.requestThreadControlJson(pageToken, psid, pageId)
         ];
-
-        const buildAttempts = () => {
-            if (inboxOwns) {
-                return [...takeAttempts];
-            }
-            if (!ownerId) {
-                return [...takeAttempts, ...requestAttempts];
-            }
-            return [...requestAttempts, ...takeAttempts];
-        };
+        const attempts = [...takeAttempts, ...requestAttempts];
 
         let lastErr = null;
-        for (let round = 0; round < 2; round++) {
-            for (const attempt of buildAttempts()) {
+        for (let round = 0; round < maxRounds && Date.now() < deadline; round++) {
+            for (const attempt of attempts) {
+                if (Date.now() >= deadline) break;
                 try {
-                    const result = await this._runControlAttempt(pageId, pageToken, psid, castmeId, attempt);
-                    ownerId = result.threadOwnerAppId ?? ownerId;
-                    if (result.ok) {
-                        return { ok: true, threadOwnerAppId: ownerId, method: result.method };
+                    const waitMs = Math.min(900, Math.max(200, deadline - Date.now()));
+                    const r = await attempt();
+                    const waited = await this._waitForThreadOwner(pageId, pageToken, psid, castmeId, {
+                        maxMs: waitMs,
+                        stepMs: 280
+                    });
+                    ownerId = waited.threadOwnerAppId ?? ownerId;
+                    if (waited.ok) {
+                        return { ok: true, threadOwnerAppId: ownerId, method: r.method || 'control' };
                     }
                 } catch (err) {
                     lastErr = err;
@@ -679,14 +682,15 @@ class FacebookClient {
         }
 
         let fb = null;
-        const maxAttempts = pageId ? 6 : 2;
+        const maxAttempts = passToInbox && pageId ? 4 : 1;
         for (let attempt = 0; attempt < maxAttempts; attempt++) {
             try {
                 await this.markSeen(pageToken, psid, pageId);
             } catch (err) {
                 console.warn(`[FacebookClient] mark_seen attempt ${attempt + 1}:`, err.message || err);
             }
-            await new Promise(r => setTimeout(r, 500 + attempt * 350));
+            if (maxAttempts === 1) break;
+            await new Promise(r => setTimeout(r, 400 + attempt * 300));
             if (!pageId) break;
             try {
                 fb = await this.getConversationUnreadCount(pageId, psid, pageToken);

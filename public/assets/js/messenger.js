@@ -1818,10 +1818,21 @@
     scrollToBottom(true, true); // Always scroll when sending — user just typed this message
 
     try {
-      const res = await post({
+      const sendPayload = {
         action: 'send_message', page_id: M.activePageId,
         psid: M.activePsid, message: text, page_token: M.activeToken,
-      });
+      };
+      const sendOpts = {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-Token': await window.getCsrfToken?.() || ''
+        },
+        body: JSON.stringify(sendPayload)
+      };
+      const res = (typeof window.fetchJsonWithRetry === 'function')
+        ? await window.fetchJsonWithRetry('/api/messenger', sendOpts, { attempts: 1, timeoutMs: 18000, backoffMs: 0 })
+        : await post(sendPayload);
 
       if (res.error) throw new Error(res.error);
 
