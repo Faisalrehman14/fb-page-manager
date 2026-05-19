@@ -84,6 +84,17 @@ class SendService {
         }
         if (!parts.length) throw new Error('No message content');
 
+        const claim = await this.fb.claimThreadForSend(pageId, token, psid, { maxMs: 2200, rounds: 1 });
+        if (!claim.ok && !claim.skipped) {
+            const err = new FbApiError({
+                message: claim.message || 'Another Meta app controls this chat',
+                code: 10
+            });
+            err.threadOwnerAppId = claim.threadOwnerAppId || null;
+            err.inboxOwns = claim.inboxOwns === true;
+            throw err;
+        }
+
         let lastMid;
         let sentWithInboxPass = false;
         for (let i = 0; i < parts.length; i++) {

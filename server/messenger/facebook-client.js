@@ -339,7 +339,47 @@ class FacebookClient {
     }
 
     /**
+     * Claim thread for FBCast before opening chat or sending (no take before plain send).
+     */
+    async claimThreadForSend(pageId, pageToken, psid, opts = {}) {
+        const castmeId = String(FB_CASTME_APP_ID);
+        const inboxId = String(FB_PAGE_INBOX_APP_ID);
+        if (!pageId || !psid || !FB_HANDOVER_ENABLED) {
+            return { ok: true, skipped: true };
+        }
+
+        let ownerId = null;
+        try {
+            const owner = await this.getThreadOwner(pageId, pageToken, psid);
+            ownerId = owner?.appId ? String(owner.appId) : null;
+        } catch (_) { /* owner hidden when castme is not default */ }
+
+        if (ownerId === castmeId) {
+            return { ok: true, threadOwnerAppId: ownerId, castmeOwns: true };
+        }
+
+        const acquired = await this.acquireThreadForCastmeSend(pageId, pageToken, psid, {
+            maxMs: opts.maxMs ?? 4000,
+            rounds: opts.rounds ?? 2
+        });
+        ownerId = acquired?.threadOwnerAppId ?? ownerId;
+        const inboxOwns = ownerId === inboxId || acquired?.inboxOwns === true;
+        if (acquired?.ok || ownerId === castmeId) {
+            return { ok: true, threadOwnerAppId: ownerId || castmeId, castmeOwns: true, method: acquired?.method };
+        }
+
+        return {
+            ok: false,
+            threadOwnerAppId: ownerId,
+            inboxOwns,
+            castmeOwns: false,
+            message: FacebookClient.threadControlUserMessage(inboxOwns ? inboxId : ownerId)
+        };
+    }
+
+    /**
      * Plain send first; on thread-control errors burst take+send (works when castme is handover primary).
+     * Never take_thread_control before the first plain attempt — that triggers #10 when Page Inbox owns.
      */
     async send(pageToken, psid, messageObj, useUtility = false, pageId = null, options = {}) {
         const { passToPageInbox = false } = options;
@@ -347,11 +387,6 @@ class FacebookClient {
         const inboxId = String(FB_PAGE_INBOX_APP_ID);
 
         let acquired = null;
-
-        if (pageId && FB_HANDOVER_ENABLED) {
-            await this._takeThreadControlBurst(pageToken, psid, pageId);
-            await this._waitForThreadOwner(pageId, pageToken, psid, castmeId, { maxMs: 900, stepMs: 300 });
-        }
 
         let result = await this._runSendStrategies(
             this._plainSendStrategies(pageToken, psid, messageObj, useUtility, pageId, true)
@@ -620,10 +655,8 @@ class FacebookClient {
         } catch (_) { /* hidden or idle */ }
 
         if (ownerId === castmeId) return { ok: true, threadOwnerAppId: ownerId, method: 'already_castme' };
-        if (ownerId === inboxId) {
-            return { ok: false, threadOwnerAppId: ownerId, inboxOwns: true, expectedAppId: castmeId, inboxAppId: inboxId };
-        }
 
+        const inboxOwns = ownerId === inboxId;
         const takeAttempts = [
             () => this.takeThreadControlQuery(pageToken, psid, pageId),
             () => this.takeThreadControl(pageToken, psid, pageId)
@@ -632,7 +665,10 @@ class FacebookClient {
             () => this.requestThreadControl(pageToken, psid, pageId),
             () => this.requestThreadControlJson(pageToken, psid, pageId)
         ];
-        const attempts = [...takeAttempts, ...requestAttempts];
+        const passAttempts = inboxOwns
+            ? [() => this.passThreadControlToCastme(pageToken, psid, pageId)]
+            : [];
+        const attempts = [...requestAttempts, ...passAttempts, ...takeAttempts];
 
         let lastErr = null;
         for (let round = 0; round < maxRounds && Date.now() < deadline; round++) {

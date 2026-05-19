@@ -147,7 +147,8 @@ function createMessengerRouter(deps) {
                         });
                         return res.json(result);
                     }
-                    case 'routing_status': {
+                    case 'routing_status':
+                    case 'claim_thread': {
                         const psid = req.query.psid;
                         if (!pageId || !psid) {
                             return res.status(400).json({ error: 'page_id and psid required' });
@@ -163,8 +164,35 @@ function createMessengerRouter(deps) {
                             return res.status(400).json({ error: 'Page token not found' });
                         }
                         const fb = new FacebookClient(fetchFn);
-                        const diagnostics = await fb.getThreadRoutingDiagnostics(pageId, pageToken, psid);
-                        return res.json({ success: true, ...diagnostics });
+                        if (action === 'routing_status') {
+                            const diagnostics = await fb.getThreadRoutingDiagnostics(pageId, pageToken, psid);
+                            return res.json({ success: true, ...diagnostics });
+                        }
+                        const claim = await fb.claimThreadForSend(pageId, pageToken, psid, { maxMs: 4500, rounds: 2 });
+                        const diagnostics = await fb.getThreadRoutingDiagnostics(pageId, pageToken, psid)
+                            .catch(() => ({}));
+                        const inboxOwns = claim.inboxOwns === true || diagnostics.inbox_owns === true;
+                        const body = {
+                            success: claim.ok || claim.skipped,
+                            can_send: claim.ok || claim.skipped,
+                            claimed: claim.ok && !claim.skipped,
+                            skipped: !!claim.skipped,
+                            thread_owner_app_id: claim.threadOwnerAppId ?? diagnostics.thread_owner_app_id ?? null,
+                            inbox_owns: inboxOwns,
+                            castme_app_id: FB_CASTME_APP_ID,
+                            page_inbox_app_id: FB_PAGE_INBOX_APP_ID,
+                            message: claim.ok ? null : (claim.message || FacebookClient.threadControlUserMessage(
+                                inboxOwns ? FB_PAGE_INBOX_APP_ID : claim.threadOwnerAppId
+                            ))
+                        };
+                        if (!body.can_send) {
+                            body.fix = {
+                                social_routing: 'Facebook Page → Settings → Advanced messaging → Conversation routing → Social entry → your FBCast app',
+                                avoid_business_suite: 'For this chat, do not reply in Meta Business Suite; use FBCast only',
+                                new_chat: 'Or ask the customer to send a new message and reply only from FBCast'
+                            };
+                        }
+                        return res.json(body);
                     }
                     case 'load_messages': {
                         const psid = req.query.psid;
