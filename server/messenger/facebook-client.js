@@ -269,7 +269,7 @@ class FacebookClient {
             try {
                 const owner = await this.getThreadOwner(pageId, pageToken, psid);
                 const ownerId = owner?.appId ? String(owner.appId) : null;
-                if (ownerId && ownerId !== castmeId) {
+                if (ownerId !== castmeId) {
                     acquired = await this.acquireThreadForCastmeSend(pageId, pageToken, psid);
                 }
             } catch (err) {
@@ -290,11 +290,15 @@ class FacebookClient {
                 result = await this._runSendStrategies(plainStrategies);
                 if (!result.error) return result;
                 lastErr = result.error;
-            } else if (acquired?.threadOwnerAppId === inboxId) {
+            } else if (acquired?.inboxOwns || acquired?.threadOwnerAppId === inboxId) {
                 throw new FbApiError({
-                    message: 'Meta Page Inbox owns this chat. Set castme as the default Conversation Routing app in Facebook Page settings, then reconnect Facebook.',
+                    message: 'Meta Page Inbox controls this chat. In Facebook Page settings → Conversation routing, set castme (not Page Inbox) as the default app. If you replied from Business Suite, send again after switching default, then reconnect Facebook in FBCast Settings.',
                     code: 2018300
                 });
+            } else if (acquired && !acquired.ok) {
+                result = await this._runSendStrategies(plainStrategies);
+                if (!result.error) return result;
+                lastErr = result.error;
             }
         }
 
@@ -310,14 +314,14 @@ class FacebookClient {
 
         if (FacebookClient.isThreadControlError(lastErr)) {
             const owner = acquired?.threadOwnerAppId;
-            if (owner === inboxId) {
+            if (owner === inboxId || acquired?.inboxOwns) {
                 throw new FbApiError({
-                    message: 'Meta Page Inbox owns this chat. Set castme as the default Conversation Routing app in Facebook Page settings, then reconnect Facebook.',
+                    message: 'Meta Page Inbox controls this chat. In Facebook Page settings → Conversation routing, set castme (not Page Inbox) as the default app. If you replied from Business Suite, switch default and reconnect Facebook in FBCast Settings.',
                     code: 2018300
                 });
             }
             throw new FbApiError({
-                message: `Cannot send: another Meta app controls this chat${owner ? ` (app ${owner})` : ''}. In Facebook Page settings → Conversation routing, set castme as the default app, then reconnect Facebook in FBCast Settings.`,
+                message: `Cannot send: another Meta app controls this chat${owner ? ` (app ${owner})` : ''}. Set castme as the default Conversation Routing app (Page settings → Conversation routing), then reconnect Facebook in FBCast Settings.`,
                 code: 2018300
             });
         }
@@ -426,7 +430,20 @@ class FacebookClient {
             recipient: { id: String(psid) },
             metadata: 'FBCast Pro'
         });
-        return { success: true, data };
+        return { success: true, data, method: 'take_thread_control_json' };
+    }
+
+    async takeThreadControlQuery(pageToken, psid, pageId) {
+        if (!pageId) return { skipped: true };
+        const recipient = encodeURIComponent(JSON.stringify({ id: String(psid) }));
+        const url = `${FB_GRAPH_BASE}/${pageId}/take_thread_control` +
+            `?recipient=${recipient}` +
+            `&metadata=${encodeURIComponent('FBCast Pro')}` +
+            `&access_token=${encodeURIComponent(pageToken)}`;
+        const r = await this._fetchWithTimeout(url, { method: 'POST' });
+        const data = await r.json();
+        if (data.error) throw new FbApiError(data.error);
+        return { success: true, data, method: 'take_thread_control_query' };
     }
 
     async requestThreadControl(pageToken, psid, pageId) {
@@ -442,8 +459,49 @@ class FacebookClient {
         return { success: true, data, method: 'request_thread_control_query' };
     }
 
+    async requestThreadControlJson(pageToken, psid, pageId) {
+        if (!pageId) return { skipped: true };
+        const url = `${FB_GRAPH_BASE}/${pageId}/request_thread_control?access_token=${encodeURIComponent(pageToken)}`;
+        const data = await this._postJson(url, {
+            messaging_product: 'facebook',
+            recipient: { id: String(psid) },
+            metadata: 'FBCast Pro — send'
+        });
+        return { success: true, data, method: 'request_thread_control_json' };
+    }
+
+    async _waitForThreadOwner(pageId, pageToken, psid, expectedAppId, opts = {}) {
+        const maxMs = opts.maxMs ?? 3200;
+        const stepMs = opts.stepMs ?? 450;
+        const castmeId = String(expectedAppId);
+        const start = Date.now();
+        let lastOwner = null;
+        while (Date.now() - start < maxMs) {
+            try {
+                const owner = await this.getThreadOwner(pageId, pageToken, psid);
+                lastOwner = owner?.appId ? String(owner.appId) : null;
+                if (lastOwner === castmeId) {
+                    return { ok: true, threadOwnerAppId: lastOwner };
+                }
+            } catch (_) { /* owner hidden when not default */ }
+            await new Promise(r => setTimeout(r, stepMs));
+        }
+        return { ok: false, threadOwnerAppId: lastOwner };
+    }
+
+    async _runControlAttempt(pageId, pageToken, psid, castmeId, attemptFn) {
+        const r = await attemptFn();
+        const waited = await this._waitForThreadOwner(pageId, pageToken, psid, castmeId, { maxMs: 2400, stepMs: 400 });
+        return {
+            ok: waited.ok,
+            threadOwnerAppId: waited.threadOwnerAppId,
+            method: r.method || 'control'
+        };
+    }
+
     /**
-     * When Page Inbox is Meta's default routing app, castme must own the thread before Send API works.
+     * Conversation Routing: request control from Page Inbox (when castme is default app), then take if idle.
+     * thread_owner may be empty even when another app controls the thread.
      */
     async acquireThreadForCastmeSend(pageId, pageToken, psid) {
         if (!pageId || !psid || !FB_HANDOVER_ENABLED) return { ok: false, reason: 'disabled' };
@@ -454,45 +512,60 @@ class FacebookClient {
         try {
             const owner = await this.getThreadOwner(pageId, pageToken, psid);
             ownerId = owner?.appId ? String(owner.appId) : null;
-        } catch (_) { /* thread may be idle */ }
+        } catch (_) { /* hidden or idle */ }
 
         if (ownerId === castmeId) return { ok: true, threadOwnerAppId: ownerId, method: 'already_castme' };
-        if (!ownerId) {
-            try {
-                await this.takeThreadControl(pageToken, psid, pageId);
-                await new Promise(r => setTimeout(r, 300));
-                const owner = await this.getThreadOwner(pageId, pageToken, psid);
-                ownerId = owner?.appId ? String(owner.appId) : null;
-                if (ownerId === castmeId) return { ok: true, threadOwnerAppId: ownerId, method: 'take_idle' };
-            } catch (err) {
-                console.warn('[FacebookClient] take (idle thread):', err.message || err);
+
+        const inboxOwns = ownerId === inboxId;
+        const requestFirst = inboxOwns || !ownerId;
+
+        const buildAttempts = () => {
+            const list = [];
+            if (requestFirst) {
+                list.push(
+                    () => this.requestThreadControl(pageToken, psid, pageId),
+                    () => this.requestThreadControlJson(pageToken, psid, pageId)
+                );
+            }
+            list.push(
+                () => this.takeThreadControlQuery(pageToken, psid, pageId),
+                () => this.takeThreadControl(pageToken, psid, pageId)
+            );
+            if (!requestFirst) {
+                list.push(
+                    () => this.requestThreadControl(pageToken, psid, pageId),
+                    () => this.requestThreadControlJson(pageToken, psid, pageId)
+                );
+            }
+            return list;
+        };
+
+        let lastErr = null;
+        for (let round = 0; round < 2; round++) {
+            for (const attempt of buildAttempts()) {
+                try {
+                    const result = await this._runControlAttempt(pageId, pageToken, psid, castmeId, attempt);
+                    ownerId = result.threadOwnerAppId ?? ownerId;
+                    if (result.ok) {
+                        return { ok: true, threadOwnerAppId: ownerId, method: result.method };
+                    }
+                } catch (err) {
+                    lastErr = err;
+                }
             }
         }
 
-        const controlAttempts = [
-            () => this.takeThreadControl(pageToken, psid, pageId),
-            () => this.requestThreadControl(pageToken, psid, pageId)
-        ];
-        let lastErr = null;
-        for (const attempt of controlAttempts) {
-            try {
-                const r = await attempt();
-                await new Promise(res => setTimeout(res, 650));
-                const owner = await this.getThreadOwner(pageId, pageToken, psid);
-                ownerId = owner?.appId ? String(owner.appId) : ownerId;
-                if (ownerId === castmeId) {
-                    return { ok: true, threadOwnerAppId: ownerId, method: r.method || 'take_or_request' };
-                }
-            } catch (err) {
-                lastErr = err;
-            }
-        }
+        try {
+            const owner = await this.getThreadOwner(pageId, pageToken, psid);
+            ownerId = owner?.appId ? String(owner.appId) : ownerId;
+        } catch (_) {}
 
         return {
             ok: ownerId === castmeId,
             threadOwnerAppId: ownerId,
             expectedAppId: castmeId,
             inboxAppId: inboxId,
+            inboxOwns: ownerId === inboxId,
             error: lastErr ? (lastErr.message || String(lastErr)) : `owner is ${ownerId || 'unknown'}`
         };
     }
