@@ -227,10 +227,21 @@ class SendService {
     }
 
     async markRead({ pageId, psid, page_token }) {
+        const token = page_token || await this.db.getPageToken(pageId);
+        let metaMarked = false;
+
+        if (token && psid) {
+            try {
+                await this.fb.markSeenWithRetry(token, psid, pageId);
+                metaMarked = true;
+            } catch (err) {
+                console.warn('[markRead] Meta mark_seen failed:', err.message || err);
+            }
+        }
+
         const convInfo = await this.db.getConversationIdByParticipant(pageId, psid);
-        const convId = convInfo?.id || null;
-        const metaRead = await this._markThreadReadOnMetaAndDb(pageId, psid, convId, page_token);
-        return { success: true, threadId: convId, meta_read: metaRead };
+        if (convInfo?.id) await this.db.markAsRead(convInfo.id);
+        return { success: true, meta_marked: metaMarked, threadId: convInfo?.id || null };
     }
 }
 

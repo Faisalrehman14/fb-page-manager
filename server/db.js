@@ -516,32 +516,17 @@ async function markCannotReply(pageId, participantIds) {
     }
 }
 
-function resolveLastFromMe(lastFromMe, snippet) {
-    if (lastFromMe === true || lastFromMe === 1) return 1;
-    if (lastFromMe === false || lastFromMe === 0) return 0;
-    return /^you:/i.test(String(snippet || '').trim()) ? 1 : 0;
-}
-
-/** FB Graph often keeps unread_count>0 after a page reply; don't resurrect unread in our DB. */
-function effectiveUnreadForSave(unreadCount, isRead, lastFromMeVal) {
-    let n = unreadCount != null ? unreadCount : (isRead ? 0 : 1);
-    if (lastFromMeVal === 1 && n > 0) n = 0;
-    return n;
-}
-
-const SAVE_CONV_IS_UNREAD_SQL = `CASE
-    WHEN VALUES(last_from_me) = 1 AND VALUES(is_unread) > 0 THEN 0
-    WHEN last_from_me = 1 AND is_unread = 0 AND VALUES(is_unread) > 0 THEN 0
-    ELSE VALUES(is_unread)
-END`;
-
 async function saveConversation(conversation) {
     if (!pool) return;
     const { id, pageId, participantId, participantName, snippet, updatedTime, isRead, unreadCount, canReply, lastFromMe } = conversation;
     if (!pageId || !participantId) return; // fb_user_id is NOT NULL — skip rather than fail
-    const lastFromMeVal = resolveLastFromMe(lastFromMe, snippet);
-    const fbUnreadCount = effectiveUnreadForSave(unreadCount, isRead, lastFromMeVal);
+    const fbUnreadCount = unreadCount != null ? unreadCount : (isRead ? 0 : 1);
     const canReplyVal = canReply === false ? 0 : 1;
+    const lastFromMeVal = lastFromMe === true || lastFromMe === 1
+        ? 1
+        : (lastFromMe === false || lastFromMe === 0
+            ? 0
+            : (/^you:/i.test(String(snippet || '').trim()) ? 1 : 0));
 
     try {
         await pool.query(`
@@ -558,7 +543,7 @@ async function saveConversation(conversation) {
                     VALUES(updated_at),
                     updated_at
                 ),
-                is_unread = ${SAVE_CONV_IS_UNREAD_SQL},
+                is_unread = VALUES(is_unread),
                 can_reply = VALUES(can_reply),
                 last_from_me = VALUES(last_from_me)
         `, [pageId, participantId, id, participantName, snippet, updatedTime ? new Date(updatedTime) : null, fbUnreadCount, canReplyVal, lastFromMeVal]);
@@ -579,9 +564,11 @@ async function saveConversations(messenger_conversations) {
         const batch = valid.slice(i, i + BULK_INSERT_BATCH_SIZE);
         const placeholders = batch.map(() => '(?,?,?,?,?,?,?,?,?)').join(',');
         const params = batch.flatMap(c => {
+            const fbUnreadCount = c.unreadCount != null ? c.unreadCount : (c.isRead ? 0 : 1);
             const snip = (c.snippet || '').substring(0, 200);
-            const lastFromMeVal = resolveLastFromMe(c.lastFromMe, snip);
-            const fbUnreadCount = effectiveUnreadForSave(c.unreadCount, c.isRead, lastFromMeVal);
+            const lastFromMeVal = c.lastFromMe === true || c.lastFromMe === 1
+                ? 1
+                : (c.lastFromMe === false || c.lastFromMe === 0 ? 0 : (/^you:/i.test(snip.trim()) ? 1 : 0));
             return [
                 c.pageId,
                 c.participantId,
@@ -609,7 +596,7 @@ async function saveConversations(messenger_conversations) {
                         VALUES(updated_at),
                         updated_at
                     ),
-                    is_unread = ${SAVE_CONV_IS_UNREAD_SQL},
+                    is_unread = VALUES(is_unread),
                     can_reply = VALUES(can_reply),
                     last_from_me = VALUES(last_from_me)
             `, params);
@@ -1423,8 +1410,6 @@ async function syncConversationsAll(pageId, pageToken, fetchFn, since = null, op
             const { normalizeSnippetForList, snippetIndicatesFromPage } = require('./messenger/message-content');
             const rawSnip = (conv.snippet || '').substring(0, 200);
             const snip = normalizeSnippetForList(rawSnip);
-            const lastFromMe = snippetIndicatesFromPage(rawSnip);
-            const unreadCount = lastFromMe && fbCount > 0 ? 0 : fbCount;
             return [{
                 id: conv.id,
                 pageId: pageId,
@@ -1432,10 +1417,10 @@ async function syncConversationsAll(pageId, pageToken, fetchFn, since = null, op
                 participantName: participant.name || 'User',
                 snippet: snip,
                 updatedTime: conv.updated_time,
-                isRead: unreadCount === 0,
-                unreadCount,
+                isRead: fbCount === 0,
+                unreadCount: fbCount,
                 canReply: true,
-                lastFromMe
+                lastFromMe: snippetIndicatesFromPage(rawSnip)
             }];
         });
 
