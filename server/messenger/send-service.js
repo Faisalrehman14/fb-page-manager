@@ -1,5 +1,5 @@
 const { FacebookClient, FbApiError } = require('./facebook-client');
-const { FB_PASS_TO_INBOX_AFTER_SEND, FB_PASS_TO_INBOX_ON_MARK_READ } = require('./config');
+const { FB_HANDOVER_ENABLED, FB_PASS_TO_INBOX_AFTER_SEND, FB_PASS_TO_INBOX_ON_MARK_READ } = require('./config');
 
 const RETRY_DELAYS = [300, 1200]; // 2 retries: 300ms then 1.2s
 
@@ -38,7 +38,7 @@ class SendService {
         if (!token || !psid) return { ok: false, reason: 'no_token_or_psid' };
         try {
             const result = await this.fb.markSeenWithRetry(token, psid, pageId, {
-                passToInbox: FB_PASS_TO_INBOX_AFTER_SEND
+                passToInbox: FB_HANDOVER_ENABLED && FB_PASS_TO_INBOX_AFTER_SEND
             });
             if (result?.fbUnread > 0) {
                 console.warn(
@@ -83,17 +83,6 @@ class SendService {
             parts.push({ msgObj: { text: message }, label: message });
         }
         if (!parts.length) throw new Error('No message content');
-
-        const claim = await this.fb.claimThreadForSend(pageId, token, psid, { maxMs: 2200, rounds: 1 });
-        if (!claim.ok && !claim.skipped) {
-            const err = new FbApiError({
-                message: claim.message || 'Another Meta app controls this chat',
-                code: 10
-            });
-            err.threadOwnerAppId = claim.threadOwnerAppId || null;
-            err.inboxOwns = claim.inboxOwns === true;
-            throw err;
-        }
 
         let lastMid;
         let sentWithInboxPass = false;
@@ -173,7 +162,6 @@ class SendService {
         const convIdBg = convId;
         const tokenBg = token;
         setImmediate(() => {
-            this.fb.retainCastmeThreadAfterPageSend(pageIdBg, tokenBg, psidBg).catch(() => {});
             this._markThreadReadOnMetaAndDb(pageIdBg, psidBg, convIdBg, tokenBg).catch((err) => {
                 console.warn('[SendService] background meta read:', err.message || err);
             });
@@ -239,7 +227,6 @@ class SendService {
                 unreadCount: 0,
                 lastMessageFromPage: true
             });
-            this.fb.retainCastmeThreadAfterPageSend(pageId, token, psid).catch(() => {});
             this._markThreadReadOnMetaAndDb(pageId, psid, convId, token).catch(() => {});
         });
 
@@ -253,7 +240,7 @@ class SendService {
         if (token && psid) {
             try {
                 await this.fb.markSeenWithRetry(token, psid, pageId, {
-                    passToInbox: FB_PASS_TO_INBOX_ON_MARK_READ
+                    passToInbox: FB_HANDOVER_ENABLED && FB_PASS_TO_INBOX_ON_MARK_READ
                 });
                 metaMarked = true;
             } catch (err) {

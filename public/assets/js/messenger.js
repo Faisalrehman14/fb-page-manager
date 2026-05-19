@@ -40,7 +40,6 @@
     search: { query: '', timer: null, active: false, abort: null, cache: new Map() },
 
     ui: { sending: false, loadingMore: false, syncing: false, loadingConvs: false },
-    threadClaim: { ok: true, checking: false, message: '' },
     _convLoadSeq: 0,
     _loadingConvsFor: null,
 
@@ -1463,66 +1462,6 @@
     $('msngChatHdrSub').innerHTML = `<span class="msng-online-dot"></span> Facebook Messenger · real-time`;
     const wrap = $('msngChatHdrAvatar');
     if (wrap) wrap.innerHTML = avatarHtml(picture, name, 'msng-hdr-avatar');
-    updateThreadRoutingBanner();
-  }
-
-  function updateThreadRoutingBanner() {
-    const el = $('msngThreadBanner');
-    if (!el) return;
-    const claim = M.threadClaim || {};
-    if (claim.checking) {
-      el.style.display = 'block';
-      el.classList.remove('msng-thread-banner--ok');
-      el.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Checking if FBCast can reply on this chat…';
-      return;
-    }
-    if (claim.ok) {
-      el.style.display = 'none';
-      el.textContent = '';
-      return;
-    }
-    const msg = claim.message || 'Meta Page Inbox controls this chat. Set Conversation routing → Social entry to FBCast, then use FBCast only (not Business Suite) for this thread.';
-    el.style.display = 'block';
-    el.classList.remove('msng-thread-banner--ok');
-    el.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> ${esc(msg)}`;
-  }
-
-  function updateComposerForThreadClaim() {
-    const canSend = M.threadClaim?.ok !== false;
-    const ta = $('msngMsgTextarea');
-    const sendBtn = $('msngSendBtn');
-    const likeBtn = $('msngLikeBtn');
-    if (ta) {
-      ta.disabled = !canSend;
-      ta.placeholder = canSend ? 'Type a message…' : 'Cannot send — see banner above';
-    }
-    if (sendBtn) sendBtn.disabled = !canSend || M.ui.sending;
-    if (likeBtn) likeBtn.disabled = !canSend;
-  }
-
-  async function claimThreadForActiveConv() {
-    if (!M.activePsid || !M.activePageId) return;
-    const psid = M.activePsid;
-    const pageId = M.activePageId;
-    M.threadClaim = { ok: true, checking: true, message: '' };
-    updateThreadRoutingBanner();
-    updateComposerForThreadClaim();
-    try {
-      const data = await get('claim_thread', { page_id: pageId, psid });
-      if (psid !== M.activePsid || pageId !== M.activePageId) return;
-      M.threadClaim = {
-        ok: data.can_send !== false && data.success !== false,
-        checking: false,
-        message: data.message || '',
-        inboxOwns: !!data.inbox_owns,
-        fix: data.fix || null
-      };
-    } catch (_) {
-      if (psid !== M.activePsid) return;
-      M.threadClaim = { ok: true, checking: false, message: '' };
-    }
-    updateThreadRoutingBanner();
-    updateComposerForThreadClaim();
   }
 
   function showChatEmpty() {
@@ -1857,12 +1796,6 @@
       showToast('Select a page and conversation first', 'warning');
       return;
     }
-    if (M.threadClaim?.ok === false) {
-      const msg = M.threadClaim.message || 'Meta Page Inbox controls this chat — see the red banner above.';
-      showToast(msg, 'error', 12000);
-      return;
-    }
-
     M.ui.sending = true;
     const sendBtn = $('msngSendBtn');
     if (sendBtn) { sendBtn.disabled = true; sendBtn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i>'; }
@@ -1931,37 +1864,20 @@
         const hint = mr.handoverError || (mr.fbUnread != null ? `Meta still shows ${mr.fbUnread} unread` : '');
         showToast(
           hint
-            ? `Sent. Meta inbox still unread: ${hint}. Reconnect Facebook after Handover setup in Meta App settings.`
-            : 'Sent. Meta inbox may still show unread — check Handover setup in Meta App settings.',
+            ? `Sent. Meta inbox may still show unread: ${hint}`
+            : 'Sent. Meta inbox may still show unread.',
           'warning',
-          12000
+          8000
         );
       }
 
     } catch (e) {
       const data = e?.data || {};
       let errMsg = data.error || (e && (e.message || e.error)) ? String(e.message || e.error) : '';
-      if (data.owner_is_page_inbox && data.fix) {
-        errMsg = data.error || errMsg;
-        if (data.fix.social_routing) {
-          errMsg += '\n\n' + data.fix.social_routing;
-        }
-      }
       const fbRaw = data.fbMessage ? String(data.fbMessage) : '';
-      const isThreadControl = /another app|thread control|page inbox|conversation routing|THREAD_LOCKED/i.test(
+      const isThreadControl = /another app|thread control|page inbox|conversation routing/i.test(
         errMsg + fbRaw + (data.code || '')
       );
-      if (isThreadControl) {
-        M.threadClaim = {
-          ok: false,
-          checking: false,
-          message: data.error || errMsg,
-          inboxOwns: !!data.owner_is_page_inbox,
-          fix: data.fix || null
-        };
-        updateThreadRoutingBanner();
-        updateComposerForThreadClaim();
-      }
       if (fbRaw && errMsg && !errMsg.includes(fbRaw) && !isThreadControl) {
         errMsg = `${errMsg} (Facebook #${data.fbCode}: ${fbRaw})`;
       }
@@ -1984,10 +1900,7 @@
 
     } finally {
       M.ui.sending = false;
-      updateComposerForThreadClaim();
-      if (sendBtn && M.threadClaim?.ok !== false) {
-        sendBtn.innerHTML = '<i class="fa-solid fa-paper-plane"></i>';
-      }
+      if (sendBtn) { sendBtn.disabled = false; sendBtn.innerHTML = '<i class="fa-solid fa-paper-plane"></i>'; }
       updateLikeBtnVisibility();
     }
   }
@@ -2736,10 +2649,6 @@
     if (typingEl) { clearTimeout(typingEl._hideTimer); typingEl.classList.remove('visible'); }
 
     showChatWindow(name, picture);
-    M.threadClaim = { ok: true, checking: true, message: '' };
-    updateThreadRoutingBanner();
-    updateComposerForThreadClaim();
-    claimThreadForActiveConv().catch(() => {});
 
     const cached = _cacheLoad(psid);
     if (cached && cached.msgs.length) {

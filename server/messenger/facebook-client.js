@@ -339,87 +339,19 @@ class FacebookClient {
     }
 
     /**
-     * Claim thread for FBCast before opening chat or sending (no take before plain send).
-     */
-    async claimThreadForSend(pageId, pageToken, psid, opts = {}) {
-        const castmeId = String(FB_CASTME_APP_ID);
-        const inboxId = String(FB_PAGE_INBOX_APP_ID);
-        if (!pageId || !psid || !FB_HANDOVER_ENABLED) {
-            return { ok: true, skipped: true };
-        }
-
-        let ownerId = null;
-        try {
-            const owner = await this.getThreadOwner(pageId, pageToken, psid);
-            ownerId = owner?.appId ? String(owner.appId) : null;
-        } catch (_) { /* owner hidden when castme is not default */ }
-
-        if (ownerId === castmeId) {
-            return { ok: true, threadOwnerAppId: ownerId, castmeOwns: true };
-        }
-
-        const acquired = await this.acquireThreadForCastmeSend(pageId, pageToken, psid, {
-            maxMs: opts.maxMs ?? 4000,
-            rounds: opts.rounds ?? 2
-        });
-        ownerId = acquired?.threadOwnerAppId ?? ownerId;
-        const inboxOwns = ownerId === inboxId || acquired?.inboxOwns === true;
-        if (acquired?.ok || ownerId === castmeId) {
-            return { ok: true, threadOwnerAppId: ownerId || castmeId, castmeOwns: true, method: acquired?.method };
-        }
-
-        return {
-            ok: false,
-            threadOwnerAppId: ownerId,
-            inboxOwns,
-            castmeOwns: false,
-            message: FacebookClient.threadControlUserMessage(inboxOwns ? inboxId : ownerId)
-        };
-    }
-
-    /**
-     * Plain send first; on thread-control errors burst take+send (works when castme is handover primary).
-     * Never take_thread_control before the first plain attempt — that triggers #10 when Page Inbox owns.
+     * Send via standard Messenger Send API (no thread take/pass/request).
+     * Works with Meta default Page Inbox routing for most pages.
      */
     async send(pageToken, psid, messageObj, useUtility = false, pageId = null, options = {}) {
         const { passToPageInbox = false } = options;
-        const castmeId = String(FB_CASTME_APP_ID);
-        const inboxId = String(FB_PAGE_INBOX_APP_ID);
+        const strategies = this._plainSendStrategies(pageToken, psid, messageObj, useUtility, pageId, false);
 
-        let acquired = null;
-
-        let result = await this._runSendStrategies(
-            this._plainSendStrategies(pageToken, psid, messageObj, useUtility, pageId, true)
-        );
+        let result = await this._runSendStrategies(strategies);
         if (!result.error) return result;
 
         let lastErr = result.error;
 
-        if (pageId && FB_HANDOVER_ENABLED && FacebookClient.needsThreadControlBeforeSend(lastErr)) {
-            try {
-                return await this._burstTakeAndSend(pageToken, psid, messageObj, useUtility, pageId);
-            } catch (burstErr) {
-                lastErr = burstErr;
-            }
-
-            acquired = await this.acquireThreadForCastmeSend(pageId, pageToken, psid, { maxMs: 2500, rounds: 1 })
-                .catch(() => ({ ok: false }));
-
-            if (!acquired?.ok) {
-                try {
-                    return await this._burstTakeAndSend(pageToken, psid, messageObj, useUtility, pageId);
-                } catch (burstErr2) {
-                    lastErr = burstErr2;
-                }
-            }
-
-            const retryStrategies = this._plainSendStrategies(pageToken, psid, messageObj, useUtility, pageId, false);
-            result = await this._runSendStrategies(retryStrategies);
-            if (!result.error) return result;
-            lastErr = result.error;
-        }
-
-        if (passToPageInbox) {
+        if (FB_HANDOVER_ENABLED && pageId && passToPageInbox) {
             const passStrategies = [
                 () => this._sendJsonBody(pageToken, psid, messageObj, pageId, this._inboxThreadControlExtra(false)),
                 () => this._sendJsonBody(pageToken, psid, messageObj, pageId, this._inboxThreadControlExtra(true))
@@ -429,20 +361,8 @@ class FacebookClient {
             lastErr = result.error;
         }
 
-        if (FacebookClient.isThreadControlError(lastErr)) {
-            let owner = acquired?.threadOwnerAppId || null;
-            if (!owner && pageId) {
-                try {
-                    const o = await this.getThreadOwner(pageId, pageToken, psid);
-                    owner = o?.appId ? String(o.appId) : null;
-                } catch (_) { /* hidden when not default app */ }
-            }
-            const inboxOwns = owner === inboxId || acquired?.inboxOwns === true;
-            throw FacebookClient.attachThreadControlMeta(lastErr, { threadOwnerAppId: owner, inboxOwns });
-        }
-
         if (lastErr instanceof FbApiError) throw lastErr;
-        throw lastErr || new FbApiError({ message: 'All send methods failed', code: 0 });
+        throw lastErr || new FbApiError({ message: 'Message could not be sent', code: 0 });
     }
 
     async getThreadRoutingDiagnostics(pageId, pageToken, psid) {
@@ -878,17 +798,13 @@ class FacebookClient {
         const lower = msg.toLowerCase();
 
         if (FacebookClient.isThreadControlError(fbError)) {
-            const owner = fbError.threadOwnerAppId || null;
-            if (fbError.inboxOwns || owner === String(FB_PAGE_INBOX_APP_ID)) {
-                return FacebookClient.threadControlUserMessage(String(FB_PAGE_INBOX_APP_ID));
+            if (FB_HANDOVER_ENABLED) {
+                const owner = fbError.threadOwnerAppId || null;
+                return FacebookClient.threadControlUserMessage(
+                    fbError.inboxOwns || owner === String(FB_PAGE_INBOX_APP_ID) ? String(FB_PAGE_INBOX_APP_ID) : owner
+                );
             }
-            if (owner) {
-                return FacebookClient.threadControlUserMessage(owner);
-            }
-            if (lower.includes('another app') && lower.includes('control')) {
-                return FacebookClient.threadControlUserMessage();
-            }
-            return FacebookClient.threadControlUserMessage(owner);
+            return 'Message could not be sent. Try again, or reply from Meta Business Suite if this chat was opened there.';
         }
         if (FacebookClient.isOutside24hWindow(fbError)) {
             return 'Cannot send: the 24-hour reply window has ended. Ask the customer to message your page first, then try again.';

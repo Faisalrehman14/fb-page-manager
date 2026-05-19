@@ -372,18 +372,6 @@ body.in-messenger .sidebar { display: none !important; }
   background: linear-gradient(90deg, transparent, rgba(8,102,255,0.3), transparent);
 }
 
-.msng-thread-banner {
-  flex-shrink: 0;
-  padding: 10px 14px;
-  font-size: 12px;
-  line-height: 1.45;
-  color: #fecaca;
-  background: rgba(127, 29, 29, 0.35);
-  border-bottom: 1px solid rgba(248, 113, 113, 0.35);
-}
-.msng-thread-banner i { margin-right: 6px; color: #f87171; }
-.msng-thread-banner--ok { display: none !important; }
-
 .msng-chat-hdr-info-wrap { display: flex; align-items: center; gap: 12px; min-width: 0; }
 .msng-chat-hdr-avatar { width: 40px; height: 40px; flex-shrink: 0; }
 .msng-hdr-avatar,

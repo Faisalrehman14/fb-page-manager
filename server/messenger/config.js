@@ -44,7 +44,8 @@ const FB_GRAPH_BASE = `https://graph.facebook.com/${FB_GRAPH_VERSION}`;
 const FB_PAGE_INBOX_APP_ID = process.env.FB_PAGE_INBOX_APP_ID || '263902037430900';
 /** castme app from Conversation Routing (must match Railway FB_APP_ID). */
 const FB_CASTME_APP_ID = process.env.FB_CASTME_APP_ID || '1841422713196772';
-const FB_HANDOVER_ENABLED = process.env.FB_HANDOVER_ENABLED !== '0';
+/** Off by default — plain Send API works with Meta default (Page Inbox) routing. Set FB_HANDOVER_ENABLED=1 only if you configured handover in Meta. */
+const FB_HANDOVER_ENABLED = process.env.FB_HANDOVER_ENABLED === '1';
 /** Off by default — passing to Page Inbox after every reply breaks the next send when Inbox is default routing. */
 const FB_PASS_TO_INBOX_AFTER_SEND = process.env.FB_PASS_TO_INBOX_AFTER_SEND === '1';
 /** Optional Business Suite unread sync on mark-read only (not after send). */
