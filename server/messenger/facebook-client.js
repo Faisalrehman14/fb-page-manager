@@ -224,9 +224,9 @@ class FacebookClient {
     }
 
     static threadControlUserMessage() {
-        return 'Meta Page Inbox controls this chat — FBCast cannot send until your page allows it. '
-            + 'Fix (pick one): Page settings → Conversation routing → leave Default unset, OR set Social entry to castme, '
-            + 'OR send from FBCast first (do not reply in Business Suite for this thread).';
+        return 'This chat is locked by Meta Page Inbox / Business Suite. '
+            + 'Open a new customer message in FBCast and reply here first, or in Page settings → Conversation routing set Social entry to your FBCast app. '
+            + 'You do not need castme as Default for every page.';
     }
 
     static needsThreadControlBeforeSend(err) {
@@ -268,9 +268,60 @@ class FacebookClient {
         return full.slice(0, 2);
     }
 
+    _castmePassInSendExtra() {
+        return {
+            messaging_product: 'facebook',
+            messaging_type: 'RESPONSE',
+            thread_control: {
+                app_id: String(FB_CASTME_APP_ID),
+                control_type: 'pass'
+            }
+        };
+    }
+
+    async _takeThreadControlBurst(pageToken, psid, pageId) {
+        await Promise.all([
+            this.takeThreadControlQuery(pageToken, psid, pageId).catch(() => {}),
+            this.takeThreadControl(pageToken, psid, pageId).catch(() => {})
+        ]);
+    }
+
+    /** take_thread_control immediately then send (no owner poll wait). */
+    async _burstTakeAndSend(pageToken, psid, messageObj, useUtility, pageId) {
+        let lastErr;
+        const tries = [
+            async () => {
+                await this._takeThreadControlBurst(pageToken, psid, pageId);
+                return this._sendLegacyForm(pageToken, psid, messageObj, false, pageId);
+            },
+            async () => {
+                await this._takeThreadControlBurst(pageToken, psid, pageId);
+                return this._sendJsonBody(pageToken, psid, messageObj, pageId, {
+                    messaging_product: 'facebook',
+                    messaging_type: useUtility ? 'UTILITY' : 'RESPONSE'
+                });
+            },
+            async () => this._sendJsonBody(pageToken, psid, messageObj, pageId, this._castmePassInSendExtra()),
+            async () => {
+                await this.requestThreadControl(pageToken, psid, pageId).catch(() => {});
+                return this._sendLegacyForm(pageToken, psid, messageObj, false, pageId);
+            }
+        ];
+        for (const fn of tries) {
+            try {
+                return await fn();
+            } catch (err) {
+                lastErr = err;
+                if (!FacebookClient.isThreadControlError(err) && !FacebookClient.needsThreadControlBeforeSend(err)) {
+                    throw err;
+                }
+            }
+        }
+        throw lastErr;
+    }
+
     /**
-     * Plain send first; on failure try take_thread_control + acquire, then retry.
-     * Avoids pre-send handover that breaks when Page Inbox is Meta's default app.
+     * Plain send first; on thread-control errors burst take+send (works when castme is handover primary).
      */
     async send(pageToken, psid, messageObj, useUtility = false, pageId = null, options = {}) {
         const { passToPageInbox = false } = options;
@@ -278,6 +329,10 @@ class FacebookClient {
         const inboxId = String(FB_PAGE_INBOX_APP_ID);
 
         let acquired = null;
+
+        if (pageId && FB_HANDOVER_ENABLED) {
+            await this._takeThreadControlBurst(pageToken, psid, pageId);
+        }
 
         let result = await this._runSendStrategies(
             this._plainSendStrategies(pageToken, psid, messageObj, useUtility, pageId, true)
@@ -287,27 +342,21 @@ class FacebookClient {
         let lastErr = result.error;
 
         if (pageId && FB_HANDOVER_ENABLED && FacebookClient.needsThreadControlBeforeSend(lastErr)) {
-            let ownerId = null;
             try {
-                const owner = await this.getThreadOwner(pageId, pageToken, psid);
-                ownerId = owner?.appId ? String(owner.appId) : null;
-            } catch (_) { /* hidden when not default */ }
-
-            if (ownerId === inboxId) {
-                throw new FbApiError({
-                    message: FacebookClient.threadControlUserMessage(),
-                    code: 2018300
-                });
+                return await this._burstTakeAndSend(pageToken, psid, messageObj, useUtility, pageId);
+            } catch (burstErr) {
+                lastErr = burstErr;
             }
 
-            acquired = await this.acquireThreadForCastmeSend(pageId, pageToken, psid, { maxMs: 3500, rounds: 1 })
+            acquired = await this.acquireThreadForCastmeSend(pageId, pageToken, psid, { maxMs: 2500, rounds: 1 })
                 .catch(() => ({ ok: false }));
 
-            if (acquired?.inboxOwns || acquired?.threadOwnerAppId === inboxId) {
-                throw new FbApiError({
-                    message: FacebookClient.threadControlUserMessage(),
-                    code: 2018300
-                });
+            if (!acquired?.ok) {
+                try {
+                    return await this._burstTakeAndSend(pageToken, psid, messageObj, useUtility, pageId);
+                } catch (burstErr2) {
+                    lastErr = burstErr2;
+                }
             }
 
             const retryStrategies = this._plainSendStrategies(pageToken, psid, messageObj, useUtility, pageId, false);

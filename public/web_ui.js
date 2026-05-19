@@ -1871,8 +1871,16 @@ function filterConversations() {
 
 function startMessengerPolling() {
   stopMessengerPolling();
+  const msngView = document.getElementById('view-messenger');
+  if (msngView && msngView.style.display !== 'none') {
+    return;
+  }
   // Poll every 5 seconds using efficient API
   messengerPollInterval = setInterval(async () => {
+    if (document.getElementById('view-messenger')?.style.display !== 'none') {
+      stopMessengerPolling();
+      return;
+    }
     if (!currentChatPageId) return;
     try {
       const resp = await fetch(`messenger_api.php?action=recent_changes&page_id=${encodeURIComponent(currentChatPageId)}&since=${encodeURIComponent(lastPollTime || '')}`, {

@@ -91,7 +91,7 @@ function createMessengerRouter(deps) {
 
     function pollOnly(req, res, next) {
         const action = req.query.action || req.body.action;
-        if (req.method === 'GET' && (action === 'poll' || action === 'poll_pages')) {
+        if (req.method === 'GET' && (action === 'poll' || action === 'poll_pages' || action === 'recent_changes')) {
             return pollLimiter(req, res, next);
         }
         next();
@@ -151,6 +151,7 @@ function createMessengerRouter(deps) {
                         });
                         return res.json(result);
                     }
+                    case 'recent_changes':
                     case 'poll': {
                         if (!pageId) return res.status(400).json({ error: 'page_id required' });
                         const psid = req.query.psid || null;
