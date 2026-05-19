@@ -516,17 +516,32 @@ async function markCannotReply(pageId, participantIds) {
     }
 }
 
+function resolveLastFromMe(lastFromMe, snippet) {
+    if (lastFromMe === true || lastFromMe === 1) return 1;
+    if (lastFromMe === false || lastFromMe === 0) return 0;
+    return /^you:/i.test(String(snippet || '').trim()) ? 1 : 0;
+}
+
+/** Facebook sync often keeps unread_count>0 after a page reply — do not store that in DB. */
+function effectiveUnreadForSave(unreadCount, isRead, lastFromMeVal) {
+    let n = unreadCount != null ? unreadCount : (isRead ? 0 : 1);
+    if (lastFromMeVal === 1 && n > 0) n = 0;
+    return n;
+}
+
+const SAVE_CONV_IS_UNREAD_SQL = `CASE
+    WHEN VALUES(last_from_me) = 1 AND VALUES(is_unread) > 0 THEN 0
+    WHEN last_from_me = 1 AND is_unread = 0 AND VALUES(is_unread) > 0 THEN 0
+    ELSE VALUES(is_unread)
+END`;
+
 async function saveConversation(conversation) {
     if (!pool) return;
     const { id, pageId, participantId, participantName, snippet, updatedTime, isRead, unreadCount, canReply, lastFromMe } = conversation;
     if (!pageId || !participantId) return; // fb_user_id is NOT NULL — skip rather than fail
-    const fbUnreadCount = unreadCount != null ? unreadCount : (isRead ? 0 : 1);
+    const lastFromMeVal = resolveLastFromMe(lastFromMe, snippet);
+    const fbUnreadCount = effectiveUnreadForSave(unreadCount, isRead, lastFromMeVal);
     const canReplyVal = canReply === false ? 0 : 1;
-    const lastFromMeVal = lastFromMe === true || lastFromMe === 1
-        ? 1
-        : (lastFromMe === false || lastFromMe === 0
-            ? 0
-            : (/^you:/i.test(String(snippet || '').trim()) ? 1 : 0));
 
     try {
         await pool.query(`
@@ -543,7 +558,7 @@ async function saveConversation(conversation) {
                     VALUES(updated_at),
                     updated_at
                 ),
-                is_unread = VALUES(is_unread),
+                is_unread = ${SAVE_CONV_IS_UNREAD_SQL},
                 can_reply = VALUES(can_reply),
                 last_from_me = VALUES(last_from_me)
         `, [pageId, participantId, id, participantName, snippet, updatedTime ? new Date(updatedTime) : null, fbUnreadCount, canReplyVal, lastFromMeVal]);
@@ -564,11 +579,9 @@ async function saveConversations(messenger_conversations) {
         const batch = valid.slice(i, i + BULK_INSERT_BATCH_SIZE);
         const placeholders = batch.map(() => '(?,?,?,?,?,?,?,?,?)').join(',');
         const params = batch.flatMap(c => {
-            const fbUnreadCount = c.unreadCount != null ? c.unreadCount : (c.isRead ? 0 : 1);
             const snip = (c.snippet || '').substring(0, 200);
-            const lastFromMeVal = c.lastFromMe === true || c.lastFromMe === 1
-                ? 1
-                : (c.lastFromMe === false || c.lastFromMe === 0 ? 0 : (/^you:/i.test(snip.trim()) ? 1 : 0));
+            const lastFromMeVal = resolveLastFromMe(c.lastFromMe, snip);
+            const fbUnreadCount = effectiveUnreadForSave(c.unreadCount, c.isRead, lastFromMeVal);
             return [
                 c.pageId,
                 c.participantId,
@@ -596,7 +609,7 @@ async function saveConversations(messenger_conversations) {
                         VALUES(updated_at),
                         updated_at
                     ),
-                    is_unread = VALUES(is_unread),
+                    is_unread = ${SAVE_CONV_IS_UNREAD_SQL},
                     can_reply = VALUES(can_reply),
                     last_from_me = VALUES(last_from_me)
             `, params);
@@ -830,7 +843,7 @@ async function getUnreadCountsForPages(pageIds) {
         const placeholders = pageIds.map(() => '?').join(',');
         const [rows] = await pool.query(
             `SELECT page_id, COUNT(*) AS cnt FROM messenger_conversations
-             WHERE page_id IN (${placeholders}) AND is_unread > 0
+             WHERE page_id IN (${placeholders}) AND is_unread > 0 AND COALESCE(last_from_me, 0) = 0
                AND COALESCE(can_reply, 1) = 1
              GROUP BY page_id`,
             pageIds
@@ -1234,11 +1247,13 @@ async function updateConversationFromMessage(message) {
     const updatedAt = createdTime ? new Date(createdTime) : new Date();
     try {
         if (lastFromMe !== undefined) {
+            const fromPage = lastFromMe ? 1 : 0;
             await pool.query(`
                 UPDATE messenger_conversations
-                SET snippet = ?, updated_at = ?, last_from_me = ?
+                SET snippet = ?, updated_at = ?, last_from_me = ?,
+                    is_unread = IF(? = 1, 0, is_unread)
                 WHERE id = ?
-            `, [snippet, updatedAt, lastFromMe ? 1 : 0, threadId]);
+            `, [snippet, updatedAt, fromPage, fromPage, threadId]);
         } else {
             await pool.query(`
                 UPDATE messenger_conversations
@@ -1410,6 +1425,8 @@ async function syncConversationsAll(pageId, pageToken, fetchFn, since = null, op
             const { normalizeSnippetForList, snippetIndicatesFromPage } = require('./messenger/message-content');
             const rawSnip = (conv.snippet || '').substring(0, 200);
             const snip = normalizeSnippetForList(rawSnip);
+            const lastFromMe = snippetIndicatesFromPage(rawSnip);
+            const unreadCount = lastFromMe && fbCount > 0 ? 0 : fbCount;
             return [{
                 id: conv.id,
                 pageId: pageId,
@@ -1417,10 +1434,10 @@ async function syncConversationsAll(pageId, pageToken, fetchFn, since = null, op
                 participantName: participant.name || 'User',
                 snippet: snip,
                 updatedTime: conv.updated_time,
-                isRead: fbCount === 0,
-                unreadCount: fbCount,
+                isRead: unreadCount === 0,
+                unreadCount,
                 canReply: true,
-                lastFromMe: snippetIndicatesFromPage(rawSnip)
+                lastFromMe
             }];
         });
 
@@ -1930,7 +1947,7 @@ async function pollInboxUpdates(pageId, psid, since, maxConvs = 40) {
             ),
             conn.query(
                 `SELECT COUNT(*) AS total FROM messenger_conversations
-                 WHERE page_id = ? AND is_unread > 0 AND COALESCE(can_reply, 1) = 1`,
+                 WHERE page_id = ? AND is_unread > 0 AND COALESCE(last_from_me, 0) = 0 AND COALESCE(can_reply, 1) = 1`,
                 [pageId]
             )
         ]);
@@ -1942,7 +1959,8 @@ async function pollInboxUpdates(pageId, psid, since, maxConvs = 40) {
             id: r.id, page_id: r.page_id, fb_user_id: r.fb_user_id,
             user_name: r.user_name, user_picture: r.user_picture,
             snippet: r.snippet, updated_at: r.updated_at,
-            is_unread: r.is_unread || 0, last_from_me: r.last_from_me
+            is_unread: (r.last_from_me === 1 ? 0 : (r.is_unread || 0)),
+            last_from_me: r.last_from_me
         }));
         const totalUnread = Number(unreadResult[0]?.[0]?.total || 0);
 
@@ -2046,7 +2064,7 @@ async function getTotalUnread(pageId) {
         // COUNT conversations that need attention (not SUM of message counts)
         const [rows] = await pool.query(
             `SELECT COUNT(*) AS total FROM messenger_conversations
-             WHERE page_id = ? AND is_unread > 0 AND COALESCE(can_reply, 1) = 1`,
+             WHERE page_id = ? AND is_unread > 0 AND COALESCE(last_from_me, 0) = 0 AND COALESCE(can_reply, 1) = 1`,
             [pageId]
         );
         return Number(rows[0]?.total || 0);

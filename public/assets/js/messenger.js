@@ -357,30 +357,20 @@
   }
 
   /**
-   * Resolve unread count: respects read locks, active thread, and message timestamps
-   * so stale DB is_unread rows do not resurrect badges after mark-read.
+   * Resolve unread for UI — ignore stale DB/Facebook sync after read or page reply.
    */
-  function resolveConvUnread(psid, serverUnread, updatedAt) {
+  function resolveConvUnread(psid, serverUnread, updatedAt, lastFromMe) {
     const key = String(psid);
     const nu = parseInt(serverUnread, 10) || 0;
-    const lockAt = M._readLockAt.get(key) || 0;
-    const msgAt = updatedAt ? new Date(updatedAt).getTime() : 0;
+    const fromPage = lastFromMe === true || lastFromMe === 1;
 
-    if (nu > 0 && lockAt && msgAt && msgAt <= lockAt + 1200) {
+    if (fromPage) return 0;
+    if (isConvReadLocked(psid)) return 0;
+    if (key === String(M.activePsid)) {
+      if (nu > 0) queueMarkConvRead(key, { immediate: true });
       return 0;
     }
-
-    if (nu > 0) {
-      if (key === String(M.activePsid)) {
-        queueMarkConvRead(key, { immediate: true });
-        return 0;
-      }
-      clearConvReadLock(psid);
-      return nu;
-    }
-
-    if (key === String(M.activePsid) || isConvReadLocked(psid)) return 0;
-    return 0;
+    return nu > 0 ? nu : 0;
   }
 
   function commitConvReadState(psid, unread) {
@@ -500,7 +490,9 @@
     if (!conv) return;
     if (lastMsg != null) conv.lastMsg = lastMsg;
     conv.lastFromMe = true;
+    conv.unread = 0;
     conv.lastMsgAt = lastMsgAt != null ? lastMsgAt : new Date().toISOString();
+    lockConvRead(psid);
     resortConvsByMeta();
     const cached = _convListCache.get(M.activePageId);
     if (cached) {
@@ -573,7 +565,7 @@
       if (ex) {
         const patch = { ...row };
         if (patch.lastMsg != null) patch.lastMsg = normalizePreviewText(patch.lastMsg);
-        patch.unread = resolveConvUnread(key, patch.unread, patch.lastMsgAt);
+        patch.unread = resolveConvUnread(key, patch.unread, patch.lastMsgAt, patch.lastFromMe);
         if (ex.unread !== patch.unread || ex.lastMsg !== patch.lastMsg
             || ex.name !== patch.name || ex.lastFromMe !== patch.lastFromMe) {
           Object.assign(ex, patch);
@@ -603,7 +595,12 @@
       const existing = M._convByPsid.get(key);
       if (existing) {
         let rowChanged = false;
-        const nu = resolveConvUnread(uc.fb_user_id, uc.is_unread, uc.updated_at || uc.last_msg_at);
+        const nu = resolveConvUnread(
+          uc.fb_user_id,
+          uc.is_unread,
+          uc.updated_at || uc.last_msg_at,
+          uc.last_from_me == 1
+        );
         const prevSnippet = normalizePreviewText(existing.lastMsg || '');
         if (existing.unread !== nu) {
           existing.unread = nu;
@@ -633,7 +630,12 @@
           lastMsg: normalizePreviewText(uc.snippet || uc.last_msg || ''),
           lastFromMe: uc.last_from_me == 1,
           lastMsgAt: uc.updated_at || uc.last_msg_at,
-          unread: resolveConvUnread(uc.fb_user_id, uc.is_unread, uc.updated_at || uc.last_msg_at),
+          unread: resolveConvUnread(
+            uc.fb_user_id,
+            uc.is_unread,
+            uc.updated_at || uc.last_msg_at,
+            uc.last_from_me == 1
+          ),
           page_id: M.activePageId,
         };
         M.convs.push(row);
@@ -2321,7 +2323,7 @@
       lastMsg:    c.last_msg     || c.snippet || '',
       lastFromMe: c.last_from_me == 1,
       lastMsgAt:  c.last_msg_at  || c.updated_at,
-      unread:     resolveConvUnread(c.fb_user_id, c.is_unread, c.updated_at || c.updated_time),
+      unread:     resolveConvUnread(c.fb_user_id, c.is_unread, c.updated_at || c.updated_time, c.last_from_me == 1),
       page_id:    c.page_id,
     }));
   }
@@ -3534,7 +3536,8 @@
           const nu = resolveConvUnread(
             conv.psid,
             data.unreadCount != null ? data.unreadCount : 1,
-            data.updatedTime || conv.lastMsgAt
+            data.updatedTime || conv.lastMsgAt,
+            pageSent || conv.lastFromMe
           );
           if (conv.unread !== nu) {
             conv.unread = nu;
