@@ -45,6 +45,10 @@ const FB_PAGE_INBOX_APP_ID = process.env.FB_PAGE_INBOX_APP_ID || '26390203743090
 /** castme app from Conversation Routing (must match Railway FB_APP_ID). */
 const FB_CASTME_APP_ID = process.env.FB_CASTME_APP_ID || '1841422713196772';
 const FB_HANDOVER_ENABLED = process.env.FB_HANDOVER_ENABLED !== '0';
+/** Off by default — passing to Page Inbox after every reply breaks the next send when Inbox is default routing. */
+const FB_PASS_TO_INBOX_AFTER_SEND = process.env.FB_PASS_TO_INBOX_AFTER_SEND === '1';
+/** Optional Business Suite unread sync on mark-read only (not after send). */
+const FB_PASS_TO_INBOX_ON_MARK_READ = process.env.FB_PASS_TO_INBOX_ON_MARK_READ === '1';
 
 function retentionCutoff() {
     return new Date(Date.now() - MESSAGE_RETENTION_DAYS * 24 * 60 * 60 * 1000);
@@ -97,6 +101,8 @@ module.exports = {
     FB_PAGE_INBOX_APP_ID,
     FB_CASTME_APP_ID,
     FB_HANDOVER_ENABLED,
+    FB_PASS_TO_INBOX_AFTER_SEND,
+    FB_PASS_TO_INBOX_ON_MARK_READ,
     retentionCutoff,
     retentionCutoffUnix,
     isWithinRetention

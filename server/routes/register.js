@@ -1197,11 +1197,17 @@ app.get('/api/pages', requireAuth, async (req, res) => {
         const pageIds      = (data.data || []).map(p => p.id);
         const unreadCounts = state.dbConnected ? await db.getUnreadCountsForPages(pageIds) : {};
 
+        const { FacebookClient } = require('../messenger/facebook-client');
         res.json({
             pages: (data.data || []).map(p => ({
                 id: p.id, name: p.name, picture: p.picture?.data?.url,
                 access_token: p.access_token, unreadCount: unreadCounts[p.id] || 0
-            }))
+            })),
+            messenger_routing: {
+                recommendation: 'no_default_or_inbox_ok',
+                hint: FacebookClient.routingGuidanceShort(),
+                note: 'You do not need castme as default for every connected page. FBCast keeps send control after replies; use Business Suite only when needed for that thread.'
+            }
         });
     } catch (err) {
         logError('pages_route', err);

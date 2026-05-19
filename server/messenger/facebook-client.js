@@ -4,7 +4,9 @@ const {
     isWithinRetention,
     FB_PAGE_INBOX_APP_ID,
     FB_CASTME_APP_ID,
-    FB_HANDOVER_ENABLED
+    FB_HANDOVER_ENABLED,
+    FB_PASS_TO_INBOX_AFTER_SEND,
+    FB_PASS_TO_INBOX_ON_MARK_READ
 } = require('./config');
 const { graphMessageAttachments, normalizeMessengerMessage, FB_MESSAGE_ATTACHMENT_FIELDS } = require('./message-content');
 
@@ -217,6 +219,16 @@ class FacebookClient {
         return false;
     }
 
+    static routingGuidanceShort() {
+        return 'Leave Conversation Routing default unset (recommended for FBCast), or reply from FBCast before using Meta Business Suite for this chat.';
+    }
+
+    static threadControlUserMessage() {
+        return 'Meta Page Inbox controls this chat (common when Page Inbox is your routing default or you replied in Business Suite). '
+            + 'You do not need to set castme as default for every page: leave Conversation Routing default as None/unset, '
+            + 'or open the chat in FBCast and send here before replying in Business Suite.';
+    }
+
     static needsThreadControlBeforeSend(err) {
         if (!err) return false;
         if (FacebookClient.isThreadControlError(err)) return true;
@@ -292,7 +304,7 @@ class FacebookClient {
                 lastErr = result.error;
             } else if (acquired?.inboxOwns || acquired?.threadOwnerAppId === inboxId) {
                 throw new FbApiError({
-                    message: 'Meta Page Inbox controls this chat. In Facebook Page settings → Conversation routing, set castme (not Page Inbox) as the default app. If you replied from Business Suite, send again after switching default, then reconnect Facebook in FBCast Settings.',
+                    message: FacebookClient.threadControlUserMessage(),
                     code: 2018300
                 });
             } else if (acquired && !acquired.ok) {
@@ -316,12 +328,12 @@ class FacebookClient {
             const owner = acquired?.threadOwnerAppId;
             if (owner === inboxId || acquired?.inboxOwns) {
                 throw new FbApiError({
-                    message: 'Meta Page Inbox controls this chat. In Facebook Page settings → Conversation routing, set castme (not Page Inbox) as the default app. If you replied from Business Suite, switch default and reconnect Facebook in FBCast Settings.',
+                    message: FacebookClient.threadControlUserMessage(),
                     code: 2018300
                 });
             }
             throw new FbApiError({
-                message: `Cannot send: another Meta app controls this chat${owner ? ` (app ${owner})` : ''}. Set castme as the default Conversation Routing app (Page settings → Conversation routing), then reconnect Facebook in FBCast Settings.`,
+                message: `Cannot send: another Meta app controls this chat${owner ? ` (app ${owner})` : ''}. ${FacebookClient.routingGuidanceShort()}`,
                 code: 2018300
             });
         }
@@ -517,27 +529,23 @@ class FacebookClient {
         if (ownerId === castmeId) return { ok: true, threadOwnerAppId: ownerId, method: 'already_castme' };
 
         const inboxOwns = ownerId === inboxId;
-        const requestFirst = inboxOwns || !ownerId;
+        const takeAttempts = [
+            () => this.takeThreadControlQuery(pageToken, psid, pageId),
+            () => this.takeThreadControl(pageToken, psid, pageId)
+        ];
+        const requestAttempts = [
+            () => this.requestThreadControl(pageToken, psid, pageId),
+            () => this.requestThreadControlJson(pageToken, psid, pageId)
+        ];
 
         const buildAttempts = () => {
-            const list = [];
-            if (requestFirst) {
-                list.push(
-                    () => this.requestThreadControl(pageToken, psid, pageId),
-                    () => this.requestThreadControlJson(pageToken, psid, pageId)
-                );
+            if (inboxOwns) {
+                return [...takeAttempts];
             }
-            list.push(
-                () => this.takeThreadControlQuery(pageToken, psid, pageId),
-                () => this.takeThreadControl(pageToken, psid, pageId)
-            );
-            if (!requestFirst) {
-                list.push(
-                    () => this.requestThreadControl(pageToken, psid, pageId),
-                    () => this.requestThreadControlJson(pageToken, psid, pageId)
-                );
+            if (!ownerId) {
+                return [...takeAttempts, ...requestAttempts];
             }
-            return list;
+            return [...requestAttempts, ...takeAttempts];
         };
 
         let lastErr = null;
@@ -603,17 +611,32 @@ class FacebookClient {
     }
 
     /**
-     * Clear unread in Meta Business Suite (Conversation Routing).
-     * mark_seen alone does NOT clear Page Inbox — must pass thread to Page Inbox (263902037430900).
+     * Keep castme as thread owner after a successful FBCast send (multi-tenant / Page Inbox default).
      */
-    async markThreadReadOnMeta(pageId, pageToken, psid) {
+    async retainCastmeThreadAfterPageSend(pageId, pageToken, psid) {
+        if (!pageId || !psid || !FB_HANDOVER_ENABLED || FB_PASS_TO_INBOX_AFTER_SEND) return;
+        const castmeId = String(FB_CASTME_APP_ID);
+        try {
+            const owner = await this.getThreadOwner(pageId, pageToken, psid);
+            const ownerId = owner?.appId ? String(owner.appId) : null;
+            if (ownerId === castmeId) return;
+            await this.takeThreadControlQuery(pageToken, psid, pageId).catch(() => {});
+            await this.takeThreadControl(pageToken, psid, pageId).catch(() => {});
+        } catch (_) { /* best-effort */ }
+    }
+
+    /**
+     * Mark read on Meta. Pass to Page Inbox only when explicitly enabled (breaks next send if Inbox is default).
+     */
+    async markThreadReadOnMeta(pageId, pageToken, psid, options = {}) {
+        const passToInbox = options.passToInbox === true;
         let handover = { skipped: true };
         let handoverError = null;
         let handoverMethod = null;
         let threadOwnerAppId = null;
         const inboxId = String(FB_PAGE_INBOX_APP_ID);
 
-        if (pageId && FB_HANDOVER_ENABLED) {
+        if (pageId && FB_HANDOVER_ENABLED && passToInbox) {
             try {
                 const owner = await this.getThreadOwner(pageId, pageToken, psid);
                 threadOwnerAppId = owner?.appId || null;
@@ -685,12 +708,12 @@ class FacebookClient {
         };
     }
 
-    async markSeenWithRetry(pageToken, psid, pageId = null) {
+    async markSeenWithRetry(pageToken, psid, pageId = null, options = {}) {
         let lastErr;
         for (let i = 0; i <= 2; i++) {
             if (i > 0) await new Promise(r => setTimeout(r, 400 * i));
             try {
-                return await this.markThreadReadOnMeta(pageId, pageToken, psid);
+                return await this.markThreadReadOnMeta(pageId, pageToken, psid, options);
             } catch (err) {
                 lastErr = err;
                 if (!FacebookClient.isTransient(err)) throw err;
@@ -722,13 +745,13 @@ class FacebookClient {
         const lower = msg.toLowerCase();
 
         if (FacebookClient.isThreadControlError(fbError)) {
-            if (code === 2018300 && lower.includes('page inbox')) return msg;
-            if (lower.includes('page inbox') || msg.includes(String(FB_PAGE_INBOX_APP_ID))) {
-                return 'Cannot send: Meta Page Inbox owns this chat. In Facebook Page settings → Conversation routing, set castme as the default app (not Page Inbox), then reconnect Facebook in FBCast Settings.';
+            if (msg.includes('castme') || msg.includes('Conversation routing') || msg.includes('Business Suite')) {
+                return msg;
             }
-            return msg.includes('castme') || msg.includes('Conversation routing')
-                ? msg
-                : 'Cannot send: another Meta app controls this chat. In Facebook Page settings → Conversation routing, set castme as the default app, then reconnect Facebook in FBCast Settings.';
+            if (lower.includes('page inbox') || msg.includes(String(FB_PAGE_INBOX_APP_ID))) {
+                return FacebookClient.threadControlUserMessage();
+            }
+            return `Cannot send: another Meta app controls this chat. ${FacebookClient.routingGuidanceShort()}`;
         }
         if (FacebookClient.isOutside24hWindow(fbError)) {
             return 'Cannot send: the 24-hour reply window has ended. Ask the customer to message your page first, then try again.';

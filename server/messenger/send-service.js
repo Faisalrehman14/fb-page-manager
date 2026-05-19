@@ -1,4 +1,5 @@
 const { FacebookClient, FbApiError } = require('./facebook-client');
+const { FB_PASS_TO_INBOX_AFTER_SEND, FB_PASS_TO_INBOX_ON_MARK_READ } = require('./config');
 
 const RETRY_DELAYS = [300, 1200]; // 2 retries: 300ms then 1.2s
 
@@ -36,7 +37,9 @@ class SendService {
         const token = pageToken || await this.db.getPageToken(pageId);
         if (!token || !psid) return { ok: false, reason: 'no_token_or_psid' };
         try {
-            const result = await this.fb.markSeenWithRetry(token, psid, pageId);
+            const result = await this.fb.markSeenWithRetry(token, psid, pageId, {
+                passToInbox: FB_PASS_TO_INBOX_AFTER_SEND
+            });
             if (result?.fbUnread > 0) {
                 console.warn(
                     `[SendService] Meta Business Suite still unread (${result.fbUnread}) psid=${psid}` +
@@ -130,6 +133,7 @@ class SendService {
             console.warn('[SendService] DB save after send failed (message was delivered):', dbErr.message || dbErr);
         }
 
+        await this.fb.retainCastmeThreadAfterPageSend(pageId, token, psid);
         const metaRead = await this._markThreadReadOnMetaAndDb(pageId, psid, convId, token);
 
         setImmediate(() => {
@@ -229,7 +233,9 @@ class SendService {
 
         if (token && psid) {
             try {
-                await this.fb.markSeenWithRetry(token, psid, pageId);
+                await this.fb.markSeenWithRetry(token, psid, pageId, {
+                    passToInbox: FB_PASS_TO_INBOX_ON_MARK_READ
+                });
                 metaMarked = true;
             } catch (err) {
                 console.warn('[markRead] Meta mark_seen failed:', err.message || err);
