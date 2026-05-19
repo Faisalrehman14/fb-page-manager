@@ -104,16 +104,18 @@ html[data-theme='dark'] body {
 }
 
 #view-home {
+  position: relative;
+  isolation: isolate;
   --hd-glass: #0a1020;
   --hd-border: rgba(255, 255, 255, 0.1);
   --hd-shadow: var(--prem-shadow);
   --hd-shadow-hover: var(--prem-shadow-hover);
 }
 
-/* Subtle grid texture on dashboard */
+/* Subtle grid texture on dashboard (scoped to home, not full viewport) */
 #view-home::before {
   content: '';
-  position: fixed;
+  position: absolute;
   inset: 0;
   pointer-events: none;
   z-index: 0;

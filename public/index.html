@@ -11,7 +11,8 @@
     var isLight = saved === 'light';
     document.documentElement.setAttribute('data-theme', isLight ? 'light' : 'dark');
     document.documentElement.style.colorScheme = isLight ? 'light' : 'dark';
-    if (!isLight) document.documentElement.classList.add('theme-dark');
+    document.documentElement.classList.toggle('theme-dark', !isLight);
+    document.documentElement.classList.toggle('theme-light', isLight);
   } catch (e) {
     document.documentElement.setAttribute('data-theme', 'dark');
     document.documentElement.style.colorScheme = 'dark';

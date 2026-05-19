@@ -10,6 +10,8 @@ body.shell-home .sidebar {
 
 #view-home.hv,
 #view-home {
+  position: relative;
+  isolation: isolate;
   --hd-glass: rgba(16, 26, 56, 0.82);
   --hd-border: rgba(139, 156, 255, 0.12);
   --hd-shadow:
@@ -435,9 +437,9 @@ body.shell-home .sidebar {
   align-items: flex-start;
   gap: 14px;
   padding: 22px 20px !important;
-  background: var(--hd-glass);
+  background: var(--hd-glass) !important;
   backdrop-filter: blur(14px);
-  border: 1px solid var(--hd-border);
+  border: 1px solid var(--hd-border) !important;
   border-radius: 14px;
   box-shadow: var(--hd-shadow);
   transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease;
@@ -542,9 +544,9 @@ body.shell-home .sidebar {
 
 /* Shared panels */
 #view-home .hv-panel {
-  background: var(--hd-glass);
+  background: var(--hd-glass) !important;
   backdrop-filter: blur(14px);
-  border: 1px solid var(--hd-border);
+  border: 1px solid var(--hd-border) !important;
   border-radius: 16px;
   box-shadow: var(--hd-shadow);
   overflow: hidden;
@@ -989,32 +991,55 @@ body.light #view-home .hv-hero {
   border-color: rgba(99, 102, 241, 0.2) !important;
 }
 
-body.light #view-home .hv-hero-status {
-  background: rgba(16, 185, 129, 0.1) !important;
-  border-color: rgba(16, 185, 129, 0.25) !important;
-  color: #059669 !important;
+/* ─── Dark theme: full dashboard (no white KPI wash) ─── */
+html[data-theme='dark'] #view-home,
+html.theme-dark #view-home {
+  --hd-glass: rgba(14, 22, 48, 0.94);
+  --hd-border: rgba(139, 156, 255, 0.14);
 }
 
-body.light #view-home .hv-hero-sub {
-  color: var(--text2) !important;
+html[data-theme='dark'] #view-home .hv-kpi,
+html[data-theme='dark'] #view-home .hv-panel,
+html[data-theme='dark'] #view-home .hv-qa-card,
+html[data-theme='dark'] #view-home .hv-plan-card,
+html[data-theme='dark'] #view-home .hv-sync-bar,
+html.theme-dark #view-home .hv-kpi,
+html.theme-dark #view-home .hv-panel,
+html.theme-dark #view-home .hv-qa-card,
+html.theme-dark #view-home .hv-plan-card,
+html.theme-dark #view-home .hv-sync-bar {
+  background: linear-gradient(165deg, rgba(20, 31, 69, 0.96), rgba(12, 18, 40, 0.94)) !important;
+  border-color: var(--hd-border) !important;
 }
 
-body.light #view-home .hv-hero-cta2 {
-  background: rgba(0, 0, 0, 0.03) !important;
-  border-color: var(--border) !important;
-  color: var(--text) !important;
+html[data-theme='dark'] #view-home .hv-kpi-val,
+html[data-theme='dark'] #view-home .hv-metrics-title,
+html[data-theme='dark'] #view-home .hv-panel-title,
+html[data-theme='dark'] #view-home .hv-qa-card-label,
+html.theme-dark #view-home .hv-kpi-val,
+html.theme-dark #view-home .hv-metrics-title,
+html.theme-dark #view-home .hv-panel-title,
+html.theme-dark #view-home .hv-qa-card-label {
+  color: #f1f5ff !important;
 }
 
-body.light #view-home .hv-hero-sched-card {
-  background: rgba(255, 255, 255, 0.7);
+html[data-theme='dark'] #view-home .hv-kpi-lbl,
+html[data-theme='dark'] #view-home .hv-metrics-eyebrow,
+html.theme-dark #view-home .hv-kpi-lbl,
+html.theme-dark #view-home .hv-metrics-eyebrow {
+  color: #94a3b8 !important;
 }
 
-body.light #view-home .hv-kpi,
-body.light #view-home .hv-panel,
-body.light #view-home .hv-qa-card {
-  background: #fff;
+/* ─── Light theme: soft canvas (not flat white page) ─── */
+html[data-theme='light'] #view-home,
+html.theme-light #view-home,
+body.light #view-home {
+  --hd-glass: #ffffff;
+  --hd-border: rgba(99, 102, 241, 0.16);
+  background: linear-gradient(180deg, #e8eeff 0%, #f1f5ff 55%, #eef2ff 100%);
 }
 
-body.light #view-home .hv-plan-card-bg {
-  background: linear-gradient(165deg, #fafafa, #fff);
+html[data-theme='light'] #view-home .hv-metrics-eyebrow,
+body.light #view-home .hv-metrics-eyebrow {
+  color: #6366f1 !important;
 }

@@ -121,6 +121,7 @@ body.light #view-home {
   --prem-shadow-hover:
     0 0 0 1px rgba(99, 102, 241, 0.2),
     0 12px 32px rgba(99, 102, 241, 0.12);
+  background: linear-gradient(180deg, #e8eeff 0%, #f1f5ff 55%, #eef2ff 100%);
 }
 
 html[data-theme='light'] #view-home .hv-hero,

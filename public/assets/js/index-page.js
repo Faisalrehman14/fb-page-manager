@@ -1414,7 +1414,7 @@ window.triggerConnect = async function(plan = null) {
 
 /* Theme — default: dark mode */
 function applyTheme(){
-  const THEME_VERSION = '2-dark';
+  const THEME_VERSION = '3-dark-home';
   if (localStorage.getItem('theme_v') !== THEME_VERSION) {
     localStorage.setItem('promo_theme', 'dark');
     localStorage.setItem('theme_v', THEME_VERSION);
