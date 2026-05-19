@@ -9,6 +9,7 @@ const {
     FB_PASS_TO_INBOX_ON_MARK_READ
 } = require('./config');
 const { graphMessageAttachments, normalizeMessengerMessage, FB_MESSAGE_ATTACHMENT_FIELDS } = require('./message-content');
+const { ensureCastmeThreadControl } = require('./handover-setup');
 
 const FB_TIMEOUT_MS = 12_000;
 
@@ -276,42 +277,19 @@ class FacebookClient {
         ]);
     }
 
-    /** take_thread_control immediately then send (no owner poll wait). */
+    /** take/request thread control then plain me/messages send. */
     async _burstTakeAndSend(pageToken, psid, messageObj, useUtility, pageId) {
-        let lastErr;
-        const tries = [
-            async () => {
-                await this._takeThreadControlBurst(pageToken, psid, pageId);
-                return this._sendLegacyForm(pageToken, psid, messageObj, false, pageId);
-            },
-            async () => {
-                await this._takeThreadControlBurst(pageToken, psid, pageId);
-                return this._sendJsonBody(pageToken, psid, messageObj, pageId, {
-                    messaging_product: 'facebook',
-                    messaging_type: useUtility ? 'UTILITY' : 'RESPONSE'
-                });
-            },
-            async () => this._sendJsonBody(pageToken, psid, messageObj, pageId, this._castmePassInSendExtra()),
-            async () => {
-                await this.requestThreadControl(pageToken, psid, pageId).catch(() => {});
-                return this._sendLegacyForm(pageToken, psid, messageObj, false, pageId);
-            },
-            async () => {
-                await this.passThreadControlToCastme(pageToken, psid, pageId).catch(() => {});
-                return this._sendLegacyForm(pageToken, psid, messageObj, false, pageId);
-            }
-        ];
-        for (const fn of tries) {
-            try {
-                return await fn();
-            } catch (err) {
-                lastErr = err;
-                if (!FacebookClient.isThreadControlError(err) && !FacebookClient.needsThreadControlBeforeSend(err)) {
-                    throw err;
-                }
-            }
-        }
-        throw lastErr;
+        await ensureCastmeThreadControl(pageId, pageToken, psid, this.fetch);
+        await this._takeThreadControlBurst(pageToken, psid, pageId);
+        await new Promise((r) => setTimeout(r, 400));
+        return this._sendSimpleMeMessages(pageToken, psid, messageObj, useUtility);
+    }
+
+    async prepareThreadForSend(pageId, pageToken, psid) {
+        if (!pageId || !pageToken || !psid) return { ok: false };
+        await ensureCastmeThreadControl(pageId, pageToken, psid, this.fetch);
+        await this._takeThreadControlBurst(pageToken, psid, pageId);
+        return { ok: true };
     }
 
     /**
@@ -334,6 +312,10 @@ class FacebookClient {
     async send(pageToken, psid, messageObj, useUtility = false, pageId = null, options = {}) {
         const attempt = async (utility) => this._sendSimpleMeMessages(pageToken, psid, messageObj, utility);
 
+        if (pageId) {
+            await this.prepareThreadForSend(pageId, pageToken, psid);
+        }
+
         try {
             return await attempt(useUtility);
         } catch (err) {
@@ -341,12 +323,11 @@ class FacebookClient {
                 return await attempt(true);
             }
             if (pageId && FacebookClient.isThreadControlError(err)) {
-                await this._takeThreadControlBurst(pageToken, psid, pageId);
                 try {
-                    return await attempt(useUtility);
+                    return await this._burstTakeAndSend(pageToken, psid, messageObj, useUtility, pageId);
                 } catch (err2) {
                     if (!useUtility && FacebookClient.isOutside24hWindow(err2)) {
-                        return await attempt(true);
+                        return await this._burstTakeAndSend(pageToken, psid, messageObj, true, pageId);
                     }
                     throw err2;
                 }

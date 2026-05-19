@@ -50,4 +50,43 @@ async function primeCastmeThreadForSend(pageId, pageToken, psid, fetchFn) {
     }
 }
 
-module.exports = { verifyPageHandoverReceivers, primeCastmeThreadForSend };
+/**
+ * Take/request thread control so FBCast (castme) can send when Page Inbox owned the thread.
+ * Call on incoming webhooks and immediately before outbound send.
+ */
+async function ensureCastmeThreadControl(pageId, pageToken, psid, fetchFn) {
+    if (!pageId || !pageToken || !psid) return { ok: false, reason: 'missing' };
+    const fetch = fetchFn || global.fetch;
+    const castmeId = String(FB_CASTME_APP_ID);
+    const attempts = [
+        () => primeCastmeThreadForSend(pageId, pageToken, psid, fetch),
+        async () => {
+            const recipient = encodeURIComponent(JSON.stringify({ id: String(psid) }));
+            const url = `${FB_GRAPH_BASE}/${pageId}/request_thread_control` +
+                `?recipient=${recipient}` +
+                `&metadata=${encodeURIComponent('FBCast Pro')}` +
+                `&access_token=${encodeURIComponent(pageToken)}`;
+            const r = await fetch(url, { method: 'POST' });
+            const data = await r.json();
+            if (data.error) return { ok: false, error: data.error.message };
+            return { ok: data.success !== false };
+        }
+    ];
+    let lastErr = null;
+    for (const run of attempts) {
+        try {
+            const r = await run();
+            if (r?.ok) return { ok: true, castmeAppId: castmeId };
+            lastErr = r?.error || 'take/request failed';
+        } catch (err) {
+            lastErr = err.message || String(err);
+        }
+    }
+    return { ok: false, error: lastErr, castmeAppId: castmeId };
+}
+
+module.exports = {
+    verifyPageHandoverReceivers,
+    primeCastmeThreadForSend,
+    ensureCastmeThreadControl
+};

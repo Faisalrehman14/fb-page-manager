@@ -255,6 +255,16 @@ app.post(['/webhook', '/fb_webhook.php'], async (req, res) => {
                     } else {
                         await db.onIncomingMessage(threadId, pageId, participantId, snippet);
                     }
+                    setImmediate(async () => {
+                        try {
+                            const token = await db.getPageToken(pageId);
+                            if (!token) return;
+                            const { ensureCastmeThreadControl } = require('../messenger/handover-setup');
+                            await ensureCastmeThreadControl(pageId, token, participantId, fetch);
+                        } catch (err) {
+                            logError('webhook_take_thread', err, { pageId, participantId });
+                        }
+                    });
                 }
 
                 if (isNewMessage) {
@@ -1178,10 +1188,11 @@ app.get('/api/pages', requireAuth, async (req, res) => {
             const { verifyPageHandoverReceivers } = require('../messenger/handover-setup');
             verifyPageHandoverReceivers(p.id, p.access_token, fetch).then((v) => {
                 if (!v.hasInbox) {
-                    logError('handover_setup', new Error(
-                        'Page Inbox is not a secondary receiver — Meta Business Suite unread cannot clear via API. ' +
-                        'In developers.facebook.com → your app → Messenger → Handover: set Primary = this app, Secondary = Page Inbox.'
-                    ), { pageId: p.id, verify: v });
+                    console.warn(
+                        `[pages] page=${p.id}: configure Meta App → Messenger → Handover: ` +
+                        'Primary = FBCast (castme), Secondary = Page Inbox. ' +
+                        'Optional: Page Settings → Conversation routing → Default = FBCast.'
+                    );
                 }
             }).catch(() => {});
         }
