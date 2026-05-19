@@ -559,25 +559,20 @@ body {
   box-shadow: 0 24px 80px rgba(0, 0, 0, 0.6) !important;
 }
 
-/* Scheduling view */
-.sv2-topbar {
+/* Scheduling view — panel backgrounds owned by scheduling.css */
+html[data-theme='dark'] #view-scheduling .sv2-topbar {
   background: var(--premium-glass) !important;
   backdrop-filter: blur(16px);
   border-bottom: 1px solid var(--premium-glass-border) !important;
 }
 
-.sv2-compose,
-.sv2-list-panel {
-  background: transparent !important;
-}
-
-.sv2-card {
+html[data-theme='dark'] #view-scheduling .sv2-card {
   background: var(--premium-glass) !important;
   border: 1px solid var(--premium-glass-border) !important;
   box-shadow: var(--premium-shadow-card) !important;
 }
 
-.sv2-submit {
+html[data-theme='dark'] #view-scheduling .sv2-submit {
   background: var(--gradient-brand) !important;
   box-shadow: var(--shadow-violet) !important;
 }

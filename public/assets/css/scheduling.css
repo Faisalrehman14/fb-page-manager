@@ -893,12 +893,17 @@
 
 /* Compose sections as cards (no HTML wrapper required) */
 .sv2-compose > .sv2-section,
-.sv2-compose > .sv2-row {
+.sv2-compose > .sv2-row,
+.sv2-compose > .sv2-sidebar-hint {
   background: var(--sv-surface);
   border: 1px solid var(--sv-edge);
   border-radius: 16px;
   padding: 18px 20px;
   box-shadow: var(--sv-shadow);
+}
+
+.sv2-compose > .sv2-sidebar-hint {
+  padding: 14px 16px;
 }
 
 .sv2-compose > .sv2-row {
@@ -941,8 +946,10 @@ body.light #view-scheduling .sv2-topbar-sub {
 
 html[data-theme='light'] #view-scheduling .sv2-compose > .sv2-section,
 html[data-theme='light'] #view-scheduling .sv2-compose > .sv2-row,
+html[data-theme='light'] #view-scheduling .sv2-compose > .sv2-sidebar-hint,
 body.light #view-scheduling .sv2-compose > .sv2-section,
-body.light #view-scheduling .sv2-compose > .sv2-row {
+body.light #view-scheduling .sv2-compose > .sv2-row,
+body.light #view-scheduling .sv2-compose > .sv2-sidebar-hint {
   background: #ffffff !important;
   border-color: rgba(99, 102, 241, 0.14) !important;
 }
@@ -1009,6 +1016,162 @@ body.light #view-scheduling .sv2-compose > .sv2-row {
   font-size: 12px;
   font-weight: 700;
   color: #c4b5fd;
+}
+
+/* ─── Dark theme — full panel contrast (beats global premium overrides) ─── */
+html[data-theme='dark'] #view-scheduling,
+body:not(.light) #view-scheduling {
+  background:
+    radial-gradient(ellipse 70% 50% at 0% 0%, rgba(99, 102, 241, 0.16), transparent 55%),
+    radial-gradient(ellipse 50% 40% at 100% 0%, rgba(124, 58, 237, 0.12), transparent 50%),
+    #030508 !important;
+  color: #e2e8f0;
+}
+
+html[data-theme='dark'] #view-scheduling .sv2-compose,
+body:not(.light) #view-scheduling .sv2-compose {
+  background: rgba(6, 10, 24, 0.94) !important;
+  border-right-color: rgba(139, 156, 255, 0.12) !important;
+}
+
+html[data-theme='dark'] #view-scheduling .sv2-list-panel,
+body:not(.light) #view-scheduling .sv2-list-panel {
+  background: rgba(4, 8, 20, 0.88) !important;
+}
+
+html[data-theme='dark'] #view-scheduling .sv2-topbar,
+body:not(.light) #view-scheduling .sv2-topbar {
+  background:
+    linear-gradient(180deg, rgba(16, 22, 48, 0.98) 0%, rgba(8, 12, 28, 0.96) 100%),
+    linear-gradient(118deg, rgba(99, 102, 241, 0.14) 0%, transparent 60%) !important;
+  border-bottom-color: rgba(139, 156, 255, 0.14) !important;
+}
+
+html[data-theme='dark'] #view-scheduling .sv2-topbar-title,
+html[data-theme='dark'] #view-scheduling .sv2-hero-title,
+html[data-theme='dark'] #view-scheduling .sv2-list-title,
+html[data-theme='dark'] #view-scheduling .sv2-compose-head h2,
+html[data-theme='dark'] #view-scheduling .sv2-empty-title,
+html[data-theme='dark'] #view-scheduling .sv2-card-pages,
+html[data-theme='dark'] #view-scheduling .sv2-stat-val,
+body:not(.light) #view-scheduling .sv2-topbar-title,
+body:not(.light) #view-scheduling .sv2-hero-title,
+body:not(.light) #view-scheduling .sv2-list-title,
+body:not(.light) #view-scheduling .sv2-compose-head h2,
+body:not(.light) #view-scheduling .sv2-empty-title,
+body:not(.light) #view-scheduling .sv2-card-pages,
+body:not(.light) #view-scheduling .sv2-stat-val {
+  color: #f1f5f9 !important;
+}
+
+html[data-theme='dark'] #view-scheduling .sv2-topbar-sub,
+html[data-theme='dark'] #view-scheduling .sv2-hero-sub,
+html[data-theme='dark'] #view-scheduling .sv2-list-sub,
+html[data-theme='dark'] #view-scheduling .sv2-card-msg,
+html[data-theme='dark'] #view-scheduling .sv2-card-meta,
+html[data-theme='dark'] #view-scheduling .sv2-empty-sub,
+html[data-theme='dark'] #view-scheduling .sv2-hint,
+html[data-theme='dark'] #view-scheduling .sv2-section-label,
+body:not(.light) #view-scheduling .sv2-topbar-sub,
+body:not(.light) #view-scheduling .sv2-hero-sub,
+body:not(.light) #view-scheduling .sv2-list-sub,
+body:not(.light) #view-scheduling .sv2-card-msg,
+body:not(.light) #view-scheduling .sv2-card-meta,
+body:not(.light) #view-scheduling .sv2-empty-sub,
+body:not(.light) #view-scheduling .sv2-hint,
+body:not(.light) #view-scheduling .sv2-section-label {
+  color: #94a3b8 !important;
+}
+
+html[data-theme='dark'] #view-scheduling .sv2-compose > .sv2-section,
+html[data-theme='dark'] #view-scheduling .sv2-compose > .sv2-row,
+html[data-theme='dark'] #view-scheduling .sv2-compose > .sv2-sidebar-hint,
+html[data-theme='dark'] #view-scheduling .sv2-stat,
+html[data-theme='dark'] #view-scheduling .sv2-card,
+html[data-theme='dark'] #view-scheduling .sv2-list-hdr,
+body:not(.light) #view-scheduling .sv2-compose > .sv2-section,
+body:not(.light) #view-scheduling .sv2-compose > .sv2-row,
+body:not(.light) #view-scheduling .sv2-compose > .sv2-sidebar-hint,
+body:not(.light) #view-scheduling .sv2-stat,
+body:not(.light) #view-scheduling .sv2-card,
+body:not(.light) #view-scheduling .sv2-list-hdr {
+  background: rgba(14, 22, 48, 0.96) !important;
+  border-color: rgba(139, 156, 255, 0.16) !important;
+  box-shadow:
+    0 0 0 1px rgba(168, 85, 247, 0.05) inset,
+    0 8px 32px rgba(0, 0, 0, 0.35) !important;
+}
+
+html[data-theme='dark'] #view-scheduling .sv2-sidebar-hint,
+body:not(.light) #view-scheduling .sv2-sidebar-hint {
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.14), rgba(14, 22, 48, 0.96)) !important;
+  border-color: rgba(139, 92, 246, 0.32) !important;
+}
+
+html[data-theme='dark'] #view-scheduling .sv2-sidebar-hint strong,
+body:not(.light) #view-scheduling .sv2-sidebar-hint strong {
+  color: #f1f5f9 !important;
+}
+
+html[data-theme='dark'] #view-scheduling .sv2-textarea,
+html[data-theme='dark'] #view-scheduling .sv2-input,
+html[data-theme='dark'] #view-scheduling .sv2-img-zone,
+body:not(.light) #view-scheduling .sv2-textarea,
+body:not(.light) #view-scheduling .sv2-input,
+body:not(.light) #view-scheduling .sv2-img-zone {
+  background: rgba(0, 0, 0, 0.35) !important;
+  border-color: rgba(139, 156, 255, 0.22) !important;
+  color: #f1f5f9 !important;
+  color-scheme: dark;
+}
+
+html[data-theme='dark'] #view-scheduling .sv2-textarea::placeholder,
+html[data-theme='dark'] #view-scheduling .sv2-input::placeholder,
+body:not(.light) #view-scheduling .sv2-textarea::placeholder,
+body:not(.light) #view-scheduling .sv2-input::placeholder {
+  color: #64748b !important;
+}
+
+html[data-theme='dark'] #view-scheduling .sv2-refresh-btn,
+html[data-theme='dark'] #view-scheduling .sv2-chip,
+body:not(.light) #view-scheduling .sv2-refresh-btn,
+body:not(.light) #view-scheduling .sv2-chip {
+  background: rgba(14, 22, 48, 0.9) !important;
+  border-color: rgba(139, 156, 255, 0.22) !important;
+  color: #c4b5fd !important;
+}
+
+html[data-theme='dark'] #view-scheduling .sv2-refresh-btn:hover,
+html[data-theme='dark'] #view-scheduling .sv2-chip:hover,
+body:not(.light) #view-scheduling .sv2-refresh-btn:hover,
+body:not(.light) #view-scheduling .sv2-chip:hover {
+  background: rgba(99, 102, 241, 0.2) !important;
+  border-color: rgba(139, 156, 255, 0.35) !important;
+  color: #e9d5ff !important;
+}
+
+html[data-theme='dark'] #view-scheduling .sv2-note,
+body:not(.light) #view-scheduling .sv2-note {
+  background: rgba(99, 102, 241, 0.1) !important;
+  border-color: rgba(99, 102, 241, 0.25) !important;
+  color: #94a3b8 !important;
+}
+
+html[data-theme='dark'] #view-scheduling .sv2-charcount,
+body:not(.light) #view-scheduling .sv2-charcount {
+  color: #7d8cb0 !important;
+}
+
+html[data-theme='dark'] #view-scheduling .sv2-stat-lbl,
+body:not(.light) #view-scheduling .sv2-stat-lbl {
+  color: #7d8cb0 !important;
+}
+
+html[data-theme='dark'] #view-scheduling .sv2-card-cancel,
+body:not(.light) #view-scheduling .sv2-card-cancel {
+  background: rgba(14, 22, 48, 0.8) !important;
+  border-color: rgba(139, 156, 255, 0.18) !important;
+  color: #94a3b8 !important;
 }
 
 /* ─── Light theme ─── */

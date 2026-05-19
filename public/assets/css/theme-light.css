@@ -623,17 +623,7 @@ body.light #appPage .text-muted {
   color: #64748b !important;
 }
 
-/* Scheduling view (inline sv2-* in index.html) */
-html[data-theme='light'] #view-scheduling,
-html[data-theme='light'] #view-scheduling .sv2-topbar,
-html[data-theme='light'] #view-scheduling .sv2-card,
-body.light #view-scheduling,
-body.light #view-scheduling .sv2-topbar,
-body.light #view-scheduling .sv2-card {
-  background: #ffffff !important;
-  color: #0f172a !important;
-}
-
+/* Scheduling view — light overrides live in scheduling.css */
 html[data-theme='light'] #view-scheduling .sv2-title,
 html[data-theme='light'] #view-scheduling .sv2-h2,
 html[data-theme='light'] #view-scheduling label,
