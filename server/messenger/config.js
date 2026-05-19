@@ -46,6 +46,8 @@ const FB_PAGE_INBOX_APP_ID = process.env.FB_PAGE_INBOX_APP_ID || '26390203743090
 const FB_CASTME_APP_ID = process.env.FB_CASTME_APP_ID || '1841422713196772';
 /** Off by default — plain Send API works with Meta default (Page Inbox) routing. Set FB_HANDOVER_ENABLED=1 only if you configured handover in Meta. */
 const FB_HANDOVER_ENABLED = process.env.FB_HANDOVER_ENABLED === '1';
+/** On by default — if plain send hits Meta #10 (another app controls thread), try take/request once then resend. */
+const FB_SEND_RECOVER_THREAD = process.env.FB_SEND_RECOVER_THREAD !== '0';
 /** Off by default — passing to Page Inbox after every reply breaks the next send when Inbox is default routing. */
 const FB_PASS_TO_INBOX_AFTER_SEND = process.env.FB_PASS_TO_INBOX_AFTER_SEND === '1';
 /** Optional Business Suite unread sync on mark-read only (not after send). */
@@ -102,6 +104,7 @@ module.exports = {
     FB_PAGE_INBOX_APP_ID,
     FB_CASTME_APP_ID,
     FB_HANDOVER_ENABLED,
+    FB_SEND_RECOVER_THREAD,
     FB_PASS_TO_INBOX_AFTER_SEND,
     FB_PASS_TO_INBOX_ON_MARK_READ,
     retentionCutoff,

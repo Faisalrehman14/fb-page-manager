@@ -5,9 +5,11 @@ const {
     FB_PAGE_INBOX_APP_ID,
     FB_CASTME_APP_ID,
     FB_HANDOVER_ENABLED,
+    FB_SEND_RECOVER_THREAD,
     FB_PASS_TO_INBOX_AFTER_SEND,
     FB_PASS_TO_INBOX_ON_MARK_READ
 } = require('./config');
+const { primeCastmeThreadForSend } = require('./handover-setup');
 const { graphMessageAttachments, normalizeMessengerMessage, FB_MESSAGE_ATTACHMENT_FIELDS } = require('./message-content');
 
 const FB_TIMEOUT_MS = 12_000;
@@ -338,9 +340,20 @@ class FacebookClient {
         throw lastErr;
     }
 
+    /** One-shot take/request when Meta #10 says another app controls the thread (no pre-send takeover). */
+    async _recoverThreadForSend(pageId, pageToken, psid) {
+        if (!pageId || !psid) return;
+        await primeCastmeThreadForSend(pageId, pageToken, psid, this.fetch).catch(() => {});
+        await this.takeThreadControlQuery(pageToken, psid, pageId).catch(() => {});
+        await this.takeThreadControl(pageToken, psid, pageId).catch(() => {});
+        await this.requestThreadControl(pageToken, psid, pageId).catch(() => {});
+        await this.requestThreadControlJson(pageToken, psid, pageId).catch(() => {});
+        await new Promise((r) => setTimeout(r, 500));
+    }
+
     /**
-     * Send via standard Messenger Send API (no thread take/pass/request).
-     * Works with Meta default Page Inbox routing for most pages.
+     * Send via standard Messenger Send API.
+     * On Meta #10 thread-lock only: try take/request once, then plain send again.
      */
     async send(pageToken, psid, messageObj, useUtility = false, pageId = null, options = {}) {
         const { passToPageInbox = false } = options;
@@ -350,6 +363,17 @@ class FacebookClient {
         if (!result.error) return result;
 
         let lastErr = result.error;
+
+        if (
+            pageId &&
+            FB_SEND_RECOVER_THREAD &&
+            FacebookClient.isThreadControlError(lastErr)
+        ) {
+            await this._recoverThreadForSend(pageId, pageToken, psid);
+            result = await this._runSendStrategies(strategies);
+            if (!result.error) return result;
+            lastErr = result.error;
+        }
 
         if (FB_HANDOVER_ENABLED && pageId && passToPageInbox) {
             const passStrategies = [
@@ -798,13 +822,17 @@ class FacebookClient {
         const lower = msg.toLowerCase();
 
         if (FacebookClient.isThreadControlError(fbError)) {
+            if (lower.includes('another app') && lower.includes('controlling')) {
+                return 'Meta Page Inbox (Business Suite) is controlling this chat, so FBCast cannot send. '
+                    + 'Reply once in Business Suite, or ask the customer to message your page again and reply only from FBCast.';
+            }
             if (FB_HANDOVER_ENABLED) {
                 const owner = fbError.threadOwnerAppId || null;
                 return FacebookClient.threadControlUserMessage(
                     fbError.inboxOwns || owner === String(FB_PAGE_INBOX_APP_ID) ? String(FB_PAGE_INBOX_APP_ID) : owner
                 );
             }
-            return 'Message could not be sent. Try again, or reply from Meta Business Suite if this chat was opened there.';
+            return 'Message could not be sent — another Meta app controls this chat. Try Business Suite or a new customer message.';
         }
         if (FacebookClient.isOutside24hWindow(fbError)) {
             return 'Cannot send: the 24-hour reply window has ended. Ask the customer to message your page first, then try again.';
