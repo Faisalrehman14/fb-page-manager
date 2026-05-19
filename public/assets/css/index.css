@@ -141,13 +141,16 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,te
 @keyframes pulse-dot{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.6;transform:scale(.8)}}
 .hero-badge-dot{width:6px;height:6px;border-radius:50%;background:var(--primary-light);animation:pulse-dot 1.5s infinite}
 
-/* Hero headline */
+/* Hero headline — white gradient text only in dark mode */
 .hero-h1{
   font-size:clamp(52px,7.5vw,96px);font-weight:900;line-height:1.03;
   letter-spacing:-3px;max-width:980px;position:relative;z-index:1;
+  margin-bottom:26px;
+}
+html[data-theme='dark'] .hero-h1,
+body:not(.light) .hero-h1{
   background:linear-gradient(165deg,#fff 25%,rgba(195,215,255,.78) 100%);
   -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
-  margin-bottom:26px;
 }
 .hero-h1 .grad{background:linear-gradient(135deg,#6AB4FF 10%,#C8A8FF 90%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
 
@@ -208,7 +211,9 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,te
 }
 .metric:last-child{border-right:none}
 .metric:hover{background:rgba(255,255,255,.04)}
-.metric-val{font-size:30px;font-weight:900;background:linear-gradient(135deg,#fff,var(--primary-light));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;letter-spacing:-1.5px;line-height:1}
+.metric-val{font-size:30px;font-weight:900;letter-spacing:-1.5px;line-height:1}
+html[data-theme='dark'] .metric-val,
+body:not(.light) .metric-val{background:linear-gradient(135deg,#fff,var(--primary-light));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
 .metric-lbl{font-size:11.5px;color:var(--text3);font-weight:600;letter-spacing:.2px}
 
 /* Hero product preview */
@@ -268,7 +273,7 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,te
 .stat-strip-item{display:flex;align-items:center;gap:12px;padding:24px 40px;border-right:1px solid var(--border)}
 .stat-strip-item:last-child{border-right:none}
 .stat-strip-icon{width:40px;height:40px;border-radius:10px;background:var(--primary-dim);border:1px solid rgba(8,102,255,.15);display:flex;align-items:center;justify-content:center;font-size:16px;color:var(--primary-light);flex-shrink:0}
-.stat-strip-num{font-size:22px;font-weight:900;color:#fff;letter-spacing:-1px;line-height:1}
+.stat-strip-num{font-size:22px;font-weight:900;color:var(--text);letter-spacing:-1px;line-height:1}
 .stat-strip-lbl{font-size:11px;color:var(--text3);font-weight:500;margin-top:2px}
 
 /* ── BIG FEATURE SECTION ── */
@@ -347,7 +352,7 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,te
 .billing-badge{background:linear-gradient(135deg,var(--green),#059669);color:#fff;font-size:10px;font-weight:700;padding:2px 8px;border-radius:100px;margin-left:6px}
 .promo-banner{display:flex;align-items:center;justify-content:center;gap:10px;background:linear-gradient(90deg,rgba(239,68,68,.1),rgba(251,146,60,.1),rgba(239,68,68,.1));border:1px solid rgba(239,68,68,.22);border-radius:14px;padding:12px 24px;margin-bottom:32px;max-width:1100px;animation:promo-pulse 3s ease-in-out infinite}
 .promo-fire{font-size:16px}
-.promo-banner-text{font-size:13.5px;color:rgba(255,255,255,.9);letter-spacing:.1px}
+.promo-banner-text{font-size:13.5px;color:var(--text2);letter-spacing:.1px}
 .promo-banner-text strong{color:#fb923c}
 .promo-countdown{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:#ef4444;background:rgba(239,68,68,.14);border:1px solid rgba(239,68,68,.28);border-radius:100px;padding:3px 11px}
 @keyframes promo-pulse{0%,100%{border-color:rgba(239,68,68,.22)}50%{border-color:rgba(239,68,68,.52)}}
@@ -2104,7 +2109,11 @@ body.light{
 body.light ::-webkit-scrollbar-thumb{background:rgba(8,102,255,.15)}
 body.light ::-webkit-scrollbar-thumb:hover{background:rgba(8,102,255,.25)}
 body.light .hero{background:radial-gradient(ellipse 80% 60% at 50% -10%,rgba(8,102,255,.10) 0%,transparent 60%),#EFF4FF}
-body.light .hero-h1{background:linear-gradient(160deg,#061640 0%,#0044CC 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+body.light #landingPage .hero-h1{color:#0c1222;-webkit-text-fill-color:#0c1222;background:none;-webkit-background-clip:unset;background-clip:unset}
+body.light #landingPage .hero-h1 .grad,body.light #landingPage .hero-h1 em{background:linear-gradient(135deg,#2563eb,#6d28d9);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+body.light .metric-val{background:none;-webkit-text-fill-color:#0f172a;color:#0f172a}
+body.light .promo-banner-text{color:#334155}
+body.light .promo-banner-text strong{color:#c2410c}
 body.light .nav{background:rgba(240,244,255,.88)}
 body.light .nav.scrolled{background:rgba(240,244,255,.96)}
 

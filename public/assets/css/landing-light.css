@@ -98,21 +98,25 @@ body.light #landingPage .hero {
     linear-gradient(180deg, #f5f3ff 0%, #eef2ff 100%) !important;
 }
 
+/* Headline: solid dark text + gradient accent only on .grad (fixes invisible white clip) */
 html[data-theme='light'] #landingPage .hero-h1,
 body.light #landingPage .hero-h1 {
-  background: linear-gradient(160deg, #0c1222 0%, #1e40af 55%, #6d28d9 100%) !important;
+  background: none !important;
+  -webkit-background-clip: unset !important;
+  background-clip: unset !important;
+  -webkit-text-fill-color: #0c1222 !important;
+  color: #0c1222 !important;
+}
+
+html[data-theme='light'] #landingPage .hero-h1 .grad,
+html[data-theme='light'] #landingPage .hero-h1 em,
+body.light #landingPage .hero-h1 .grad,
+body.light #landingPage .hero-h1 em {
+  background: linear-gradient(135deg, #2563eb 0%, #6d28d9 100%) !important;
   -webkit-background-clip: text !important;
   background-clip: text !important;
   -webkit-text-fill-color: transparent !important;
   color: transparent !important;
-}
-
-html[data-theme='light'] #landingPage .hero-h1 .grad,
-body.light #landingPage .hero-h1 .grad {
-  background: linear-gradient(135deg, #2563eb 10%, #7c3aed 90%) !important;
-  -webkit-background-clip: text !important;
-  background-clip: text !important;
-  -webkit-text-fill-color: transparent !important;
 }
 
 html[data-theme='light'] #landingPage .hero-sub,
@@ -142,10 +146,52 @@ body.light #landingPage .hero-badge {
 }
 
 html[data-theme='light'] #landingPage .activity-ticker,
-body.light #landingPage .activity-ticker {
-  background: rgba(16, 185, 129, 0.08) !important;
-  border-color: rgba(16, 185, 129, 0.22) !important;
+html[data-theme='light'] #landingPage .ticker-text,
+body.light #landingPage .activity-ticker,
+body.light #landingPage .ticker-text {
+  background: rgba(16, 185, 129, 0.1) !important;
+  border-color: rgba(16, 185, 129, 0.28) !important;
   color: #047857 !important;
+}
+
+html[data-theme='light'] #landingPage .ticker-text,
+body.light #landingPage .ticker-text {
+  background: transparent !important;
+  border: none !important;
+}
+
+/* Hero metrics bar */
+html[data-theme='light'] #landingPage .hero-metrics,
+body.light #landingPage .hero-metrics {
+  background: #ffffff !important;
+  border-color: rgba(99, 102, 241, 0.14) !important;
+  box-shadow: var(--lp-shadow) !important;
+}
+
+html[data-theme='light'] #landingPage .metric-val,
+html[data-theme='light'] #landingPage .metric .counter-num,
+body.light #landingPage .metric-val,
+body.light #landingPage .metric .counter-num {
+  background: none !important;
+  -webkit-background-clip: unset !important;
+  background-clip: unset !important;
+  -webkit-text-fill-color: #0f172a !important;
+  color: #0f172a !important;
+}
+
+html[data-theme='light'] #landingPage .metric-lbl,
+body.light #landingPage .metric-lbl {
+  color: #64748b !important;
+}
+
+html[data-theme='light'] #landingPage .metric,
+body.light #landingPage .metric {
+  border-right-color: #e2e8f0 !important;
+}
+
+html[data-theme='light'] #landingPage .hero-social-proof,
+body.light #landingPage .hero-social-proof {
+  color: #475569 !important;
 }
 
 html[data-theme='light'] #landingPage .hero-metric-val,
@@ -208,7 +254,21 @@ html[data-theme='light'] #landingPage .bigfeat-h2,
 html[data-theme='light'] #landingPage .section-h2,
 body.light #landingPage .bigfeat-h2,
 body.light #landingPage .section-h2 {
+  background: none !important;
+  -webkit-background-clip: unset !important;
+  background-clip: unset !important;
+  -webkit-text-fill-color: #0f172a !important;
   color: #0f172a !important;
+}
+
+html[data-theme='light'] #landingPage .bigfeat-h2 em,
+html[data-theme='light'] #landingPage .section-h2 em,
+body.light #landingPage .bigfeat-h2 em,
+body.light #landingPage .section-h2 em {
+  background: linear-gradient(135deg, #2563eb, #7c3aed) !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
 }
 
 html[data-theme='light'] #landingPage .bigfeat-p,
@@ -303,6 +363,24 @@ body.light #landingPage .pricing-grid--6 .price-feats li {
   border-bottom-color: #e2e8f0 !important;
 }
 
+html[data-theme='light'] #landingPage .pricing-grid--6 .price-billing,
+html[data-theme='light'] #landingPage .pricing-grid--6 .price-amount sub,
+body.light #landingPage .pricing-grid--6 .price-billing,
+body.light #landingPage .pricing-grid--6 .price-amount sub {
+  color: #64748b !important;
+}
+
+html[data-theme='light'] #landingPage .billing-toggle button,
+body.light #landingPage .billing-toggle button {
+  color: #64748b !important;
+}
+
+html[data-theme='light'] #landingPage .billing-toggle button.active,
+body.light #landingPage .billing-toggle button.active {
+  color: #ffffff !important;
+  background: linear-gradient(135deg, #2563eb, #6d28d9) !important;
+}
+
 html[data-theme='light'] #landingPage .billing-toggle,
 body.light #landingPage .billing-toggle {
   background: #f1f5f9 !important;
@@ -322,8 +400,99 @@ body.light #landingPage .billing-toggle button.active {
 
 html[data-theme='light'] #landingPage .promo-banner,
 body.light #landingPage .promo-banner {
-  background: rgba(99, 102, 241, 0.08) !important;
-  border-color: rgba(99, 102, 241, 0.2) !important;
+  background: rgba(239, 68, 68, 0.08) !important;
+  border-color: rgba(239, 68, 68, 0.3) !important;
+  color: #1e293b !important;
+}
+
+html[data-theme='light'] #landingPage .promo-banner-text,
+html[data-theme='light'] .promo-banner-text,
+body.light #landingPage .promo-banner-text,
+body.light .promo-banner-text {
+  color: #1e293b !important;
+}
+
+html[data-theme='light'] #landingPage .promo-banner-text strong,
+html[data-theme='light'] .promo-banner-text strong,
+body.light #landingPage .promo-banner-text strong,
+body.light .promo-banner-text strong {
+  color: #c2410c !important;
+}
+
+html[data-theme='light'] #landingPage .promo-countdown,
+html[data-theme='light'] .promo-countdown,
+body.light #landingPage .promo-countdown,
+body.light .promo-countdown {
+  color: #1d4ed8 !important;
+  background: rgba(59, 130, 246, 0.14) !important;
+  border-color: rgba(59, 130, 246, 0.3) !important;
+}
+
+/* Trust strip + CTA notes */
+html[data-theme='light'] #landingPage .trust-strip,
+body.light #landingPage .trust-strip {
+  background: #f8fafc !important;
+  border-top-color: #e2e8f0 !important;
+}
+
+html[data-theme='light'] #landingPage .trust-item,
+body.light #landingPage .trust-item {
+  color: #475569 !important;
+  border-right-color: #e2e8f0 !important;
+}
+
+html[data-theme='light'] #landingPage .trust-item i,
+body.light #landingPage .trust-item i {
+  color: #6366f1 !important;
+}
+
+html[data-theme='light'] #landingPage .cta-note-item,
+body.light #landingPage .cta-note-item {
+  color: #64748b !important;
+}
+
+html[data-theme='light'] #landingPage .cta-note-item i,
+body.light #landingPage .cta-note-item i {
+  color: #059669 !important;
+}
+
+/* Stats strip */
+html[data-theme='light'] #landingPage .stat-strip-num,
+html[data-theme='light'] #landingPage .proof-num,
+body.light #landingPage .stat-strip-num,
+body.light #landingPage .proof-num {
+  color: #0f172a !important;
+  background: none !important;
+  -webkit-text-fill-color: #0f172a !important;
+}
+
+html[data-theme='light'] #landingPage .proof-label,
+html[data-theme='light'] #landingPage .proof-sub,
+body.light #landingPage .proof-label,
+body.light #landingPage .proof-sub {
+  color: #64748b !important;
+}
+
+html[data-theme='light'] #landingPage .stat-strip-lbl,
+body.light #landingPage .stat-strip-lbl {
+  color: #64748b !important;
+}
+
+/* Hero preview mock UI */
+html[data-theme='light'] #landingPage .hp-stat-num,
+body.light #landingPage .hp-stat-num {
+  color: #0f172a !important;
+}
+
+html[data-theme='light'] #landingPage .hp-stat-lbl,
+body.light #landingPage .hp-stat-lbl {
+  color: #64748b !important;
+}
+
+html[data-theme='light'] #landingPage .hero-preview-topbar,
+body.light #landingPage .hero-preview-topbar {
+  background: #f1f5f9 !important;
+  border-bottom-color: #e2e8f0 !important;
 }
 
 /* Pro sections */
