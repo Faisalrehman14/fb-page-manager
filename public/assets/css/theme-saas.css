@@ -1,0 +1,134 @@
+/**
+ * FBCast Pro — Unified SaaS theme layer (dark + light)
+ * Loads after component CSS, before per-area *-light.css overrides.
+ */
+
+/* ─── Design tokens ─── */
+html[data-theme='dark'],
+html.theme-dark {
+  --saas-canvas: var(--fbc-canvas, #030508);
+  --saas-panel: rgba(14, 22, 48, 0.96);
+  --saas-panel-border: rgba(139, 156, 255, 0.14);
+  --saas-panel-shadow:
+    0 0 0 1px rgba(168, 85, 247, 0.05) inset,
+    0 8px 32px rgba(0, 0, 0, 0.35);
+  --saas-heading: #f1f5f9;
+  --saas-muted: #94a3b8;
+}
+
+html[data-theme='light'],
+html.theme-light,
+body.light {
+  --saas-canvas: var(--fbc-canvas, #eef2ff);
+  --saas-panel: #ffffff;
+  --saas-panel-border: rgba(99, 102, 241, 0.14);
+  --saas-panel-shadow:
+    0 0 0 1px rgba(15, 23, 42, 0.04),
+    0 4px 24px rgba(99, 102, 241, 0.08);
+  --saas-heading: #0f172a;
+  --saas-muted: #64748b;
+}
+
+/* ─── App shell — dark ─── */
+html[data-theme='dark'] #appPage,
+html.theme-dark #appPage {
+  background: var(--saas-canvas) !important;
+  color: var(--text, #e2e8f0);
+}
+
+html[data-theme='dark'] #appPage .saas-topbar,
+html.theme-dark #appPage .saas-topbar {
+  background: rgba(6, 10, 22, 0.92) !important;
+  border-bottom-color: rgba(139, 156, 255, 0.12) !important;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.25) !important;
+}
+
+html[data-theme='dark'] #appPage .nav-sidebar,
+html[data-theme='dark'] #appPage .sidebar,
+html.theme-dark #appPage .nav-sidebar,
+html.theme-dark #appPage .sidebar {
+  background: linear-gradient(180deg, rgba(16, 26, 56, 0.98) 0%, rgba(8, 12, 28, 0.99) 100%) !important;
+  border-color: rgba(139, 156, 255, 0.1) !important;
+}
+
+html[data-theme='dark'] #appPage .app-body,
+html.theme-dark #appPage .app-body {
+  background: transparent !important;
+}
+
+html[data-theme='dark'] #appPage .pro-view,
+html.theme-dark #appPage .pro-view {
+  background: transparent !important;
+  color: var(--text, #e2e8f0);
+}
+
+html[data-theme='dark'] #appPage .pro-view__title,
+html.theme-dark #appPage .pro-view__title {
+  color: var(--saas-heading) !important;
+}
+
+html[data-theme='dark'] #appPage .pro-card,
+html[data-theme='dark'] #appPage .pro-stat,
+html.theme-dark #appPage .pro-card,
+html.theme-dark #appPage .pro-stat {
+  background: var(--saas-panel) !important;
+  border-color: var(--saas-panel-border) !important;
+  box-shadow: var(--saas-panel-shadow) !important;
+}
+
+/* ─── App shell — light (reinforce theme-light.css) ─── */
+html[data-theme='light'] #appPage,
+body.light #appPage {
+  background: var(--saas-canvas) !important;
+  color: var(--text, #0f172a);
+}
+
+html[data-theme='light'] #appPage .pro-view__title,
+body.light #appPage .pro-view__title {
+  color: var(--saas-heading) !important;
+}
+
+html[data-theme='light'] #appPage .pro-card,
+html[data-theme='light'] #appPage .pro-stat,
+body.light #appPage .pro-card,
+body.light #appPage .pro-stat {
+  background: var(--saas-panel) !important;
+  border-color: var(--saas-panel-border) !important;
+  box-shadow: var(--saas-panel-shadow) !important;
+}
+
+/* Broadcast columns — dark */
+html[data-theme='dark'] #view-broadcast .compose-col,
+html[data-theme='dark'] #view-broadcast .compose,
+html[data-theme='dark'] #view-broadcast .broadcast-col,
+html.theme-dark #view-broadcast .compose-col,
+html.theme-dark #view-broadcast .compose,
+html.theme-dark #view-broadcast .broadcast-col {
+  background: linear-gradient(180deg, rgba(14, 22, 48, 0.98), rgba(10, 16, 34, 0.99)) !important;
+  border-color: rgba(139, 156, 255, 0.1) !important;
+}
+
+/* Landing — dark polish */
+html[data-theme='dark'] #landingPage,
+html.theme-dark #landingPage {
+  background: var(--saas-canvas) !important;
+  color: var(--text, #e2e8f0);
+}
+
+html[data-theme='dark'] #landingPage .footer-enhanced,
+html.theme-dark #landingPage .footer-enhanced {
+  background: rgba(2, 10, 20, 0.75) !important;
+  border-top-color: rgba(139, 156, 255, 0.1) !important;
+}
+
+html[data-theme='dark'] #landingPage .pro-logo-cloud,
+html.theme-dark #landingPage .pro-logo-cloud {
+  background: rgba(0, 0, 0, 0.25) !important;
+  border-color: rgba(255, 255, 255, 0.06) !important;
+}
+
+html[data-theme='dark'] #landingPage .pro-compare__table,
+html.theme-dark #landingPage .pro-compare__table {
+  background: rgba(12, 24, 48, 0.65) !important;
+  border-color: rgba(139, 156, 255, 0.12) !important;
+}

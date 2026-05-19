@@ -1,0 +1,459 @@
+/**
+ * FBCast Pro — Landing page light / white theme
+ * Loads last. Overrides saas-premium dark !important rules on #landingPage.
+ */
+
+html[data-theme='light'] #landingPage,
+body.light #landingPage {
+  --lp-glass: #ffffff;
+  --lp-border: rgba(99, 102, 241, 0.16);
+  --lp-shadow:
+    0 0 0 1px rgba(15, 23, 42, 0.04),
+    0 4px 24px rgba(99, 102, 241, 0.08);
+  --lp-heading: #0c1222;
+  --lp-muted: #64748b;
+  background: var(--fbc-canvas) !important;
+  color: var(--lp-heading);
+}
+
+/* Nav */
+html[data-theme='light'] #landingPage .nav,
+html[data-theme='light'] #landingPage .nav.nav--scrolled,
+html[data-theme='light'] #landingPage .nav.scrolled,
+body.light #landingPage .nav,
+body.light #landingPage .nav.nav--scrolled,
+body.light #landingPage .nav.scrolled {
+  background: rgba(255, 255, 255, 0.92) !important;
+  border-bottom-color: rgba(99, 102, 241, 0.12) !important;
+  box-shadow: 0 4px 24px rgba(15, 23, 42, 0.06) !important;
+  backdrop-filter: blur(20px) saturate(180%);
+}
+
+html[data-theme='light'] #landingPage .nav-brand-name,
+body.light #landingPage .nav-brand-name {
+  color: #0c1222 !important;
+  -webkit-text-fill-color: unset;
+}
+
+html[data-theme='light'] #landingPage .nav-brand-name em,
+body.light #landingPage .nav-brand-name em {
+  background: linear-gradient(135deg, #2563eb, #7c3aed);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+html[data-theme='light'] #landingPage .nav-links a,
+body.light #landingPage .nav-links a {
+  color: #475569 !important;
+}
+
+html[data-theme='light'] #landingPage .nav-links a:hover,
+body.light #landingPage .nav-links a:hover {
+  color: #0f172a !important;
+  background: rgba(99, 102, 241, 0.08) !important;
+}
+
+html[data-theme='light'] #landingPage .nav-hamburger,
+body.light #landingPage .nav-hamburger {
+  color: #475569 !important;
+}
+
+html[data-theme='light'] #landingPage .nav-theme-btn,
+body.light #landingPage .nav-theme-btn {
+  color: #475569 !important;
+  background: #f1f5f9 !important;
+  border-color: rgba(99, 102, 241, 0.18) !important;
+}
+
+html[data-theme='light'] #landingPage .nav-theme-btn:hover,
+body.light #landingPage .nav-theme-btn:hover {
+  color: #1e3a8a !important;
+  background: #e0e7ff !important;
+  border-color: rgba(99, 102, 241, 0.3) !important;
+}
+
+/* Mobile menu */
+html[data-theme='light'] #landingPage .mobile-menu,
+body.light #landingPage .mobile-menu {
+  background: rgba(255, 255, 255, 0.98) !important;
+  backdrop-filter: blur(20px);
+}
+
+html[data-theme='light'] #landingPage .mobile-menu-link,
+body.light #landingPage .mobile-menu-link {
+  color: #334155 !important;
+}
+
+html[data-theme='light'] #landingPage .mobile-menu-close,
+body.light #landingPage .mobile-menu-close {
+  color: #64748b !important;
+}
+
+/* Hero */
+html[data-theme='light'] #landingPage .hero,
+body.light #landingPage .hero {
+  background:
+    radial-gradient(ellipse 80% 60% at 50% -10%, rgba(99, 102, 241, 0.12) 0%, transparent 55%),
+    linear-gradient(180deg, #f5f3ff 0%, #eef2ff 100%) !important;
+}
+
+html[data-theme='light'] #landingPage .hero-h1,
+body.light #landingPage .hero-h1 {
+  background: linear-gradient(160deg, #0c1222 0%, #1e40af 55%, #6d28d9 100%) !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  color: transparent !important;
+}
+
+html[data-theme='light'] #landingPage .hero-h1 .grad,
+body.light #landingPage .hero-h1 .grad {
+  background: linear-gradient(135deg, #2563eb 10%, #7c3aed 90%) !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+}
+
+html[data-theme='light'] #landingPage .hero-sub,
+html[data-theme='light'] #landingPage .hero-sp-text,
+body.light #landingPage .hero-sub,
+body.light #landingPage .hero-sp-text {
+  color: #475569 !important;
+}
+
+html[data-theme='light'] #landingPage .hero-sp-text strong,
+body.light #landingPage .hero-sp-text strong {
+  color: #0f172a !important;
+}
+
+html[data-theme='light'] #landingPage .hero-grid,
+body.light #landingPage .hero-grid {
+  background-image:
+    linear-gradient(rgba(99, 102, 241, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(99, 102, 241, 0.06) 1px, transparent 1px) !important;
+}
+
+html[data-theme='light'] #landingPage .hero-badge,
+body.light #landingPage .hero-badge {
+  background: rgba(99, 102, 241, 0.08) !important;
+  border-color: rgba(99, 102, 241, 0.22) !important;
+  color: #4338ca !important;
+}
+
+html[data-theme='light'] #landingPage .activity-ticker,
+body.light #landingPage .activity-ticker {
+  background: rgba(16, 185, 129, 0.08) !important;
+  border-color: rgba(16, 185, 129, 0.22) !important;
+  color: #047857 !important;
+}
+
+html[data-theme='light'] #landingPage .hero-metric-val,
+body.light #landingPage .hero-metric-val {
+  color: #0f172a !important;
+}
+
+html[data-theme='light'] #landingPage .hero-metric-lbl,
+body.light #landingPage .hero-metric-lbl {
+  color: #64748b !important;
+}
+
+html[data-theme='light'] #landingPage .hero-preview-frame,
+body.light #landingPage .hero-preview-frame {
+  background: #ffffff !important;
+  border-color: rgba(99, 102, 241, 0.18) !important;
+  box-shadow: 0 24px 64px rgba(99, 102, 241, 0.12) !important;
+}
+
+/* Marquee + stats */
+html[data-theme='light'] #landingPage .marquee-strip,
+body.light #landingPage .marquee-strip {
+  background: linear-gradient(180deg, #e8eeff, #eef2ff) !important;
+  border-color: rgba(99, 102, 241, 0.12) !important;
+}
+
+html[data-theme='light'] #landingPage .marquee-item,
+body.light #landingPage .marquee-item {
+  color: #64748b !important;
+}
+
+html[data-theme='light'] #landingPage .stats-proof-section,
+body.light #landingPage .stats-proof-section {
+  background: linear-gradient(180deg, #e0e7ff, #eef2ff) !important;
+}
+
+html[data-theme='light'] #landingPage .stats-proof-item,
+body.light #landingPage .stats-proof-item {
+  background: #ffffff !important;
+}
+
+html[data-theme='light'] #landingPage .stats-proof-num,
+body.light #landingPage .stats-proof-num {
+  color: #0f172a !important;
+}
+
+html[data-theme='light'] #landingPage .stats-proof-lbl,
+body.light #landingPage .stats-proof-lbl {
+  color: #64748b !important;
+}
+
+/* Big feature */
+html[data-theme='light'] #landingPage .bigfeat-section,
+body.light #landingPage .bigfeat-section {
+  background: linear-gradient(180deg, #f8fafc, #eef2ff) !important;
+  border-bottom-color: rgba(99, 102, 241, 0.1) !important;
+}
+
+html[data-theme='light'] #landingPage .bigfeat-h2,
+html[data-theme='light'] #landingPage .section-h2,
+body.light #landingPage .bigfeat-h2,
+body.light #landingPage .section-h2 {
+  color: #0f172a !important;
+}
+
+html[data-theme='light'] #landingPage .bigfeat-p,
+html[data-theme='light'] #landingPage .section-sub,
+body.light #landingPage .bigfeat-p,
+body.light #landingPage .section-sub {
+  color: #475569 !important;
+}
+
+html[data-theme='light'] #landingPage .section-label,
+body.light #landingPage .section-label {
+  color: #6366f1 !important;
+  background: rgba(99, 102, 241, 0.1) !important;
+  border-color: rgba(99, 102, 241, 0.2) !important;
+}
+
+/* Cards: features, steps, pricing, CTA */
+html[data-theme='light'] #landingPage .feat,
+html[data-theme='light'] #landingPage .step,
+html[data-theme='light'] #landingPage .price-card,
+html[data-theme='light'] #landingPage .cta-box,
+body.light #landingPage .feat,
+body.light #landingPage .step,
+body.light #landingPage .price-card,
+body.light #landingPage .cta-box {
+  background: var(--lp-glass) !important;
+  border-color: var(--lp-border) !important;
+  box-shadow: var(--lp-shadow) !important;
+  backdrop-filter: none !important;
+}
+
+html[data-theme='light'] #landingPage .feat h3,
+html[data-theme='light'] #landingPage .step h3,
+body.light #landingPage .feat h3,
+body.light #landingPage .step h3 {
+  color: #0f172a !important;
+}
+
+html[data-theme='light'] #landingPage .feat p,
+html[data-theme='light'] #landingPage .step p,
+body.light #landingPage .feat p,
+body.light #landingPage .step p {
+  color: #475569 !important;
+}
+
+html[data-theme='light'] #landingPage .pricing-grid--6 .price-card--gold,
+body.light #landingPage .pricing-grid--6 .price-card--gold {
+  background: linear-gradient(160deg, rgba(99, 102, 241, 0.1) 0%, #ffffff 48%) !important;
+  border-color: rgba(99, 102, 241, 0.28) !important;
+  box-shadow: 0 12px 40px rgba(99, 102, 241, 0.12) !important;
+}
+
+html[data-theme='light'] #landingPage .pricing-grid--6 .price-name,
+html[data-theme='light'] #landingPage .pricing-grid--6 .price-card:nth-child(n) .price-name,
+body.light #landingPage .pricing-grid--6 .price-name,
+body.light #landingPage .pricing-grid--6 .price-card:nth-child(n) .price-name {
+  color: #64748b !important;
+}
+
+html[data-theme='light'] #landingPage .pricing-grid--6 .price-card--gold .price-name,
+body.light #landingPage .pricing-grid--6 .price-card--gold .price-name {
+  color: #4f46e5 !important;
+}
+
+html[data-theme='light'] #landingPage .pricing-grid--6 .price-amount,
+html[data-theme='light'] #landingPage .pricing-grid--6 .price-card:nth-child(n) .price-amount,
+body.light #landingPage .pricing-grid--6 .price-amount,
+body.light #landingPage .pricing-grid--6 .price-card:nth-child(n) .price-amount {
+  color: #0f172a !important;
+  background: none !important;
+  -webkit-text-fill-color: #0f172a !important;
+}
+
+html[data-theme='light'] #landingPage .pricing-grid--6 .price-card--gold .price-amount,
+body.light #landingPage .pricing-grid--6 .price-card--gold .price-amount {
+  background: linear-gradient(135deg, #1e40af, #6d28d9) !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+}
+
+html[data-theme='light'] #landingPage .pricing-grid--6 .price-original,
+html[data-theme='light'] #landingPage .pricing-grid--6 .price-original s,
+body.light #landingPage .pricing-grid--6 .price-original,
+body.light #landingPage .pricing-grid--6 .price-original s {
+  color: #94a3b8 !important;
+}
+
+html[data-theme='light'] #landingPage .pricing-grid--6 .price-feats li,
+body.light #landingPage .pricing-grid--6 .price-feats li {
+  color: #475569 !important;
+  border-bottom-color: #e2e8f0 !important;
+}
+
+html[data-theme='light'] #landingPage .billing-toggle,
+body.light #landingPage .billing-toggle {
+  background: #f1f5f9 !important;
+  border: 1px solid #e2e8f0 !important;
+}
+
+html[data-theme='light'] #landingPage .billing-toggle button,
+body.light #landingPage .billing-toggle button {
+  color: #64748b !important;
+}
+
+html[data-theme='light'] #landingPage .billing-toggle button.active,
+body.light #landingPage .billing-toggle button.active {
+  color: #0f172a !important;
+  background: #ffffff !important;
+}
+
+html[data-theme='light'] #landingPage .promo-banner,
+body.light #landingPage .promo-banner {
+  background: rgba(99, 102, 241, 0.08) !important;
+  border-color: rgba(99, 102, 241, 0.2) !important;
+}
+
+/* Pro sections */
+html[data-theme='light'] #landingPage .pro-logo-cloud,
+body.light #landingPage .pro-logo-cloud {
+  background: #f8fafc !important;
+  border-color: rgba(99, 102, 241, 0.1) !important;
+}
+
+html[data-theme='light'] #landingPage .pro-logo-pill,
+body.light #landingPage .pro-logo-pill {
+  background: #ffffff !important;
+  border-color: rgba(99, 102, 241, 0.14) !important;
+  color: #475569 !important;
+}
+
+html[data-theme='light'] #landingPage .pro-compare__table,
+body.light #landingPage .pro-compare__table {
+  background: #ffffff !important;
+  border-color: rgba(99, 102, 241, 0.14) !important;
+}
+
+html[data-theme='light'] #landingPage .pro-compare__table th,
+body.light #landingPage .pro-compare__table th {
+  background: #f1f5f9 !important;
+  color: #64748b !important;
+  border-bottom-color: #e2e8f0 !important;
+}
+
+html[data-theme='light'] #landingPage .pro-compare__table td,
+body.light #landingPage .pro-compare__table td {
+  border-bottom-color: #f1f5f9 !important;
+  color: #475569 !important;
+}
+
+html[data-theme='light'] #landingPage .pro-compare__table th:first-child,
+html[data-theme='light'] #landingPage .pro-compare__table td:first-child,
+body.light #landingPage .pro-compare__table th:first-child,
+body.light #landingPage .pro-compare__table td:first-child {
+  color: #0f172a !important;
+}
+
+html[data-theme='light'] #landingPage .pro-compare__highlight,
+body.light #landingPage .pro-compare__highlight {
+  background: rgba(99, 102, 241, 0.06) !important;
+}
+
+/* Testimonials, FAQ, CTA */
+html[data-theme='light'] #landingPage .testimonial,
+html[data-theme='light'] #landingPage .testimonial-meta,
+body.light #landingPage .testimonial,
+body.light #landingPage .testimonial-meta {
+  background: #ffffff !important;
+  border-color: rgba(99, 102, 241, 0.14) !important;
+  box-shadow: var(--lp-shadow) !important;
+}
+
+html[data-theme='light'] #landingPage .testimonial-text,
+body.light #landingPage .testimonial-text {
+  color: #334155 !important;
+}
+
+html[data-theme='light'] #landingPage .testimonial-name,
+body.light #landingPage .testimonial-name {
+  color: #0f172a !important;
+}
+
+html[data-theme='light'] #landingPage .testimonial-role,
+body.light #landingPage .testimonial-role {
+  color: #64748b !important;
+}
+
+html[data-theme='light'] #landingPage .testimonial-author,
+body.light #landingPage .testimonial-author {
+  border-top-color: #e2e8f0 !important;
+}
+
+html[data-theme='light'] #landingPage .faq-item,
+body.light #landingPage .faq-item {
+  background: #ffffff !important;
+  border-color: rgba(99, 102, 241, 0.12) !important;
+}
+
+html[data-theme='light'] #landingPage .faq-q,
+body.light #landingPage .faq-q {
+  color: #0f172a !important;
+}
+
+html[data-theme='light'] #landingPage .faq-a,
+body.light #landingPage .faq-a {
+  color: #475569 !important;
+}
+
+html[data-theme='light'] #landingPage .cta-h2,
+body.light #landingPage .cta-h2 {
+  color: #0f172a !important;
+}
+
+html[data-theme='light'] #landingPage .cta-sub,
+body.light #landingPage .cta-sub {
+  color: #475569 !important;
+}
+
+/* Footer */
+html[data-theme='light'] #landingPage .footer-enhanced,
+body.light #landingPage .footer-enhanced {
+  background: #ffffff !important;
+  border-top-color: rgba(99, 102, 241, 0.12) !important;
+  backdrop-filter: none !important;
+}
+
+html[data-theme='light'] #landingPage .footer-brand-tagline,
+html[data-theme='light'] #landingPage .footer-col-links a,
+body.light #landingPage .footer-brand-tagline,
+body.light #landingPage .footer-col-links a {
+  color: #64748b !important;
+}
+
+html[data-theme='light'] #landingPage .footer-col-title,
+body.light #landingPage .footer-col-title {
+  color: #94a3b8 !important;
+}
+
+html[data-theme='light'] #landingPage .footer-col-links a:hover,
+body.light #landingPage .footer-col-links a:hover {
+  color: #0f172a !important;
+}
+
+html[data-theme='light'] #landingPage .footer-bottom,
+body.light #landingPage .footer-bottom {
+  color: #94a3b8 !important;
+  border-top-color: #e2e8f0 !important;
+}

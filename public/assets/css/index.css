@@ -87,6 +87,16 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,te
 .nav-cta:hover:not(:disabled):not(.loading){background:linear-gradient(135deg,#1877F2,#0048CC);transform:translateY(-1px);box-shadow:0 0 0 1px rgba(255,255,255,.18) inset,0 6px 30px rgba(8,102,255,.58)}
 .nav-cta:active:not(:disabled):not(.loading){transform:translateY(0)}
 .nav-cta:disabled,.nav-cta.loading{opacity:.7;cursor:not-allowed;transform:none !important;pointer-events:none;padding:12px 28px;font-size:14px}
+.nav-theme-btn{
+  display:inline-flex;align-items:center;justify-content:center;
+  width:38px;height:38px;padding:0;margin-right:8px;
+  border-radius:10px;border:1px solid var(--border);
+  background:rgba(255,255,255,.04);color:var(--text2);
+  cursor:pointer;transition:background .18s,border-color .18s,color .18s;
+  flex-shrink:0;
+}
+.nav-theme-btn:hover{color:var(--text);background:rgba(255,255,255,.08);border-color:var(--border2)}
+.nav-theme-btn i{font-size:15px}
 .nav-hamburger{display:none;background:none;border:none;cursor:pointer;color:var(--text2);font-size:18px;padding:8px;transition:color .15s;align-items:center;justify-content:center}
 .nav-hamburger:hover{color:var(--text)}
 

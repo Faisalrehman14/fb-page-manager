@@ -67,6 +67,8 @@
 <link rel="stylesheet" href="assets/css/messenger-light.css?v={{VER}}">
 <link rel="stylesheet" href="assets/css/settings-light.css?v={{VER}}">
 <link rel="stylesheet" href="assets/css/scheduling.css?v={{VER}}">
+<link rel="stylesheet" href="assets/css/theme-saas.css?v={{VER}}">
+<link rel="stylesheet" href="assets/css/landing-light.css?v={{VER}}">
 </head>
 <body>
 <script>
@@ -120,6 +122,9 @@ window.getCsrfToken = async (forceRefresh = false) => {
       <a href="#compare">Why Us</a>
       <a href="#pricing">Pricing</a>
     </div>
+    <button type="button" class="nav-theme-btn" id="landingThemeToggle" aria-label="Toggle light or dark mode" title="Toggle theme">
+      <i class="fa-solid fa-sun" id="landingThemeIcon" aria-hidden="true"></i>
+    </button>
     <button type="button" class="nav-cta" id="navConnectBtn" onclick="triggerConnect()">
       <i class="fab fa-facebook"></i> Get Started Free
     </button>
