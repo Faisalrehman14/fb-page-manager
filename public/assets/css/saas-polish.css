@@ -1,0 +1,782 @@
+/**
+ * FBCast Pro — Enterprise UI Polish (final layer)
+ * Loads after theme-final.css. Adds premium micro-interactions, accessible
+ * focus rings, refined hover states, typography rhythm, and consistent
+ * elevation across both light and dark modes.
+ */
+
+/* ═══════════════════════════════════════════════════════════════
+   1.  Motion + animation tokens
+═══════════════════════════════════════════════════════════════ */
+
+:root {
+  --ease-out:    cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --dur-fast:    0.16s;
+  --dur:         0.24s;
+  --dur-slow:    0.4s;
+
+  --ring-color:  rgba(99, 102, 241, 0.45);
+  --ring-offset: rgba(99, 102, 241, 0.18);
+}
+
+html[data-theme='light'],
+body.light {
+  --ring-color:  rgba(99, 102, 241, 0.5);
+  --ring-offset: rgba(99, 102, 241, 0.16);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   2.  Accessible focus rings  (visible on keyboard only)
+═══════════════════════════════════════════════════════════════ */
+
+*:focus {
+  outline: none;
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible,
+[role="button"]:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid var(--ring-color);
+  outline-offset: 2px;
+  border-radius: inherit;
+  box-shadow:
+    0 0 0 4px var(--ring-offset);
+}
+
+/* Inputs use border-aware ring */
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: none;
+  border-color: var(--t-accent, #6366f1) !important;
+  box-shadow: 0 0 0 3px var(--ring-offset) !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   3.  Typography rhythm (system-wide)
+═══════════════════════════════════════════════════════════════ */
+
+body {
+  font-feature-settings: 'kern' 1, 'liga' 1, 'calt' 1, 'ss01' 1;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-feature-settings: 'kern' 1, 'liga' 1, 'ss01' 1;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+}
+
+p, li, label {
+  font-feature-settings: 'kern' 1, 'liga' 1;
+}
+
+/* Numerics use tabular-nums where they should align */
+.hv-kpi-val,
+.akpi-val,
+.metric-val,
+.proof-num,
+.stat-strip-num,
+.hv-half-stat-val,
+.hv-ph-half-stat-val,
+.sv2-stat-val,
+.hp-stat-num,
+.counter-num {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum' 1, 'kern' 1;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   4.  Buttons — premium states (hover, active, disabled, loading)
+═══════════════════════════════════════════════════════════════ */
+
+.nav-cta,
+.btn-hero,
+.btn-cta-primary,
+.btn-bigfeat,
+.hv-hero-cta,
+.ds-btn--primary,
+.saas-topbar__upgrade,
+.btn-upgrade,
+.sv2-submit,
+.price-btn--basic,
+.price-btn--pro,
+.price-btn--gold {
+  position: relative;
+  isolation: isolate;
+  transition:
+    transform var(--dur-fast) var(--ease-out),
+    box-shadow var(--dur) var(--ease-out),
+    filter var(--dur) ease;
+}
+
+.nav-cta:hover:not(:disabled):not(.loading),
+.btn-hero:hover:not(:disabled):not(.loading),
+.btn-cta-primary:hover,
+.btn-bigfeat:hover,
+.hv-hero-cta:hover,
+.ds-btn--primary:hover,
+.saas-topbar__upgrade:hover,
+.btn-upgrade:hover,
+.sv2-submit:hover:not(:disabled),
+.price-btn--basic:hover,
+.price-btn--pro:hover,
+.price-btn--gold:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.05);
+}
+
+.nav-cta:active:not(:disabled),
+.btn-hero:active:not(:disabled),
+.btn-cta-primary:active,
+.btn-bigfeat:active,
+.hv-hero-cta:active,
+.ds-btn--primary:active,
+.saas-topbar__upgrade:active,
+.btn-upgrade:active,
+.sv2-submit:active:not(:disabled),
+.price-btn--basic:active,
+.price-btn--pro:active,
+.price-btn--gold:active {
+  transform: translateY(0) scale(0.98);
+  transition-duration: 0.08s;
+}
+
+/* Subtle gloss on primary buttons */
+.nav-cta::after,
+.btn-hero::after,
+.btn-cta-primary::after,
+.hv-hero-cta::after,
+.ds-btn--primary::after,
+.sv2-submit::after,
+.btn-upgrade::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.22), transparent 50%);
+  pointer-events: none;
+  opacity: 0.6;
+  z-index: 1;
+}
+
+.nav-cta > *,
+.btn-hero > *,
+.btn-cta-primary > *,
+.hv-hero-cta > *,
+.ds-btn--primary > *,
+.sv2-submit > *,
+.btn-upgrade > * {
+  position: relative;
+  z-index: 2;
+}
+
+/* Ghost / secondary buttons */
+.ds-btn--secondary,
+.ds-btn--ghost,
+.btn-hero-secondary,
+.hv-hero-cta2,
+.period-btn,
+.delay-opt,
+.settings-btn,
+.sidebar-sched-chip,
+.sv2-chip,
+.sv2-refresh-btn {
+  transition:
+    background-color var(--dur-fast) var(--ease-out),
+    border-color var(--dur-fast) var(--ease-out),
+    color var(--dur-fast) ease,
+    transform var(--dur-fast) var(--ease-out);
+}
+
+.ds-btn--secondary:active,
+.ds-btn--ghost:active,
+.btn-hero-secondary:active,
+.hv-hero-cta2:active,
+.period-btn:active,
+.delay-opt:active,
+.settings-btn:active,
+.sidebar-sched-chip:active,
+.sv2-chip:active {
+  transform: scale(0.97);
+  transition-duration: 0.06s;
+}
+
+button:disabled,
+button.loading {
+  cursor: not-allowed;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   5.  Cards — refined elevation system
+═══════════════════════════════════════════════════════════════ */
+
+.feat,
+.step,
+.price-card,
+.testimonial,
+.faq-item,
+.cta-box,
+.hv-kpi,
+.hv-panel,
+.hv-qa-card,
+.hv-plan-card,
+.pro-card,
+.sv2-card,
+.sv2-compose-card,
+.settings-card,
+.saas-billing-card,
+.modal-box,
+.upgrade-modal-box {
+  transition:
+    transform var(--dur) var(--ease-out),
+    border-color var(--dur) var(--ease-out),
+    box-shadow var(--dur) var(--ease-out),
+    background-color var(--dur) ease !important;
+  will-change: transform;
+}
+
+.feat:hover,
+.step:hover,
+.price-card:hover,
+.testimonial:hover,
+.hv-qa-card:hover,
+.sv2-card:hover {
+  transform: translateY(-3px);
+}
+
+/* Featured card highlight (gold pricing tier) */
+.price-card--gold {
+  position: relative;
+}
+
+.price-card--gold::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: -1;
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.45), rgba(168, 85, 247, 0.45));
+  opacity: 0;
+  transition: opacity var(--dur) ease;
+}
+
+.price-card--gold:hover::before {
+  opacity: 1;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   6.  Form inputs — refined visual states
+═══════════════════════════════════════════════════════════════ */
+
+input,
+textarea,
+select {
+  transition:
+    border-color var(--dur-fast) ease,
+    box-shadow var(--dur-fast) ease,
+    background-color var(--dur-fast) ease;
+}
+
+input:hover:not(:focus):not(:disabled),
+textarea:hover:not(:focus):not(:disabled),
+select:hover:not(:focus):not(:disabled) {
+  border-color: var(--t-text-3, #94a3b8);
+}
+
+/* Required asterisk */
+.required::after,
+[required] + label::after {
+  content: ' *';
+  color: var(--t-danger, #f87171);
+  font-weight: 700;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   7.  Nav side rail — premium feel
+═══════════════════════════════════════════════════════════════ */
+
+.nav-side-item {
+  position: relative;
+  transition:
+    background-color var(--dur-fast) ease,
+    color var(--dur-fast) ease,
+    transform var(--dur-fast) var(--ease-out);
+}
+
+.nav-side-item::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 0;
+  background: linear-gradient(180deg, #6366f1, #a855f7);
+  border-radius: 0 4px 4px 0;
+  transition: height var(--dur) var(--ease-spring);
+}
+
+.nav-side-item.active::before {
+  height: 60%;
+}
+
+.nav-side-item:hover:not(.active) {
+  transform: translateX(2px);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   8.  Topbar — premium glass refinement
+═══════════════════════════════════════════════════════════════ */
+
+.saas-topbar {
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+}
+
+.saas-topbar__icon-btn {
+  transition:
+    background-color var(--dur-fast) ease,
+    color var(--dur-fast) ease,
+    transform var(--dur-fast) ease;
+}
+
+.saas-topbar__icon-btn:hover {
+  transform: scale(1.05);
+}
+
+.saas-topbar__icon-btn:active {
+  transform: scale(0.95);
+}
+
+/* User menu open animation */
+.saas-topbar__menu[hidden] {
+  display: none;
+}
+
+.saas-topbar__menu:not([hidden]) {
+  animation: menu-in var(--dur) var(--ease-out);
+  transform-origin: top right;
+}
+
+@keyframes menu-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   9.  Status pills + badges — consistent
+═══════════════════════════════════════════════════════════════ */
+
+.sv2-pill,
+.hv-pstatus-badge,
+.saas-plan-badge,
+.hv-hero-badge-fb,
+.hv-hero-status,
+.sv2-badge {
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  font-size: 10.5px;
+  padding: 4px 10px;
+  border-radius: 100px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   10.  Section spacing rhythm
+═══════════════════════════════════════════════════════════════ */
+
+#landingPage section,
+#landingPage .section {
+  scroll-margin-top: 88px;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   11.  Page transitions — view fade-in
+═══════════════════════════════════════════════════════════════ */
+
+#view-home,
+#view-broadcast,
+#view-scheduling,
+#view-analytics,
+#view-settings,
+#view-help,
+#view-messenger {
+  animation: view-in var(--dur) var(--ease-out);
+}
+
+@keyframes view-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   12.  Scrollbars — premium thin
+═══════════════════════════════════════════════════════════════ */
+
+* {
+  scrollbar-width: thin;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  border-radius: 100px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+  transition: background-color var(--dur) ease;
+}
+
+html[data-theme='dark'] ::-webkit-scrollbar-thumb,
+body:not(.light) ::-webkit-scrollbar-thumb {
+  background-color: rgba(139, 156, 255, 0.22);
+  background-clip: padding-box;
+}
+
+html[data-theme='dark'] ::-webkit-scrollbar-thumb:hover,
+body:not(.light) ::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(139, 156, 255, 0.4);
+}
+
+html[data-theme='light'] ::-webkit-scrollbar-thumb,
+body.light ::-webkit-scrollbar-thumb {
+  background-color: rgba(99, 102, 241, 0.22);
+  background-clip: padding-box;
+}
+
+html[data-theme='light'] ::-webkit-scrollbar-thumb:hover,
+body.light ::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(99, 102, 241, 0.42);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   13.  Skeleton loading polish
+═══════════════════════════════════════════════════════════════ */
+
+.skeleton,
+[data-skeleton] {
+  position: relative;
+  overflow: hidden;
+  background: var(--t-surface-3, rgba(255, 255, 255, 0.04));
+  border-radius: 8px;
+}
+
+.skeleton::after,
+[data-skeleton]::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.08),
+    transparent
+  );
+  animation: shimmer 1.6s infinite;
+}
+
+html[data-theme='light'] .skeleton::after,
+body.light .skeleton::after {
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(99, 102, 241, 0.08),
+    transparent
+  );
+}
+
+@keyframes shimmer {
+  from { transform: translateX(-100%); }
+  to   { transform: translateX(100%); }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   14.  Tooltips polish
+═══════════════════════════════════════════════════════════════ */
+
+.hv-an-tooltip,
+[role="tooltip"] {
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 8px;
+  padding: 8px 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+  letter-spacing: -0.01em;
+}
+
+html[data-theme='dark'] .hv-an-tooltip,
+body:not(.light) .hv-an-tooltip {
+  background: rgba(8, 12, 28, 0.96);
+  color: #f1f5f9;
+  border: 1px solid rgba(139, 156, 255, 0.18);
+}
+
+html[data-theme='light'] .hv-an-tooltip,
+body.light .hv-an-tooltip {
+  background: #ffffff;
+  color: #0f172a;
+  border: 1px solid rgba(99, 102, 241, 0.18);
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.14);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   15.  Selection
+═══════════════════════════════════════════════════════════════ */
+
+html[data-theme='dark'] ::selection,
+body:not(.light) ::selection {
+  background: rgba(168, 85, 247, 0.4);
+  color: #fff;
+}
+
+html[data-theme='light'] ::selection,
+body.light ::selection {
+  background: rgba(99, 102, 241, 0.22);
+  color: #0c1222;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   16.  Refined hover lift on links
+═══════════════════════════════════════════════════════════════ */
+
+.footer-col-links a,
+.nav-links a,
+.mobile-menu-link,
+.faq-q,
+.dropdown-menu a,
+.saas-topbar__menu a {
+  transition:
+    color var(--dur-fast) ease,
+    background-color var(--dur-fast) ease;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   17.  Empty states polish
+═══════════════════════════════════════════════════════════════ */
+
+.sv2-empty,
+.analytics-empty,
+.pages-empty {
+  animation: fade-up var(--dur-slow) var(--ease-out);
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   18.  Modal — refined entrance
+═══════════════════════════════════════════════════════════════ */
+
+.modal-overlay:not([hidden]),
+#upgradeModal:not([hidden]) {
+  animation: overlay-in var(--dur) ease;
+}
+
+.modal-box,
+.upgrade-modal-box,
+#upgradeModal > div,
+.sched-modal {
+  animation: modal-in var(--dur) var(--ease-spring);
+}
+
+@keyframes overlay-in {
+  from { opacity: 0; backdrop-filter: blur(0); }
+  to   { opacity: 1; backdrop-filter: blur(8px); }
+}
+
+@keyframes modal-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   19.  Refined dark mode polish (subtle improvements)
+═══════════════════════════════════════════════════════════════ */
+
+html[data-theme='dark'] body,
+body:not(.light) {
+  background-attachment: fixed;
+}
+
+html[data-theme='dark'] #appPage .saas-topbar,
+html.theme-dark #appPage .saas-topbar {
+  border-bottom: 1px solid rgba(139, 156, 255, 0.08);
+}
+
+/* Subtle inner highlight on dark cards */
+html[data-theme='dark'] .feat,
+html[data-theme='dark'] .step,
+html[data-theme='dark'] .price-card,
+html[data-theme='dark'] .hv-kpi,
+html[data-theme='dark'] .hv-panel,
+html[data-theme='dark'] .hv-qa-card,
+html[data-theme='dark'] .pro-card,
+html[data-theme='dark'] .sv2-card {
+  position: relative;
+}
+
+html[data-theme='dark'] .feat::after,
+html[data-theme='dark'] .step::after,
+html[data-theme='dark'] .price-card::after,
+html[data-theme='dark'] .hv-kpi::after,
+html[data-theme='dark'] .hv-panel::after,
+html[data-theme='dark'] .hv-qa-card::after,
+html[data-theme='dark'] .pro-card::after,
+html[data-theme='dark'] .sv2-card::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.08),
+    transparent
+  );
+  pointer-events: none;
+  border-radius: inherit;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   20.  Refined light mode polish (subtle improvements)
+═══════════════════════════════════════════════════════════════ */
+
+html[data-theme='light'] .feat,
+html[data-theme='light'] .step,
+html[data-theme='light'] .price-card,
+html[data-theme='light'] .hv-kpi,
+html[data-theme='light'] .hv-panel,
+html[data-theme='light'] .hv-qa-card,
+html[data-theme='light'] .pro-card,
+html[data-theme='light'] .sv2-card,
+body.light .feat,
+body.light .step,
+body.light .price-card,
+body.light .hv-kpi,
+body.light .hv-panel,
+body.light .hv-qa-card,
+body.light .pro-card,
+body.light .sv2-card {
+  position: relative;
+}
+
+html[data-theme='light'] .feat:hover,
+html[data-theme='light'] .step:hover,
+html[data-theme='light'] .price-card:hover,
+html[data-theme='light'] .hv-qa-card:hover,
+body.light .feat:hover,
+body.light .step:hover,
+body.light .price-card:hover,
+body.light .hv-qa-card:hover {
+  border-color: rgba(99, 102, 241, 0.32) !important;
+  box-shadow:
+    0 0 0 1px rgba(99, 102, 241, 0.12),
+    0 12px 32px rgba(99, 102, 241, 0.14) !important;
+}
+
+/* Subtle gradient accent on icons in light mode */
+html[data-theme='light'] .feat-icon,
+body.light .feat-icon {
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.12), rgba(168, 85, 247, 0.08)) !important;
+  color: #6366f1 !important;
+  border-color: rgba(99, 102, 241, 0.18) !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   21.  Body lock when modal/menu open (prevents scroll jitter)
+═══════════════════════════════════════════════════════════════ */
+
+body.no-scroll {
+  overflow: hidden;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   22.  Refined image rendering
+═══════════════════════════════════════════════════════════════ */
+
+img {
+  -webkit-user-drag: none;
+}
+
+.page-avatar,
+.hero-avatar,
+.testimonial-avatar,
+.topbar-avatar,
+.avatar {
+  image-rendering: -webkit-optimize-contrast;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   23.  Print
+═══════════════════════════════════════════════════════════════ */
+
+@media print {
+  .nav,
+  .nav-sidebar,
+  .saas-topbar,
+  .footer-enhanced,
+  .mobile-menu,
+  #statusBar,
+  #networkBanner,
+  .modal-overlay {
+    display: none !important;
+  }
+}
