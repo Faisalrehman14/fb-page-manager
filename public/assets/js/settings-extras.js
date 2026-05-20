@@ -171,54 +171,6 @@
     }
   }
 
-  function bindExportData() {
-    const btn = $('settingsExportData');
-    if (!btn) return;
-    btn.addEventListener('click', async () => {
-      btn.disabled = true;
-      const oldHtml = btn.innerHTML;
-      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Preparing…';
-      try {
-        const payload = {
-          generated_at: new Date().toISOString(),
-          settings: state,
-          profile: {
-            name: ($('settingsProfileName') || {}).textContent || '',
-            email: ($('settingsProfileMeta') || {}).textContent || '',
-            plan:  ($('settingsProfilePlan') || {}).textContent || ''
-          },
-          local_storage_keys: Object.keys(localStorage)
-        };
-        try {
-          const r = await fetch('/api/broadcasts/history?days=180', { credentials: 'same-origin' });
-          if (r.ok) {
-            const d = await r.json();
-            payload.history = d.history || [];
-          }
-        } catch (_) {}
-        try {
-          const r = await fetch('/api/schedules', { credentials: 'same-origin' });
-          if (r.ok) {
-            const d = await r.json();
-            payload.schedules = d.schedules || [];
-          }
-        } catch (_) {}
-
-        const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `fbcast-export-${new Date().toISOString().slice(0, 10)}.json`;
-        document.body.appendChild(a);
-        a.click();
-        setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 0);
-      } finally {
-        btn.disabled = false;
-        btn.innerHTML = oldHtml;
-      }
-    });
-  }
-
   function bindClearCache() {
     const btn = $('settingsClearCache');
     if (!btn) return;
@@ -294,7 +246,6 @@
       () => state.notify.sound,
       (v) => { state.notify.sound = v; });
 
-    bindExportData();
     bindClearCache();
 
     setTimeout(loadProfile, 200);

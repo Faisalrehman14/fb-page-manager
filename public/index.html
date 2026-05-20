@@ -1735,9 +1735,6 @@ window.getCsrfToken = async (forceRefresh = false) => {
             <button type="button" class="btn-extra btn-retry" id="btnRetryFailed" disabled title="Retry all failed messages">
               <i class="fa-solid fa-rotate-right"></i> Retry Failed
             </button>
-            <button type="button" class="btn-extra" id="btnExportCSV" disabled title="Export results as CSV">
-              <i class="fa-solid fa-file-arrow-down"></i> Export CSV
-            </button>
           </div>
         </div>
 
@@ -2057,9 +2054,6 @@ window.getCsrfToken = async (forceRefresh = false) => {
           <button class="qa-btn" id="qaRetryAll" disabled onclick="retryAllFailed()">
             <i class="fa-solid fa-rotate-right"></i> Retry All
           </button>
-          <button class="qa-btn" id="qaExport" disabled onclick="exportResultsCSV()">
-            <i class="fa-solid fa-file-arrow-down"></i> Export
-          </button>
           <button class="qa-btn qa-btn--danger" id="qaClear" onclick="clearResults()">
             <i class="fa-solid fa-trash"></i> Clear
           </button>
@@ -2318,12 +2312,9 @@ window.getCsrfToken = async (forceRefresh = false) => {
 
           <div class="settings-card">
             <h4><i class="fa-solid fa-database"></i> Data &amp; Privacy</h4>
-            <p>Export, clear, or manage your stored data.</p>
+            <p>Clear your local cache or manage account access.</p>
             <div class="settings-action-row">
-              <button class="settings-btn" id="settingsExportData"><i class="fa-solid fa-download"></i> Export my data (JSON)</button>
               <button class="settings-btn" id="settingsClearCache"><i class="fa-solid fa-broom"></i> Clear local cache</button>
-            </div>
-            <div class="settings-action-row">
               <button class="settings-btn" onclick="openBillingPortal()"><i class="fa-solid fa-credit-card"></i> Manage Subscription</button>
               <button class="settings-btn settings-btn--danger" onclick="triggerLogout()"><i class="fa-solid fa-right-from-bracket"></i> Logout</button>
             </div>
