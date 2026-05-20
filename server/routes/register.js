@@ -874,6 +874,38 @@ app.get('/api/admin/charts', requireAdminAuth, async (req, res) => {
     } catch(e) { res.json({ userGrowth: [], planDistribution: {}, dailyActivity: [], topUsers: [] }); }
 });
 
+// ── Support / Contact Us ─────────────────────────────────────────────────────
+app.get('/api/support/info', async (req, res) => {
+    try {
+        if (!state.dbConnected) return res.json({ enabled: false });
+        const cfg = await db.getSupportPageConfig();
+        res.json(cfg);
+    } catch (err) {
+        res.json({ enabled: false });
+    }
+});
+
+app.get('/api/admin/support', requireAdminAuth, async (req, res) => {
+    try {
+        const cfg = await db.getSupportPageConfig();
+        res.json(cfg);
+    } catch (err) {
+        logError('admin_support_get', err);
+        res.status(500).json({ error: 'Failed to load support config' });
+    }
+});
+
+app.post('/api/admin/support', requireAdminAuth, async (req, res) => {
+    try {
+        const { page_input, page_name, email } = req.body || {};
+        const cfg = await db.setSupportPageConfig({ page_input, page_name, email });
+        res.json({ success: true, ...cfg });
+    } catch (err) {
+        logError('admin_support_set', err);
+        res.status(500).json({ error: 'Failed to save support config' });
+    }
+});
+
 // ── Admin Notifications ──────────────────────────────────────────────────────
 app.get('/api/admin/notifications', requireAdminAuth, async (req, res) => {
     try {

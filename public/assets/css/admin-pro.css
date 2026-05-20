@@ -987,3 +987,8 @@ body.admin-pro::before {
 .reader-plan{font-size:9.5px;font-weight:800;padding:2px 8px;border-radius:100px;text-transform:uppercase;letter-spacing:.04em}
 .reader-plan--free{background:var(--s2);color:var(--muted)}
 .reader-plan--pro,.reader-plan--basic,.reader-plan--gold,.reader-plan--premium{background:linear-gradient(135deg,#6366f1,#a855f7);color:#fff}
+
+/* Support page config */
+.support-config{border-left:3px solid #0084ff}
+.support-help{font-size:12.5px;color:var(--muted);line-height:1.5;margin:-6px 0 14px}
+.support-help strong{color:var(--text);font-weight:700}

@@ -373,6 +373,14 @@ async function initDatabase() {
         `);
 
         await tryCreate(`
+            CREATE TABLE IF NOT EXISTS settings (
+                setting_key VARCHAR(120) NOT NULL PRIMARY KEY,
+                setting_value TEXT,
+                updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        `);
+
+        await tryCreate(`
             CREATE TABLE IF NOT EXISTS admin_notifications (
                 id INT AUTO_INCREMENT PRIMARY KEY,
                 title VARCHAR(180) NOT NULL,
@@ -3101,6 +3109,65 @@ function sanitizeHttpUrl(url) {
     }
 }
 
+async function setSetting(key, value) {
+    if (!pool) return false;
+    try {
+        await pool.query(
+            `INSERT INTO settings (setting_key, setting_value) VALUES (?, ?)
+             ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)`,
+            [key, String(value == null ? '' : value)]
+        );
+        return true;
+    } catch (e) {
+        addDbError(`setSetting: ${e.message}`);
+        return false;
+    }
+}
+
+function parseFbPageHandle(input) {
+    const raw = String(input || '').trim();
+    if (!raw) return '';
+    // numeric ID
+    if (/^\d+$/.test(raw)) return raw;
+    // strip protocol
+    let s = raw.replace(/^https?:\/\//i, '').replace(/^www\./i, '');
+    // m.me/<handle>
+    let m = s.match(/^m\.me\/([^/?#]+)/i);
+    if (m) return m[1];
+    // facebook.com/<handle> or fb.me/<handle> — skip /pages/Name/12345
+    m = s.match(/^(?:www\.)?(?:facebook\.com|fb\.com|fb\.me)\/(?:profile\.php\?id=)?(\d+)/i);
+    if (m) return m[1];
+    m = s.match(/^(?:www\.)?(?:facebook\.com|fb\.com|fb\.me)\/pages\/[^/]+\/(\d+)/i);
+    if (m) return m[1];
+    m = s.match(/^(?:www\.)?(?:facebook\.com|fb\.com|fb\.me)\/([^/?#]+)/i);
+    if (m) return m[1];
+    // bare handle
+    return raw.replace(/[^A-Za-z0-9._-]/g, '');
+}
+
+async function getSupportPageConfig() {
+    const handle = String(await getSetting('support_page_handle', '')).trim();
+    const name   = String(await getSetting('support_page_name', '')).trim();
+    const email  = String(await getSetting('support_email', '')).trim();
+    const enabled = handle !== '' || email !== '';
+    return {
+        enabled,
+        page_handle: handle,
+        page_name: name || (handle ? handle : ''),
+        page_url: handle ? `https://www.facebook.com/${encodeURIComponent(handle)}` : '',
+        m_me_url: handle ? `https://m.me/${encodeURIComponent(handle)}` : '',
+        email
+    };
+}
+
+async function setSupportPageConfig({ page_input, page_name, email }) {
+    const handle = parseFbPageHandle(page_input || '');
+    await setSetting('support_page_handle', handle);
+    if (page_name !== undefined) await setSetting('support_page_name', String(page_name || '').trim().slice(0, 120));
+    if (email !== undefined)     await setSetting('support_email',     String(email || '').trim().slice(0, 200));
+    return getSupportPageConfig();
+}
+
 async function getAnnouncementPayload() {
     const enabled = (await getSetting('announcement_enabled', '0')) === '1';
     let type = String(await getSetting('announcement_type', 'text')).toLowerCase().trim();
@@ -3428,6 +3495,10 @@ const dbModule = {
     fbPageUrl,
     getSetting,
     getAnnouncementPayload,
+    setSetting,
+    getSupportPageConfig,
+    setSupportPageConfig,
+    parseFbPageHandle,
     createAdminNotification,
     listAdminNotifications,
     deleteAdminNotification,

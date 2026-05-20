@@ -974,6 +974,13 @@ window.getCsrfToken = async (forceRefresh = false) => {
           <span>Settings</span>
         </a>
       </div>
+      <div class="nav-sidebar-contact">
+        <button type="button" class="nav-contact-btn" id="navContactBtn" title="Contact support" onclick="if(window.fbcastSupport)window.fbcastSupport.open()">
+          <i class="fa-brands fa-facebook-messenger"></i>
+          <span class="nav-contact-label">Contact us</span>
+          <span class="nav-contact-tag">Live</span>
+        </button>
+      </div>
       <div class="nav-sidebar-footer">
         <div class="nav-user-info">
           <div class="nav-user-avatar" id="navUserAvatar">?</div>
@@ -981,6 +988,50 @@ window.getCsrfToken = async (forceRefresh = false) => {
             <div class="nav-user-name" id="navUserName">User</div>
             <div class="nav-user-plan" id="navUserPlan">Free Plan</div>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Support modal -->
+    <div class="support-overlay" id="supportOverlay" hidden role="dialog" aria-labelledby="supportTitle">
+      <div class="support-modal" role="document">
+        <div class="support-modal__hero">
+          <div class="support-hero-icon"><i class="fa-brands fa-facebook-messenger"></i></div>
+          <div class="support-hero-pulse" aria-hidden="true"></div>
+          <div>
+            <div class="support-hero-eyebrow">Support · Reply within minutes</div>
+            <h3 id="supportTitle" class="support-hero-title">How can we help?</h3>
+            <p class="support-hero-sub">Chat with our team on Messenger. We're here to help with broadcasts, billing, or anything else.</p>
+          </div>
+          <button type="button" class="support-close" aria-label="Close" onclick="if(window.fbcastSupport)window.fbcastSupport.close()">&times;</button>
+        </div>
+        <div class="support-modal__body">
+          <div class="support-page-card" id="supportPageCard">
+            <div class="support-page-avatar"><i class="fa-brands fa-facebook"></i></div>
+            <div class="support-page-meta">
+              <div class="support-page-name" id="supportPageName">Loading support page…</div>
+              <div class="support-page-sub" id="supportPageSub">Powered by Facebook Messenger</div>
+            </div>
+            <span class="support-online-dot" title="Active"></span>
+          </div>
+          <a href="#" id="supportPrimaryBtn" target="_blank" rel="noopener" class="support-primary-btn">
+            <i class="fa-brands fa-facebook-messenger"></i>
+            <span>Open chat on Messenger</span>
+            <i class="fa-solid fa-arrow-up-right-from-square support-primary-arrow"></i>
+          </a>
+          <a href="#" id="supportPageBtn" target="_blank" rel="noopener" class="support-secondary-btn" hidden>
+            <i class="fa-brands fa-facebook"></i> Visit our Facebook page
+          </a>
+          <a href="#" id="supportEmailBtn" class="support-secondary-btn" hidden>
+            <i class="fa-solid fa-envelope"></i> Or email us
+          </a>
+          <div class="support-empty" id="supportEmptyMsg" hidden>
+            <i class="fa-solid fa-circle-info"></i>
+            <p>Support channel isn't configured yet. Please email <a id="supportFallbackMail" href="#">support@castmepro.com</a>.</p>
+          </div>
+        </div>
+        <div class="support-modal__ftr">
+          <i class="fa-solid fa-lock"></i> Your conversation is private. Average response time: under 10 minutes.
         </div>
       </div>
     </div>
@@ -2655,6 +2706,7 @@ window.getCsrfToken = async (forceRefresh = false) => {
 <script src="assets/js/analytics-dashboard.js?v={{VER}}" defer></script>
 <script src="assets/js/settings-extras.js?v={{VER}}" defer></script>
 <script src="assets/js/notifications.js?v={{VER}}" defer></script>
+<script src="assets/js/support.js?v={{VER}}" defer></script>
 <script src="assets/js/app-pro.js?v={{VER}}" defer></script>
 
 <script src="/socket.io/socket.io.js"></script>

@@ -404,6 +404,34 @@
             <button class="btn btn-ghost btn-sm" onclick="App.notifications.load(true)">Refresh</button>
           </div>
 
+          <div class="support-config card-pad" style="margin-bottom:18px">
+            <div class="ann-section-title">
+              <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" style="vertical-align:-2px;margin-right:6px"><path d="M3.5 6.5a8.5 8.5 0 1117 0c0 4.7-3.8 9.4-8.5 12.5-4.7-3.1-8.5-7.8-8.5-12.5z"/><path d="M3 16l3-3 4 3 6-6 5 5"/></svg>Support Page</span>
+              <span class="ann-count" id="supportStatusChip">Not set</span>
+            </div>
+            <p class="support-help">Connect a Facebook Page so users who click <strong>Contact us</strong> are taken straight into a Messenger chat with you.</p>
+            <form id="supportCfgForm" onsubmit="event.preventDefault();App.support.save()">
+              <div class="form-grid">
+                <div class="form-row full">
+                  <label class="form-label">Facebook page URL, m.me link, or page ID</label>
+                  <input type="text" id="supportInput" class="form-input" placeholder="e.g. https://m.me/yourpage  or  facebook.com/yourpage  or  1234567890" />
+                </div>
+                <div class="form-row">
+                  <label class="form-label">Display name (optional)</label>
+                  <input type="text" id="supportName" class="form-input" placeholder="e.g. FBCast Support" />
+                </div>
+                <div class="form-row">
+                  <label class="form-label">Fallback email (optional)</label>
+                  <input type="email" id="supportEmail" class="form-input" placeholder="support@yourcompany.com" />
+                </div>
+              </div>
+              <div class="ann-actions">
+                <a id="supportPreviewLink" class="btn btn-ghost" target="_blank" rel="noopener" href="#" style="display:none">Test link →</a>
+                <button type="submit" class="btn btn-primary" id="supportSaveBtn">Save support page</button>
+              </div>
+            </form>
+          </div>
+
           <div class="ann-grid">
             <div class="ann-compose card-pad">
               <div class="ann-section-title">Compose new</div>
@@ -798,7 +826,7 @@ const App = {
     if(v==='dashboard') this.dashboard.load();
     else if(v==='users') { this.state.users.page=1; this.users.load(); }
     else if(v==='activity') { this.state.activity.page=1; this.activity.load(); }
-    else if(v==='announcements') this.notifications.load();
+    else if(v==='announcements') { this.notifications.load(); this.support.load(); }
     else if(v==='database') this.database.load();
   },
 
@@ -1642,6 +1670,79 @@ const App = {
       }
       html+=`<button class="pg-btn" onclick="App.activity.load(${p+1})" ${p===pages?'disabled':''}>›</button>`;
       $('actPgBtns').innerHTML=html;
+    }
+  },
+
+  // ══════════════════════════════════════════════════════════
+  //  SUPPORT PAGE CONFIG
+  // ══════════════════════════════════════════════════════════
+  support: {
+    _cfg: null,
+    async load() {
+      try {
+        const r = await fetch('/api/admin/support');
+        const d = await r.json();
+        this._cfg = d;
+        this.populate(d);
+      } catch (_) {}
+    },
+    populate(d) {
+      const inp = $('supportInput');
+      const nm  = $('supportName');
+      const em  = $('supportEmail');
+      const chip = $('supportStatusChip');
+      const prev = $('supportPreviewLink');
+      if (inp) inp.value = d.page_handle || '';
+      if (nm)  nm.value = d.page_name || '';
+      if (em)  em.value = d.email || '';
+      if (chip) {
+        if (d.enabled && d.page_handle) {
+          chip.textContent = 'Connected · @' + d.page_handle;
+          chip.style.background = 'rgba(16,185,129,.18)';
+          chip.style.color = '#34d399';
+        } else if (d.email) {
+          chip.textContent = 'Email only · ' + d.email;
+        } else {
+          chip.textContent = 'Not set';
+          chip.style.background = '';
+          chip.style.color = '';
+        }
+      }
+      if (prev) {
+        if (d.m_me_url) {
+          prev.href = d.m_me_url;
+          prev.style.display = '';
+        } else {
+          prev.style.display = 'none';
+        }
+      }
+    },
+    async save() {
+      const btn = $('supportSaveBtn');
+      const payload = {
+        page_input: $('supportInput').value.trim(),
+        page_name:  $('supportName').value.trim(),
+        email:      $('supportEmail').value.trim()
+      };
+      btn.disabled = true;
+      const old = btn.innerHTML;
+      btn.innerHTML = '<span class="spinner spinner-sm"></span> Saving…';
+      try {
+        const r = await fetch('/api/admin/support', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const d = await r.json();
+        if (!r.ok) throw new Error(d.error || 'Save failed');
+        this.populate(d);
+        App.toast.show('Support page saved', 'success');
+      } catch (e) {
+        App.toast.show(e.message || 'Save failed', 'error');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = old;
+      }
     }
   },
 
