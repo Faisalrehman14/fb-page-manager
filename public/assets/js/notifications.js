@@ -225,40 +225,60 @@
     setTimeout(close, sev === 'critical' ? 12000 : TOAST_DURATION);
   }
 
-  function bindSocket() {
-    if (!global.io) return;
-    try {
-      const sock = global.socket || (global.io && global.io.sockets ? null : null);
-      const tryBind = () => {
-        const s = global.socket;
-        if (!s) return false;
-        s.on('admin_notification', (payload) => {
-          showToast(payload);
-          load(true);
-          if (Notification && Notification.permission === 'granted') {
-            try {
-              new Notification(payload.title || 'New notification', {
-                body: (payload.body || '').slice(0, 120),
-                tag: 'fbcast-admin-' + payload.id
-              });
-            } catch (_) {}
-          }
+  let socket = null;
+
+  function handleIncoming(payload) {
+    if (!payload || !payload.id) return;
+    showToast(payload);
+    load(true);
+    if (typeof global.Notification !== 'undefined' && global.Notification.permission === 'granted') {
+      try {
+        new Notification(payload.title || 'New notification', {
+          body: (payload.body || '').slice(0, 120),
+          tag: 'fbcast-admin-' + payload.id
         });
-        return true;
-      };
-      if (!tryBind()) {
-        const intv = setInterval(() => { if (tryBind()) clearInterval(intv); }, 800);
-        setTimeout(() => clearInterval(intv), 30000);
-      }
-    } catch (_) {}
+      } catch (_) {}
+    }
+  }
+
+  function bindSocket() {
+    if (typeof global.io !== 'function') {
+      setTimeout(bindSocket, 1000);
+      return;
+    }
+    if (socket) return;
+    try {
+      socket = global.io({
+        transports: ['websocket', 'polling'],
+        reconnection: true,
+        reconnectionDelay: 1500,
+        reconnectionDelayMax: 15000,
+        reconnectionAttempts: Infinity,
+        withCredentials: true
+      });
+      socket.on('admin_notification', handleIncoming);
+      socket.on('connect', () => fetchUnreadOnly());
+      socket.on('reconnect', () => load(true));
+    } catch (e) {
+      socket = null;
+      setTimeout(bindSocket, 5000);
+    }
   }
 
   function startPolling() {
     if (pollTimer) clearInterval(pollTimer);
     pollTimer = setInterval(fetchUnreadOnly, POLL_MS);
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden) fetchUnreadOnly();
+    });
   }
 
-  function init() {
+  function isAppVisible() {
+    const app = document.getElementById('appPage');
+    return !!(app && app.style.display !== 'none' && app.offsetParent !== null);
+  }
+
+  function boot() {
     if (booted) return;
     if (!$('notifBellBtn')) return;
     booted = true;
@@ -266,6 +286,32 @@
     load(true);
     bindSocket();
     startPolling();
+  }
+
+  function init() {
+    if (!$('notifBellBtn')) return;
+    if (isAppVisible()) {
+      boot();
+      return;
+    }
+    const prev = global.showAppDashboard;
+    global.showAppDashboard = function () {
+      try {
+        if (typeof prev === 'function') prev.apply(this, arguments);
+      } finally {
+        setTimeout(boot, 200);
+      }
+    };
+    const appPage = document.getElementById('appPage');
+    if (appPage) {
+      const obs = new MutationObserver(() => {
+        if (isAppVisible()) {
+          obs.disconnect();
+          setTimeout(boot, 200);
+        }
+      });
+      obs.observe(appPage, { attributes: true, attributeFilter: ['style', 'class'] });
+    }
   }
 
   global.fbcastNotifications = {

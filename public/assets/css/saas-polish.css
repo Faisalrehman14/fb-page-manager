@@ -1340,6 +1340,10 @@ body.light .notif-badge {
   border-color: #ffffff;
 }
 
+.notif-panel[hidden] {
+  display: none !important;
+}
+
 .notif-panel {
   position: absolute;
   top: calc(100% + 10px);
