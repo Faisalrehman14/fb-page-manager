@@ -2077,10 +2077,16 @@ window.getCsrfToken = async (forceRefresh = false) => {
             <h2 class="pro-view__title">Broadcast Analytics</h2>
             <p class="pro-view__sub">Track delivery performance across manual, auto, and scheduled campaigns.</p>
           </div>
-          <div class="analytics-period">
-            <button type="button" class="period-btn active" data-period="7">7 Days</button>
-            <button type="button" class="period-btn" data-period="30">30 Days</button>
-            <button type="button" class="period-btn" data-period="90">90 Days</button>
+          <div class="analytics-actions">
+            <div class="analytics-period">
+              <button type="button" class="period-btn active" data-period="7">7 Days</button>
+              <button type="button" class="period-btn" data-period="30">30 Days</button>
+              <button type="button" class="period-btn" data-period="90">90 Days</button>
+            </div>
+            <div class="analytics-toolbar">
+              <button type="button" class="ds-btn ds-btn--ghost" id="analyticsRefreshBtn" title="Refresh"><i class="fa-solid fa-rotate"></i></button>
+              <button type="button" class="ds-btn ds-btn--secondary" id="analyticsExportBtn" title="Export as CSV"><i class="fa-solid fa-file-csv"></i> Export CSV</button>
+            </div>
           </div>
         </header>
         <div class="analytics-panel">
@@ -2089,31 +2095,92 @@ window.getCsrfToken = async (forceRefresh = false) => {
               <div class="akpi-icon"><i class="fa-solid fa-paper-plane"></i></div>
               <div class="akpi-val" id="analyticsTotalSent">0</div>
               <div class="akpi-lbl">Messages Sent</div>
+              <div class="akpi-delta" id="analyticsTotalSentDelta"></div>
             </div>
             <div class="analytics-kpi akpi-green pro-card">
               <div class="akpi-icon"><i class="fa-solid fa-circle-check"></i></div>
               <div class="akpi-val" id="analyticsDelivered">0</div>
               <div class="akpi-lbl">Delivered</div>
+              <div class="akpi-delta" id="analyticsDeliveredDelta"></div>
             </div>
             <div class="analytics-kpi akpi-red pro-card">
               <div class="akpi-icon"><i class="fa-solid fa-circle-xmark"></i></div>
               <div class="akpi-val" id="analyticsFailed">0</div>
               <div class="akpi-lbl">Failed</div>
+              <div class="akpi-delta" id="analyticsFailedDelta"></div>
             </div>
             <div class="analytics-kpi akpi-purple pro-card">
               <div class="akpi-icon"><i class="fa-solid fa-percent"></i></div>
               <div class="akpi-val" id="analyticsRate">0%</div>
               <div class="akpi-lbl">Success Rate</div>
+              <div class="akpi-delta" id="analyticsRateDelta"></div>
             </div>
           </div>
           <div class="analytics-chart-wrap pro-card pro-chart-card" style="margin-top:16px">
             <div class="analytics-chart-hdr">
               <span><i class="fa-solid fa-chart-area"></i> Delivery trend</span>
+              <span class="analytics-chart-meta" id="analyticsChartMeta"></span>
             </div>
             <div class="analytics-chart-box" id="analyticsChartBox">
               <div class="analytics-empty"><i class="fa-solid fa-chart-line"></i><p>No data yet. Start a broadcast to see analytics.</p></div>
             </div>
           </div>
+
+          <div class="analytics-row-2">
+            <div class="pro-card analytics-leaderboard">
+              <div class="analytics-card-hdr">
+                <span><i class="fa-solid fa-trophy"></i> Top performing pages</span>
+                <span class="analytics-card-sub" id="analyticsTopPagesSub">—</span>
+              </div>
+              <div id="analyticsTopPagesList">
+                <div class="analytics-empty"><p>No page data yet.</p></div>
+              </div>
+            </div>
+
+            <div class="pro-card analytics-heatmap-card">
+              <div class="analytics-card-hdr">
+                <span><i class="fa-solid fa-clock"></i> Best send times</span>
+                <span class="analytics-card-sub" id="analyticsHeatPeak">—</span>
+              </div>
+              <div class="analytics-heatmap" id="analyticsHeatmap">
+                <div class="analytics-empty"><p>No timing data yet.</p></div>
+              </div>
+              <div class="analytics-heatmap-legend">
+                <span>Less</span>
+                <span class="heat-cell heat-1"></span>
+                <span class="heat-cell heat-2"></span>
+                <span class="heat-cell heat-3"></span>
+                <span class="heat-cell heat-4"></span>
+                <span class="heat-cell heat-5"></span>
+                <span>More</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="pro-card analytics-failure-card" style="margin-top:16px">
+            <div class="analytics-card-hdr">
+              <span><i class="fa-solid fa-triangle-exclamation"></i> Delivery breakdown</span>
+              <span class="analytics-card-sub" id="analyticsBreakdownSub">—</span>
+            </div>
+            <div class="analytics-breakdown" id="analyticsBreakdown">
+              <div class="breakdown-row">
+                <div class="breakdown-label"><span class="breakdown-dot dot-manual"></span> Manual</div>
+                <div class="breakdown-bar"><div class="breakdown-fill" id="brManualFill" style="width:0%"></div></div>
+                <div class="breakdown-val" id="brManualVal">0</div>
+              </div>
+              <div class="breakdown-row">
+                <div class="breakdown-label"><span class="breakdown-dot dot-auto"></span> Auto</div>
+                <div class="breakdown-bar"><div class="breakdown-fill" id="brAutoFill" style="width:0%"></div></div>
+                <div class="breakdown-val" id="brAutoVal">0</div>
+              </div>
+              <div class="breakdown-row">
+                <div class="breakdown-label"><span class="breakdown-dot dot-scheduled"></span> Scheduled</div>
+                <div class="breakdown-bar"><div class="breakdown-fill" id="brSchedFill" style="width:0%"></div></div>
+                <div class="breakdown-val" id="brSchedVal">0</div>
+              </div>
+            </div>
+          </div>
+
           <div class="analytics-history pro-card pro-history-card" style="margin-top:16px">
             <div class="analytics-history-hdr"><i class="fa-solid fa-clock-rotate-left"></i> Recent broadcasts</div>
             <div id="analyticsHistoryList">
@@ -2139,6 +2206,19 @@ window.getCsrfToken = async (forceRefresh = false) => {
           <h3><i class="fa-solid fa-gear"></i> Settings</h3>
         </div>
         <div class="settings-section">
+          <div class="settings-card settings-profile-card">
+            <h4><i class="fa-solid fa-id-badge"></i> Profile</h4>
+            <p>Connected Facebook account.</p>
+            <div class="settings-profile-row">
+              <div class="settings-profile-avatar" id="settingsProfileAvatar"><i class="fa-solid fa-user"></i></div>
+              <div class="settings-profile-info">
+                <div class="settings-profile-name" id="settingsProfileName">Loading…</div>
+                <div class="settings-profile-meta" id="settingsProfileMeta">—</div>
+              </div>
+              <span class="saas-plan-badge" id="settingsProfilePlan">Free</span>
+            </div>
+          </div>
+
           <div class="saas-billing-card" id="saasBillingCard">
             <div class="saas-billing-card__hdr">
               <div>
@@ -2163,6 +2243,22 @@ window.getCsrfToken = async (forceRefresh = false) => {
             </div>
           </div>
           <div class="settings-card">
+            <h4><i class="fa-solid fa-palette"></i> Appearance</h4>
+            <p>Customize how the dashboard looks for you.</p>
+            <div class="settings-row-label">Theme</div>
+            <div class="settings-segmented" id="settingsThemeSeg">
+              <button type="button" class="seg-opt" data-theme="light"><i class="fa-solid fa-sun"></i> Light</button>
+              <button type="button" class="seg-opt" data-theme="dark"><i class="fa-solid fa-moon"></i> Dark</button>
+              <button type="button" class="seg-opt" data-theme="system"><i class="fa-solid fa-desktop"></i> System</button>
+            </div>
+            <div class="settings-row-label" style="margin-top:14px">Density</div>
+            <div class="settings-segmented" id="settingsDensitySeg">
+              <button type="button" class="seg-opt" data-density="comfortable">Comfortable</button>
+              <button type="button" class="seg-opt" data-density="compact">Compact</button>
+            </div>
+          </div>
+
+          <div class="settings-card">
             <h4><i class="fa-solid fa-bullhorn"></i> Default Delay</h4>
             <p>Set the default delay between messages for new broadcasts.</p>
             <div class="settings-delay-opts">
@@ -2171,17 +2267,76 @@ window.getCsrfToken = async (forceRefresh = false) => {
               <button class="delay-opt" data-delay="500"><i class="fa-solid fa-bolt"></i> Fast</button>
             </div>
           </div>
+
+          <div class="settings-card">
+            <h4><i class="fa-solid fa-shield"></i> Sending Safety</h4>
+            <p>Guardrails to prevent runaway broadcasts and respect Facebook policy.</p>
+
+            <label class="settings-toggle"><input type="checkbox" id="settingAutoRetry" checked><span>Auto-retry transient failures (up to 3 times)</span></label>
+            <label class="settings-toggle"><input type="checkbox" id="settingSafeStop"><span>Stop broadcast when failure rate &gt; 25%</span></label>
+
+            <div class="settings-inline-row">
+              <label class="settings-inline-label" for="settingDailyCap">Daily safety cap</label>
+              <input type="number" id="settingDailyCap" class="settings-num" min="0" max="100000" step="100" value="2000" />
+              <span class="settings-inline-hint">messages / day (0 = no cap)</span>
+            </div>
+
+            <div class="settings-row-label" style="margin-top:14px">Quiet hours <span class="settings-row-hint">(no auto-broadcasts during this window)</span></div>
+            <label class="settings-toggle"><input type="checkbox" id="settingQuietEnabled"><span>Enable quiet hours</span></label>
+            <div class="settings-inline-row">
+              <label class="settings-inline-label" for="settingQuietStart">From</label>
+              <input type="time" id="settingQuietStart" class="settings-time" value="22:00" disabled />
+              <label class="settings-inline-label" for="settingQuietEnd">To</label>
+              <input type="time" id="settingQuietEnd" class="settings-time" value="08:00" disabled />
+            </div>
+          </div>
+
           <div class="settings-card">
             <h4><i class="fa-solid fa-bell"></i> Notifications</h4>
             <p>Get notified when your broadcast completes or has failures.</p>
             <label class="settings-toggle"><input type="checkbox" id="notifBroadcast" checked><span>Broadcast Complete</span></label>
             <label class="settings-toggle"><input type="checkbox" id="notifFailed" checked><span>Failed Messages Alert</span></label>
+            <label class="settings-toggle"><input type="checkbox" id="notifDesktop"><span>Desktop notifications (browser)</span></label>
+            <label class="settings-toggle"><input type="checkbox" id="notifSound"><span>Play sound on completion</span></label>
           </div>
+
           <div class="settings-card">
-            <h4><i class="fa-solid fa-shield-halved"></i> Privacy & Security</h4>
-            <p>Manage your account security settings.</p>
-            <button class="settings-btn" onclick="openBillingPortal()"><i class="fa-solid fa-credit-card"></i> Manage Subscription</button>
-            <button class="settings-btn settings-btn--danger" onclick="triggerLogout()"><i class="fa-solid fa-right-from-bracket"></i> Logout All Devices</button>
+            <h4><i class="fa-solid fa-keyboard"></i> Keyboard Shortcuts</h4>
+            <p>Speed up your workflow with these shortcuts.</p>
+            <div class="settings-kbd-grid">
+              <div class="kbd-row"><div class="kbd-keys"><kbd>G</kbd> <kbd>H</kbd></div><div class="kbd-desc">Go to Home</div></div>
+              <div class="kbd-row"><div class="kbd-keys"><kbd>G</kbd> <kbd>B</kbd></div><div class="kbd-desc">Go to Broadcast</div></div>
+              <div class="kbd-row"><div class="kbd-keys"><kbd>G</kbd> <kbd>M</kbd></div><div class="kbd-desc">Go to Messenger</div></div>
+              <div class="kbd-row"><div class="kbd-keys"><kbd>G</kbd> <kbd>S</kbd></div><div class="kbd-desc">Go to Scheduling</div></div>
+              <div class="kbd-row"><div class="kbd-keys"><kbd>G</kbd> <kbd>A</kbd></div><div class="kbd-desc">Go to Analytics</div></div>
+              <div class="kbd-row"><div class="kbd-keys"><kbd>Ctrl</kbd> <kbd>Enter</kbd></div><div class="kbd-desc">Send broadcast</div></div>
+              <div class="kbd-row"><div class="kbd-keys"><kbd>Ctrl</kbd> <kbd>K</kbd></div><div class="kbd-desc">Search / quick switch</div></div>
+              <div class="kbd-row"><div class="kbd-keys"><kbd>Ctrl</kbd> <kbd>/</kbd></div><div class="kbd-desc">Toggle theme</div></div>
+              <div class="kbd-row"><div class="kbd-keys"><kbd>?</kbd></div><div class="kbd-desc">Show this help</div></div>
+            </div>
+          </div>
+
+          <div class="settings-card">
+            <h4><i class="fa-solid fa-database"></i> Data &amp; Privacy</h4>
+            <p>Export, clear, or manage your stored data.</p>
+            <div class="settings-action-row">
+              <button class="settings-btn" id="settingsExportData"><i class="fa-solid fa-download"></i> Export my data (JSON)</button>
+              <button class="settings-btn" id="settingsClearCache"><i class="fa-solid fa-broom"></i> Clear local cache</button>
+            </div>
+            <div class="settings-action-row">
+              <button class="settings-btn" onclick="openBillingPortal()"><i class="fa-solid fa-credit-card"></i> Manage Subscription</button>
+              <button class="settings-btn settings-btn--danger" onclick="triggerLogout()"><i class="fa-solid fa-right-from-bracket"></i> Logout</button>
+            </div>
+          </div>
+
+          <div class="settings-card settings-about-card">
+            <h4><i class="fa-solid fa-circle-info"></i> About</h4>
+            <div class="settings-about-grid">
+              <div><span class="settings-about-k">Product</span><span class="settings-about-v">FBCast Pro</span></div>
+              <div><span class="settings-about-k">Version</span><span class="settings-about-v" id="settingsAppVersion">1.4.0</span></div>
+              <div><span class="settings-about-k">Build</span><span class="settings-about-v" id="settingsBuild">stable</span></div>
+              <div><span class="settings-about-k">Status</span><span class="settings-about-v"><span class="settings-status-dot"></span> Operational</span></div>
+            </div>
           </div>
         </div>
       </div>
@@ -2491,6 +2646,7 @@ window.getCsrfToken = async (forceRefresh = false) => {
 <script src="web_ui.js?v={{VER}}"></script>
 <script src="assets/js/home-dashboard.js?v={{VER}}" defer></script>
 <script src="assets/js/analytics-dashboard.js?v={{VER}}" defer></script>
+<script src="assets/js/settings-extras.js?v={{VER}}" defer></script>
 <script src="assets/js/app-pro.js?v={{VER}}" defer></script>
 
 <script src="/socket.io/socket.io.js"></script>
