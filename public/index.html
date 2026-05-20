@@ -975,6 +975,11 @@ window.getCsrfToken = async (forceRefresh = false) => {
         </a>
       </div>
       <div class="nav-sidebar-contact">
+        <button type="button" class="nav-ai-btn" id="navAiBtn" title="AI Broadcast Assistant" onclick="if(window.fbcastAI)window.fbcastAI.toggle()">
+          <i class="fa-solid fa-wand-magic-sparkles"></i>
+          <span class="nav-ai-label">AI Assistant</span>
+          <span class="nav-ai-tag">New</span>
+        </button>
         <button type="button" class="nav-contact-btn" id="navContactBtn" title="Contact support" onclick="if(window.fbcastSupport)window.fbcastSupport.open()">
           <i class="fa-brands fa-facebook-messenger"></i>
           <span class="nav-contact-label">Contact us</span>
@@ -1040,6 +1045,66 @@ window.getCsrfToken = async (forceRefresh = false) => {
         </form>
         <div class="chatw__brand">
           <i class="fa-solid fa-shield-halved"></i> Private chat · Powered by FBCast Pro
+        </div>
+      </footer>
+    </div>
+
+    <!-- AI Broadcast Assistant widget (right-anchored) -->
+    <div class="aiw" id="aiWidget" hidden aria-hidden="true">
+      <header class="aiw__hdr">
+        <div class="aiw__hdr-avatar">
+          <i class="fa-solid fa-wand-magic-sparkles"></i>
+        </div>
+        <div class="aiw__hdr-meta">
+          <div class="aiw__hdr-name">AI Broadcast Assistant</div>
+          <div class="aiw__hdr-sub">
+            <span class="aiw__online-dot"></span>
+            <span>Ready to write your next broadcast</span>
+          </div>
+        </div>
+        <div class="aiw__hdr-actions">
+          <button type="button" class="aiw__icon-btn" id="aiwClear" title="New conversation">
+            <i class="fa-solid fa-rotate-right"></i>
+          </button>
+          <button type="button" class="aiw__icon-btn" id="aiwClose" title="Minimize" aria-label="Minimize">
+            <i class="fa-solid fa-minus"></i>
+          </button>
+        </div>
+      </header>
+
+      <div class="aiw__body" id="aiwBody">
+        <div class="aiw__welcome" id="aiwWelcome">
+          <div class="aiw__welcome-icon"><i class="fa-solid fa-sparkles"></i></div>
+          <div class="aiw__welcome-title">Hi! What should we write today?</div>
+          <div class="aiw__welcome-sub">Pick a starter or describe your goal in your own words.</div>
+          <div class="aiw__chips" id="aiwChips">
+            <button type="button" class="aiw__chip" data-prompt="Write a promotional broadcast announcing a new feature for my customers.">🎉 Promo</button>
+            <button type="button" class="aiw__chip" data-prompt="Write a broadcast announcing a limited-time 20% off sale this weekend.">🛍️ Sale / Discount</button>
+            <button type="button" class="aiw__chip" data-prompt="Write a friendly welcome broadcast for new subscribers.">👋 Welcome</button>
+            <button type="button" class="aiw__chip" data-prompt="Write a broadcast for a new product launch and invite subscribers to check it out.">🚀 Product launch</button>
+            <button type="button" class="aiw__chip" data-prompt="Write a re-engagement broadcast for subscribers who haven't interacted in a while.">💌 Re-engage</button>
+            <button type="button" class="aiw__chip" data-prompt="Write a broadcast inviting subscribers to an upcoming online event or webinar.">📅 Event invite</button>
+            <button type="button" class="aiw__chip" data-prompt="Give me 3 short variations of a Black Friday broadcast message.">✨ 3 variations</button>
+          </div>
+        </div>
+        <div class="aiw__messages" id="aiwMessages"></div>
+      </div>
+
+      <footer class="aiw__ftr">
+        <form id="aiwForm" class="aiw__form" autocomplete="off">
+          <textarea
+            id="aiwInput"
+            class="aiw__input"
+            placeholder="Describe the broadcast you want…"
+            rows="1"
+            maxlength="2000"
+            aria-label="Describe the broadcast you want"></textarea>
+          <button type="submit" class="aiw__send" id="aiwSend" disabled aria-label="Send">
+            <i class="fa-solid fa-arrow-up"></i>
+          </button>
+        </form>
+        <div class="aiw__brand">
+          <i class="fa-solid fa-bolt"></i> AI may produce inaccurate info — review before sending
         </div>
       </footer>
     </div>
@@ -2715,6 +2780,7 @@ window.getCsrfToken = async (forceRefresh = false) => {
 <script src="assets/js/settings-extras.js?v={{VER}}" defer></script>
 <script src="assets/js/notifications.js?v={{VER}}" defer></script>
 <script src="assets/js/support.js?v={{VER}}" defer></script>
+<script src="assets/js/ai-assistant.js?v={{VER}}" defer></script>
 <script src="assets/js/app-pro.js?v={{VER}}" defer></script>
 
 <script src="/socket.io/socket.io.js"></script>

@@ -18,6 +18,7 @@ module.exports = function registerRoutes(app, deps) {
   const { MAX_LOGS } = require('../lib/logger');
   const fbNames = require('../services/facebook-user-names');
   const entitlementsSvc = require('../services/entitlements.service');
+  const aiAssistant = require('../services/ai-assistant.service');
   const { threadHasLiveViewers } = require('../socket');
   const express = require('express');
 
@@ -1071,6 +1072,35 @@ app.post('/api/admin/support/threads/:id/status', requireAdminAuth, async (req, 
     } catch (err) {
         logError('admin_support_status', err);
         res.status(500).json({ error: 'Failed to update status' });
+    }
+});
+
+// ── AI Broadcast Assistant ───────────────────────────────────────────────────
+app.get('/api/ai/info', requireAuth, (req, res) => {
+    res.json({ enabled: aiAssistant.isEnabled(env) });
+});
+
+app.post('/api/ai/chat', requireAuth, async (req, res) => {
+    res.writeHead(200, {
+        'Content-Type': 'text/event-stream; charset=utf-8',
+        'Cache-Control': 'no-cache, no-transform',
+        'Connection': 'keep-alive',
+        'X-Accel-Buffering': 'no'
+    });
+    try {
+        const messages = Array.isArray(req.body?.messages) ? req.body.messages : [];
+        await aiAssistant.streamChat({
+            env, fetch,
+            userId: req.session?.userId,
+            messages,
+            res
+        });
+    } catch (err) {
+        logError('ai_chat_stream', err);
+        try {
+            res.write(`event: error\ndata: ${JSON.stringify({ message: 'Internal error' })}\n\n`);
+            res.end();
+        } catch (_) {}
     }
 });
 
