@@ -623,8 +623,25 @@ body.light #landingPage .faq-a {
 }
 
 html[data-theme='light'] #landingPage .cta-h2,
-body.light #landingPage .cta-h2 {
+html[data-theme='light'] .cta-h2,
+body.light #landingPage .cta-h2,
+body.light .cta-h2 {
+  background: none !important;
+  -webkit-background-clip: unset !important;
+  background-clip: unset !important;
+  -webkit-text-fill-color: var(--t-text) !important;
   color: var(--t-text) !important;
+}
+
+html[data-theme='light'] #landingPage .cta-h2 span,
+html[data-theme='light'] .cta-h2 span,
+body.light #landingPage .cta-h2 span,
+body.light .cta-h2 span {
+  background: linear-gradient(135deg, #2563eb 0%, #7c3aed 100%) !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  color: transparent !important;
 }
 
 html[data-theme='light'] #landingPage .cta-sub,
@@ -632,6 +649,22 @@ html[data-theme='light'] #landingPage .cta-note-item,
 body.light #landingPage .cta-sub,
 body.light #landingPage .cta-note-item {
   color: var(--t-text-2) !important;
+}
+
+html[data-theme='light'] #landingPage .cta-eyebrow,
+html[data-theme='light'] #landingPage .cta-urgency,
+body.light #landingPage .cta-eyebrow,
+body.light #landingPage .cta-urgency {
+  background: rgba(99, 102, 241, 0.1) !important;
+  border-color: rgba(99, 102, 241, 0.22) !important;
+  color: #4338ca !important;
+}
+
+html[data-theme='light'] #landingPage .cta-urgency,
+body.light #landingPage .cta-urgency {
+  background: rgba(245, 158, 11, 0.1) !important;
+  border-color: rgba(245, 158, 11, 0.25) !important;
+  color: #b45309 !important;
 }
 
 html[data-theme='light'] #landingPage .cta-note-item i,
@@ -1126,36 +1159,87 @@ body.light .modal-box .modal-sub {
   color: var(--t-text-2) !important;
 }
 
-/* Dropdowns */
+/* Dropdowns — covers saas-topbar__menu, topbar-user-menu, dropdown-menu */
+html[data-theme='light'] .saas-topbar__menu,
+html[data-theme='light'] #topbarUserMenu,
 html[data-theme='light'] .topbar-user-menu,
 html[data-theme='light'] .dropdown-menu,
+body.light .saas-topbar__menu,
+body.light #topbarUserMenu,
 body.light .topbar-user-menu,
 body.light .dropdown-menu {
   background: var(--t-surface) !important;
-  border-color: var(--t-border) !important;
+  border: 1px solid var(--t-border) !important;
   box-shadow: 0 12px 40px rgba(15, 23, 42, 0.14) !important;
-}
-
-html[data-theme='light'] .dropdown-menu a,
-html[data-theme='light'] .dropdown-menu button,
-html[data-theme='light'] .topbar-user-menu a,
-html[data-theme='light'] .topbar-user-menu button,
-body.light .dropdown-menu a,
-body.light .dropdown-menu button,
-body.light .topbar-user-menu a,
-body.light .topbar-user-menu button {
   color: var(--t-text) !important;
 }
 
-html[data-theme='light'] .dropdown-menu a:hover,
-html[data-theme='light'] .dropdown-menu button:hover,
+html[data-theme='light'] .saas-topbar__menu a,
+html[data-theme='light'] .saas-topbar__menu button,
+html[data-theme='light'] .saas-topbar__menu li,
+html[data-theme='light'] .saas-topbar__menu [role="menuitem"],
+html[data-theme='light'] #topbarUserMenu a,
+html[data-theme='light'] #topbarUserMenu button,
+html[data-theme='light'] .topbar-user-menu a,
+html[data-theme='light'] .topbar-user-menu button,
+html[data-theme='light'] .dropdown-menu a,
+html[data-theme='light'] .dropdown-menu button,
+body.light .saas-topbar__menu a,
+body.light .saas-topbar__menu button,
+body.light .saas-topbar__menu li,
+body.light .saas-topbar__menu [role="menuitem"],
+body.light #topbarUserMenu a,
+body.light #topbarUserMenu button,
+body.light .topbar-user-menu a,
+body.light .topbar-user-menu button,
+body.light .dropdown-menu a,
+body.light .dropdown-menu button {
+  color: var(--t-text) !important;
+  background: transparent !important;
+}
+
+html[data-theme='light'] .saas-topbar__menu a:hover,
+html[data-theme='light'] .saas-topbar__menu button:hover,
+html[data-theme='light'] .saas-topbar__menu [role="menuitem"]:hover,
+html[data-theme='light'] #topbarUserMenu a:hover,
+html[data-theme='light'] #topbarUserMenu button:hover,
 html[data-theme='light'] .topbar-user-menu a:hover,
 html[data-theme='light'] .topbar-user-menu button:hover,
-body.light .dropdown-menu a:hover,
-body.light .dropdown-menu button:hover,
+html[data-theme='light'] .dropdown-menu a:hover,
+html[data-theme='light'] .dropdown-menu button:hover,
+body.light .saas-topbar__menu a:hover,
+body.light .saas-topbar__menu button:hover,
+body.light .saas-topbar__menu [role="menuitem"]:hover,
+body.light #topbarUserMenu a:hover,
+body.light #topbarUserMenu button:hover,
 body.light .topbar-user-menu a:hover,
-body.light .topbar-user-menu button:hover {
+body.light .topbar-user-menu button:hover,
+body.light .dropdown-menu a:hover,
+body.light .dropdown-menu button:hover {
   background: var(--t-surface-3) !important;
+  color: var(--t-text) !important;
+}
+
+/* Subtle dividers + sub-text inside menu */
+html[data-theme='light'] .saas-topbar__menu hr,
+html[data-theme='light'] .saas-topbar__menu .menu-divider,
+html[data-theme='light'] #topbarUserMenu hr,
+body.light .saas-topbar__menu hr,
+body.light .saas-topbar__menu .menu-divider,
+body.light #topbarUserMenu hr {
+  border-color: var(--t-divider) !important;
+  background: var(--t-divider) !important;
+}
+
+html[data-theme='light'] .saas-topbar__menu .muted,
+html[data-theme='light'] .saas-topbar__menu small,
+html[data-theme='light'] #topbarUserMenu .muted,
+html[data-theme='light'] #topbarUserMenu small,
+body.light .saas-topbar__menu .muted,
+body.light .saas-topbar__menu small,
+body.light #topbarUserMenu .muted,
+body.light #topbarUserMenu small {
+  color: var(--t-text-3) !important;
 }
 
 /* Status / network bar */
