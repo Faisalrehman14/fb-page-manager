@@ -3147,24 +3147,57 @@ function parseFbPageHandle(input) {
 
 async function getSupportPageConfig() {
     const handle = String(await getSetting('support_page_handle', '')).trim();
+    const pageId = String(await getSetting('support_page_id', '')).trim();
     const name   = String(await getSetting('support_page_name', '')).trim();
     const email  = String(await getSetting('support_email', '')).trim();
-    const enabled = handle !== '' || email !== '';
+    const enabled = handle !== '' || pageId !== '' || email !== '';
     return {
         enabled,
         page_handle: handle,
+        page_id: pageId,
         page_name: name || (handle ? handle : ''),
-        page_url: handle ? `https://www.facebook.com/${encodeURIComponent(handle)}` : '',
-        m_me_url: handle ? `https://m.me/${encodeURIComponent(handle)}` : '',
+        page_url: handle ? `https://www.facebook.com/${encodeURIComponent(handle)}` : (pageId ? `https://www.facebook.com/${pageId}` : ''),
+        m_me_url: handle ? `https://m.me/${encodeURIComponent(handle)}` : (pageId ? `https://m.me/${pageId}` : ''),
         email
     };
 }
 
-async function setSupportPageConfig({ page_input, page_name, email }) {
+async function resolveFacebookPageInfo(handleOrId, fetchFn) {
+    if (!handleOrId || !fetchFn) return null;
+    const appId = (process.env.FB_APP_ID || '').trim();
+    const appSecret = (process.env.FB_APP_SECRET || '').trim();
+    if (!appId || !appSecret) return null;
+    const appToken = `${appId}|${appSecret}`;
+    try {
+        const url = `https://graph.facebook.com/v19.0/${encodeURIComponent(handleOrId)}?fields=id,name,username,link&access_token=${encodeURIComponent(appToken)}`;
+        const r = await fetchFn(url);
+        const d = await r.json();
+        if (d && d.id) return { id: d.id, name: d.name || '', username: d.username || '' };
+    } catch (_) {}
+    return null;
+}
+
+async function setSupportPageConfig({ page_input, page_name, email }, fetchFn) {
     const handle = parseFbPageHandle(page_input || '');
+    let pageId = '';
+    let resolvedName = '';
+    if (handle && fetchFn) {
+        const info = await resolveFacebookPageInfo(handle, fetchFn);
+        if (info) {
+            pageId = info.id;
+            resolvedName = info.name;
+        } else if (/^\d+$/.test(handle)) {
+            pageId = handle;
+        }
+    } else if (/^\d+$/.test(handle)) {
+        pageId = handle;
+    }
     await setSetting('support_page_handle', handle);
-    if (page_name !== undefined) await setSetting('support_page_name', String(page_name || '').trim().slice(0, 120));
-    if (email !== undefined)     await setSetting('support_email',     String(email || '').trim().slice(0, 200));
+    await setSetting('support_page_id', pageId);
+    const finalName = (page_name !== undefined && page_name !== null && String(page_name).trim()) ? String(page_name).trim() : resolvedName;
+    if (finalName) await setSetting('support_page_name', finalName.slice(0, 120));
+    else if (page_name !== undefined) await setSetting('support_page_name', '');
+    if (email !== undefined) await setSetting('support_email', String(email || '').trim().slice(0, 200));
     return getSupportPageConfig();
 }
 
@@ -3361,6 +3394,178 @@ async function getNotificationStats(notificationId) {
         addDbError(`getNotificationStats: ${e.message}`);
         return null;
     }
+}
+
+// =============================================================================
+// Support Chat — user ↔ admin direct messaging
+// =============================================================================
+
+async function ensureSupportThread(fb_user_id, fb_name) {
+    if (!pool || !fb_user_id) return null;
+    try {
+        const [r1] = await pool.query(
+            `SELECT id, fb_user_id, fb_name, status, last_message_at, last_message_from,
+                    user_unread, admin_unread, created_at
+             FROM support_threads WHERE fb_user_id = ? LIMIT 1`,
+            [fb_user_id]
+        );
+        if (r1.length) return r1[0];
+        const [ins] = await pool.query(
+            `INSERT INTO support_threads (fb_user_id, fb_name) VALUES (?, ?)`,
+            [fb_user_id, String(fb_name || '').slice(0, 255) || null]
+        );
+        return {
+            id: ins.insertId,
+            fb_user_id,
+            fb_name: fb_name || null,
+            status: 'open',
+            last_message_at: null,
+            last_message_from: null,
+            user_unread: 0,
+            admin_unread: 0,
+            created_at: new Date()
+        };
+    } catch (e) {
+        addDbError(`ensureSupportThread: ${e.message}`);
+        return null;
+    }
+}
+
+async function getSupportMessages(thread_id, { limit = 100, before_id = null } = {}) {
+    if (!pool || !thread_id) return [];
+    try {
+        const params = [parseInt(thread_id, 10)];
+        let where = 'thread_id = ?';
+        if (before_id) {
+            where += ' AND id < ?';
+            params.push(parseInt(before_id, 10));
+        }
+        params.push(Math.min(200, parseInt(limit, 10) || 100));
+        const [rows] = await pool.query(
+            `SELECT id, thread_id, sender_type, sender_id, body, created_at
+             FROM support_messages WHERE ${where}
+             ORDER BY id DESC LIMIT ?`,
+            params
+        );
+        return rows.reverse();
+    } catch (e) {
+        addDbError(`getSupportMessages: ${e.message}`);
+        return [];
+    }
+}
+
+async function sendSupportMessage({ thread_id, sender_type, sender_id, body }) {
+    if (!pool || !thread_id) return null;
+    const text = String(body || '').trim().slice(0, 4000);
+    if (!text) throw new Error('Message is empty');
+    if (!['user', 'admin'].includes(sender_type)) throw new Error('Invalid sender_type');
+    try {
+        const [ins] = await pool.query(
+            `INSERT INTO support_messages (thread_id, sender_type, sender_id, body) VALUES (?, ?, ?, ?)`,
+            [parseInt(thread_id, 10), sender_type, sender_id || null, text]
+        );
+        const otherInc = sender_type === 'user' ? 'admin_unread' : 'user_unread';
+        await pool.query(
+            `UPDATE support_threads
+             SET last_message_at = NOW(),
+                 last_message_from = ?,
+                 ${otherInc} = ${otherInc} + 1,
+                 status = 'open'
+             WHERE id = ?`,
+            [sender_type, parseInt(thread_id, 10)]
+        );
+        return {
+            id: ins.insertId,
+            thread_id: parseInt(thread_id, 10),
+            sender_type,
+            sender_id: sender_id || null,
+            body: text,
+            created_at: new Date()
+        };
+    } catch (e) {
+        addDbError(`sendSupportMessage: ${e.message}`);
+        throw e;
+    }
+}
+
+async function markSupportThreadRead(thread_id, who) {
+    if (!pool || !thread_id) return false;
+    const col = who === 'admin' ? 'admin_unread' : 'user_unread';
+    try {
+        await pool.query(`UPDATE support_threads SET ${col} = 0 WHERE id = ?`, [parseInt(thread_id, 10)]);
+        return true;
+    } catch (e) {
+        return false;
+    }
+}
+
+async function listSupportThreads({ limit = 100, search = '', status = '' } = {}) {
+    if (!pool) return [];
+    try {
+        const conditions = [];
+        const params = [];
+        if (status === 'open' || status === 'closed') {
+            conditions.push('t.status = ?');
+            params.push(status);
+        }
+        if (search) {
+            conditions.push('(t.fb_name LIKE ? OR t.fb_user_id LIKE ?)');
+            params.push('%' + search + '%', '%' + search + '%');
+        }
+        const where = conditions.length ? 'WHERE ' + conditions.join(' AND ') : '';
+        params.push(Math.min(500, parseInt(limit, 10) || 100));
+        const [rows] = await pool.query(
+            `SELECT t.id, t.fb_user_id, t.fb_name, t.status, t.admin_unread, t.user_unread,
+                    t.last_message_at, t.last_message_from, t.created_at,
+                    (SELECT m.body FROM support_messages m WHERE m.thread_id = t.id ORDER BY m.id DESC LIMIT 1) AS last_message,
+                    (SELECT COUNT(*) FROM support_messages m WHERE m.thread_id = t.id) AS message_count,
+                    u.plan, u.email
+             FROM support_threads t
+             LEFT JOIN users u ON u.fb_user_id = t.fb_user_id
+             ${where}
+             ORDER BY (t.admin_unread > 0) DESC,
+                      COALESCE(t.last_message_at, t.created_at) DESC
+             LIMIT ?`,
+            params
+        );
+        return rows;
+    } catch (e) {
+        addDbError(`listSupportThreads: ${e.message}`);
+        return [];
+    }
+}
+
+async function getSupportThreadById(thread_id) {
+    if (!pool || !thread_id) return null;
+    try {
+        const [rows] = await pool.query(
+            `SELECT t.*, u.plan, u.email
+             FROM support_threads t
+             LEFT JOIN users u ON u.fb_user_id = t.fb_user_id
+             WHERE t.id = ? LIMIT 1`,
+            [parseInt(thread_id, 10)]
+        );
+        return rows[0] || null;
+    } catch (e) {
+        return null;
+    }
+}
+
+async function getSupportAdminUnreadTotal() {
+    if (!pool) return 0;
+    try {
+        const [[r]] = await pool.query('SELECT COALESCE(SUM(admin_unread),0) AS c FROM support_threads');
+        return Number(r.c || 0);
+    } catch (_) { return 0; }
+}
+
+async function setSupportThreadStatus(thread_id, status) {
+    if (!pool || !thread_id) return false;
+    if (!['open', 'closed'].includes(status)) return false;
+    try {
+        await pool.query('UPDATE support_threads SET status = ? WHERE id = ?', [status, parseInt(thread_id, 10)]);
+        return true;
+    } catch (_) { return false; }
 }
 
 async function markAllNotificationsRead(fb_user_id) {

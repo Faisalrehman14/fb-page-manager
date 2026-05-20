@@ -1696,6 +1696,21 @@ body.light .notif-toast {
   100% { box-shadow: 0 0 0 0 rgba(209, 250, 229, 0); }
 }
 
+/* Hide the default FB Customer Chat bubble — we open it programmatically */
+.fb_dialog,
+.fb_dialog_advanced,
+.fb_customer_chat_bounce_in_v2,
+.fb_customer_chat_bounce_out_v2 {
+  bottom: 20px !important;
+  right: 20px !important;
+  z-index: 100002 !important;
+}
+.fb_dialog.fb_dialog_mobile.loaded { display: none !important; }
+.fb_customer_chat_bubble_animated_no_badge,
+.fb_customer_chat_bubble_pop_in,
+.fb_customer_chat_bubble_pop_out,
+.fb_customer_chat_bubble_animated_with_badge { display: none !important; }
+
 /* Modal */
 .support-overlay {
   position: fixed;

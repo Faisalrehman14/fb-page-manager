@@ -898,7 +898,7 @@ app.get('/api/admin/support', requireAdminAuth, async (req, res) => {
 app.post('/api/admin/support', requireAdminAuth, async (req, res) => {
     try {
         const { page_input, page_name, email } = req.body || {};
-        const cfg = await db.setSupportPageConfig({ page_input, page_name, email });
+        const cfg = await db.setSupportPageConfig({ page_input, page_name, email }, fetch);
         res.json({ success: true, ...cfg });
     } catch (err) {
         logError('admin_support_set', err);
