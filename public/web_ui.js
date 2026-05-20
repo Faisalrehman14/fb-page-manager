@@ -366,14 +366,18 @@ window.svUpdateSidebarPageCount = function () {
   if (!el) return;
   const n = document.querySelectorAll('#pageCards .page-card.sched-selected').length;
   const total = (window.loadedPages || []).length;
-  el.textContent = n === total && total > 0 ? `All ${n} pages selected` : `${n} selected`;
+  if (n === 0) {
+    el.textContent = total > 0 ? 'No pages selected' : '0 selected';
+  } else if (n === total && total > 0) {
+    el.textContent = `All ${n} pages selected`;
+  } else {
+    el.textContent = `${n} selected`;
+  }
 };
 
 window.svInitSchedulingPageSelection = function () {
-  const cards = document.querySelectorAll('#pageCards .page-card');
-  if (!cards.length) return;
-  cards.forEach(c => {
-    if (!c.classList.contains('sched-selected')) c.classList.add('sched-selected');
+  document.querySelectorAll('#pageCards .page-card.sched-selected').forEach(c => {
+    c.classList.remove('sched-selected');
   });
   svUpdateSidebarPageCount();
 };
