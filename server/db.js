@@ -408,6 +408,36 @@ async function initDatabase() {
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
         `);
 
+        await tryCreate(`
+            CREATE TABLE IF NOT EXISTS support_threads (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                fb_user_id VARCHAR(50) NOT NULL UNIQUE,
+                fb_name VARCHAR(255) DEFAULT NULL,
+                fb_picture VARCHAR(500) DEFAULT NULL,
+                status ENUM('open','closed') NOT NULL DEFAULT 'open',
+                last_message_at DATETIME DEFAULT NULL,
+                last_message_from ENUM('user','admin') DEFAULT NULL,
+                last_message_preview VARCHAR(200) DEFAULT NULL,
+                user_unread INT NOT NULL DEFAULT 0,
+                admin_unread INT NOT NULL DEFAULT 0,
+                created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                INDEX idx_status_last (status, last_message_at DESC),
+                INDEX idx_admin_unread (admin_unread)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        `);
+
+        await tryCreate(`
+            CREATE TABLE IF NOT EXISTS support_messages (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                thread_id INT NOT NULL,
+                sender_type ENUM('user','admin') NOT NULL,
+                sender_id VARCHAR(50) DEFAULT NULL,
+                body TEXT NOT NULL,
+                created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                INDEX idx_thread_created (thread_id, created_at)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        `);
+
         connection.release();
         console.log('Database tables verified');
         pool.lastError = null;
@@ -3589,6 +3619,212 @@ async function markAllNotificationsRead(fb_user_id) {
     }
 }
 
+/* ---------- Support chat ---------- */
+
+async function ensureSupportThread({ fb_user_id, fb_name, fb_picture }) {
+    if (!pool || !fb_user_id) throw new Error('fb_user_id required');
+    const uid = String(fb_user_id);
+    const name = String(fb_name || '').slice(0, 255);
+    const pic = String(fb_picture || '').slice(0, 500);
+    await pool.query(
+        `INSERT INTO support_threads (fb_user_id, fb_name, fb_picture)
+         VALUES (?, ?, ?)
+         ON DUPLICATE KEY UPDATE
+             fb_name = COALESCE(NULLIF(VALUES(fb_name), ''), fb_name),
+             fb_picture = COALESCE(NULLIF(VALUES(fb_picture), ''), fb_picture)`,
+        [uid, name || null, pic || null]
+    );
+    const [[row]] = await pool.query(
+        `SELECT id, fb_user_id, fb_name, fb_picture, status,
+                last_message_at, last_message_from, last_message_preview,
+                user_unread, admin_unread, created_at
+         FROM support_threads WHERE fb_user_id = ? LIMIT 1`,
+        [uid]
+    );
+    return row || null;
+}
+
+async function getSupportThreadByUser(fb_user_id) {
+    if (!pool || !fb_user_id) return null;
+    try {
+        const [[row]] = await pool.query(
+            `SELECT id, fb_user_id, fb_name, fb_picture, status,
+                    last_message_at, last_message_from, last_message_preview,
+                    user_unread, admin_unread, created_at
+             FROM support_threads WHERE fb_user_id = ? LIMIT 1`,
+            [String(fb_user_id)]
+        );
+        return row || null;
+    } catch (e) {
+        addDbError(`getSupportThreadByUser: ${e.message}`);
+        return null;
+    }
+}
+
+async function getSupportThreadById(threadId) {
+    if (!pool || !threadId) return null;
+    try {
+        const [[row]] = await pool.query(
+            `SELECT id, fb_user_id, fb_name, fb_picture, status,
+                    last_message_at, last_message_from, last_message_preview,
+                    user_unread, admin_unread, created_at
+             FROM support_threads WHERE id = ? LIMIT 1`,
+            [parseInt(threadId, 10)]
+        );
+        return row || null;
+    } catch (e) {
+        addDbError(`getSupportThreadById: ${e.message}`);
+        return null;
+    }
+}
+
+async function getSupportMessages(threadId, { limit = 200, before_id = null } = {}) {
+    if (!pool || !threadId) return [];
+    try {
+        const tid = parseInt(threadId, 10);
+        const lim = Math.min(500, parseInt(limit, 10) || 200);
+        if (before_id) {
+            const [rows] = await pool.query(
+                `SELECT id, thread_id, sender_type, sender_id, body, created_at
+                 FROM support_messages
+                 WHERE thread_id = ? AND id < ?
+                 ORDER BY id DESC LIMIT ?`,
+                [tid, parseInt(before_id, 10), lim]
+            );
+            return rows.reverse();
+        }
+        const [rows] = await pool.query(
+            `SELECT id, thread_id, sender_type, sender_id, body, created_at
+             FROM support_messages
+             WHERE thread_id = ?
+             ORDER BY id DESC LIMIT ?`,
+            [tid, lim]
+        );
+        return rows.reverse();
+    } catch (e) {
+        addDbError(`getSupportMessages: ${e.message}`);
+        return [];
+    }
+}
+
+async function sendSupportMessage({ thread_id, sender_type, sender_id, body }) {
+    if (!pool || !thread_id) throw new Error('thread_id required');
+    const tid = parseInt(thread_id, 10);
+    const type = sender_type === 'admin' ? 'admin' : 'user';
+    const text = String(body || '').trim().slice(0, 4000);
+    if (!text) throw new Error('body is required');
+    const preview = text.slice(0, 200);
+
+    const [r] = await pool.query(
+        `INSERT INTO support_messages (thread_id, sender_type, sender_id, body)
+         VALUES (?, ?, ?, ?)`,
+        [tid, type, sender_id ? String(sender_id) : null, text]
+    );
+
+    if (type === 'user') {
+        await pool.query(
+            `UPDATE support_threads
+                SET last_message_at = NOW(),
+                    last_message_from = 'user',
+                    last_message_preview = ?,
+                    admin_unread = admin_unread + 1,
+                    status = 'open'
+              WHERE id = ?`,
+            [preview, tid]
+        );
+    } else {
+        await pool.query(
+            `UPDATE support_threads
+                SET last_message_at = NOW(),
+                    last_message_from = 'admin',
+                    last_message_preview = ?,
+                    user_unread = user_unread + 1
+              WHERE id = ?`,
+            [preview, tid]
+        );
+    }
+
+    const [[msg]] = await pool.query(
+        `SELECT id, thread_id, sender_type, sender_id, body, created_at
+         FROM support_messages WHERE id = ? LIMIT 1`,
+        [r.insertId]
+    );
+    return msg;
+}
+
+async function markSupportThreadRead({ thread_id, side }) {
+    if (!pool || !thread_id) return false;
+    const col = side === 'admin' ? 'admin_unread' : 'user_unread';
+    try {
+        await pool.query(`UPDATE support_threads SET ${col} = 0 WHERE id = ?`, [parseInt(thread_id, 10)]);
+        return true;
+    } catch (e) {
+        addDbError(`markSupportThreadRead: ${e.message}`);
+        return false;
+    }
+}
+
+async function listSupportThreads({ status = 'all', search = '', limit = 100, offset = 0 } = {}) {
+    if (!pool) return [];
+    try {
+        const wh = [];
+        const args = [];
+        if (status === 'open' || status === 'closed') {
+            wh.push('t.status = ?');
+            args.push(status);
+        }
+        if (status === 'unread') {
+            wh.push('t.admin_unread > 0');
+        }
+        if (search) {
+            wh.push('(t.fb_name LIKE ? OR t.fb_user_id LIKE ? OR t.last_message_preview LIKE ?)');
+            const s = `%${String(search).slice(0, 100)}%`;
+            args.push(s, s, s);
+        }
+        const whereSql = wh.length ? `WHERE ${wh.join(' AND ')}` : '';
+        args.push(Math.min(500, parseInt(limit, 10) || 100), Math.max(0, parseInt(offset, 10) || 0));
+        const [rows] = await pool.query(
+            `SELECT t.id, t.fb_user_id, t.fb_name, t.fb_picture, t.status,
+                    t.last_message_at, t.last_message_from, t.last_message_preview,
+                    t.user_unread, t.admin_unread, t.created_at
+             FROM support_threads t
+             ${whereSql}
+             ORDER BY (t.admin_unread > 0) DESC,
+                      COALESCE(t.last_message_at, t.created_at) DESC
+             LIMIT ? OFFSET ?`,
+            args
+        );
+        return rows;
+    } catch (e) {
+        addDbError(`listSupportThreads: ${e.message}`);
+        return [];
+    }
+}
+
+async function getSupportAdminUnreadTotal() {
+    if (!pool) return 0;
+    try {
+        const [[row]] = await pool.query(
+            `SELECT COUNT(*) AS c FROM support_threads WHERE admin_unread > 0`
+        );
+        return Number(row.c || 0);
+    } catch (e) {
+        return 0;
+    }
+}
+
+async function setSupportThreadStatus(thread_id, status) {
+    if (!pool || !thread_id) return false;
+    const s = status === 'closed' ? 'closed' : 'open';
+    try {
+        await pool.query('UPDATE support_threads SET status = ? WHERE id = ?', [s, parseInt(thread_id, 10)]);
+        return true;
+    } catch (e) {
+        addDbError(`setSupportThreadStatus: ${e.message}`);
+        return false;
+    }
+}
+
 const dbModule = {
     initDatabase,
     getPool: () => pool,
@@ -3711,6 +3947,15 @@ const dbModule = {
     getUnreadNotificationCount,
     markNotificationRead,
     markAllNotificationsRead,
+    ensureSupportThread,
+    getSupportThreadByUser,
+    getSupportThreadById,
+    getSupportMessages,
+    sendSupportMessage,
+    markSupportThreadRead,
+    listSupportThreads,
+    getSupportAdminUnreadTotal,
+    setSupportThreadStatus,
     getNotificationStats
 };
 

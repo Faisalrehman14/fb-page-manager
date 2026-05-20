@@ -1,213 +1,319 @@
 /**
- * FBCast Pro — Contact us / Live Messenger Chat
+ * FBCast Pro — Inline Support Chat Widget
  *
- * Loads support config and embeds Facebook's Customer Chat Plugin (Messenger
- * Chat). User sees an inline chat window that uses their existing Facebook
- * identity; messages land in the admin's Facebook Page inbox natively.
- *
- * Sidebar "Contact us" button programmatically opens the chat dialog. If the
- * FB SDK or page is not whitelisted, falls back to opening the m.me link
- * inside our polished in-app modal.
+ * Small Intercom-style chat box that opens in the bottom-right when the user
+ * clicks the sidebar "Contact us" button. Messages are stored server-side and
+ * delivered in real-time over Socket.IO so the admin sees them instantly in
+ * the admin panel and replies appear here without a refresh.
  */
 (function (global) {
   'use strict';
 
   const FALLBACK_EMAIL =
-    (global.APP_CONFIG && global.APP_CONFIG.contactEmail) || 'support@castmepro.com';
-  const FB_APP_ID = (global.APP_CONFIG && global.APP_CONFIG.fbAppId) || '';
+    (global.APP_CONFIG && global.APP_CONFIG.contactEmail) || '';
 
-  let cfg = null;
-  let booted = false;
-  let pluginInjected = false;
-  let pluginReady = false;
-  let pluginFailed = false;
+  const state = {
+    open: false,
+    booted: false,
+    threadId: null,
+    messages: [],
+    page: null,
+    socket: null,
+    socketBound: false,
+    sending: false,
+    lastSeenId: 0,
+    unreadBadge: 0
+  };
 
   function $(id) { return document.getElementById(id); }
-
-  async function loadConfig(force) {
-    if (cfg && !force) return cfg;
-    try {
-      const r = await fetch('/api/support/info', { credentials: 'same-origin' });
-      if (!r.ok) throw new Error('http');
-      cfg = await r.json();
-    } catch (_) {
-      cfg = { enabled: false };
-    }
-    return cfg;
+  function escapeHtml(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+  function linkify(text) {
+    const html = escapeHtml(text);
+    return html.replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>');
+  }
+  function formatTime(iso) {
+    if (!iso) return '';
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return '';
+    const today = new Date();
+    const sameDay = d.toDateString() === today.toDateString();
+    const opts = sameDay
+      ? { hour: 'numeric', minute: '2-digit' }
+      : { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' };
+    try { return d.toLocaleString([], opts); } catch (_) { return ''; }
   }
 
-  function applyConfigToModal() {
-    const nameEl = $('supportPageName');
-    const subEl  = $('supportPageSub');
-    const primary = $('supportPrimaryBtn');
-    const pageBtn = $('supportPageBtn');
-    const emailBtn = $('supportEmailBtn');
-    const empty = $('supportEmptyMsg');
-    const fallback = $('supportFallbackMail');
-    if (!nameEl) return;
+  function getCsrf() {
+    try { return (window.getCsrfToken && window.getCsrfToken()) || (window.APP_CONFIG && window.APP_CONFIG.csrfToken) || ''; }
+    catch (_) { return ''; }
+  }
 
-    if (!cfg || (!cfg.enabled && !cfg.email)) {
-      nameEl.textContent = 'Support unavailable';
-      subEl.textContent  = 'Please email us instead.';
-      primary.style.display = 'none';
-      pageBtn.hidden = true;
-      empty.hidden = false;
-      if (fallback) {
-        fallback.textContent = FALLBACK_EMAIL;
-        fallback.href = 'mailto:' + FALLBACK_EMAIL;
+  function setBadge(n) {
+    state.unreadBadge = Number(n) || 0;
+    const btn = $('navContactBtn');
+    if (!btn) return;
+    let dot = btn.querySelector('.nav-contact-badge');
+    if (state.unreadBadge > 0) {
+      if (!dot) {
+        dot = document.createElement('span');
+        dot.className = 'nav-contact-badge';
+        btn.appendChild(dot);
       }
-      emailBtn.hidden = true;
+      dot.textContent = state.unreadBadge > 9 ? '9+' : String(state.unreadBadge);
+      dot.hidden = false;
+    } else if (dot) {
+      dot.hidden = true;
+    }
+  }
+
+  function applyPageMeta(p) {
+    state.page = p || {};
+    const nameEl = $('chatwPageName');
+    const subEl  = $('chatwPageSub');
+    const linkBtn = $('chatwPageLink');
+    if (nameEl) nameEl.textContent = (p && p.name) || 'Support team';
+    if (subEl)  subEl.textContent  = (p && p.handle) ? ('@' + p.handle + ' · Replies within minutes') : 'Replies within minutes';
+    if (linkBtn) {
+      if (p && p.page_url) {
+        linkBtn.hidden = false;
+        linkBtn.onclick = () => window.open(p.page_url, '_blank', 'noopener');
+      } else {
+        linkBtn.hidden = true;
+      }
+    }
+  }
+
+  function renderMessages() {
+    const box = $('chatwMessages');
+    const welcome = $('chatwWelcome');
+    if (!box) return;
+    if (!state.messages.length) {
+      box.innerHTML = '';
+      if (welcome) welcome.style.display = '';
       return;
     }
+    if (welcome) welcome.style.display = 'none';
 
-    empty.hidden = true;
-    nameEl.textContent = cfg.page_name || cfg.page_handle || 'Support team';
-    subEl.textContent  = cfg.page_handle
-      ? '@' + cfg.page_handle + ' · Replies on Messenger'
-      : 'Replies on Messenger';
-
-    if (cfg.m_me_url) {
-      primary.href = cfg.m_me_url;
-      primary.style.display = '';
-    } else {
-      primary.style.display = 'none';
-    }
-
-    if (cfg.page_url) {
-      pageBtn.href = cfg.page_url;
-      pageBtn.hidden = false;
-    } else {
-      pageBtn.hidden = true;
-    }
-
-    const email = (cfg.email || '').trim();
-    if (email) {
-      emailBtn.href = 'mailto:' + email;
-      emailBtn.innerHTML = '<i class="fa-solid fa-envelope"></i> Email ' + email;
-      emailBtn.hidden = false;
-    } else {
-      emailBtn.hidden = true;
-    }
-  }
-
-  function openFallbackModal() {
-    const overlay = $('supportOverlay');
-    if (!overlay) return;
-    applyConfigToModal();
-    overlay.hidden = false;
-    document.body.classList.add('no-scroll');
-  }
-
-  function closeFallbackModal() {
-    const overlay = $('supportOverlay');
-    if (!overlay) return;
-    overlay.hidden = true;
-    document.body.classList.remove('no-scroll');
-  }
-
-  function injectCustomerChat() {
-    if (pluginInjected) return;
-    if (!cfg || !cfg.page_id) return;
-    if (!FB_APP_ID) return;
-    pluginInjected = true;
-
-    // <div id="fb-root">
-    if (!document.getElementById('fb-root')) {
-      const r = document.createElement('div');
-      r.id = 'fb-root';
-      document.body.appendChild(r);
-    }
-
-    // <div class="fb-customerchat" ...>
-    const chat = document.createElement('div');
-    chat.className = 'fb-customerchat';
-    chat.setAttribute('page_id', cfg.page_id);
-    chat.setAttribute('attribution', 'biz_inbox');
-    chat.setAttribute('greeting_dialog_display', 'hide');
-    chat.setAttribute('logged_in_greeting', 'Hi! How can we help?');
-    chat.setAttribute('logged_out_greeting', 'Sign in to chat with us.');
-    document.body.appendChild(chat);
-
-    // FB SDK init
-    global.fbAsyncInit = function () {
-      try {
-        global.FB.init({
-          xfbml: true,
-          version: 'v19.0',
-          appId: FB_APP_ID
-        });
-        // The plugin renders asynchronously; mark ready after a short delay.
-        setTimeout(() => {
-          pluginReady = !!(global.FB && global.FB.CustomerChat);
-        }, 1200);
-      } catch (e) {
-        pluginFailed = true;
+    let html = '';
+    let lastDate = '';
+    let lastSender = null;
+    for (const m of state.messages) {
+      const d = new Date(m.created_at);
+      const day = isNaN(d.getTime()) ? '' : d.toDateString();
+      if (day && day !== lastDate) {
+        lastDate = day;
+        const today = new Date().toDateString();
+        const label = day === today ? 'Today' : d.toLocaleDateString([], { month: 'short', day: 'numeric' });
+        html += `<div class="chatw__date">${label}</div>`;
+        lastSender = null;
       }
-    };
-
-    // Load SDK once
-    if (!document.getElementById('facebook-jssdk')) {
-      const js = document.createElement('script');
-      js.id = 'facebook-jssdk';
-      js.async = true;
-      js.defer = true;
-      js.crossOrigin = 'anonymous';
-      js.src = 'https://connect.facebook.net/en_US/sdk/xfbml.customerchat.js';
-      js.onerror = () => { pluginFailed = true; };
-      document.body.appendChild(js);
+      const cls = m.sender_type === 'admin' ? 'chatw__msg chatw__msg--in' : 'chatw__msg chatw__msg--out';
+      const groupCls = lastSender === m.sender_type ? ' chatw__msg--cont' : '';
+      lastSender = m.sender_type;
+      html += `
+        <div class="${cls}${groupCls}">
+          <div class="chatw__bubble">${linkify(m.body)}</div>
+          <div class="chatw__time">${formatTime(m.created_at)}</div>
+        </div>`;
     }
+    box.innerHTML = html;
+    box.scrollTop = box.scrollHeight;
+
+    const last = state.messages[state.messages.length - 1];
+    if (last && Number(last.id) > state.lastSeenId) state.lastSeenId = Number(last.id);
   }
 
-  function tryShowChatDialog() {
-    if (!global.FB || !global.FB.CustomerChat) return false;
+  async function fetchChat() {
     try {
-      global.FB.CustomerChat.show(true);
-      return true;
-    } catch (_) {
-      return false;
+      const r = await fetch('/api/support/chat', { credentials: 'same-origin' });
+      if (!r.ok) throw new Error('http ' + r.status);
+      const data = await r.json();
+      state.threadId = data.thread ? data.thread.id : null;
+      state.messages = Array.isArray(data.messages) ? data.messages : [];
+      applyPageMeta(data.page);
+      renderMessages();
+      if (state.open) markRead();
+    } catch (e) {
+      console.warn('[support] fetchChat', e);
     }
   }
 
-  function open() {
-    loadConfig().then(() => {
-      // No config at all → show fallback modal w/ email
-      if (!cfg || (!cfg.page_id && !cfg.page_handle && !cfg.email)) {
-        openFallbackModal();
-        return;
+  async function fetchUnread() {
+    try {
+      const r = await fetch('/api/support/chat/unread', { credentials: 'same-origin' });
+      if (!r.ok) return;
+      const d = await r.json();
+      if (!state.open) setBadge(d.unread || 0);
+    } catch (_) {}
+  }
+
+  async function markRead() {
+    if (!state.threadId) return;
+    try {
+      await fetch('/api/support/chat/read', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': getCsrf() },
+        body: JSON.stringify({})
+      });
+      setBadge(0);
+    } catch (_) {}
+  }
+
+  async function sendMessage(body) {
+    if (!body || state.sending) return;
+    state.sending = true;
+    const sendBtn = $('chatwSend');
+    if (sendBtn) sendBtn.disabled = true;
+
+    // Optimistic message
+    const optimistic = {
+      id: 'temp-' + Date.now(),
+      thread_id: state.threadId,
+      sender_type: 'user',
+      body: body,
+      created_at: new Date().toISOString()
+    };
+    state.messages.push(optimistic);
+    renderMessages();
+
+    try {
+      const r = await fetch('/api/support/chat/send', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': getCsrf() },
+        body: JSON.stringify({ body })
+      });
+      if (!r.ok) throw new Error('http ' + r.status);
+      const data = await r.json();
+      // Replace optimistic with real
+      const idx = state.messages.findIndex(m => m.id === optimistic.id);
+      if (idx >= 0 && data.message) state.messages[idx] = data.message;
+      state.threadId = data.thread_id || state.threadId;
+      renderMessages();
+    } catch (e) {
+      console.warn('[support] send failed', e);
+      // Mark optimistic message as failed (no UI yet — leave for now)
+    } finally {
+      state.sending = false;
+      if (sendBtn) sendBtn.disabled = false;
+      const input = $('chatwInput');
+      if (input) { input.value = ''; autoGrow(input); input.focus(); }
+    }
+  }
+
+  function autoGrow(el) {
+    if (!el) return;
+    el.style.height = 'auto';
+    el.style.height = Math.min(120, el.scrollHeight) + 'px';
+    const sendBtn = $('chatwSend');
+    if (sendBtn) sendBtn.disabled = !el.value.trim() || state.sending;
+  }
+
+  function bindSocket() {
+    if (state.socketBound) return;
+    if (typeof io !== 'function') return;
+    try {
+      state.socket = io({ path: '/socket.io', transports: ['websocket', 'polling'] });
+      state.socket.on('connect', () => { /* connected */ });
+      state.socket.on('support:message', (payload) => {
+        if (!payload || !payload.message) return;
+        // Only append if not already in list
+        if (state.messages.some(m => Number(m.id) === Number(payload.message.id))) return;
+        state.messages.push(payload.message);
+        renderMessages();
+        if (payload.message.sender_type === 'admin') {
+          if (state.open) {
+            markRead();
+          } else {
+            setBadge(state.unreadBadge + 1);
+            pingNotification(payload.message);
+          }
+        }
+      });
+      state.socketBound = true;
+    } catch (e) {
+      console.warn('[support] socket bind failed', e);
+    }
+  }
+
+  function pingNotification(msg) {
+    try {
+      const t = window.showNotification || window.showToast;
+      const sender = (state.page && state.page.name) || 'Support';
+      const text = String(msg.body || '').slice(0, 80);
+      if (typeof t === 'function') t(`${sender}: ${text}`, 'info');
+    } catch (_) {}
+  }
+
+  function openWidget() {
+    const w = $('supportWidget');
+    if (!w) return;
+    w.hidden = false;
+    w.setAttribute('aria-hidden', 'false');
+    requestAnimationFrame(() => w.classList.add('chatw--open'));
+    state.open = true;
+    const input = $('chatwInput');
+    if (input) setTimeout(() => input.focus(), 200);
+    fetchChat();
+    markRead();
+  }
+
+  function closeWidget() {
+    const w = $('supportWidget');
+    if (!w) return;
+    w.classList.remove('chatw--open');
+    state.open = false;
+    setTimeout(() => {
+      if (!state.open) {
+        w.hidden = true;
+        w.setAttribute('aria-hidden', 'true');
       }
-      // We have a page_id → use FB Customer Chat Plugin
-      if (cfg.page_id && FB_APP_ID) {
-        injectCustomerChat();
-        // The SDK may take a moment to load. Try a few times.
-        let attempts = 0;
-        const tick = () => {
-          if (pluginFailed) { openFallbackModal(); return; }
-          if (tryShowChatDialog()) return;
-          if (++attempts > 25) { openFallbackModal(); return; }
-          setTimeout(tick, 250);
-        };
-        tick();
-        return;
-      }
-      // Only a handle or email → open fallback modal
-      openFallbackModal();
-    });
+    }, 220);
+  }
+
+  function toggleWidget() {
+    if (state.open) closeWidget();
+    else openWidget();
   }
 
   function bindEvents() {
-    const overlay = $('supportOverlay');
-    if (overlay) {
-      overlay.addEventListener('click', (e) => {
-        if (e.target === overlay) closeFallbackModal();
-      });
-    }
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape' && overlay && !overlay.hidden) closeFallbackModal();
-    });
     const btn = $('navContactBtn');
     if (btn) {
-      btn.addEventListener('click', (e) => { e.preventDefault(); open(); });
+      // Replace the inline onclick handler behaviour
+      btn.onclick = (e) => { e.preventDefault(); toggleWidget(); };
     }
+    const closeBtn = $('chatwClose');
+    if (closeBtn) closeBtn.addEventListener('click', closeWidget);
+
+    const form = $('chatwForm');
+    const input = $('chatwInput');
+    if (input) {
+      input.addEventListener('input', () => autoGrow(input));
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+          e.preventDefault();
+          const v = input.value.trim();
+          if (v) sendMessage(v);
+        }
+      });
+    }
+    if (form) {
+      form.addEventListener('submit', (e) => {
+        e.preventDefault();
+        if (!input) return;
+        const v = input.value.trim();
+        if (v) sendMessage(v);
+      });
+    }
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && state.open) closeWidget();
+    });
   }
 
   function showButton() {
@@ -215,22 +321,48 @@
     if (btn) btn.style.display = '';
   }
 
-  function init() {
-    if (booted) return;
-    if (!$('navContactBtn')) return;
-    booted = true;
+  function boot() {
+    if (state.booted) return;
+    if (!$('navContactBtn') || !$('supportWidget')) return;
+    state.booted = true;
     bindEvents();
     showButton();
-    loadConfig().then(() => {
-      // Eagerly inject when we have everything needed so the dialog opens fast
-      if (cfg && cfg.page_id && FB_APP_ID) injectCustomerChat();
-    });
+    fetchUnread();
+    setInterval(fetchUnread, 30000);
+    bindSocket();
+  }
+
+  function init() {
+    // Defer until app dashboard is visible (post-login)
+    const appPage = document.getElementById('appPage');
+    if (!appPage || appPage.style.display === 'none' || appPage.hidden) {
+      if (typeof window.showAppDashboard === 'function') {
+        const orig = window.showAppDashboard;
+        window.showAppDashboard = function () {
+          const r = orig.apply(this, arguments);
+          setTimeout(boot, 100);
+          return r;
+        };
+      }
+      if (appPage) {
+        const obs = new MutationObserver(() => {
+          if (appPage.style.display !== 'none' && !appPage.hidden) {
+            boot();
+            obs.disconnect();
+          }
+        });
+        obs.observe(appPage, { attributes: true, attributeFilter: ['style', 'hidden'] });
+      }
+      return;
+    }
+    boot();
   }
 
   global.fbcastSupport = {
-    open: open,
-    close: closeFallbackModal,
-    reload: () => loadConfig(true)
+    open: openWidget,
+    close: closeWidget,
+    toggle: toggleWidget,
+    refresh: fetchChat
   };
 
   if (document.readyState === 'loading') {

@@ -992,48 +992,56 @@ window.getCsrfToken = async (forceRefresh = false) => {
       </div>
     </div>
 
-    <!-- Support modal -->
-    <div class="support-overlay" id="supportOverlay" hidden role="dialog" aria-labelledby="supportTitle">
-      <div class="support-modal" role="document">
-        <div class="support-modal__hero">
-          <div class="support-hero-icon"><i class="fa-brands fa-facebook-messenger"></i></div>
-          <div class="support-hero-pulse" aria-hidden="true"></div>
-          <div>
-            <div class="support-hero-eyebrow">Support · Replies on Messenger</div>
-            <h3 id="supportTitle" class="support-hero-title">Chat with our team</h3>
-            <p class="support-hero-sub">Your message goes directly to our Facebook page using your own Messenger account.</p>
-          </div>
-          <button type="button" class="support-close" aria-label="Close" onclick="if(window.fbcastSupport)window.fbcastSupport.close()">&times;</button>
+    <!-- Floating support chat widget (Intercom-style) -->
+    <div class="chatw" id="supportWidget" hidden aria-hidden="true">
+      <header class="chatw__hdr">
+        <div class="chatw__hdr-avatar" id="chatwPageAvatar">
+          <i class="fa-brands fa-facebook"></i>
         </div>
-        <div class="support-modal__body">
-          <div class="support-page-card" id="supportPageCard">
-            <div class="support-page-avatar"><i class="fa-brands fa-facebook"></i></div>
-            <div class="support-page-meta">
-              <div class="support-page-name" id="supportPageName">Loading support page…</div>
-              <div class="support-page-sub" id="supportPageSub">Powered by Facebook Messenger</div>
-            </div>
-            <span class="support-online-dot" title="Active"></span>
-          </div>
-          <a href="#" id="supportPrimaryBtn" target="_blank" rel="noopener" class="support-primary-btn">
-            <i class="fa-brands fa-facebook-messenger"></i>
-            <span>Open chat on Messenger</span>
-            <i class="fa-solid fa-arrow-up-right-from-square support-primary-arrow"></i>
-          </a>
-          <a href="#" id="supportPageBtn" target="_blank" rel="noopener" class="support-secondary-btn" hidden>
-            <i class="fa-brands fa-facebook"></i> Visit our Facebook page
-          </a>
-          <a href="#" id="supportEmailBtn" class="support-secondary-btn" hidden>
-            <i class="fa-solid fa-envelope"></i> Or email us
-          </a>
-          <div class="support-empty" id="supportEmptyMsg" hidden>
-            <i class="fa-solid fa-circle-info"></i>
-            <p>Support channel isn't configured yet. Please email <a id="supportFallbackMail" href="#">support@castmepro.com</a>.</p>
+        <div class="chatw__hdr-meta">
+          <div class="chatw__hdr-name" id="chatwPageName">Support team</div>
+          <div class="chatw__hdr-sub">
+            <span class="chatw__online-dot"></span>
+            <span id="chatwPageSub">Typically replies within minutes</span>
           </div>
         </div>
-        <div class="support-modal__ftr">
-          <i class="fa-solid fa-lock"></i> Your conversation is private. Average response time: under 10 minutes.
+        <div class="chatw__hdr-actions">
+          <button type="button" class="chatw__icon-btn" title="Open Facebook page" id="chatwPageLink" hidden>
+            <i class="fa-brands fa-facebook"></i>
+          </button>
+          <button type="button" class="chatw__icon-btn" title="Close" id="chatwClose" aria-label="Close chat">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+      </header>
+      <div class="chatw__body" id="chatwBody">
+        <div class="chatw__welcome" id="chatwWelcome">
+          <div class="chatw__welcome-icon"><i class="fa-regular fa-comments"></i></div>
+          <div class="chatw__welcome-title">Hi there! 👋</div>
+          <div class="chatw__welcome-sub">Send us a message — our team will reply here as soon as we can.</div>
+        </div>
+        <div class="chatw__messages" id="chatwMessages"></div>
+        <div class="chatw__typing" id="chatwTyping" hidden>
+          <span></span><span></span><span></span>
         </div>
       </div>
+      <footer class="chatw__ftr">
+        <form id="chatwForm" class="chatw__form" autocomplete="off">
+          <textarea
+            id="chatwInput"
+            class="chatw__input"
+            placeholder="Write a message…"
+            rows="1"
+            maxlength="4000"
+            aria-label="Type your message"></textarea>
+          <button type="submit" class="chatw__send" id="chatwSend" disabled aria-label="Send">
+            <i class="fa-solid fa-paper-plane"></i>
+          </button>
+        </form>
+        <div class="chatw__brand">
+          <i class="fa-solid fa-shield-halved"></i> Private chat · Powered by FBCast Pro
+        </div>
+      </footer>
     </div>
 
     <!-- COL 1: SIDEBAR / PAGES -->

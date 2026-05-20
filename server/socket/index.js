@@ -21,6 +21,11 @@ function setupSocket(io, sessionMiddleware) {
         // Auto-join personal room for admin-pushed notifications targeted at this user
         const uid = socket.request.session?.userId;
         if (uid) socket.join(`user_${uid}`);
+        // Admin can opt into the support inbox stream
+        socket.on('join_admin_support', () => {
+            if (socket.request.session?.isAdmin) socket.join('admin_support');
+        });
+        socket.on('leave_admin_support', () => socket.leave('admin_support'));
         socket.on('join_page', pageId => {
             if (!pageId || !/^\d+$/.test(String(pageId))) return;
             // If session already has page tokens, validate ownership
