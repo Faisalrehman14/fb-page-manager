@@ -1916,7 +1916,10 @@ const App = {
         : '';
       const initials = thread.fb_picture ? '' : this.initials(thread.fb_name);
       const statusBtn = thread.status === 'open'
-        ? `<button class="btn btn-ghost btn-sm" onclick="App.support.toggleStatus(${thread.id}, 'closed')">Close conversation</button>`
+        ? `<button class="btn btn-primary btn-sm" onclick="App.support.markResolved(${thread.id})" title="Closes this ticket and clears the chat from the user's widget">
+             <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" style="margin-right:4px;"><polyline points="20 6 9 17 4 12"/></svg>
+             Mark as done
+           </button>`
         : `<button class="btn btn-ghost btn-sm" onclick="App.support.toggleStatus(${thread.id}, 'open')">Reopen</button>`;
 
       let msgHtml = '';
@@ -1941,12 +1944,17 @@ const App = {
         msgHtml = '<div class="support-admin__empty" style="padding:40px 20px;"><div class="support-admin__empty-title">No messages yet</div></div>';
       }
 
+      let resolvedNote = '';
+      if (thread.cleared_at) {
+        const dt = new Date(thread.cleared_at);
+        resolvedNote = ` · <span style="color:#94a3b8">Last resolved ${isNaN(dt.getTime()) ? '' : dt.toLocaleString([], {month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})}</span>`;
+      }
       chat.innerHTML = `
         <header class="sc-hdr">
           <div class="sc-hdr-avatar" ${avatar}>${initials}</div>
           <div class="sc-hdr-meta">
             <div class="sc-hdr-name">${name}</div>
-            <div class="sc-hdr-sub">FB ID: ${this.escapeHtml(thread.fb_user_id)} · ${thread.status === 'open' ? '<span style="color:#34d399">Open</span>' : '<span style="color:#fbbf24">Closed</span>'}</div>
+            <div class="sc-hdr-sub">FB ID: ${this.escapeHtml(thread.fb_user_id)} · ${thread.status === 'open' ? '<span style="color:#34d399">Open</span>' : '<span style="color:#fbbf24">Closed</span>'}${resolvedNote}</div>
           </div>
           <div class="sc-hdr-actions">${statusBtn}</div>
         </header>
@@ -2021,6 +2029,19 @@ const App = {
         });
         this.openThread(id);
       } catch (e) { App.toast.show('Failed', 'error'); }
+    },
+
+    async markResolved(id) {
+      if (!confirm('Mark this conversation as done?\n\nThe user\'s chat window will be cleared. You will still see the full history here.')) return;
+      try {
+        const r = await fetch('/api/admin/support/threads/' + id + '/resolve', { method: 'POST' });
+        if (!r.ok) throw new Error('Failed');
+        App.toast.show('Conversation resolved · User chat cleared', 'success');
+        this.openThread(id);
+        this.load(true);
+      } catch (e) {
+        App.toast.show(e.message || 'Failed', 'error');
+      }
     },
 
     startThreadPoll(id) {

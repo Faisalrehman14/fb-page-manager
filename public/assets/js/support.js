@@ -74,15 +74,20 @@
     state.page = p || {};
     const nameEl = $('chatwPageName');
     const subEl  = $('chatwPageSub');
-    const linkBtn = $('chatwPageLink');
-    if (nameEl) nameEl.textContent = (p && p.name) || 'Support team';
-    if (subEl)  subEl.textContent  = (p && p.handle) ? ('@' + p.handle + ' · Replies within minutes') : 'Replies within minutes';
-    if (linkBtn) {
-      if (p && p.page_url) {
-        linkBtn.hidden = false;
-        linkBtn.onclick = () => window.open(p.page_url, '_blank', 'noopener');
+    if (nameEl) nameEl.textContent = 'FBCast Pro Support';
+    if (subEl) {
+      const email = (p && p.email) ? String(p.email).trim() : '';
+      if (email) {
+        subEl.textContent = email;
+        subEl.href = 'mailto:' + email;
+      } else if (p && p.page_url) {
+        subEl.textContent = p.page_handle ? ('@' + p.page_handle) : 'Visit our page';
+        subEl.href = p.page_url;
+        subEl.target = '_blank';
+        subEl.rel = 'noopener';
       } else {
-        linkBtn.hidden = true;
+        subEl.textContent = 'Replies within minutes';
+        subEl.removeAttribute('href');
       }
     }
   }
@@ -133,13 +138,41 @@
       if (!r.ok) throw new Error('http ' + r.status);
       const data = await r.json();
       state.threadId = data.thread ? data.thread.id : null;
-      state.messages = Array.isArray(data.messages) ? data.messages : [];
+      const serverMessages = Array.isArray(data.messages) ? data.messages : [];
+
+      // Preserve any optimistic (temp-*) messages that haven't been confirmed
+      const pendingLocal = state.messages.filter(m => String(m.id || '').startsWith('temp-'));
+      state.messages = mergeMessages(serverMessages, pendingLocal);
+
       applyPageMeta(data.page);
       renderMessages();
       if (state.open) markRead();
     } catch (e) {
       console.warn('[support] fetchChat', e);
     }
+  }
+
+  function mergeMessages(a, b) {
+    const seen = new Set();
+    const out = [];
+    for (const m of [...a, ...b]) {
+      const key = String(m.id);
+      if (seen.has(key)) continue;
+      seen.add(key);
+      out.push(m);
+    }
+    out.sort((x, y) => {
+      const tx = new Date(x.created_at).getTime() || 0;
+      const ty = new Date(y.created_at).getTime() || 0;
+      return tx - ty;
+    });
+    return out;
+  }
+
+  function clearChat() {
+    state.messages = [];
+    state.lastSeenId = 0;
+    renderMessages();
   }
 
   async function fetchUnread() {
@@ -227,12 +260,27 @@
         state.messages.push(payload.message);
         renderMessages();
         if (payload.message.sender_type === 'admin') {
+          // Make the contact button pulse to signal live activity
+          const btn = $('navContactBtn');
+          if (btn) {
+            btn.classList.add('nav-contact-btn--pulse');
+            clearTimeout(state._pulseT);
+            state._pulseT = setTimeout(() => btn.classList.remove('nav-contact-btn--pulse'), 4000);
+          }
           if (state.open) {
             markRead();
           } else {
             setBadge(state.unreadBadge + 1);
             pingNotification(payload.message);
           }
+        }
+      });
+      state.socket.on('support:resolved', () => {
+        clearChat();
+        setBadge(0);
+        if (state.open) {
+          // Show a small one-time toast inside the widget
+          showInlineNotice('This conversation was marked as resolved. Send a new message to start a fresh chat.');
         }
       });
       state.socketBound = true;
@@ -244,10 +292,23 @@
   function pingNotification(msg) {
     try {
       const t = window.showNotification || window.showToast;
-      const sender = (state.page && state.page.name) || 'Support';
+      const sender = (state.page && state.page.name) || 'FBCast Pro Support';
       const text = String(msg.body || '').slice(0, 80);
       if (typeof t === 'function') t(`${sender}: ${text}`, 'info');
     } catch (_) {}
+  }
+
+  function showInlineNotice(message) {
+    const body = $('chatwBody');
+    if (!body) return;
+    const old = body.querySelector('.chatw__notice');
+    if (old) old.remove();
+    const el = document.createElement('div');
+    el.className = 'chatw__notice';
+    el.innerHTML = '<i class="fa-solid fa-circle-check"></i><span>' +
+                   message.replace(/&/g,'&amp;').replace(/</g,'&lt;') + '</span>';
+    body.appendChild(el);
+    setTimeout(() => { if (el && el.parentNode) el.remove(); }, 6000);
   }
 
   function openWidget() {

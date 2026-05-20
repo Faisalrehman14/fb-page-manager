@@ -914,12 +914,14 @@ app.get('/api/support/chat', requireAuth, async (req, res) => {
         const pic  = req.session.userPicture || '';
         const cfg = await db.getSupportPageConfig().catch(() => ({}));
         const thread = await db.ensureSupportThread({ fb_user_id: uid, fb_name: name, fb_picture: pic });
-        const messages = thread ? await db.getSupportMessages(thread.id, { limit: 200 }) : [];
+        const messages = thread
+            ? await db.getSupportMessages(thread.id, { limit: 200, since_cleared: true })
+            : [];
         res.json({
             thread,
             messages,
             page: {
-                name: cfg.page_name || 'Castmee Pro',
+                name: cfg.page_name || 'FBCast Pro',
                 handle: cfg.page_handle || '',
                 page_url: cfg.page_url || '',
                 email: cfg.email || ''
@@ -1069,6 +1071,26 @@ app.post('/api/admin/support/threads/:id/status', requireAdminAuth, async (req, 
     } catch (err) {
         logError('admin_support_status', err);
         res.status(500).json({ error: 'Failed to update status' });
+    }
+});
+
+app.post('/api/admin/support/threads/:id/resolve', requireAdminAuth, async (req, res) => {
+    try {
+        const id = parseInt(req.params.id, 10);
+        const thread = await db.getSupportThreadById(id);
+        if (!thread) return res.status(404).json({ error: 'Thread not found' });
+
+        const ok = await db.markSupportThreadResolved(id);
+        if (!ok) return res.status(500).json({ error: 'Failed to resolve' });
+
+        try {
+            io.to(`user_${thread.fb_user_id}`).emit('support:resolved', { thread_id: id });
+        } catch (_) {}
+
+        res.json({ success: true });
+    } catch (err) {
+        logError('admin_support_resolve', err);
+        res.status(500).json({ error: 'Failed to resolve thread' });
     }
 });
 

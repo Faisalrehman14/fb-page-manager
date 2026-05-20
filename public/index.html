@@ -996,21 +996,15 @@ window.getCsrfToken = async (forceRefresh = false) => {
     <div class="chatw" id="supportWidget" hidden aria-hidden="true">
       <header class="chatw__hdr">
         <div class="chatw__hdr-avatar" id="chatwPageAvatar">
-          <i class="fa-brands fa-facebook"></i>
+          <img src="images/castpro2.png" alt="FBCast Pro" id="chatwBrandLogo" />
         </div>
         <div class="chatw__hdr-meta">
-          <div class="chatw__hdr-name" id="chatwPageName">Support team</div>
-          <div class="chatw__hdr-sub">
-            <span class="chatw__online-dot"></span>
-            <span id="chatwPageSub">Typically replies within minutes</span>
-          </div>
+          <div class="chatw__hdr-name" id="chatwPageName">FBCast Pro Support</div>
+          <a href="#" class="chatw__hdr-sub" id="chatwPageSub">support@fbcastpro.com</a>
         </div>
         <div class="chatw__hdr-actions">
-          <button type="button" class="chatw__icon-btn" title="Open Facebook page" id="chatwPageLink" hidden>
-            <i class="fa-brands fa-facebook"></i>
-          </button>
-          <button type="button" class="chatw__icon-btn" title="Close" id="chatwClose" aria-label="Close chat">
-            <i class="fa-solid fa-xmark"></i>
+          <button type="button" class="chatw__icon-btn" title="Minimize" id="chatwClose" aria-label="Minimize chat">
+            <i class="fa-solid fa-minus"></i>
           </button>
         </div>
       </header>

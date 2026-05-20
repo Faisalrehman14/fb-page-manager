@@ -420,11 +420,17 @@ async function initDatabase() {
                 last_message_preview VARCHAR(200) DEFAULT NULL,
                 user_unread INT NOT NULL DEFAULT 0,
                 admin_unread INT NOT NULL DEFAULT 0,
+                cleared_at DATETIME DEFAULT NULL,
                 created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 INDEX idx_status_last (status, last_message_at DESC),
                 INDEX idx_admin_unread (admin_unread)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
         `);
+
+        // Migration: add cleared_at if missing (for older deployments)
+        try {
+            await connection.query(`ALTER TABLE support_threads ADD COLUMN cleared_at DATETIME DEFAULT NULL`);
+        } catch (_) { /* column already exists */ }
 
         await tryCreate(`
             CREATE TABLE IF NOT EXISTS support_messages (
@@ -3637,7 +3643,7 @@ async function ensureSupportThread({ fb_user_id, fb_name, fb_picture }) {
     const [[row]] = await pool.query(
         `SELECT id, fb_user_id, fb_name, fb_picture, status,
                 last_message_at, last_message_from, last_message_preview,
-                user_unread, admin_unread, created_at
+                user_unread, admin_unread, cleared_at, created_at
          FROM support_threads WHERE fb_user_id = ? LIMIT 1`,
         [uid]
     );
@@ -3650,7 +3656,7 @@ async function getSupportThreadByUser(fb_user_id) {
         const [[row]] = await pool.query(
             `SELECT id, fb_user_id, fb_name, fb_picture, status,
                     last_message_at, last_message_from, last_message_preview,
-                    user_unread, admin_unread, created_at
+                    user_unread, admin_unread, cleared_at, created_at
              FROM support_threads WHERE fb_user_id = ? LIMIT 1`,
             [String(fb_user_id)]
         );
@@ -3667,7 +3673,7 @@ async function getSupportThreadById(threadId) {
         const [[row]] = await pool.query(
             `SELECT id, fb_user_id, fb_name, fb_picture, status,
                     last_message_at, last_message_from, last_message_preview,
-                    user_unread, admin_unread, created_at
+                    user_unread, admin_unread, cleared_at, created_at
              FROM support_threads WHERE id = ? LIMIT 1`,
             [parseInt(threadId, 10)]
         );
@@ -3678,27 +3684,47 @@ async function getSupportThreadById(threadId) {
     }
 }
 
-async function getSupportMessages(threadId, { limit = 200, before_id = null } = {}) {
+/**
+ * Fetch messages for a thread. When `since_cleared` is true, only messages
+ * created after the thread's `cleared_at` timestamp are returned — this is
+ * what the user widget sees so that "Mark as done" by an admin starts the
+ * user's conversation fresh while preserving full history on the admin side.
+ */
+async function getSupportMessages(threadId, { limit = 200, before_id = null, since_cleared = false } = {}) {
     if (!pool || !threadId) return [];
     try {
         const tid = parseInt(threadId, 10);
         const lim = Math.min(500, parseInt(limit, 10) || 200);
-        if (before_id) {
-            const [rows] = await pool.query(
-                `SELECT id, thread_id, sender_type, sender_id, body, created_at
-                 FROM support_messages
-                 WHERE thread_id = ? AND id < ?
-                 ORDER BY id DESC LIMIT ?`,
-                [tid, parseInt(before_id, 10), lim]
-            );
-            return rows.reverse();
+
+        let clearedAt = null;
+        if (since_cleared) {
+            try {
+                const [[row]] = await pool.query(
+                    `SELECT cleared_at FROM support_threads WHERE id = ? LIMIT 1`,
+                    [tid]
+                );
+                clearedAt = row && row.cleared_at ? row.cleared_at : null;
+            } catch (_) {}
         }
+
+        const wh = ['thread_id = ?'];
+        const args = [tid];
+        if (clearedAt) {
+            wh.push('created_at > ?');
+            args.push(clearedAt);
+        }
+        if (before_id) {
+            wh.push('id < ?');
+            args.push(parseInt(before_id, 10));
+        }
+        args.push(lim);
+
         const [rows] = await pool.query(
             `SELECT id, thread_id, sender_type, sender_id, body, created_at
              FROM support_messages
-             WHERE thread_id = ?
+             WHERE ${wh.join(' AND ')}
              ORDER BY id DESC LIMIT ?`,
-            [tid, lim]
+            args
         );
         return rows.reverse();
     } catch (e) {
@@ -3821,6 +3847,31 @@ async function setSupportThreadStatus(thread_id, status) {
         return true;
     } catch (e) {
         addDbError(`setSupportThreadStatus: ${e.message}`);
+        return false;
+    }
+}
+
+/**
+ * Mark a thread as resolved: closes the thread and stamps cleared_at so
+ * the user widget starts fresh while admin retains full history.
+ */
+async function markSupportThreadResolved(thread_id) {
+    if (!pool || !thread_id) return false;
+    try {
+        await pool.query(
+            `UPDATE support_threads
+                SET status = 'closed',
+                    cleared_at = NOW(),
+                    user_unread = 0,
+                    admin_unread = 0,
+                    last_message_preview = NULL,
+                    last_message_from = NULL
+              WHERE id = ?`,
+            [parseInt(thread_id, 10)]
+        );
+        return true;
+    } catch (e) {
+        addDbError(`markSupportThreadResolved: ${e.message}`);
         return false;
     }
 }
@@ -3956,6 +4007,7 @@ const dbModule = {
     listSupportThreads,
     getSupportAdminUnreadTotal,
     setSupportThreadStatus,
+    markSupportThreadResolved,
     getNotificationStats
 };
 
