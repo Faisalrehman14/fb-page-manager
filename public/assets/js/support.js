@@ -261,10 +261,25 @@
         throw new Error(errMsg);
       }
       const data = await r.json();
-      const idx = state.messages.findIndex(m => m.id === optimisticId);
-      if (idx >= 0 && data.message) state.messages[idx] = data.message;
       state.threadId = data.thread_id || state.threadId;
       success = true;
+
+      const idx = state.messages.findIndex(m => m.id === optimisticId);
+      if (data.message) {
+        const realExists = state.messages.some(m =>
+          String(m.id) === String(data.message.id) && !String(m.id).startsWith('temp-')
+        );
+        if (idx >= 0) {
+          if (realExists) {
+            // Socket beat us to it — drop the optimistic and keep the real one
+            state.messages.splice(idx, 1);
+          } else {
+            state.messages[idx] = data.message;
+          }
+        } else if (!realExists) {
+          state.messages.push(data.message);
+        }
+      }
       renderMessages();
     } catch (e) {
       console.error('[support] send failed:', e.message || e);
@@ -313,11 +328,24 @@
       state.socket.on('connect', () => { /* connected */ });
       state.socket.on('support:message', (payload) => {
         if (!payload || !payload.message) return;
-        // Only append if not already in list
-        if (state.messages.some(m => Number(m.id) === Number(payload.message.id))) return;
-        state.messages.push(payload.message);
+        const incoming = payload.message;
+        // 1) Already saved with the same real ID → skip
+        if (state.messages.some(m => String(m.id) === String(incoming.id))) return;
+        // 2) The user's own echo arrived before/after the REST response.
+        //    Replace the optimistic (temp-*) message with the real one
+        //    instead of appending a duplicate.
+        const pendIdx = state.messages.findIndex(m =>
+          String(m.id).startsWith('temp-') &&
+          m.sender_type === incoming.sender_type &&
+          m.body === incoming.body
+        );
+        if (pendIdx >= 0) {
+          state.messages[pendIdx] = incoming;
+        } else {
+          state.messages.push(incoming);
+        }
         renderMessages();
-        if (payload.message.sender_type === 'admin') {
+        if (incoming.sender_type === 'admin') {
           // Make the contact button pulse to signal live activity
           const btn = $('navContactBtn');
           if (btn) {
@@ -329,7 +357,7 @@
             markRead();
           } else {
             setBadge(state.unreadBadge + 1);
-            pingNotification(payload.message);
+            pingNotification(incoming);
           }
         }
       });
