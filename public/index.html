@@ -872,6 +872,22 @@ window.getCsrfToken = async (forceRefresh = false) => {
         </div>
       </div>
       <div class="saas-topbar__actions">
+        <div class="notif-wrap" id="notifWrap">
+          <button type="button" class="saas-topbar__icon-btn notif-bell" id="notifBellBtn" title="Notifications" aria-haspopup="true" aria-expanded="false">
+            <i class="fa-solid fa-bell" aria-hidden="true"></i>
+            <span class="notif-badge" id="notifBadge" hidden>0</span>
+          </button>
+          <div class="notif-panel" id="notifPanel" hidden role="menu" aria-label="Notifications">
+            <div class="notif-panel__hdr">
+              <span><i class="fa-solid fa-bell"></i> Notifications</span>
+              <button type="button" class="notif-mark-all" id="notifMarkAll">Mark all read</button>
+            </div>
+            <div class="notif-panel__body" id="notifList">
+              <div class="notif-empty"><i class="fa-solid fa-bell-slash"></i><p>You're all caught up.</p></div>
+            </div>
+            <div class="notif-panel__ftr"><span id="notifFooterMeta">No new updates</span></div>
+          </div>
+        </div>
         <button type="button" class="saas-topbar__icon-btn" title="Help" onclick="if(typeof switchDashboardView==='function')switchDashboardView('help')">
           <i class="fa-solid fa-circle-question" aria-hidden="true"></i>
         </button>
@@ -2638,6 +2654,7 @@ window.getCsrfToken = async (forceRefresh = false) => {
 <script src="assets/js/home-dashboard.js?v={{VER}}" defer></script>
 <script src="assets/js/analytics-dashboard.js?v={{VER}}" defer></script>
 <script src="assets/js/settings-extras.js?v={{VER}}" defer></script>
+<script src="assets/js/notifications.js?v={{VER}}" defer></script>
 <script src="assets/js/app-pro.js?v={{VER}}" defer></script>
 
 <script src="/socket.io/socket.io.js"></script>

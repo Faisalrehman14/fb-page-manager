@@ -78,6 +78,10 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
           Activity Log
         </div>
+        <div class="sb-item" id="nav-announcements" onclick="App.switchView('announcements')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l18-8v18l-18-8zM11 11v9"/></svg>
+          Announcements
+        </div>
         <div class="sb-section">System</div>
         <div class="sb-item" id="nav-database" onclick="App.switchView('database')">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
@@ -390,6 +394,81 @@
         </div>
 
 
+        <!-- ── ANNOUNCEMENTS VIEW ── -->
+        <div class="view" id="view-announcements">
+          <div class="admin-page-hero">
+            <div>
+              <h2>Announcements &amp; updates</h2>
+              <p>Send notifications to all users or to a specific user. Recipients see a bell in their dashboard.</p>
+            </div>
+            <button class="btn btn-ghost btn-sm" onclick="App.notifications.load(true)">Refresh</button>
+          </div>
+
+          <div class="ann-grid">
+            <div class="ann-compose card-pad">
+              <div class="ann-section-title">Compose new</div>
+              <form id="annForm" onsubmit="event.preventDefault();App.notifications.send()">
+                <div class="form-grid">
+                  <div class="form-row">
+                    <label class="form-label">Severity</label>
+                    <select id="annSeverity" class="form-input">
+                      <option value="info" selected>Info</option>
+                      <option value="success">Success</option>
+                      <option value="warning">Warning</option>
+                      <option value="critical">Critical</option>
+                    </select>
+                  </div>
+                  <div class="form-row">
+                    <label class="form-label">Target</label>
+                    <select id="annTarget" class="form-input" onchange="App.notifications.toggleTarget()">
+                      <option value="all" selected>All users</option>
+                      <option value="user">Specific user (by FB ID)</option>
+                    </select>
+                  </div>
+                  <div class="form-row full" id="annUserRow" style="display:none">
+                    <label class="form-label">Target user FB ID</label>
+                    <input type="text" id="annUserId" class="form-input" placeholder="e.g. 1234567890" />
+                  </div>
+                  <div class="form-row full">
+                    <label class="form-label">Title</label>
+                    <input type="text" id="annTitle" class="form-input" placeholder="What's the headline?" maxlength="180" required />
+                  </div>
+                  <div class="form-row full">
+                    <label class="form-label">Body</label>
+                    <textarea id="annBody" class="form-input form-textarea" placeholder="Write the full message your users will see…" maxlength="4000" rows="4" required></textarea>
+                  </div>
+                  <div class="form-row">
+                    <label class="form-label">Link (optional)</label>
+                    <input type="url" id="annLink" class="form-input" placeholder="https://…" />
+                  </div>
+                  <div class="form-row">
+                    <label class="form-label">Expires at (optional)</label>
+                    <input type="datetime-local" id="annExpires" class="form-input" />
+                  </div>
+                </div>
+                <div class="ann-actions">
+                  <button type="button" class="btn btn-ghost" onclick="App.notifications.resetForm()">Clear</button>
+                  <button type="submit" class="btn btn-primary" id="annSendBtn">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                    Send notification
+                  </button>
+                </div>
+              </form>
+            </div>
+
+            <div class="ann-list card-pad">
+              <div class="ann-section-title">
+                <span>Sent notifications</span>
+                <span class="ann-count" id="annTotal">0</span>
+              </div>
+              <div id="annList">
+                <div class="loading-center"><span class="spinner spinner-lg"></span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+
         <!-- ── DATABASE VIEW ── -->
         <div class="view" id="view-database">
           <div class="admin-page-hero">
@@ -695,14 +774,15 @@ const App = {
     document.querySelectorAll('.sb-item').forEach(el => el.classList.remove('active'));
     $('view-'+v).classList.add('active');
     $('nav-'+v)?.classList.add('active');
-    const titles = { dashboard:'Dashboard', users:'User Management', activity:'Activity Log', database:'Database Health' };
-    const crumbs = { dashboard:'Overview', users:'Management', activity:'Audit', database:'System' };
+    const titles = { dashboard:'Dashboard', users:'User Management', activity:'Activity Log', announcements:'Announcements & Updates', database:'Database Health' };
+    const crumbs = { dashboard:'Overview', users:'Management', activity:'Audit', announcements:'Engagement', database:'System' };
     $('topbarTitle').textContent = titles[v] || v;
     if($('topbarCrumb')) $('topbarCrumb').textContent = crumbs[v] || 'Admin';
     $('globalSearch').style.display = v==='users' ? 'flex' : 'none';
     if(v==='dashboard') this.dashboard.load();
     else if(v==='users') { this.state.users.page=1; this.users.load(); }
     else if(v==='activity') { this.state.activity.page=1; this.activity.load(); }
+    else if(v==='announcements') this.notifications.load();
     else if(v==='database') this.database.load();
   },
 
@@ -1546,6 +1626,124 @@ const App = {
       }
       html+=`<button class="pg-btn" onclick="App.activity.load(${p+1})" ${p===pages?'disabled':''}>›</button>`;
       $('actPgBtns').innerHTML=html;
+    }
+  },
+
+  // ══════════════════════════════════════════════════════════
+  //  ANNOUNCEMENTS / NOTIFICATIONS
+  // ══════════════════════════════════════════════════════════
+  notifications: {
+    _cache: [],
+    async load(silent) {
+      const list = $('annList');
+      if (!list) return;
+      if (!silent) list.innerHTML = '<div class="loading-center"><span class="spinner spinner-lg"></span></div>';
+      try {
+        const r = await fetch('/api/admin/notifications?limit=100');
+        const d = await r.json();
+        this._cache = d.notifications || [];
+        this.render(this._cache);
+        $('annTotal').textContent = this._cache.length;
+      } catch (e) {
+        list.innerHTML = '<div class="empty-card"><p>Failed to load notifications.</p></div>';
+      }
+    },
+
+    toggleTarget() {
+      const t = $('annTarget').value;
+      $('annUserRow').style.display = t === 'user' ? '' : 'none';
+    },
+
+    resetForm() {
+      ['annTitle','annBody','annLink','annUserId','annExpires'].forEach(id => { const e = $(id); if (e) e.value = ''; });
+      $('annSeverity').value = 'info';
+      $('annTarget').value = 'all';
+      this.toggleTarget();
+    },
+
+    async send() {
+      const btn = $('annSendBtn');
+      const payload = {
+        title:    $('annTitle').value.trim(),
+        body:     $('annBody').value.trim(),
+        link_url: $('annLink').value.trim(),
+        severity: $('annSeverity').value,
+        target_type: $('annTarget').value,
+        target_user_id: $('annTarget').value === 'user' ? $('annUserId').value.trim() : null,
+        expires_at: $('annExpires').value || null
+      };
+      if (!payload.title || !payload.body) {
+        App.toast.show('Title and body are required', 'error');
+        return;
+      }
+      if (payload.target_type === 'user' && !payload.target_user_id) {
+        App.toast.show('Specify a target user FB ID', 'error');
+        return;
+      }
+      btn.disabled = true;
+      const oldHtml = btn.innerHTML;
+      btn.innerHTML = '<span class="spinner spinner-sm"></span> Sending…';
+      try {
+        const r = await fetch('/api/admin/notifications', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const d = await r.json();
+        if (!r.ok) throw new Error(d.error || 'Send failed');
+        App.toast.show('Notification sent', 'success');
+        this.resetForm();
+        this.load(true);
+      } catch (e) {
+        App.toast.show(e.message || 'Send failed', 'error');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = oldHtml;
+      }
+    },
+
+    async delete(id) {
+      if (!confirm('Delete this notification? Users who already received it will keep their read state but the entry is removed.')) return;
+      try {
+        const r = await fetch('/api/admin/notifications/' + id, { method: 'DELETE' });
+        if (!r.ok) throw new Error('Failed');
+        App.toast.show('Notification deleted', 'success');
+        this.load(true);
+      } catch (e) {
+        App.toast.show('Failed to delete', 'error');
+      }
+    },
+
+    render(items) {
+      const list = $('annList');
+      if (!list) return;
+      if (!items.length) {
+        list.innerHTML = '<div class="empty-card"><p>No notifications sent yet. Compose one on the left.</p></div>';
+        return;
+      }
+      list.innerHTML = items.map(n => {
+        const when = new Date(n.created_at).toLocaleString();
+        const sevCls = 'ann-sev ann-sev--' + (n.severity || 'info');
+        const target = n.target_type === 'user'
+          ? `<span class="ann-target ann-target--user" title="Sent to user ${esc(n.target_user_id)}">User · ${esc(n.target_user_id || '')}</span>`
+          : '<span class="ann-target ann-target--all">All users</span>';
+        const expired = n.expires_at && new Date(n.expires_at) < new Date();
+        const link = n.link_url ? `<a class="ann-link" href="${esc(n.link_url)}" target="_blank" rel="noopener">Open link →</a>` : '';
+        return `<div class="ann-item ${expired ? 'is-expired' : ''}">
+          <div class="ann-item-head">
+            <span class="${sevCls}">${(n.severity || 'info').toUpperCase()}</span>
+            ${target}
+            ${expired ? '<span class="ann-target ann-target--expired">EXPIRED</span>' : ''}
+            <span class="ann-meta">${when} · ${n.read_count || 0} read</span>
+            <button class="ann-del" onclick="App.notifications.delete(${n.id})" title="Delete">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/></svg>
+            </button>
+          </div>
+          <div class="ann-item-title">${esc(n.title || '')}</div>
+          <div class="ann-item-body">${esc(n.body || '')}</div>
+          ${link}
+        </div>`;
+      }).join('');
     }
   },
 

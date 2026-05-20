@@ -18,6 +18,9 @@ function setupSocket(io, sessionMiddleware) {
 
     io.on('connection', socket => {
         state.connectedSockets.set(socket.id, { rooms: [], connectedAt: new Date().toISOString() });
+        // Auto-join personal room for admin-pushed notifications targeted at this user
+        const uid = socket.request.session?.userId;
+        if (uid) socket.join(`user_${uid}`);
         socket.on('join_page', pageId => {
             if (!pageId || !/^\d+$/.test(String(pageId))) return;
             // If session already has page tokens, validate ownership

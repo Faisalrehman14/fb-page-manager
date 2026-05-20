@@ -372,6 +372,34 @@ async function initDatabase() {
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
         `);
 
+        await tryCreate(`
+            CREATE TABLE IF NOT EXISTS admin_notifications (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                title VARCHAR(180) NOT NULL,
+                body TEXT NOT NULL,
+                link_url VARCHAR(500) DEFAULT NULL,
+                severity ENUM('info','success','warning','critical') NOT NULL DEFAULT 'info',
+                target_type ENUM('all','user') NOT NULL DEFAULT 'all',
+                target_user_id VARCHAR(50) DEFAULT NULL,
+                created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                expires_at DATETIME DEFAULT NULL,
+                created_by VARCHAR(50) DEFAULT 'admin',
+                INDEX idx_target (target_type, target_user_id),
+                INDEX idx_created (created_at DESC),
+                INDEX idx_expires (expires_at)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        `);
+
+        await tryCreate(`
+            CREATE TABLE IF NOT EXISTS notification_reads (
+                notification_id INT NOT NULL,
+                fb_user_id VARCHAR(50) NOT NULL,
+                read_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY (notification_id, fb_user_id),
+                INDEX idx_user (fb_user_id, read_at)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        `);
+
         connection.release();
         console.log('Database tables verified');
         pool.lastError = null;
@@ -3091,6 +3119,136 @@ async function getAnnouncementPayload() {
     };
 }
 
+// =============================================================================
+// Admin Notifications — broadcast updates to all or specific users
+// =============================================================================
+
+async function createAdminNotification({ title, body, link_url, severity, target_type, target_user_id, expires_at, created_by }) {
+    if (!pool) throw new Error('DB not connected');
+    const sev = ['info', 'success', 'warning', 'critical'].includes(severity) ? severity : 'info';
+    const target = target_type === 'user' ? 'user' : 'all';
+    const link = sanitizeHttpUrl(link_url || '');
+    const t = String(title || '').trim().slice(0, 180);
+    const b = String(body || '').trim().slice(0, 4000);
+    if (!t || !b) throw new Error('title and body are required');
+    if (target === 'user' && !target_user_id) throw new Error('target_user_id is required when target_type=user');
+    const [r] = await pool.query(
+        `INSERT INTO admin_notifications
+            (title, body, link_url, severity, target_type, target_user_id, expires_at, created_by)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        [t, b, link || null, sev, target, target === 'user' ? String(target_user_id) : null, expires_at || null, created_by || 'admin']
+    );
+    return r.insertId;
+}
+
+async function listAdminNotifications({ limit = 100, offset = 0 } = {}) {
+    if (!pool) return [];
+    try {
+        const [rows] = await pool.query(
+            `SELECT n.id, n.title, n.body, n.link_url, n.severity, n.target_type, n.target_user_id,
+                    n.created_at, n.expires_at, n.created_by,
+                    (SELECT COUNT(*) FROM notification_reads r WHERE r.notification_id = n.id) AS read_count
+             FROM admin_notifications n
+             ORDER BY n.created_at DESC
+             LIMIT ? OFFSET ?`,
+            [Math.min(500, parseInt(limit, 10) || 100), Math.max(0, parseInt(offset, 10) || 0)]
+        );
+        return rows;
+    } catch (e) {
+        addDbError(`listAdminNotifications: ${e.message}`);
+        return [];
+    }
+}
+
+async function deleteAdminNotification(id) {
+    if (!pool) return false;
+    try {
+        const [r] = await pool.query('DELETE FROM admin_notifications WHERE id = ?', [parseInt(id, 10)]);
+        return r.affectedRows > 0;
+    } catch (e) {
+        addDbError(`deleteAdminNotification: ${e.message}`);
+        return false;
+    }
+}
+
+async function getNotificationsForUser(fb_user_id, { limit = 25 } = {}) {
+    if (!pool || !fb_user_id) return [];
+    try {
+        const [rows] = await pool.query(
+            `SELECT n.id, n.title, n.body, n.link_url, n.severity, n.target_type,
+                    n.created_at, n.expires_at,
+                    CASE WHEN r.notification_id IS NULL THEN 0 ELSE 1 END AS is_read,
+                    r.read_at
+             FROM admin_notifications n
+             LEFT JOIN notification_reads r
+                 ON r.notification_id = n.id AND r.fb_user_id = ?
+             WHERE (n.target_type = 'all' OR (n.target_type = 'user' AND n.target_user_id = ?))
+               AND (n.expires_at IS NULL OR n.expires_at > NOW())
+             ORDER BY n.created_at DESC
+             LIMIT ?`,
+            [fb_user_id, fb_user_id, Math.min(100, parseInt(limit, 10) || 25)]
+        );
+        return rows;
+    } catch (e) {
+        addDbError(`getNotificationsForUser: ${e.message}`);
+        return [];
+    }
+}
+
+async function getUnreadNotificationCount(fb_user_id) {
+    if (!pool || !fb_user_id) return 0;
+    try {
+        const [rows] = await pool.query(
+            `SELECT COUNT(*) AS c
+             FROM admin_notifications n
+             LEFT JOIN notification_reads r
+                 ON r.notification_id = n.id AND r.fb_user_id = ?
+             WHERE r.notification_id IS NULL
+               AND (n.target_type = 'all' OR (n.target_type = 'user' AND n.target_user_id = ?))
+               AND (n.expires_at IS NULL OR n.expires_at > NOW())`,
+            [fb_user_id, fb_user_id]
+        );
+        return Number(rows[0]?.c || 0);
+    } catch (e) {
+        return 0;
+    }
+}
+
+async function markNotificationRead(notification_id, fb_user_id) {
+    if (!pool || !fb_user_id || !notification_id) return false;
+    try {
+        await pool.query(
+            `INSERT IGNORE INTO notification_reads (notification_id, fb_user_id) VALUES (?, ?)`,
+            [parseInt(notification_id, 10), fb_user_id]
+        );
+        return true;
+    } catch (e) {
+        addDbError(`markNotificationRead: ${e.message}`);
+        return false;
+    }
+}
+
+async function markAllNotificationsRead(fb_user_id) {
+    if (!pool || !fb_user_id) return 0;
+    try {
+        const [r] = await pool.query(
+            `INSERT IGNORE INTO notification_reads (notification_id, fb_user_id)
+             SELECT n.id, ?
+             FROM admin_notifications n
+             LEFT JOIN notification_reads r
+                 ON r.notification_id = n.id AND r.fb_user_id = ?
+             WHERE r.notification_id IS NULL
+               AND (n.target_type = 'all' OR (n.target_type = 'user' AND n.target_user_id = ?))
+               AND (n.expires_at IS NULL OR n.expires_at > NOW())`,
+            [fb_user_id, fb_user_id, fb_user_id]
+        );
+        return r.affectedRows || 0;
+    } catch (e) {
+        addDbError(`markAllNotificationsRead: ${e.message}`);
+        return 0;
+    }
+}
+
 const dbModule = {
     initDatabase,
     getPool: () => pool,
@@ -3201,7 +3359,14 @@ const dbModule = {
     getAdminDatabaseHealth,
     fbPageUrl,
     getSetting,
-    getAnnouncementPayload
+    getAnnouncementPayload,
+    createAdminNotification,
+    listAdminNotifications,
+    deleteAdminNotification,
+    getNotificationsForUser,
+    getUnreadNotificationCount,
+    markNotificationRead,
+    markAllNotificationsRead
 };
 
 // ── ensureConversation — INSERT IGNORE then SELECT (race-safe) ────────────────
