@@ -3318,6 +3318,23 @@
     const listEl = document.getElementById('msngPagesList');
     if (!listEl) return;
 
+    if (!M.pages.length) {
+      const loading = !Array.isArray(window.loadedPages);
+      listEl.innerHTML = loading
+        ? `<div class="msng-no-page msng-no-page--loading">
+            <i class="fa-solid fa-spinner fa-spin"></i>
+            <h4>Loading pages</h4>
+            <p>Syncing your Facebook pages…</p>
+          </div>`
+        : `<div class="msng-no-page">
+            <i class="fa-brands fa-facebook"></i>
+            <h4>No pages connected</h4>
+            <p>Connect a Facebook Page from Settings to use Messenger.</p>
+            <button type="button" class="msng-no-page-btn" onclick="typeof showView==='function'&&showView('settings')">Open Settings</button>
+          </div>`;
+      return;
+    }
+
     listEl.innerHTML = M.pages.map(p => {
       const isActive = p.id === M.activePageId;
       const initial  = (p.name || 'P').charAt(0).toUpperCase();
@@ -3673,13 +3690,15 @@
     }).catch(() => {});
     loadCannedReplies().catch(() => {});
     if (!M.pages.length) {
+      renderPages();
       if (retries < 10) { setTimeout(() => window.msngInit(retries + 1), 500); return; }
       const listEl = $('msngConvList');
       if (listEl) listEl.innerHTML = `<div class="msng-empty">
         <i class="fa-brands fa-facebook-messenger"></i>
         <h4>No pages connected</h4>
-        <p>Connect a Facebook page to use Messenger.</p>
+        <p>Connect a Facebook Page from Settings to use Messenger.</p>
       </div>`;
+      showChatEmpty();
       return;
     }
 

@@ -6,12 +6,12 @@ const { MESSAGE_RETENTION_DAYS } = require('./config');
  * @returns {{ syncService }} for startup / background jobs
  */
 function mountMessenger(deps) {
-    const { app, requireAuth } = deps;
+    const { app, requireAuth, verifyCsrf } = deps;
     const { router, syncService } = createMessengerRouter(deps);
 
     app.use(['/api/messenger', '/messenger_api.php'], router);
 
-    app.post('/api/sync-history', requireAuth, async (req, res) => {
+    app.post('/api/sync-history', requireAuth, verifyCsrf, async (req, res) => {
         const { page_id, page_token } = req.body;
         if (!page_id || !page_token) {
             return res.status(400).json({ error: 'page_id and page_token required' });

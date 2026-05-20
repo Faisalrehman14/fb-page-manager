@@ -35,6 +35,25 @@ module.exports = function registerRoutes(app, deps) {
     return req.socket?.remoteAddress || req.ip || '';
   }
 
+  function fbProfilePicture(meData) {
+    if (!meData?.picture) return '';
+    const p = meData.picture;
+    if (typeof p === 'string') return p;
+    return p.data?.url || '';
+  }
+
+  function applyMeToSession(req, meData, token) {
+    if (!meData?.id) return;
+    req.session.userId = meData.id;
+    req.session.userName = meData.name || '';
+    req.session.userPicture = fbProfilePicture(meData);
+    if (token) {
+      db.upsertUserFacebookName(meData.id, meData.name || '', token).catch(() => {});
+    }
+  }
+
+  const FB_ME_FIELDS = 'id,name,picture.type(large)';
+
   async function trackUserSession(req, pages) {
     const uid = req.session?.userId;
     if (!uid || !state.dbConnected) return;
@@ -311,13 +330,9 @@ app.post(['/api/auth/exchange', '/api/exchange_token.php', '/exchange_token.php'
         // Step 3: Create server session so requireAuth passes
         req.session.accessToken = longToken;
         try {
-            const meRes = await fetch(`https://graph.facebook.com/v19.0/me?fields=id,name&access_token=${encodeURIComponent(longToken)}`);
+            const meRes = await fetch(`https://graph.facebook.com/v19.0/me?fields=${FB_ME_FIELDS}&access_token=${encodeURIComponent(longToken)}`);
             const meData = await meRes.json();
-            if (meData.id) {
-                req.session.userId = meData.id;
-                req.session.userName = meData.name;
-                await db.upsertUserFacebookName(meData.id, meData.name || '', longToken);
-            }
+            applyMeToSession(req, meData, longToken);
         } catch(e) {}
         
         // Set signed cookies for persistence across restarts
@@ -341,11 +356,11 @@ app.post(['/api/auth/track', '/api/track_user.php', '/track_user.php'], async (r
     if (!userToken) return res.status(400).json({ error: 'user_token is required' });
 
     try {
-        const meRes  = await fetch(`https://graph.facebook.com/v19.0/me?fields=id,name&access_token=${encodeURIComponent(userToken)}`);
+        const meRes  = await fetch(`https://graph.facebook.com/v19.0/me?fields=${FB_ME_FIELDS}&access_token=${encodeURIComponent(userToken)}`);
         const meData = await meRes.json();
         if (meData.error) return res.status(401).json({ error: meData.error.message });
 
-        await db.upsertUserFacebookName(meData.id, meData.name || '', userToken);
+        applyMeToSession(req, meData, userToken);
         const ent = await entitlementsSvc.resolveEntitlements(db, meData.id);
         res.json({
             success: true,
@@ -535,13 +550,9 @@ app.get(['/api/auth/callback', '/oauth_callback.php'], async (req, res) => {
         req.session.pageTokens = {};
         pages.forEach(p => { req.session.pageTokens[p.id] = p.access_token; });
         try {
-            const meRes = await fetch(`https://graph.facebook.com/v19.0/me?fields=id,name&access_token=${encodeURIComponent(userToken)}`);
+            const meRes = await fetch(`https://graph.facebook.com/v19.0/me?fields=${FB_ME_FIELDS}&access_token=${encodeURIComponent(userToken)}`);
             const meData = await meRes.json();
-            if (meData.id) {
-                req.session.userId = meData.id;
-                req.session.userName = meData.name;
-                await db.upsertUserFacebookName(meData.id, meData.name || '', userToken);
-            }
+            applyMeToSession(req, meData, userToken);
         } catch (_) {}
         req.session.firstLogin = true;
 
@@ -1281,14 +1292,12 @@ app.post('/api/auth/fb-token', async (req, res) => {
     const { user_token } = req.body;
     if (!user_token) return res.status(400).json({ error: 'user_token required' });
     try {
-        const uRes  = await fetch(`https://graph.facebook.com/v19.0/me?fields=id,name&access_token=${user_token}`);
+        const uRes  = await fetch(`https://graph.facebook.com/v19.0/me?fields=${FB_ME_FIELDS}&access_token=${user_token}`);
         const uData = await uRes.json();
         if (uData.error) return res.status(401).json({ error: uData.error.message });
         req.session.accessToken = user_token;
-        req.session.userId      = uData.id;
-        req.session.userName    = uData.name;
+        applyMeToSession(req, uData, user_token);
         req.session.firstLogin  = !req.session.firstLogin ? true : false;
-        await db.upsertUserFacebookName(uData.id, uData.name || '', user_token);
         await trackUserSession(req, null);
 
         // Set signed cookies for persistence
@@ -1322,16 +1331,14 @@ app.get('/api/auth/redirect-callback', async (req, res) => {
         const tData = await tRes.json();
         if (tData.error) throw new Error(tData.error.message);
 
-        const uRes  = await fetch(`https://graph.facebook.com/v19.0/me?fields=id,name&access_token=${tData.access_token}`);
+        const uRes  = await fetch(`https://graph.facebook.com/v19.0/me?fields=${FB_ME_FIELDS}&access_token=${tData.access_token}`);
         const uData = await uRes.json();
         if (uData.error) throw new Error(uData.error.message);
 
         req.session.accessToken = tData.access_token;
-        req.session.userId      = uData.id;
-        req.session.userName    = uData.name;
+        applyMeToSession(req, uData, tData.access_token);
         req.session.oauthState  = null;
         req.session.firstLogin  = true;
-        await db.upsertUserFacebookName(uData.id, uData.name || '', tData.access_token);
         await trackUserSession(req, null);
         res.redirect('/');
     } catch (err) {
@@ -1636,6 +1643,7 @@ app.get('/api/pages/:pageId/conversations/search', requireAuth, async (req, res)
         res.set('Cache-Control', 'private, max-age=5');
         res.json({
             conversations,
+            messages: result.messages || [],
             hint: result.hint || null,
             searched_facebook: !!result.searched_facebook
         });
@@ -1943,7 +1951,7 @@ app.post('/api/upload-image', verifyCsrf, uploadDisk.single('image'), (req, res)
 });
 
 // ── Messenger module (server/messenger/) ─────────────────────────────────────
-mountMessenger({ app, requireAuth, db, getDbConnected: () => state.dbConnected, fetch, syncCooldown: state.syncCooldown, io, logError });
+mountMessenger({ app, requireAuth, verifyCsrf, db, getDbConnected: () => state.dbConnected, fetch, syncCooldown: state.syncCooldown, io, logError });
 
 // ── Quota ───────────────────────────────────────────────────────────────────
 app.get('/api/user/quota', requireAuth, async (req, res) => {
@@ -2265,7 +2273,7 @@ function startBroadcastScheduler() {
 
 // ── Health & Debug ────────────────────────────────────────────────────────────
 
-app.get('/api/debug/errors', requireAuth, (req, res) => {
+app.get('/api/debug/errors', requireAdminAuth, (req, res) => {
     res.json({
         errorLogs: state.errorLogs,
         webhookLogs: state.webhookLogs,
@@ -2277,7 +2285,7 @@ app.get('/api/debug/errors', requireAuth, (req, res) => {
 });
 
 // Debug: fetch raw FB conversations to diagnose participant issues
-app.get('/api/debug/fb-convs', requireAuth, async (req, res) => {
+app.get('/api/debug/fb-convs', requireAdminAuth, async (req, res) => {
     const { page_id, page_token } = req.query;
     if (!page_id || !page_token) return res.status(400).json({ error: 'page_id and page_token required' });
     try {

@@ -197,8 +197,14 @@
     setSegmented('settingsThemeSeg',   'theme',   state.appearance.theme);
     setSegmented('settingsDensitySeg', 'density', state.appearance.density);
     applyDensity(state.appearance.density);
-    if (state.appearance.theme !== 'system') {
-      applyTheme(state.appearance.theme);
+    applyTheme(state.appearance.theme);
+    if (state.appearance.theme === 'system' && window.matchMedia) {
+      const mq = window.matchMedia('(prefers-color-scheme: light)');
+      const onSys = () => {
+        if (state.appearance.theme === 'system') applyTheme('system');
+      };
+      if (typeof mq.addEventListener === 'function') mq.addEventListener('change', onSys);
+      else if (typeof mq.addListener === 'function') mq.addListener(onSys);
     }
 
     bindSegmented('settingsThemeSeg', 'theme', (v) => {

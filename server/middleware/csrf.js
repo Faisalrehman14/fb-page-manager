@@ -20,8 +20,7 @@ function verifyCsrf(req, res, next) {
     if (req.method === 'GET') return next();
     const h = req.headers['x-csrf-token'];
     const c = req.cookies?.CSRF_TOKEN || req.signedCookies?._csrf || req.session?.csrfToken;
-    if (!h && c) return next();
-    if (!h || h !== c) {
+    if (!h || !c || h !== c) {
         console.warn(`[CSRF] Rejecting ${req.method} ${req.url}`);
         return res.status(403).json({ error: 'Invalid CSRF token' });
     }

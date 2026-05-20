@@ -1412,6 +1412,36 @@ window.triggerConnect = async function(plan = null) {
   }
 };
 
+function readAppearanceTheme() {
+  try {
+    const raw = localStorage.getItem('fbcast.settings.v1');
+    if (raw) {
+      const s = JSON.parse(raw);
+      const t = s.appearance && s.appearance.theme;
+      if (t === 'light' || t === 'dark' || t === 'system') return t;
+    }
+  } catch (_) {}
+  const saved = localStorage.getItem('promo_theme');
+  return saved === 'light' ? 'light' : 'dark';
+}
+
+function resolveThemeIsLight(themeValue) {
+  if (themeValue === 'light') return true;
+  if (themeValue === 'dark') return false;
+  if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) return true;
+  return false;
+}
+
+function persistAppearanceTheme(mode) {
+  try {
+    const raw = localStorage.getItem('fbcast.settings.v1');
+    const base = raw ? JSON.parse(raw) : {};
+    base.appearance = base.appearance || {};
+    base.appearance.theme = mode;
+    localStorage.setItem('fbcast.settings.v1', JSON.stringify(base));
+  } catch (_) {}
+}
+
 /* Theme — shared landing + dashboard */
 function setAppTheme(isLight) {
   document.body.classList.toggle('light', isLight);
@@ -1433,25 +1463,38 @@ function setAppTheme(isLight) {
 }
 
 window.setAppTheme = setAppTheme;
+window.persistAppearanceTheme = persistAppearanceTheme;
+window.readAppearanceTheme = readAppearanceTheme;
 window.toggleAppTheme = function () {
-  setAppTheme(document.documentElement.getAttribute('data-theme') !== 'light');
+  const nextLight = document.documentElement.getAttribute('data-theme') !== 'light';
+  setAppTheme(nextLight);
+  persistAppearanceTheme(nextLight ? 'light' : 'dark');
 };
 
 function applyTheme() {
-  const THEME_VERSION = '4-saas-theme';
+  const THEME_VERSION = '5-saas-theme-settings';
   if (localStorage.getItem('theme_v') !== THEME_VERSION) {
     localStorage.setItem('theme_v', THEME_VERSION);
   }
-  let saved = localStorage.getItem('promo_theme') || 'dark';
-  if (saved !== 'light' && saved !== 'dark') saved = 'dark';
-  setAppTheme(saved === 'light');
+  const mode = readAppearanceTheme();
+  setAppTheme(resolveThemeIsLight(mode));
+  if (mode === 'system' && window.matchMedia) {
+    const mq = window.matchMedia('(prefers-color-scheme: light)');
+    const onChange = () => {
+      if (readAppearanceTheme() === 'system') setAppTheme(mq.matches);
+    };
+    if (typeof mq.addEventListener === 'function') mq.addEventListener('change', onChange);
+    else if (typeof mq.addListener === 'function') mq.addListener(onChange);
+  }
 }
 
 (function () {
   const topToggle = document.getElementById('themeToggle');
   if (topToggle) {
     topToggle.addEventListener('change', function () {
-      setAppTheme(!this.checked);
+      const isDark = this.checked;
+      setAppTheme(!isDark);
+      persistAppearanceTheme(isDark ? 'dark' : 'light');
     });
   }
   const landToggle = document.getElementById('landingThemeToggle');

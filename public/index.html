@@ -7,8 +7,21 @@
 <script>
 (function () {
   try {
-    var saved = localStorage.getItem('promo_theme');
-    var isLight = saved === 'light';
+    var isLight = false;
+    var raw = localStorage.getItem('fbcast.settings.v1');
+    if (raw) {
+      var s = JSON.parse(raw);
+      var t = s.appearance && s.appearance.theme;
+      if (t === 'light') isLight = true;
+      else if (t === 'dark') isLight = false;
+      else if (t === 'system' && window.matchMedia) {
+        isLight = window.matchMedia('(prefers-color-scheme: light)').matches;
+      }
+    }
+    if (!raw) {
+      var saved = localStorage.getItem('promo_theme');
+      isLight = saved === 'light';
+    }
     document.documentElement.setAttribute('data-theme', isLight ? 'light' : 'dark');
     document.documentElement.style.colorScheme = isLight ? 'light' : 'dark';
     document.documentElement.classList.toggle('theme-dark', !isLight);

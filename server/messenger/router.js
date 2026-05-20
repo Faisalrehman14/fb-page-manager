@@ -47,7 +47,8 @@ function createMessengerRouter(deps) {
         syncCooldown,
         io,
         logError,
-        requireAuth
+        requireAuth,
+        verifyCsrf
     } = deps;
 
     const syncService = new SyncService({ db, fetchFn, syncCooldown, logError });
@@ -109,7 +110,12 @@ function createMessengerRouter(deps) {
         next();
     }
 
-    router.all('/', requireAuth, pollOnly, searchOnly, async (req, res) => {
+    function csrfOnWrite(req, res, next) {
+        if (req.method === 'POST' && verifyCsrf) return verifyCsrf(req, res, next);
+        next();
+    }
+
+    router.all('/', requireAuth, csrfOnWrite, pollOnly, searchOnly, async (req, res) => {
         const method = req.method;
         const action = req.query.action || req.body.action;
         const pageId = req.query.page_id || req.body.page_id;
