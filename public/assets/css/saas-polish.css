@@ -2387,6 +2387,36 @@ body.light .chatw__send:disabled {
 .nav-sidebar:hover .nav-ai-label,
 .nav-sidebar:hover .nav-ai-tag { opacity: 1; }
 
+/* Light theme: AI sidebar button — stronger contrast (lavender icon was
+   nearly invisible on the pale sidebar background). */
+html[data-theme='light'] .nav-ai-btn,
+body.light .nav-ai-btn {
+  background: linear-gradient(135deg, rgba(124, 58, 237, 0.14), rgba(99, 102, 241, 0.08));
+  border-color: rgba(124, 58, 237, 0.45);
+  color: #0f172a;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.8) inset;
+}
+html[data-theme='light'] .nav-ai-btn:hover,
+body.light .nav-ai-btn:hover {
+  background: linear-gradient(135deg, rgba(124, 58, 237, 0.22), rgba(99, 102, 241, 0.12));
+  border-color: rgba(124, 58, 237, 0.62);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.8) inset,
+    0 8px 22px rgba(124, 58, 237, 0.18);
+}
+html[data-theme='light'] .nav-ai-btn i,
+body.light .nav-ai-btn i {
+  color: #6d28d9;
+  filter: none;
+  text-shadow: 0 0 1px rgba(255, 255, 255, 0.9);
+}
+html[data-theme='light'] .nav-ai-tag,
+body.light .nav-ai-tag {
+  color: #fff;
+  background: linear-gradient(135deg, #7c3aed, #6366f1);
+  box-shadow: 0 0 0 1px rgba(15, 23, 42, 0.06);
+}
+
 /* AI widget — right-anchored mirror of support widget */
 .aiw {
   position: fixed;
