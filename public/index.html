@@ -1017,8 +1017,14 @@ window.getCsrfToken = async (forceRefresh = false) => {
       <div class="chatw__body" id="chatwBody">
         <div class="chatw__welcome" id="chatwWelcome">
           <div class="chatw__welcome-icon"><i class="fa-regular fa-comments"></i></div>
-          <div class="chatw__welcome-title">Hi there! 👋</div>
+          <div class="chatw__welcome-title">Hi there 👋</div>
           <div class="chatw__welcome-sub">Send us a message — our team will reply here as soon as we can.</div>
+          <div class="chatw__chips" id="chatwChips">
+            <button type="button" class="chatw__chip" data-msg="I have a question about pricing.">💳 Pricing</button>
+            <button type="button" class="chatw__chip" data-msg="I'm having a technical issue.">🛠 Technical issue</button>
+            <button type="button" class="chatw__chip" data-msg="I need help with my account.">👤 Account help</button>
+            <button type="button" class="chatw__chip" data-msg="How do broadcasts work?">📢 Broadcasts</button>
+          </div>
         </div>
         <div class="chatw__messages" id="chatwMessages"></div>
         <div class="chatw__typing" id="chatwTyping" hidden>
@@ -1030,7 +1036,7 @@ window.getCsrfToken = async (forceRefresh = false) => {
           <textarea
             id="chatwInput"
             class="chatw__input"
-            placeholder="Write a message…"
+            placeholder="Type your message…"
             rows="1"
             maxlength="4000"
             aria-label="Type your message"></textarea>

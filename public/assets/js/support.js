@@ -284,7 +284,6 @@
   function bindEvents() {
     const btn = $('navContactBtn');
     if (btn) {
-      // Replace the inline onclick handler behaviour
       btn.onclick = (e) => { e.preventDefault(); toggleWidget(); };
     }
     const closeBtn = $('chatwClose');
@@ -308,6 +307,24 @@
         if (!input) return;
         const v = input.value.trim();
         if (v) sendMessage(v);
+      });
+    }
+
+    const chips = $('chatwChips');
+    if (chips) {
+      chips.addEventListener('click', (e) => {
+        const chip = e.target.closest('.chatw__chip');
+        if (!chip) return;
+        const msg = chip.getAttribute('data-msg') || chip.textContent.trim();
+        const inp = $('chatwInput');
+        if (inp) {
+          inp.value = msg;
+          autoGrow(inp);
+          inp.focus();
+          // Place caret at end
+          const len = inp.value.length;
+          try { inp.setSelectionRange(len, len); } catch (_) {}
+        }
       });
     }
 

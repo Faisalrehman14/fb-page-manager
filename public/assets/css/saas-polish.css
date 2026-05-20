@@ -1621,15 +1621,18 @@ body.light .notif-toast {
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   27.  Support / Contact Us
+   27.  Support / Contact Us  (sidebar button — matches collapsed nav)
 ═══════════════════════════════════════════════════════════════ */
 
 .nav-sidebar-contact {
-  padding: 8px 10px 4px;
+  padding: 8px;
   border-top: 1px dashed var(--t-border-2, rgba(139, 156, 255, 0.08));
-  margin-top: 6px;
+  margin-top: 4px;
+  overflow: hidden;
 }
 
+/* Match the same collapsed/expanded behavior as .nav-side-item: only the
+   icon shows when the sidebar is collapsed; label + tag fade in on hover. */
 .nav-contact-btn {
   width: 100%;
   display: flex;
@@ -1638,14 +1641,19 @@ body.light .notif-toast {
   background: linear-gradient(135deg, rgba(0, 132, 255, 0.16), rgba(0, 132, 255, 0.06));
   border: 1px solid rgba(0, 132, 255, 0.32);
   color: var(--t-text, #f1f5f9);
-  padding: 9px 12px;
+  padding: 11px 12px;
   border-radius: 10px;
   cursor: pointer;
   font-family: inherit;
-  font-size: 12.5px;
-  font-weight: 700;
+  font-size: 12px;
+  font-weight: 600;
   letter-spacing: -0.01em;
-  transition: transform 0.16s var(--ease-out), background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+  white-space: nowrap;
+  overflow: hidden;
+  transition: transform 0.16s var(--ease-out),
+              background 0.2s ease,
+              border-color 0.2s ease,
+              box-shadow 0.2s ease;
 }
 
 .nav-contact-btn:hover {
@@ -1658,12 +1666,20 @@ body.light .notif-toast {
 .nav-contact-btn:active { transform: translateY(0) scale(0.97); }
 
 .nav-contact-btn i {
-  font-size: 18px;
+  font-size: 16px;
+  width: 20px;
+  text-align: center;
+  flex-shrink: 0;
   color: #0084ff;
   filter: drop-shadow(0 0 6px rgba(0, 132, 255, 0.4));
 }
 
-.nav-contact-label { flex: 1; text-align: left; }
+.nav-contact-label {
+  flex: 1;
+  text-align: left;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
 
 .nav-contact-tag {
   font-size: 9.5px;
@@ -1676,7 +1692,12 @@ body.light .notif-toast {
   border-radius: 100px;
   position: relative;
   padding-left: 16px;
+  opacity: 0;
+  transition: opacity 0.2s ease;
 }
+
+.nav-sidebar:hover .nav-contact-label,
+.nav-sidebar:hover .nav-contact-tag { opacity: 1; }
 
 .nav-contact-tag::before {
   content: '';
@@ -1719,48 +1740,50 @@ body.light .notif-toast {
 }
 .nav-contact-btn { position: relative; }
 
+/* Floating chat widget — anchored bottom-LEFT, clears the 72px sidebar */
 .chatw {
   position: fixed;
-  right: 24px;
+  left: 96px;
   bottom: 24px;
   width: 380px;
-  max-width: calc(100vw - 32px);
-  height: 580px;
+  max-width: calc(100vw - 120px);
+  height: 600px;
   max-height: calc(100vh - 100px);
   background: var(--t-bg-1, #0b1220);
   border: 1px solid var(--t-border-1, rgba(139, 156, 255, 0.16));
   border-radius: 20px;
   box-shadow:
-    0 20px 60px -10px rgba(0, 0, 0, 0.4),
-    0 10px 30px -5px rgba(0, 0, 0, 0.3),
-    0 0 0 1px rgba(255, 255, 255, 0.03) inset;
+    0 30px 80px -15px rgba(0, 0, 0, 0.55),
+    0 12px 35px -8px rgba(0, 0, 0, 0.4),
+    0 0 0 1px rgba(255, 255, 255, 0.04) inset;
   z-index: 100050;
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  transform: translateY(20px) scale(0.96);
+  transform: translateX(-20px) scale(0.96);
   opacity: 0;
-  transform-origin: bottom right;
-  transition: opacity 220ms cubic-bezier(0.2, 0.7, 0.2, 1),
-              transform 220ms cubic-bezier(0.2, 0.7, 0.2, 1);
+  transform-origin: bottom left;
+  transition: opacity 240ms cubic-bezier(0.2, 0.7, 0.2, 1),
+              transform 240ms cubic-bezier(0.2, 0.7, 0.2, 1);
 }
 .chatw[hidden] { display: none !important; }
-.chatw.chatw--open { opacity: 1; transform: translateY(0) scale(1); }
+.chatw.chatw--open { opacity: 1; transform: translateX(0) scale(1); }
 
 html[data-theme='light'] .chatw,
 body.light .chatw {
   background: #ffffff;
   border-color: rgba(15, 23, 42, 0.08);
   box-shadow:
-    0 20px 60px -10px rgba(15, 23, 42, 0.18),
-    0 10px 30px -5px rgba(15, 23, 42, 0.10);
+    0 30px 80px -15px rgba(15, 23, 42, 0.22),
+    0 12px 35px -8px rgba(15, 23, 42, 0.14);
 }
 
-/* Header */
+/* Header — refined glass gradient with subtle pattern */
 .chatw__hdr {
-  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 60%, #ec4899 130%);
+  background:
+    linear-gradient(135deg, #4f46e5 0%, #6366f1 40%, #8b5cf6 100%);
   color: #fff;
-  padding: 16px 16px 16px 18px;
+  padding: 20px 18px 18px;
   display: flex;
   align-items: center;
   gap: 12px;
@@ -1773,32 +1796,47 @@ body.light .chatw {
   position: absolute;
   inset: 0;
   background:
-    radial-gradient(120% 100% at 0% 0%, rgba(255,255,255,0.18), transparent 50%),
-    radial-gradient(120% 100% at 100% 100%, rgba(0,0,0,0.18), transparent 50%);
+    radial-gradient(120% 100% at 0% 0%, rgba(255,255,255,0.20), transparent 55%),
+    radial-gradient(140% 100% at 100% 100%, rgba(0,0,0,0.20), transparent 60%);
   pointer-events: none;
 }
+.chatw__hdr::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image:
+    radial-gradient(circle at 20% 50%, rgba(255,255,255,0.06) 1px, transparent 1px),
+    radial-gradient(circle at 80% 20%, rgba(255,255,255,0.04) 1px, transparent 1px);
+  background-size: 30px 30px, 24px 24px;
+  pointer-events: none;
+  opacity: 0.7;
+}
 .chatw__hdr-avatar {
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.18);
+  background:
+    linear-gradient(135deg, rgba(255,255,255,0.25), rgba(255,255,255,0.08));
   backdrop-filter: blur(10px);
   display: grid;
   place-items: center;
   flex-shrink: 0;
   position: relative;
+  box-shadow:
+    0 0 0 2px rgba(255,255,255,0.1),
+    0 4px 12px rgba(0,0,0,0.2);
 }
-.chatw__hdr-avatar i { font-size: 18px; color: #fff; }
+.chatw__hdr-avatar i { font-size: 19px; color: #fff; }
 .chatw__hdr-avatar::after {
   content: "";
   position: absolute;
-  width: 10px;
-  height: 10px;
+  width: 12px;
+  height: 12px;
   border-radius: 50%;
-  background: #10b981;
-  bottom: -1px;
-  right: -1px;
-  box-shadow: 0 0 0 2px #5b4cd6;
+  background: #34d399;
+  bottom: -2px;
+  right: -2px;
+  box-shadow: 0 0 0 2.5px #6366f1, 0 0 8px rgba(52,211,153,0.6);
 }
 .chatw__hdr-meta { flex: 1; min-width: 0; position: relative; }
 .chatw__hdr-name {
@@ -1874,37 +1912,90 @@ body.light .chatw__body {
 .chatw__body::-webkit-scrollbar-thumb { background: rgba(139, 156, 255, 0.2); border-radius: 3px; }
 
 .chatw__welcome {
-  margin: auto;
+  margin: auto 0;
   text-align: center;
-  padding: 40px 24px;
+  padding: 32px 24px 16px;
   color: var(--t-text-2, #94a3b8);
   animation: chatw-fade-in 400ms ease;
 }
 .chatw__welcome-icon {
-  width: 56px;
-  height: 56px;
+  width: 64px;
+  height: 64px;
   border-radius: 50%;
-  background: linear-gradient(135deg, rgba(99, 102, 241, 0.15), rgba(168, 85, 247, 0.15));
+  background:
+    radial-gradient(circle at 30% 30%, rgba(129, 140, 248, 0.4), transparent 60%),
+    linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(168, 85, 247, 0.18));
   display: grid;
   place-items: center;
-  margin: 0 auto 12px;
-  color: #818cf8;
-  font-size: 22px;
+  margin: 0 auto 14px;
+  color: #a5b4fc;
+  font-size: 26px;
+  box-shadow:
+    0 8px 24px -8px rgba(99,102,241,0.3),
+    0 0 0 1px rgba(255,255,255,0.04) inset;
+  animation: chatw-icon-pop 600ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+@keyframes chatw-icon-pop {
+  0%   { transform: scale(0.7); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
 }
 .chatw__welcome-title {
-  font-size: 17px;
+  font-size: 18px;
   font-weight: 800;
   color: var(--t-text-1, #f1f5f9);
   margin-bottom: 6px;
   letter-spacing: -0.01em;
 }
-.chatw__welcome-sub { font-size: 13px; line-height: 1.5; max-width: 240px; margin: 0 auto; }
+.chatw__welcome-sub {
+  font-size: 13px;
+  line-height: 1.5;
+  max-width: 260px;
+  margin: 0 auto 18px;
+}
+
+.chatw__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+  max-width: 300px;
+  margin: 0 auto;
+}
+.chatw__chip {
+  background: var(--t-bg-3, #1a2438);
+  color: var(--t-text-1, #f1f5f9);
+  border: 1px solid var(--t-border-2, rgba(139, 156, 255, 0.12));
+  border-radius: 100px;
+  padding: 7px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 150ms, background 150ms, border-color 150ms;
+  font-family: inherit;
+}
+.chatw__chip:hover {
+  background: var(--t-bg-2, #0d1426);
+  border-color: rgba(99, 102, 241, 0.4);
+  transform: translateY(-1px);
+}
+html[data-theme='light'] .chatw__chip,
+body.light .chatw__chip {
+  background: #f1f5f9;
+  color: #0f172a;
+  border-color: rgba(15, 23, 42, 0.08);
+}
+html[data-theme='light'] .chatw__chip:hover,
+body.light .chatw__chip:hover {
+  background: #e2e8f0;
+  border-color: rgba(99, 102, 241, 0.4);
+}
+
 @keyframes chatw-fade-in {
   from { opacity: 0; transform: translateY(6px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 
-.chatw__messages { display: flex; flex-direction: column; gap: 4px; }
+.chatw__messages { display: flex; flex-direction: column; gap: 6px; }
 
 .chatw__date {
   font-size: 11px;
@@ -1934,15 +2025,16 @@ body.light .chatw__body {
   padding: 10px 14px;
   border-radius: 18px;
   font-size: 14px;
-  line-height: 1.45;
+  line-height: 1.5;
   word-wrap: break-word;
   overflow-wrap: anywhere;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+  position: relative;
 }
 .chatw__msg--in .chatw__bubble {
   background: var(--t-bg-3, #1a2438);
   color: var(--t-text-1, #f1f5f9);
-  border-bottom-left-radius: 4px;
+  border-bottom-left-radius: 6px;
   border: 1px solid var(--t-border-2, rgba(139, 156, 255, 0.08));
 }
 html[data-theme='light'] .chatw__msg--in .chatw__bubble,
@@ -1952,17 +2044,21 @@ body.light .chatw__msg--in .chatw__bubble {
   border-color: rgba(15, 23, 42, 0.06);
 }
 .chatw__msg--out .chatw__bubble {
-  background: linear-gradient(135deg, #4f46e5, #6366f1);
+  background: linear-gradient(135deg, #4f46e5, #6366f1 60%, #7c3aed);
   color: #fff;
-  border-bottom-right-radius: 4px;
+  border-bottom-right-radius: 6px;
   border: none;
+  box-shadow:
+    0 2px 6px rgba(99, 102, 241, 0.22),
+    0 1px 2px rgba(0, 0, 0, 0.08);
 }
 .chatw__msg--out .chatw__bubble a { color: #c7d2fe; text-decoration: underline; }
 .chatw__msg--in .chatw__bubble a { color: #818cf8; text-decoration: underline; }
 
+.chatw__msg--cont { margin-top: 2px; }
 .chatw__msg--cont .chatw__bubble { border-radius: 18px; }
-.chatw__msg--cont.chatw__msg--in .chatw__bubble { border-bottom-left-radius: 4px; border-top-left-radius: 18px; }
-.chatw__msg--cont.chatw__msg--out .chatw__bubble { border-bottom-right-radius: 4px; border-top-right-radius: 18px; }
+.chatw__msg--cont.chatw__msg--in .chatw__bubble { border-top-left-radius: 6px; border-bottom-left-radius: 6px; }
+.chatw__msg--cont.chatw__msg--out .chatw__bubble { border-top-right-radius: 6px; border-bottom-right-radius: 6px; }
 
 .chatw__time {
   font-size: 10px;
@@ -2002,7 +2098,7 @@ body.light .chatw__msg--in .chatw__bubble {
 .chatw__ftr {
   border-top: 1px solid var(--t-border-2, rgba(139, 156, 255, 0.08));
   background: var(--t-bg-1, #0b1220);
-  padding: 10px 12px 12px;
+  padding: 12px 14px 14px;
   flex-shrink: 0;
 }
 html[data-theme='light'] .chatw__ftr,
@@ -2012,37 +2108,42 @@ body.light .chatw__ftr { background: #ffffff; }
   display: flex;
   align-items: flex-end;
   gap: 8px;
+  padding: 4px;
+  background: var(--t-bg-2, #0d1426);
+  border: 1px solid var(--t-border-2, rgba(139, 156, 255, 0.10));
+  border-radius: 16px;
+  transition: border-color 200ms, box-shadow 200ms;
 }
+.chatw__form:focus-within {
+  border-color: rgba(99, 102, 241, 0.5);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
+}
+html[data-theme='light'] .chatw__form,
+body.light .chatw__form {
+  background: #f8fafc;
+  border-color: rgba(15, 23, 42, 0.08);
+}
+html[data-theme='light'] .chatw__form:focus-within,
+body.light .chatw__form:focus-within {
+  background: #ffffff;
+  border-color: rgba(99, 102, 241, 0.5);
+}
+
 .chatw__input {
   flex: 1;
   resize: none;
-  border: 1px solid var(--t-border-1, rgba(139, 156, 255, 0.16));
-  background: var(--t-bg-2, #0d1426);
+  border: none;
+  background: transparent;
   color: var(--t-text-1, #f1f5f9);
-  border-radius: 14px;
-  padding: 10px 14px;
+  padding: 9px 12px;
   font-family: inherit;
   font-size: 14px;
   line-height: 1.4;
   outline: none;
   max-height: 120px;
-  transition: border-color 150ms, box-shadow 150ms;
-}
-.chatw__input:focus {
-  border-color: #6366f1;
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.18);
 }
 html[data-theme='light'] .chatw__input,
-body.light .chatw__input {
-  background: #f8fafc;
-  color: #0f172a;
-  border-color: rgba(15, 23, 42, 0.08);
-}
-html[data-theme='light'] .chatw__input:focus,
-body.light .chatw__input:focus {
-  background: #ffffff;
-  border-color: #6366f1;
-}
+body.light .chatw__input { color: #0f172a; }
 .chatw__input::placeholder { color: var(--t-text-3, #64748b); }
 
 .chatw__send {
@@ -2061,14 +2162,24 @@ body.light .chatw__input:focus {
 }
 .chatw__send:hover:not(:disabled) {
   transform: translateY(-1px);
-  box-shadow: 0 6px 14px rgba(99, 102, 241, 0.35);
+  box-shadow: 0 6px 14px rgba(99, 102, 241, 0.4);
 }
 .chatw__send:active:not(:disabled) { transform: translateY(0) scale(0.97); }
-.chatw__send:disabled { opacity: 0.4; cursor: not-allowed; }
+.chatw__send:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  background: var(--t-bg-3, #1a2438);
+  color: var(--t-text-3, #64748b);
+}
+html[data-theme='light'] .chatw__send:disabled,
+body.light .chatw__send:disabled {
+  background: #e2e8f0;
+  color: #94a3b8;
+}
 
 .chatw__brand {
-  margin-top: 6px;
-  font-size: 10px;
+  margin-top: 8px;
+  font-size: 10.5px;
   color: var(--t-text-3, #64748b);
   text-align: center;
   display: flex;
@@ -2080,18 +2191,23 @@ body.light .chatw__input:focus {
 .chatw__brand i { color: #10b981; font-size: 9px; }
 
 /* Mobile */
-@media (max-width: 480px) {
+@media (max-width: 600px) {
   .chatw {
+    left: 0;
     right: 0;
     bottom: 0;
     width: 100%;
+    max-width: 100%;
     height: 100%;
     max-height: 100%;
     border-radius: 0;
     border-left: none;
     border-right: none;
     border-bottom: none;
+    transform: translateY(20px);
+    transform-origin: bottom center;
   }
+  .chatw.chatw--open { transform: translateY(0); }
 }
 
 /* Legacy modal — kept to gracefully no-op if referenced */
