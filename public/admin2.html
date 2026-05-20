@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>FBCast Pro — Admin</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="/socket.io/socket.io.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
@@ -2089,6 +2090,7 @@ const App = {
       this._inited = true;
       this.bindFilters();
       this.startListPoll();
+      this.bindSocket();
       // Background polling for badge even when not on the support view
       setInterval(async () => {
         if (App.state.view === 'support') return;
@@ -2098,6 +2100,45 @@ const App = {
           this.updateBadge(d.unread_total || 0);
         } catch (_) {}
       }, 10000);
+    },
+
+    bindSocket() {
+      if (this._socket || typeof io !== 'function') return;
+      try {
+        this._socket = io({ path: '/socket.io', transports: ['websocket', 'polling'] });
+        this._socket.on('connect', () => {
+          try { this._socket.emit('join_admin_support'); } catch (_) {}
+        });
+        this._socket.on('support:new_message', (payload) => {
+          if (!payload) return;
+          // If the affected thread is open, append the message immediately
+          if (this.selectedId && Number(this.selectedId) === Number(payload.thread_id) && payload.message) {
+            const scBody = document.getElementById('scBody');
+            if (scBody) {
+              const me = payload.message.sender_type === 'admin';
+              const empty = scBody.querySelector('.support-admin__empty');
+              if (empty) empty.remove();
+              const html = `<div class="sc-msg sc-msg--${me ? 'out' : 'in'}"><div class="sc-bubble">${this.linkify(payload.message.body)}</div><div class="sc-time">${this.formatTime(payload.message.created_at)}</div></div>`;
+              scBody.insertAdjacentHTML('beforeend', html);
+              scBody.scrollTop = scBody.scrollHeight;
+            }
+            // Mark thread read since admin is viewing it
+            if (payload.message.sender_type === 'user') {
+              fetch('/api/admin/support/threads/' + this.selectedId + '/read', { method: 'POST' }).catch(() => {});
+            }
+          }
+          // Refresh list to reflect new ordering/unread counts
+          this.load(true);
+          // Visual ping in sidebar
+          const nav = document.getElementById('nav-support');
+          if (nav && App.state.view !== 'support') {
+            nav.classList.add('nav-support--pulse');
+            setTimeout(() => nav.classList.remove('nav-support--pulse'), 2400);
+          }
+        });
+      } catch (e) {
+        console.warn('[admin support] socket bind failed', e);
+      }
     }
   },
 

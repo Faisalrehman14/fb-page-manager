@@ -11,7 +11,9 @@ function setupSocket(io, sessionMiddleware) {
     io.use((socket, next) => {
         sessionMiddleware(socket.request, {}, err => {
             if (err) return next(new Error('Session error'));
-            if (!socket.request.session?.accessToken) return next(new Error('Unauthorized'));
+            // Allow either a user (FB OAuth'd) OR an admin session through.
+            const sess = socket.request.session;
+            if (!sess?.accessToken && !sess?.isAdmin) return next(new Error('Unauthorized'));
             next();
         });
     });
@@ -21,7 +23,8 @@ function setupSocket(io, sessionMiddleware) {
         // Auto-join personal room for admin-pushed notifications targeted at this user
         const uid = socket.request.session?.userId;
         if (uid) socket.join(`user_${uid}`);
-        // Admin can opt into the support inbox stream
+        // Admin sockets auto-join the support inbox stream
+        if (socket.request.session?.isAdmin) socket.join('admin_support');
         socket.on('join_admin_support', () => {
             if (socket.request.session?.isAdmin) socket.join('admin_support');
         });

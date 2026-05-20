@@ -1723,23 +1723,25 @@ body.light .notif-toast {
 
 .nav-contact-btn { position: relative; }
 
+/* Anchor the badge to the icon so it never collides with the "Live" tag,
+   whether the sidebar is collapsed (icon-only) or expanded. */
 .nav-contact-badge {
   position: absolute;
-  top: 4px;
-  right: 4px;
-  min-width: 18px;
-  height: 18px;
-  padding: 0 5px;
-  border-radius: 9px;
+  top: 2px;
+  left: 24px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 8px;
   background: linear-gradient(135deg, #ef4444, #dc2626);
   color: #fff;
-  font-size: 10.5px;
+  font-size: 10px;
   font-weight: 800;
-  line-height: 18px;
+  line-height: 16px;
   text-align: center;
   box-shadow:
     0 0 0 2px var(--t-bg-2, #0f172a),
-    0 2px 8px rgba(239, 68, 68, 0.45);
+    0 2px 6px rgba(239, 68, 68, 0.5);
   pointer-events: none;
   z-index: 2;
   animation: nav-badge-pop 280ms cubic-bezier(0.34, 1.56, 0.64, 1);
@@ -2114,6 +2116,48 @@ body.light .chatw__msg--in .chatw__bubble {
   opacity: 0.8;
 }
 .chatw__msg--cont .chatw__time { display: none; }
+
+.chatw__msg-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+  padding: 0 4px;
+}
+.chatw__msg-failed {
+  font-size: 10.5px;
+  color: #fca5a5;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: 600;
+}
+.chatw__msg-failed i { font-size: 11px; }
+.chatw__retry {
+  background: rgba(239, 68, 68, 0.18);
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  color: #fca5a5;
+  padding: 2px 9px;
+  border-radius: 100px;
+  font-size: 10.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 150ms, color 150ms;
+  font-family: inherit;
+}
+.chatw__retry:hover {
+  background: rgba(239, 68, 68, 0.3);
+  color: #fff;
+}
+.chatw__msg--failed .chatw__bubble {
+  opacity: 0.78;
+  background: linear-gradient(135deg, #dc2626, #b91c1c) !important;
+  box-shadow: 0 2px 6px rgba(220, 38, 38, 0.25) !important;
+}
+html[data-theme='light'] .chatw__msg-failed,
+body.light .chatw__msg-failed { color: #dc2626; }
+html[data-theme='light'] .chatw__retry,
+body.light .chatw__retry { color: #dc2626; }
 
 .chatw__notice {
   margin: 12px auto 6px;

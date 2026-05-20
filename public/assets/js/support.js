@@ -118,11 +118,19 @@
       }
       const cls = m.sender_type === 'admin' ? 'chatw__msg chatw__msg--in' : 'chatw__msg chatw__msg--out';
       const groupCls = lastSender === m.sender_type ? ' chatw__msg--cont' : '';
+      const failedCls = m._failed ? ' chatw__msg--failed' : '';
       lastSender = m.sender_type;
+      const idAttr = m._failed ? ` data-msg-id="${escapeHtml(String(m.id))}"` : '';
+      const meta = m._failed
+        ? `<div class="chatw__msg-meta">
+             <span class="chatw__msg-failed"><i class="fa-solid fa-circle-exclamation"></i> Not delivered</span>
+             <button type="button" class="chatw__retry" onclick="window.fbcastSupport && window.fbcastSupport.retry('${escapeHtml(String(m.id))}')">Retry</button>
+           </div>`
+        : `<div class="chatw__time">${formatTime(m.created_at)}</div>`;
       html += `
-        <div class="${cls}${groupCls}">
+        <div class="${cls}${groupCls}${failedCls}"${idAttr}>
           <div class="chatw__bubble">${linkify(m.body)}</div>
-          <div class="chatw__time">${formatTime(m.created_at)}</div>
+          ${meta}
         </div>`;
     }
     box.innerHTML = html;
@@ -203,9 +211,9 @@
     const sendBtn = $('chatwSend');
     if (sendBtn) sendBtn.disabled = true;
 
-    // Optimistic message
+    const optimisticId = 'temp-' + Date.now() + '-' + Math.random().toString(36).slice(2, 7);
     const optimistic = {
-      id: 'temp-' + Date.now(),
+      id: optimisticId,
       thread_id: state.threadId,
       sender_type: 'user',
       body: body,
@@ -214,6 +222,7 @@
     state.messages.push(optimistic);
     renderMessages();
 
+    let success = false;
     try {
       const r = await fetch('/api/support/chat/send', {
         method: 'POST',
@@ -221,22 +230,46 @@
         headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': getCsrf() },
         body: JSON.stringify({ body })
       });
-      if (!r.ok) throw new Error('http ' + r.status);
+      if (!r.ok) {
+        let errMsg = 'HTTP ' + r.status;
+        try { const ej = await r.json(); if (ej && ej.error) errMsg = ej.error; } catch (_) {}
+        throw new Error(errMsg);
+      }
       const data = await r.json();
-      // Replace optimistic with real
-      const idx = state.messages.findIndex(m => m.id === optimistic.id);
+      const idx = state.messages.findIndex(m => m.id === optimisticId);
       if (idx >= 0 && data.message) state.messages[idx] = data.message;
       state.threadId = data.thread_id || state.threadId;
+      success = true;
       renderMessages();
     } catch (e) {
-      console.warn('[support] send failed', e);
-      // Mark optimistic message as failed (no UI yet — leave for now)
+      console.error('[support] send failed:', e.message || e);
+      // Mark optimistic as failed; user can retry
+      const idx = state.messages.findIndex(m => m.id === optimisticId);
+      if (idx >= 0) {
+        state.messages[idx]._failed = true;
+        state.messages[idx]._error = String(e.message || 'Network error');
+      }
+      renderMessages();
     } finally {
       state.sending = false;
       if (sendBtn) sendBtn.disabled = false;
-      const input = $('chatwInput');
-      if (input) { input.value = ''; autoGrow(input); input.focus(); }
+      if (success) {
+        const input = $('chatwInput');
+        if (input) { input.value = ''; autoGrow(input); input.focus(); }
+      }
     }
+  }
+
+  async function retryMessage(messageId) {
+    const idx = state.messages.findIndex(m => String(m.id) === String(messageId));
+    if (idx < 0) return;
+    const m = state.messages[idx];
+    if (!m || !m._failed) return;
+    // Remove the failed message and re-send the same body
+    const body = m.body;
+    state.messages.splice(idx, 1);
+    renderMessages();
+    await sendMessage(body);
   }
 
   function autoGrow(el) {
@@ -440,7 +473,8 @@
     open: openWidget,
     close: closeWidget,
     toggle: toggleWidget,
-    refresh: fetchChat
+    refresh: fetchChat,
+    retry: retryMessage
   };
 
   if (document.readyState === 'loading') {
