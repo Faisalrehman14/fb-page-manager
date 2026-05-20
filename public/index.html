@@ -1788,12 +1788,12 @@ window.getCsrfToken = async (forceRefresh = false) => {
             </button>
           </div>
           <div class="img-upload-area" id="imgUploadArea">
-            <label class="img-drop-zone" for="imgFileInput" id="imgDropZone">
+            <div class="img-drop-zone" id="imgDropZone" role="button" tabindex="0" aria-label="Upload image">
               <i class="fa-solid fa-cloud-arrow-up"></i>
               <span>Click or drag image here</span>
               <small>JPEG · PNG · WebP · GIF &nbsp;·&nbsp; max 5 MB</small>
-            </label>
-            <input type="file" id="imgFileInput" accept="image/jpeg,image/png,image/gif,image/webp" style="display:none">
+            </div>
+            <input type="file" id="imgFileInput" accept="image/jpeg,image/png,image/gif,image/webp" style="display:none" aria-hidden="true">
             <div class="img-upload-progress" id="imgUploadProgress" style="display:none">
               <i class="fa-solid fa-circle-notch fa-spin"></i>
               <span id="imgUploadProgressText">Uploading…</span>
@@ -2012,7 +2012,7 @@ window.getCsrfToken = async (forceRefresh = false) => {
           <!-- Image Upload -->
           <div class="sv2-section">
             <div class="sv2-section-label"><i class="fa-solid fa-image"></i> Image <span class="sv2-opt">optional</span></div>
-            <div class="sv2-img-zone" id="svImgZone" onclick="document.getElementById('svImgFile').click()" title="Click to upload image">
+            <div class="sv2-img-zone" id="svImgZone" role="button" tabindex="0" title="Click to upload image" aria-label="Upload schedule image">
               <div id="svImgPlaceholder" class="sv2-img-placeholder">
                 <i class="fa-solid fa-cloud-arrow-up"></i>
                 <span>Click to upload image</span>
@@ -2022,8 +2022,8 @@ window.getCsrfToken = async (forceRefresh = false) => {
                 <i class="fa-solid fa-spinner fa-spin" style="font-size:20px"></i>
                 <span>Uploading…</span>
               </div>
-              <input type="file" id="svImgFile" accept="image/*" style="display:none" onchange="svHandleImageFile(this)">
             </div>
+            <input type="file" id="svImgFile" accept="image/*" style="display:none" onchange="svHandleImageFile(this)" aria-hidden="true">
             <div class="sv2-img-actions" id="svImgActions" style="display:none">
               <span class="sv2-img-ok" id="svImgOk"><i class="fa-solid fa-circle-check"></i> Image ready</span>
               <button class="sv2-chip sv2-chip--danger" onclick="svClearImage(event)"><i class="fa-solid fa-xmark"></i> Remove</button>

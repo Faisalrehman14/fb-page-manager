@@ -627,9 +627,18 @@ function initImagePanel() {
   urlLoad?.addEventListener('click', loadFromUrl);
   urlInput?.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); loadFromUrl(); } });
 
-  // File input
-  fileInput?.addEventListener('change', () => { if (fileInput.files[0]) handleFile(fileInput.files[0]); });
-  dropZone?.addEventListener('click', () => fileInput?.click());
+  // File input — drop zone is a div (not <label>) so one click opens the picker once
+  fileInput?.addEventListener('change', () => {
+    if (fileInput.files[0]) handleFile(fileInput.files[0]);
+    fileInput.value = '';
+  });
+  function openFilePicker() {
+    if (fileInput) fileInput.click();
+  }
+  dropZone?.addEventListener('click', openFilePicker);
+  dropZone?.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openFilePicker(); }
+  });
   dropZone?.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
   dropZone?.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
   dropZone?.addEventListener('drop', e => {
@@ -682,9 +691,21 @@ function initImagePanel() {
 }
 
 // ── DOM Initialization ─────────────────────────────────
+function initScheduleImageZone() {
+  const zone = $('svImgZone');
+  const fileInput = $('svImgFile');
+  if (!zone || !fileInput) return;
+  const openPicker = () => fileInput.click();
+  zone.addEventListener('click', openPicker);
+  zone.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openPicker(); }
+  });
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   initFromStorage();
   initImagePanel();
+  initScheduleImageZone();
 
   const btnLogin = $('btnLogin'), btnFetchPages = $('btnFetchPages'),
         btnStart = $('btnStart'), btnPause = $('btnPause'), btnResume = $('btnResume'), btnStop = $('btnStop'),
@@ -1125,6 +1146,7 @@ window.svHandleImageFile = async function (input) {
     svClearImage();
   } finally {
     uploading.style.display = 'none';
+    input.value = '';
   }
 };
 
