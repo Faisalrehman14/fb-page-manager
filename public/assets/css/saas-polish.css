@@ -1307,6 +1307,10 @@ body.density-compact .analytics-row-2 { gap: 10px !important; }
   100% { transform: rotate(0); }
 }
 
+.notif-badge[hidden] {
+  display: none !important;
+}
+
 .notif-badge {
   position: absolute;
   top: -2px;

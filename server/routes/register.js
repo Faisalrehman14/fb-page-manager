@@ -879,11 +879,25 @@ app.get('/api/admin/notifications', requireAdminAuth, async (req, res) => {
     try {
         const limit  = Math.min(500, parseInt(req.query.limit, 10)  || 100);
         const offset = Math.max(0,   parseInt(req.query.offset, 10) || 0);
-        const notifications = await db.listAdminNotifications({ limit, offset });
-        res.json({ notifications });
+        const data = await db.listAdminNotifications({ limit, offset });
+        res.json({
+            notifications: data.notifications || [],
+            totalUsers:    data.totalUsers || 0
+        });
     } catch (err) {
         logError('admin_notifications_list', err);
         res.status(500).json({ error: 'Failed to load notifications' });
+    }
+});
+
+app.get('/api/admin/notifications/:id/stats', requireAdminAuth, async (req, res) => {
+    try {
+        const stats = await db.getNotificationStats(req.params.id);
+        if (!stats) return res.status(404).json({ error: 'Notification not found' });
+        res.json(stats);
+    } catch (err) {
+        logError('admin_notifications_stats', err);
+        res.status(500).json({ error: 'Failed to load stats' });
     }
 });
 

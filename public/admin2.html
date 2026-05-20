@@ -505,6 +505,22 @@
 </div>
 
 <!-- ══ EDIT USER MODAL ══ -->
+<!-- ══ NOTIFICATION READERS MODAL ══ -->
+<div class="overlay" id="readersOverlay">
+  <div class="modal modal-wide">
+    <div class="modal-head">
+      <div>
+        <div class="modal-title" id="readersTitle">Notification readers</div>
+        <div class="modal-sub" id="readersSub">—</div>
+      </div>
+      <button class="modal-close" onclick="App.modal.close('readersOverlay')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="modal-body" id="readersBody">
+      <div class="loading-center"><span class="spinner spinner-lg"></span></div>
+    </div>
+  </div>
+</div>
+
 <div class="overlay" id="editOverlay">
   <div class="modal">
     <div class="modal-head">
@@ -1729,12 +1745,16 @@ const App = {
           : '<span class="ann-target ann-target--all">All users</span>';
         const expired = n.expires_at && new Date(n.expires_at) < new Date();
         const link = n.link_url ? `<a class="ann-link" href="${esc(n.link_url)}" target="_blank" rel="noopener">Open link →</a>` : '';
+        const pct = Math.min(100, Math.max(0, Number(n.read_percent) || 0));
+        const readCount = Number(n.read_count) || 0;
+        const eligible = Number(n.total_eligible) || 0;
+        const pctClass = pct >= 75 ? 'ann-pct--hi' : pct >= 40 ? 'ann-pct--mid' : 'ann-pct--lo';
         return `<div class="ann-item ${expired ? 'is-expired' : ''}">
           <div class="ann-item-head">
             <span class="${sevCls}">${(n.severity || 'info').toUpperCase()}</span>
             ${target}
             ${expired ? '<span class="ann-target ann-target--expired">EXPIRED</span>' : ''}
-            <span class="ann-meta">${when} · ${n.read_count || 0} read</span>
+            <span class="ann-meta">${when}</span>
             <button class="ann-del" onclick="App.notifications.delete(${n.id})" title="Delete">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/></svg>
             </button>
@@ -1742,8 +1762,60 @@ const App = {
           <div class="ann-item-title">${esc(n.title || '')}</div>
           <div class="ann-item-body">${esc(n.body || '')}</div>
           ${link}
+          <div class="ann-stats">
+            <div class="ann-stats-bar"><div class="ann-stats-fill ${pctClass}" style="width:${pct}%"></div></div>
+            <div class="ann-stats-meta">
+              <span class="ann-stats-pct ${pctClass}">${pct.toFixed(1)}%</span>
+              <span>${readCount.toLocaleString()} / ${eligible.toLocaleString()} read</span>
+              <button class="ann-readers-btn" onclick="App.notifications.openReaders(${n.id})">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+                View readers
+              </button>
+            </div>
+          </div>
         </div>`;
       }).join('');
+    },
+
+    async openReaders(id) {
+      const overlay = $('readersOverlay');
+      const body = $('readersBody');
+      const title = $('readersTitle');
+      const sub = $('readersSub');
+      App.modal.open('readersOverlay');
+      body.innerHTML = '<div class="loading-center"><span class="spinner spinner-lg"></span></div>';
+      title.textContent = 'Notification readers';
+      sub.textContent = '';
+      try {
+        const r = await fetch('/api/admin/notifications/' + id + '/stats');
+        if (!r.ok) throw new Error('Failed');
+        const d = await r.json();
+        title.textContent = d.title || 'Notification';
+        const targetLbl = d.target_type === 'user' ? `Sent to user ${esc(d.target_user_id || '')}` : 'Sent to all users';
+        sub.innerHTML = `${targetLbl} · <strong>${d.read_count.toLocaleString()}</strong> of <strong>${d.total_eligible.toLocaleString()}</strong> read (<strong>${d.read_percent.toFixed(1)}%</strong>) · sent ${new Date(d.created_at).toLocaleString()}`;
+        if (!d.readers.length) {
+          body.innerHTML = '<div class="empty-card"><p>No one has read this notification yet.</p></div>';
+          return;
+        }
+        body.innerHTML = `
+          <div class="readers-list">
+            ${d.readers.map(u => {
+              const name = u.fb_name || ('User ' + (u.fb_user_id || '').slice(-5));
+              const initial = name.trim().charAt(0).toUpperCase();
+              const when = new Date(u.read_at).toLocaleString();
+              const plan = u.plan ? `<span class="reader-plan reader-plan--${esc(u.plan)}">${esc(u.plan)}</span>` : '';
+              return `<div class="reader-row">
+                <div class="reader-avatar">${esc(initial)}</div>
+                <div class="reader-body">
+                  <div class="reader-name">${esc(name)} ${plan}</div>
+                  <div class="reader-meta">${esc(u.fb_user_id || '')} · read ${when}</div>
+                </div>
+              </div>`;
+            }).join('')}
+          </div>`;
+      } catch (e) {
+        body.innerHTML = '<div class="empty-card"><p style="color:var(--red)">Failed to load readers.</p></div>';
+      }
     }
   },
 

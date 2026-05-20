@@ -3142,8 +3142,14 @@ async function createAdminNotification({ title, body, link_url, severity, target
 }
 
 async function listAdminNotifications({ limit = 100, offset = 0 } = {}) {
-    if (!pool) return [];
+    if (!pool) return { notifications: [], totalUsers: 0 };
     try {
+        let totalUsers = 0;
+        try {
+            const [[uRow]] = await pool.query('SELECT COUNT(*) AS c FROM users');
+            totalUsers = Number(uRow.c || 0);
+        } catch (_) {}
+
         const [rows] = await pool.query(
             `SELECT n.id, n.title, n.body, n.link_url, n.severity, n.target_type, n.target_user_id,
                     n.created_at, n.expires_at, n.created_by,
@@ -3153,10 +3159,19 @@ async function listAdminNotifications({ limit = 100, offset = 0 } = {}) {
              LIMIT ? OFFSET ?`,
             [Math.min(500, parseInt(limit, 10) || 100), Math.max(0, parseInt(offset, 10) || 0)]
         );
-        return rows;
+        const notifications = rows.map((n) => {
+            const eligible = n.target_type === 'user' ? 1 : totalUsers;
+            const pct = eligible > 0 ? Math.round((Number(n.read_count) / eligible) * 1000) / 10 : 0;
+            return {
+                ...n,
+                total_eligible: eligible,
+                read_percent: pct
+            };
+        });
+        return { notifications, totalUsers };
     } catch (e) {
         addDbError(`listAdminNotifications: ${e.message}`);
-        return [];
+        return { notifications: [], totalUsers: 0 };
     }
 }
 
@@ -3225,6 +3240,59 @@ async function markNotificationRead(notification_id, fb_user_id) {
     } catch (e) {
         addDbError(`markNotificationRead: ${e.message}`);
         return false;
+    }
+}
+
+async function getNotificationStats(notificationId) {
+    if (!pool || !notificationId) return null;
+    try {
+        const [nRows] = await pool.query(
+            'SELECT id, title, target_type, target_user_id, created_at FROM admin_notifications WHERE id = ? LIMIT 1',
+            [parseInt(notificationId, 10)]
+        );
+        const notif = nRows[0];
+        if (!notif) return null;
+
+        let totalEligible = 0;
+        if (notif.target_type === 'user') {
+            totalEligible = 1;
+        } else {
+            try {
+                const [[cRow]] = await pool.query('SELECT COUNT(*) AS c FROM users');
+                totalEligible = Number(cRow.c || 0);
+            } catch (_) { totalEligible = 0; }
+        }
+
+        const [readers] = await pool.query(
+            `SELECT r.fb_user_id, u.fb_name, u.email, u.plan, r.read_at
+             FROM notification_reads r
+             LEFT JOIN users u ON u.fb_user_id = r.fb_user_id
+             WHERE r.notification_id = ?
+             ORDER BY r.read_at DESC
+             LIMIT 500`,
+            [parseInt(notificationId, 10)]
+        );
+
+        const readCount = readers.length;
+        const readPercent = totalEligible > 0
+            ? Math.round((readCount / totalEligible) * 1000) / 10
+            : 0;
+
+        return {
+            id: notif.id,
+            title: notif.title,
+            target_type: notif.target_type,
+            target_user_id: notif.target_user_id,
+            created_at: notif.created_at,
+            total_eligible: totalEligible,
+            read_count: readCount,
+            unread_count: Math.max(0, totalEligible - readCount),
+            read_percent: readPercent,
+            readers
+        };
+    } catch (e) {
+        addDbError(`getNotificationStats: ${e.message}`);
+        return null;
     }
 }
 
@@ -3366,7 +3434,8 @@ const dbModule = {
     getNotificationsForUser,
     getUnreadNotificationCount,
     markNotificationRead,
-    markAllNotificationsRead
+    markAllNotificationsRead,
+    getNotificationStats
 };
 
 // ── ensureConversation — INSERT IGNORE then SELECT (race-safe) ────────────────
