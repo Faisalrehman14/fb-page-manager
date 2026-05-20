@@ -19,6 +19,7 @@ module.exports = function registerRoutes(app, deps) {
   const fbNames = require('../services/facebook-user-names');
   const entitlementsSvc = require('../services/entitlements.service');
   const aiAssistant = require('../services/ai-assistant.service');
+  const { SearchService } = require('../messenger/search-service');
   const { threadHasLiveViewers } = require('../socket');
   const express = require('express');
 
@@ -1612,9 +1613,41 @@ app.get('/api/pages/:pageId/conversations', requireAuth, async (req, res) => {
 
 app.get('/api/pages/:pageId/conversations/search', requireAuth, async (req, res) => {
     const q = (req.query.q || '').trim();
-    if (!q || !state.dbConnected) return res.json({ conversations: [] });
-    try { res.json({ conversations: await db.searchConversations(req.params.pageId, q, 30) }); }
-    catch (err) { res.status(500).json({ error: err.message, conversations: [] }); }
+    const pageId = req.params.pageId;
+    if (!q || !state.dbConnected) return res.json({ conversations: [], hint: null });
+    try {
+        let pageToken = req.session.pageTokens?.[pageId] || null;
+        if (!pageToken) pageToken = await db.getPageToken(pageId);
+
+        const searchService = new SearchService({ db });
+        const result = await searchService.search({
+            pageId,
+            q,
+            dbConnected: state.dbConnected,
+            pageToken,
+            fetchFn: fetch
+        });
+
+        let conversations = await db.hydrateSearchConversationsForInbox(pageId, result.conversations || []);
+        if (!conversations.length) {
+            conversations = await db.searchConversations(pageId, q, 50);
+        }
+
+        res.set('Cache-Control', 'private, max-age=5');
+        res.json({
+            conversations,
+            hint: result.hint || null,
+            searched_facebook: !!result.searched_facebook
+        });
+    } catch (err) {
+        logError('conversations_search_route', err, { pageId });
+        try {
+            const fallback = await db.searchConversations(pageId, q, 50);
+            return res.json({ conversations: fallback, hint: null });
+        } catch (_) {
+            res.status(500).json({ error: err.message, conversations: [] });
+        }
+    }
 });
 
 app.post('/api/pages/:pageId/mark-all-read', requireAuth, verifyCsrf, async (req, res) => {

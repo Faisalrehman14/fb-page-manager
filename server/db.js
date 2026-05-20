@@ -756,6 +756,66 @@ async function searchConversations(pageId, query, limit = 50) {
 }
 
 /**
+ * Map SearchService / Facebook merge hits to inbox list rows using DB primary keys
+ * (messenger_conversations.id). Graph API conversation ids must not be used as
+ * thread ids for /api/threads/:id/messages.
+ */
+async function hydrateSearchConversationsForInbox(pageId, mappedConvs) {
+    if (!pool || !pageId || !mappedConvs?.length) return [];
+    const psids = [];
+    const seenPsid = new Set();
+    for (const c of mappedConvs) {
+        const psid = String(c.fb_user_id || c.participantId || '').trim();
+        if (!psid || seenPsid.has(psid)) continue;
+        seenPsid.add(psid);
+        psids.push(psid);
+    }
+    if (!psids.length) return [];
+
+    const ph = psids.map(() => '?').join(',');
+    try {
+        const [rows] = await pool.query(`
+            SELECT c.id, c.page_id, c.fb_user_id AS participant_id, c.user_name AS participant_name,
+                   c.user_picture AS participant_picture, c.snippet, c.updated_at AS updated_time,
+                   c.is_unread, c.last_from_me, c.can_reply
+            FROM messenger_conversations c
+            WHERE c.page_id = ? AND c.fb_user_id IN (${ph})
+        `, [pageId, ...psids]);
+        const byPsid = new Map(rows.map(r => [String(r.participant_id), r]));
+        const { normalizeSnippetForList } = require('./messenger/message-content');
+
+        const out = [];
+        for (const psid of psids) {
+            const row = byPsid.get(psid);
+            if (!row) continue;
+            const src = mappedConvs.find(x => String(x.fb_user_id || x.participantId || '') === psid) || {};
+            out.push({
+                id: row.id,
+                pageId: row.page_id,
+                participantId: row.participant_id,
+                participantName: row.participant_name || src.user_name || 'Customer',
+                participantPicture: row.participant_picture || src.user_picture || '',
+                snippet: normalizeSnippetForList(row.snippet || src.snippet || src.last_msg || ''),
+                updatedTime: row.updated_time || src.updated_at || src.last_msg_at,
+                isRead: row.is_unread === 0,
+                unreadCount: row.is_unread || 0,
+                lastMessageFromPage: row.last_from_me === 1,
+                canReply: row.can_reply !== 0
+            });
+        }
+        out.sort((a, b) => {
+            const ta = new Date(a.updatedTime || 0).getTime();
+            const tb = new Date(b.updatedTime || 0).getTime();
+            return tb - ta;
+        });
+        return out;
+    } catch (err) {
+        addDbError(`hydrateSearchConversationsForInbox: ${err.message}`);
+        return [];
+    }
+}
+
+/**
  * Server-side inbox search — scans DB only (no need to load full conv list in UI).
  */
 async function searchInbox(pageId, query, limits = {}) {
@@ -3891,6 +3951,7 @@ const dbModule = {
     getPagePsids,
     getConversationCount,
     searchConversations,
+    hydrateSearchConversationsForInbox,
     searchConversationsFromFacebook,
     searchInbox,
     getAllConversations,

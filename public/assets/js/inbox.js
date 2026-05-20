@@ -1742,18 +1742,46 @@ const Inbox = {
         } catch(e) {}
     },
 
+    /** Merge server hits with locally loaded conversations so empty DB/Facebook
+     * results never wipe matches already visible in memory (race-safe). */
+    _mergeSearchWithLocal(serverList, query) {
+        const qLower = query.toLowerCase();
+        const localFiltered = this.conversations.filter(c =>
+            (c.participantName || '').toLowerCase().includes(qLower) ||
+            (c.snippet || '').toLowerCase().includes(qLower) ||
+            String(c.participantId || '').toLowerCase().includes(qLower)
+        );
+        const byId = new Map();
+        for (const c of serverList || []) {
+            if (c && c.id != null) byId.set(String(c.id), c);
+        }
+        for (const c of localFiltered) {
+            const id = String(c.id);
+            if (!byId.has(id)) byId.set(id, c);
+        }
+        return Array.from(byId.values()).sort(
+            (a, b) => new Date(b.updatedTime || 0) - new Date(a.updatedTime || 0)
+        );
+    },
+
     async _serverSearch(query) {
         const pageId = this.selectedPageId;
         if (!pageId || !query) return;
+        const qNorm = query.toLowerCase();
         try {
             const res = await fetchWithAuth(
                 `/api/pages/${pageId}/conversations/search?q=${encodeURIComponent(query)}`
             );
-            if (!res || this.searchQuery !== query.toLowerCase()) return; // stale
+            if (!res || this.searchQuery !== qNorm) return;
             const data = await res.json();
-            this._searchResults = data.conversations || [];
+            const serverList = data.conversations || [];
+            this._searchResults = this._mergeSearchWithLocal(serverList, query);
             this.renderConversations();
-        } catch(e) {}
+        } catch (e) {
+            if (this.searchQuery !== qNorm) return;
+            this._searchResults = null;
+            this.renderConversations();
+        }
     },
 
     getFiltered() {
@@ -1767,7 +1795,8 @@ const Inbox = {
             const q = this.searchQuery;
             list = list.filter(c =>
                 (c.participantName || '').toLowerCase().includes(q) ||
-                (c.snippet || '').toLowerCase().includes(q)
+                (c.snippet || '').toLowerCase().includes(q) ||
+                String(c.participantId || '').toLowerCase().includes(q)
             );
         }
         return list;
