@@ -88,6 +88,40 @@ function getConfig(env) {
     };
 }
 
+/** Turn raw upstream JSON/text into a short user-facing message. */
+function formatUpstreamError(status, bodyText) {
+    let parsed = null;
+    const raw = String(bodyText || '').trim();
+    try {
+        parsed = JSON.parse(raw);
+    } catch (_) {
+        const jsonStart = raw.indexOf('{');
+        if (jsonStart >= 0) {
+            try { parsed = JSON.parse(raw.slice(jsonStart)); } catch (_) {}
+        }
+    }
+    const errObj = parsed?.error || parsed;
+    const errType = String(errObj?.type || parsed?.type || '').trim();
+    const errMsg = String(errObj?.message || parsed?.message || '').trim();
+
+    if (status === 429 || errType === 'FreeUsageLimitError' || /rate limit|usage limit|too many requests/i.test(errMsg)) {
+        const isFree = /free/i.test(errType) || /free/i.test(errMsg);
+        if (isFree) {
+            return 'Free AI plan limit reached on the provider. Wait a few minutes and try again, or use a paid API key / different model (AI_MODEL in server .env).';
+        }
+        return 'AI provider rate limit reached. Please wait a few minutes and try again.';
+    }
+    if (status === 401 || status === 403) {
+        return 'AI API key is invalid or not allowed. Check AI_API_KEY in server settings.';
+    }
+    if (status === 503 || status === 502) {
+        return 'AI service is temporarily unavailable. Please try again shortly.';
+    }
+    if (errMsg) return errMsg.slice(0, 280);
+    if (raw && !raw.startsWith('{')) return raw.slice(0, 280);
+    return `AI service error (HTTP ${status}). Please try again.`;
+}
+
 /**
  * Stream a chat completion. Writes SSE events to `res`:
  *   event: token   data: { "text": "..." }
@@ -101,7 +135,10 @@ async function streamChat({ env, fetch, userId, messages, res }) {
         return res.end();
     }
     if (!rateLimit(userId || 'anonymous', cfg.rateLimit)) {
-        sendSseEvent(res, 'error', { message: `Rate limit reached (${cfg.rateLimit}/min). Please wait a moment.` });
+        sendSseEvent(res, 'error', {
+            code: 'rate_limit_app',
+            message: `Too many AI requests from your account (${cfg.rateLimit} per minute). Please wait about a minute and try again.`
+        });
         return res.end();
     }
 
@@ -145,9 +182,9 @@ async function streamChat({ env, fetch, userId, messages, res }) {
         clearTimeout(timeout);
         let text = '';
         try { text = await upstream.text(); } catch (_) {}
-        sendSseEvent(res, 'error', {
-            message: `AI service error (HTTP ${upstream.status}). ${text.slice(0, 240)}`
-        });
+        const friendly = formatUpstreamError(upstream.status, text);
+        const code = upstream.status === 429 ? 'rate_limit_provider' : 'upstream_error';
+        sendSseEvent(res, 'error', { code, message: friendly, status: upstream.status });
         return res.end();
     }
 

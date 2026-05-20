@@ -25,6 +25,29 @@
       .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
   }
 
+  function humanizeAiError(msg) {
+    const s = String(msg || '').trim();
+    if (!s) return 'Something went wrong. Please try again.';
+    if (/FreeUsageLimitError|rate limit exceeded|HTTP 429/i.test(s)) {
+      return 'Free AI plan limit reached. Wait a few minutes, then try again. For heavy use, switch to a paid API key or model in server settings.';
+    }
+    if (/AI service error \(HTTP 429\)/i.test(s)) {
+      return 'AI rate limit reached. Please wait a few minutes and try again.';
+    }
+    if (s.startsWith('{') || s.includes('"type":"error"')) {
+      try {
+        const j = JSON.parse(s.replace(/^AI service error \(HTTP \d+\)\.\s*/i, ''));
+        const m = j?.error?.message || j?.message;
+        if (m) return humanizeAiError(m);
+      } catch (_) {}
+      return 'AI service is busy. Please wait a moment and try again.';
+    }
+    if (/AI service error \(HTTP/i.test(s)) {
+      return s.replace(/^AI service error \(HTTP \d+\)\.\s*/i, '').slice(0, 280) || 'AI service error. Please try again.';
+    }
+    return s.slice(0, 400);
+  }
+
   async function checkEnabled() {
     if (state.enabled !== null) return state.enabled;
     try {
@@ -32,6 +55,8 @@
       if (!r.ok) { state.enabled = false; return false; }
       const d = await r.json();
       state.enabled = !!d.enabled;
+      state.freeTier = !!d.freeTier;
+      state.model = d.model || '';
     } catch (_) {
       state.enabled = false;
     }
@@ -169,8 +194,9 @@
             state.messages[lastIdx].content += parsed.data.text;
             updateStreamingBubble();
           } else if (parsed.event === 'error') {
-            const errMsg = (parsed.data && parsed.data.message) || 'Stream error';
+            const errMsg = humanizeAiError((parsed.data && parsed.data.message) || 'Stream error');
             state.messages[lastIdx]._error = errMsg;
+            state.messages[lastIdx]._errorCode = parsed.data?.code || '';
             state.messages[lastIdx]._streaming = false;
             renderMessages();
           } else if (parsed.event === 'done') {
@@ -190,7 +216,7 @@
         if (!state.messages[lastIdx].content) state.messages[lastIdx]._error = 'Generation stopped.';
       } else {
         state.messages[lastIdx]._streaming = false;
-        state.messages[lastIdx]._error = e.message || 'Network error';
+        state.messages[lastIdx]._error = humanizeAiError(e.message || 'Network error');
       }
       renderMessages();
     } finally {

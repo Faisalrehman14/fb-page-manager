@@ -1089,7 +1089,13 @@ app.post('/api/admin/support/threads/:id/status', requireAdminAuth, async (req, 
 
 // ── AI Broadcast Assistant ───────────────────────────────────────────────────
 app.get('/api/ai/info', requireAuth, (req, res) => {
-    res.json({ enabled: aiAssistant.isEnabled(env) });
+    const cfg = aiAssistant.getConfig(env);
+    const model = cfg.model || '';
+    res.json({
+        enabled: aiAssistant.isEnabled(env),
+        model,
+        freeTier: /free/i.test(model)
+    });
 });
 
 app.post('/api/ai/chat', requireAuth, async (req, res) => {
