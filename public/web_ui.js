@@ -467,10 +467,9 @@ function updateStats() {
   if (ms) ms.textContent = total;
   if (mss) mss.textContent = sent;
   if (msf) msf.textContent = failed;
-  // enable retry/export when there's data
-  const retryBtn = $('btnRetryFailed'), exportBtn = $('btnExportCSV');
+  // enable retry button when there are failed messages
+  const retryBtn = $('btnRetryFailed');
   if (retryBtn) retryBtn.disabled = failed === 0;
-  if (exportBtn) exportBtn.disabled = (sent + failed) === 0;
   // update quick stats
   const qsSr = $('qsSuccessRate'), qsSp = $('qsSpeed'), qsPd = $('qsPending'), qsAd = $('qsAudience');
   if (qsSr) qsSr.textContent = total > 0 ? Math.round((sent / total) * 100) + '%' : '0%';
@@ -871,22 +870,8 @@ document.addEventListener('DOMContentLoaded', () => {
     showStatus(`Queued ${failed.length} failed messages for retry.`, 'info');
   });
 
-  // Export results as CSV
-  btnExportCSV?.addEventListener('click', () => {
-    const rows = allRecipients.filter(r => r.status === 'sent' || r.status === 'failed');
-    if (!rows.length) { showStatus('No results to export.', 'warning'); return; }
-    const csv = ['PSID,Status,Error', ...rows.map(r => `"${r.id}","${r.status}","${(r.error||'').replace(/"/g,'""')}"`)].join('\n');
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
-    a.download = `fbcast_results_${Date.now()}.csv`;
-    a.click();
-    showStatus(`Exported ${rows.length} results.`, 'success');
-  });
-
   // Quick action: retry all
   $('qaRetryAll')?.addEventListener('click', () => btnRetryFailed?.click());
-  // Quick action: export
-  $('qaExport')?.addEventListener('click', () => btnExportCSV?.click());
   // Quick action: clear results
   $('qaClear')?.addEventListener('click', () => {
     if (!confirm('Clear all results?')) return;

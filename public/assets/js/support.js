@@ -47,9 +47,32 @@
     try { return d.toLocaleString([], opts); } catch (_) { return ''; }
   }
 
-  function getCsrf() {
-    try { return (window.getCsrfToken && window.getCsrfToken()) || (window.APP_CONFIG && window.APP_CONFIG.csrfToken) || ''; }
-    catch (_) { return ''; }
+  /**
+   * Synchronously read the CSRF token. Falls back across:
+   *   - APP_CONFIG.csrfToken (injected at SSR)
+   *   - CSRF_TOKEN cookie (set by csrfBootstrap on every request)
+   * NOTE: window.getCsrfToken() is intentionally NOT used here because it
+   * is async and returns a Promise which would stringify to
+   * "[object Promise]" in a header. We use the async resolveCsrf() below
+   * for the actual fetch.
+   */
+  function getCsrfSync() {
+    try {
+      if (window.APP_CONFIG && window.APP_CONFIG.csrfToken) return window.APP_CONFIG.csrfToken;
+      const m = document.cookie.match(/(?:^|; )CSRF_TOKEN=([^;]+)/);
+      if (m && m[1]) return decodeURIComponent(m[1]);
+    } catch (_) {}
+    return '';
+  }
+
+  async function resolveCsrf() {
+    try {
+      if (typeof window.getCsrfToken === 'function') {
+        const t = await window.getCsrfToken();
+        if (t) return t;
+      }
+    } catch (_) {}
+    return getCsrfSync();
   }
 
   function setBadge(n) {
@@ -195,10 +218,11 @@
   async function markRead() {
     if (!state.threadId) return;
     try {
+      const csrf = await resolveCsrf();
       await fetch('/api/support/chat/read', {
         method: 'POST',
         credentials: 'same-origin',
-        headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': getCsrf() },
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrf },
         body: JSON.stringify({})
       });
       setBadge(0);
@@ -224,10 +248,11 @@
 
     let success = false;
     try {
+      const csrf = await resolveCsrf();
       const r = await fetch('/api/support/chat/send', {
         method: 'POST',
         credentials: 'same-origin',
-        headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': getCsrf() },
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrf },
         body: JSON.stringify({ body })
       });
       if (!r.ok) {
