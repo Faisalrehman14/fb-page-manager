@@ -1,0 +1,1269 @@
+/**
+ * FBCast Pro — Master Theme Final Layer
+ * Single source of truth for light + dark theme polish across the entire app.
+ * Loads LAST. Owns semantic tokens and catches all leaks from legacy CSS.
+ */
+
+/* ═══════════════════════════════════════════════════════════════
+   1.  SEMANTIC TOKENS  (single source of truth)
+═══════════════════════════════════════════════════════════════ */
+
+:root,
+html[data-theme='dark'],
+html.theme-dark,
+body:not(.light) {
+  --t-bg:           #030508;
+  --t-bg-2:         #060c18;
+  --t-surface:      rgba(14, 22, 48, 0.96);
+  --t-surface-2:    rgba(20, 31, 69, 0.92);
+  --t-surface-3:    rgba(30, 41, 84, 0.85);
+  --t-surface-flat: #0a1020;
+
+  --t-text:         #f1f5f9;
+  --t-text-2:       #b4c0dc;
+  --t-text-3:       #94a3b8;
+  --t-text-muted:   #64748b;
+
+  --t-border:       rgba(139, 156, 255, 0.14);
+  --t-border-2:     rgba(168, 85, 247, 0.22);
+  --t-border-soft:  rgba(255, 255, 255, 0.06);
+  --t-divider:      rgba(255, 255, 255, 0.08);
+
+  --t-accent:       #6366f1;
+  --t-accent-2:     #a855f7;
+  --t-accent-soft:  rgba(99, 102, 241, 0.14);
+  --t-accent-glow:  rgba(99, 102, 241, 0.35);
+
+  --t-success:      #34d399;
+  --t-warning:      #fbbf24;
+  --t-danger:       #f87171;
+  --t-info:         #60a5fa;
+
+  --t-shadow:
+    0 0 0 1px rgba(168, 85, 247, 0.05) inset,
+    0 8px 32px rgba(0, 0, 0, 0.35);
+  --t-shadow-hover:
+    0 0 0 1px rgba(168, 85, 247, 0.18) inset,
+    0 16px 48px rgba(124, 58, 237, 0.18);
+
+  --t-input-bg:     rgba(0, 0, 0, 0.35);
+  --t-input-border: rgba(139, 156, 255, 0.22);
+  --t-input-focus:  rgba(99, 102, 241, 0.5);
+
+  --t-canvas-grad:
+    radial-gradient(ellipse 80% 55% at 0% -8%, rgba(124, 58, 237, 0.18), transparent 52%),
+    radial-gradient(ellipse 65% 45% at 100% 0%, rgba(37, 99, 235, 0.14), transparent 50%),
+    var(--t-bg);
+
+  color-scheme: dark;
+}
+
+html[data-theme='light'],
+html.theme-light,
+body.light {
+  --t-bg:           #f5f7ff;
+  --t-bg-2:         #eef2ff;
+  --t-surface:      #ffffff;
+  --t-surface-2:    #f8fafc;
+  --t-surface-3:    #f1f5f9;
+  --t-surface-flat: #ffffff;
+
+  --t-text:         #0c1222;
+  --t-text-2:       #334155;
+  --t-text-3:       #64748b;
+  --t-text-muted:   #94a3b8;
+
+  --t-border:       rgba(99, 102, 241, 0.16);
+  --t-border-2:     rgba(124, 58, 237, 0.24);
+  --t-border-soft:  rgba(15, 23, 42, 0.06);
+  --t-divider:      rgba(15, 23, 42, 0.08);
+
+  --t-accent:       #6366f1;
+  --t-accent-2:     #8b5cf6;
+  --t-accent-soft:  rgba(99, 102, 241, 0.08);
+  --t-accent-glow:  rgba(99, 102, 241, 0.25);
+
+  --t-success:      #059669;
+  --t-warning:      #d97706;
+  --t-danger:       #dc2626;
+  --t-info:         #2563eb;
+
+  --t-shadow:
+    0 0 0 1px rgba(15, 23, 42, 0.04),
+    0 4px 24px rgba(99, 102, 241, 0.08);
+  --t-shadow-hover:
+    0 0 0 1px rgba(99, 102, 241, 0.22),
+    0 12px 32px rgba(99, 102, 241, 0.14);
+
+  --t-input-bg:     #ffffff;
+  --t-input-border: #cbd5e1;
+  --t-input-focus:  rgba(99, 102, 241, 0.45);
+
+  --t-canvas-grad:
+    radial-gradient(ellipse 70% 50% at 0% 0%, rgba(99, 102, 241, 0.08), transparent 55%),
+    radial-gradient(ellipse 50% 40% at 100% 0%, rgba(167, 139, 250, 0.08), transparent 50%),
+    var(--t-bg);
+
+  color-scheme: light;
+}
+
+/* Smooth theme transitions for SaaS feel */
+body,
+#landingPage,
+#appPage,
+.nav,
+.saas-topbar,
+.nav-sidebar,
+.sidebar,
+.compose,
+.broadcast-col,
+.compose-col,
+.hv-kpi,
+.hv-panel,
+.hv-qa-card,
+.hv-plan-card,
+.hv-hero,
+.feat,
+.step,
+.price-card,
+.pro-card,
+.testimonial,
+.faq-item,
+.cta-box,
+.footer-enhanced,
+.modal-box,
+input,
+textarea,
+select,
+.settings-card,
+.saas-billing-card,
+#view-messenger,
+.msng-thread,
+.msng-list {
+  transition:
+    background-color 0.25s ease,
+    border-color 0.25s ease,
+    color 0.2s ease,
+    box-shadow 0.25s ease !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   2.  LIGHT MODE — comprehensive overrides
+═══════════════════════════════════════════════════════════════ */
+
+/* --- 2.1  Global canvas + base text --- */
+html[data-theme='light'] body,
+body.light {
+  background: var(--t-canvas-grad) !important;
+  background-attachment: fixed;
+  color: var(--t-text);
+}
+
+html[data-theme='light'] #appPage,
+html[data-theme='light'] #landingPage,
+body.light #appPage,
+body.light #landingPage {
+  background: var(--t-canvas-grad) !important;
+  background-attachment: fixed;
+  color: var(--t-text);
+}
+
+/* Generic text leaks: hardcoded white in dark CSS */
+html[data-theme='light'] body :is(h1, h2, h3, h4, h5, h6),
+body.light :is(h1, h2, h3, h4, h5, h6) {
+  color: var(--t-text);
+}
+
+html[data-theme='light'] #landingPage,
+html[data-theme='light'] #appPage,
+body.light #landingPage,
+body.light #appPage {
+  --text:        var(--t-text);
+  --text2:       var(--t-text-2);
+  --text3:       var(--t-text-3);
+  --bg:          var(--t-bg);
+  --bg2:         var(--t-bg-2);
+  --bg3:         var(--t-surface-3);
+  --surface:     var(--t-surface);
+  --surface2:    var(--t-surface-2);
+  --surface3:    var(--t-surface-3);
+  --border:      var(--t-border);
+  --border2:     var(--t-border-2);
+}
+
+/* --- 2.2  Top nav (landing) --- */
+html[data-theme='light'] #landingPage .nav,
+html[data-theme='light'] #landingPage .nav.nav--scrolled,
+html[data-theme='light'] #landingPage .nav.scrolled,
+body.light #landingPage .nav,
+body.light #landingPage .nav.nav--scrolled,
+body.light #landingPage .nav.scrolled {
+  background: rgba(255, 255, 255, 0.92) !important;
+  border-bottom-color: var(--t-divider) !important;
+  box-shadow: 0 4px 24px rgba(15, 23, 42, 0.06) !important;
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+}
+
+html[data-theme='light'] #landingPage .nav-brand-name,
+body.light #landingPage .nav-brand-name {
+  color: var(--t-text) !important;
+  -webkit-text-fill-color: var(--t-text) !important;
+}
+
+html[data-theme='light'] #landingPage .nav-brand-name em,
+body.light #landingPage .nav-brand-name em {
+  background: linear-gradient(135deg, #2563eb, #7c3aed) !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+}
+
+html[data-theme='light'] #landingPage .nav-links a,
+body.light #landingPage .nav-links a {
+  color: var(--t-text-2) !important;
+}
+
+html[data-theme='light'] #landingPage .nav-links a:hover,
+body.light #landingPage .nav-links a:hover {
+  color: var(--t-text) !important;
+  background: rgba(99, 102, 241, 0.08) !important;
+}
+
+html[data-theme='light'] #landingPage .nav-theme-btn,
+body.light #landingPage .nav-theme-btn {
+  color: var(--t-text-2) !important;
+  background: var(--t-surface-3) !important;
+  border-color: var(--t-border) !important;
+}
+
+html[data-theme='light'] #landingPage .nav-theme-btn:hover,
+body.light #landingPage .nav-theme-btn:hover {
+  color: #1e3a8a !important;
+  background: #e0e7ff !important;
+}
+
+/* --- 2.3  Hero (landing) --- */
+html[data-theme='light'] #landingPage .hero,
+body.light #landingPage .hero {
+  background:
+    radial-gradient(ellipse 80% 60% at 50% -10%, rgba(99, 102, 241, 0.1), transparent 55%),
+    linear-gradient(180deg, #f5f3ff 0%, #eef2ff 100%) !important;
+}
+
+html[data-theme='light'] .hero-h1,
+html[data-theme='light'] #landingPage .hero-h1,
+body.light .hero-h1,
+body.light #landingPage .hero-h1 {
+  background: none !important;
+  -webkit-background-clip: unset !important;
+  background-clip: unset !important;
+  -webkit-text-fill-color: var(--t-text) !important;
+  color: var(--t-text) !important;
+}
+
+html[data-theme='light'] .hero-h1 .grad,
+html[data-theme='light'] .hero-h1 em,
+body.light .hero-h1 .grad,
+body.light .hero-h1 em {
+  background: linear-gradient(135deg, #2563eb 0%, #7c3aed 100%) !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  color: transparent !important;
+}
+
+html[data-theme='light'] #landingPage .hero-sub,
+html[data-theme='light'] #landingPage .hero-sp-text,
+html[data-theme='light'] #landingPage .hero-social-proof,
+body.light #landingPage .hero-sub,
+body.light #landingPage .hero-sp-text,
+body.light #landingPage .hero-social-proof {
+  color: var(--t-text-2) !important;
+}
+
+html[data-theme='light'] #landingPage .hero-badge,
+body.light #landingPage .hero-badge {
+  background: rgba(99, 102, 241, 0.08) !important;
+  border-color: rgba(99, 102, 241, 0.22) !important;
+  color: #4338ca !important;
+}
+
+html[data-theme='light'] #landingPage .activity-ticker,
+body.light #landingPage .activity-ticker {
+  background: rgba(16, 185, 129, 0.08) !important;
+  border-color: rgba(16, 185, 129, 0.22) !important;
+  color: #047857 !important;
+}
+
+html[data-theme='light'] #landingPage .ticker-text,
+body.light #landingPage .ticker-text {
+  color: #047857 !important;
+}
+
+html[data-theme='light'] .metric-val,
+html[data-theme='light'] #landingPage .metric .counter-num,
+body.light .metric-val,
+body.light #landingPage .metric .counter-num {
+  background: none !important;
+  -webkit-background-clip: unset !important;
+  background-clip: unset !important;
+  -webkit-text-fill-color: var(--t-text) !important;
+  color: var(--t-text) !important;
+}
+
+html[data-theme='light'] #landingPage .hero-metrics,
+body.light #landingPage .hero-metrics {
+  background: var(--t-surface) !important;
+  border-color: var(--t-border) !important;
+  box-shadow: var(--t-shadow) !important;
+}
+
+html[data-theme='light'] #landingPage .metric,
+body.light #landingPage .metric {
+  border-right-color: var(--t-divider) !important;
+}
+
+html[data-theme='light'] #landingPage .metric-lbl,
+body.light #landingPage .metric-lbl {
+  color: var(--t-text-3) !important;
+}
+
+html[data-theme='light'] #landingPage .hero-preview-frame,
+body.light #landingPage .hero-preview-frame {
+  background: var(--t-surface) !important;
+  border-color: var(--t-border) !important;
+  box-shadow: 0 24px 64px rgba(99, 102, 241, 0.12) !important;
+}
+
+html[data-theme='light'] #landingPage .hero-preview-topbar,
+body.light #landingPage .hero-preview-topbar {
+  background: var(--t-surface-3) !important;
+  border-bottom-color: var(--t-divider) !important;
+}
+
+/* --- 2.4  Sections + cards (landing) --- */
+html[data-theme='light'] #landingPage .marquee-strip,
+body.light #landingPage .marquee-strip {
+  background: linear-gradient(180deg, #e8eeff, #eef2ff) !important;
+  border-color: var(--t-divider) !important;
+}
+
+html[data-theme='light'] #landingPage .marquee-item,
+body.light #landingPage .marquee-item {
+  color: var(--t-text-3) !important;
+  border-right-color: var(--t-divider) !important;
+}
+
+html[data-theme='light'] #landingPage .stats-proof-section,
+body.light #landingPage .stats-proof-section {
+  background: linear-gradient(180deg, #e0e7ff, #eef2ff) !important;
+}
+
+html[data-theme='light'] #landingPage .stats-proof-grid,
+body.light #landingPage .stats-proof-grid {
+  background: var(--t-divider) !important;
+  border-color: var(--t-divider) !important;
+}
+
+html[data-theme='light'] #landingPage .stats-proof-item,
+body.light #landingPage .stats-proof-item {
+  background: var(--t-surface) !important;
+}
+
+html[data-theme='light'] #landingPage .proof-num,
+html[data-theme='light'] #landingPage .stat-strip-num,
+body.light #landingPage .proof-num,
+body.light #landingPage .stat-strip-num {
+  color: var(--t-text) !important;
+}
+
+html[data-theme='light'] #landingPage .proof-label,
+html[data-theme='light'] #landingPage .proof-sub,
+html[data-theme='light'] #landingPage .stat-strip-lbl,
+body.light #landingPage .proof-label,
+body.light #landingPage .proof-sub,
+body.light #landingPage .stat-strip-lbl {
+  color: var(--t-text-3) !important;
+}
+
+html[data-theme='light'] #landingPage .bigfeat-section,
+body.light #landingPage .bigfeat-section {
+  background: linear-gradient(180deg, #f8fafc, #eef2ff) !important;
+  border-bottom-color: var(--t-divider) !important;
+}
+
+html[data-theme='light'] #landingPage .bigfeat-h2,
+html[data-theme='light'] #landingPage .section-h2,
+body.light #landingPage .bigfeat-h2,
+body.light #landingPage .section-h2 {
+  background: none !important;
+  -webkit-background-clip: unset !important;
+  background-clip: unset !important;
+  -webkit-text-fill-color: var(--t-text) !important;
+  color: var(--t-text) !important;
+}
+
+html[data-theme='light'] #landingPage .bigfeat-h2 em,
+html[data-theme='light'] #landingPage .section-h2 em,
+body.light #landingPage .bigfeat-h2 em,
+body.light #landingPage .section-h2 em {
+  background: linear-gradient(135deg, #2563eb, #7c3aed) !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+}
+
+html[data-theme='light'] #landingPage .bigfeat-p,
+html[data-theme='light'] #landingPage .bigfeat-sub,
+html[data-theme='light'] #landingPage .section-sub,
+body.light #landingPage .bigfeat-p,
+body.light #landingPage .bigfeat-sub,
+body.light #landingPage .section-sub {
+  color: var(--t-text-2) !important;
+}
+
+html[data-theme='light'] #landingPage .section-label,
+body.light #landingPage .section-label {
+  color: var(--t-accent) !important;
+  background: rgba(99, 102, 241, 0.1) !important;
+  border-color: rgba(99, 102, 241, 0.2) !important;
+}
+
+html[data-theme='light'] #landingPage .feat,
+html[data-theme='light'] #landingPage .step,
+html[data-theme='light'] #landingPage .price-card,
+html[data-theme='light'] #landingPage .cta-box,
+html[data-theme='light'] #landingPage .testimonial,
+html[data-theme='light'] #landingPage .testimonial-meta,
+html[data-theme='light'] #landingPage .faq-item,
+body.light #landingPage .feat,
+body.light #landingPage .step,
+body.light #landingPage .price-card,
+body.light #landingPage .cta-box,
+body.light #landingPage .testimonial,
+body.light #landingPage .testimonial-meta,
+body.light #landingPage .faq-item {
+  background: var(--t-surface) !important;
+  border-color: var(--t-border) !important;
+  box-shadow: var(--t-shadow) !important;
+  backdrop-filter: none !important;
+}
+
+html[data-theme='light'] #landingPage .features-grid,
+body.light #landingPage .features-grid {
+  background: transparent !important;
+  border: none !important;
+}
+
+html[data-theme='light'] #landingPage .feat h3,
+html[data-theme='light'] #landingPage .step h3,
+html[data-theme='light'] #landingPage .testimonial-name,
+body.light #landingPage .feat h3,
+body.light #landingPage .step h3,
+body.light #landingPage .testimonial-name {
+  color: var(--t-text) !important;
+}
+
+html[data-theme='light'] #landingPage .feat p,
+html[data-theme='light'] #landingPage .step p,
+html[data-theme='light'] #landingPage .testimonial-text,
+body.light #landingPage .feat p,
+body.light #landingPage .step p,
+body.light #landingPage .testimonial-text {
+  color: var(--t-text-2) !important;
+}
+
+html[data-theme='light'] #landingPage .testimonial-role,
+body.light #landingPage .testimonial-role {
+  color: var(--t-text-3) !important;
+}
+
+html[data-theme='light'] #landingPage .testimonial-author,
+body.light #landingPage .testimonial-author {
+  border-top-color: var(--t-divider) !important;
+}
+
+/* Pricing */
+html[data-theme='light'] #landingPage .pricing-grid--6 .price-card--gold,
+body.light #landingPage .pricing-grid--6 .price-card--gold {
+  background: linear-gradient(160deg, rgba(99, 102, 241, 0.1) 0%, var(--t-surface) 48%) !important;
+  border-color: rgba(99, 102, 241, 0.32) !important;
+  box-shadow: 0 12px 40px rgba(99, 102, 241, 0.14) !important;
+}
+
+html[data-theme='light'] #landingPage .pricing-grid--6 .price-name,
+html[data-theme='light'] #landingPage .pricing-grid--6 .price-card:nth-child(n) .price-name,
+body.light #landingPage .pricing-grid--6 .price-name,
+body.light #landingPage .pricing-grid--6 .price-card:nth-child(n) .price-name {
+  color: var(--t-text-3) !important;
+}
+
+html[data-theme='light'] #landingPage .pricing-grid--6 .price-card--gold .price-name,
+body.light #landingPage .pricing-grid--6 .price-card--gold .price-name {
+  color: #4f46e5 !important;
+}
+
+html[data-theme='light'] #landingPage .pricing-grid--6 .price-amount,
+html[data-theme='light'] #landingPage .pricing-grid--6 .price-card:nth-child(n) .price-amount,
+body.light #landingPage .pricing-grid--6 .price-amount,
+body.light #landingPage .pricing-grid--6 .price-card:nth-child(n) .price-amount {
+  color: var(--t-text) !important;
+  background: none !important;
+  -webkit-text-fill-color: var(--t-text) !important;
+}
+
+html[data-theme='light'] #landingPage .pricing-grid--6 .price-card--gold .price-amount,
+body.light #landingPage .pricing-grid--6 .price-card--gold .price-amount {
+  background: linear-gradient(135deg, #1e40af, #6d28d9) !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+}
+
+html[data-theme='light'] #landingPage .pricing-grid--6 .price-original,
+html[data-theme='light'] #landingPage .pricing-grid--6 .price-original s,
+html[data-theme='light'] #landingPage .pricing-grid--6 .price-billing,
+html[data-theme='light'] #landingPage .pricing-grid--6 .price-amount sub,
+body.light #landingPage .pricing-grid--6 .price-original,
+body.light #landingPage .pricing-grid--6 .price-original s,
+body.light #landingPage .pricing-grid--6 .price-billing,
+body.light #landingPage .pricing-grid--6 .price-amount sub {
+  color: var(--t-text-3) !important;
+}
+
+html[data-theme='light'] #landingPage .pricing-grid--6 .price-feats li,
+body.light #landingPage .pricing-grid--6 .price-feats li {
+  color: var(--t-text-2) !important;
+  border-bottom-color: var(--t-divider) !important;
+}
+
+html[data-theme='light'] #landingPage .billing-toggle,
+body.light #landingPage .billing-toggle {
+  background: var(--t-surface-3) !important;
+  border: 1px solid var(--t-divider) !important;
+}
+
+html[data-theme='light'] #landingPage .billing-toggle button,
+body.light #landingPage .billing-toggle button {
+  color: var(--t-text-3) !important;
+}
+
+html[data-theme='light'] #landingPage .billing-toggle button.active,
+body.light #landingPage .billing-toggle button.active {
+  color: #ffffff !important;
+  background: linear-gradient(135deg, #2563eb, #7c3aed) !important;
+}
+
+html[data-theme='light'] #landingPage .promo-banner,
+body.light #landingPage .promo-banner {
+  background: rgba(239, 68, 68, 0.08) !important;
+  border-color: rgba(239, 68, 68, 0.22) !important;
+}
+
+html[data-theme='light'] #landingPage .promo-banner-text,
+body.light #landingPage .promo-banner-text {
+  color: var(--t-text-2) !important;
+}
+
+html[data-theme='light'] #landingPage .promo-banner-text strong,
+body.light #landingPage .promo-banner-text strong {
+  color: #c2410c !important;
+}
+
+/* Pro logo cloud + compare table */
+html[data-theme='light'] #landingPage .pro-logo-cloud,
+body.light #landingPage .pro-logo-cloud {
+  background: var(--t-surface-2) !important;
+  border-color: var(--t-divider) !important;
+}
+
+html[data-theme='light'] #landingPage .pro-logo-pill,
+body.light #landingPage .pro-logo-pill {
+  background: var(--t-surface) !important;
+  border-color: var(--t-border) !important;
+  color: var(--t-text-2) !important;
+}
+
+html[data-theme='light'] #landingPage .pro-compare__table,
+body.light #landingPage .pro-compare__table {
+  background: var(--t-surface) !important;
+  border-color: var(--t-border) !important;
+}
+
+html[data-theme='light'] #landingPage .pro-compare__table th,
+body.light #landingPage .pro-compare__table th {
+  background: var(--t-surface-3) !important;
+  color: var(--t-text-3) !important;
+  border-bottom-color: var(--t-divider) !important;
+}
+
+html[data-theme='light'] #landingPage .pro-compare__table td,
+body.light #landingPage .pro-compare__table td {
+  border-bottom-color: var(--t-divider) !important;
+  color: var(--t-text-2) !important;
+}
+
+html[data-theme='light'] #landingPage .pro-compare__table th:first-child,
+html[data-theme='light'] #landingPage .pro-compare__table td:first-child,
+body.light #landingPage .pro-compare__table th:first-child,
+body.light #landingPage .pro-compare__table td:first-child {
+  color: var(--t-text) !important;
+}
+
+/* FAQ + CTA */
+html[data-theme='light'] #landingPage .faq-q,
+body.light #landingPage .faq-q {
+  color: var(--t-text) !important;
+}
+
+html[data-theme='light'] #landingPage .faq-a,
+body.light #landingPage .faq-a {
+  color: var(--t-text-2) !important;
+}
+
+html[data-theme='light'] #landingPage .cta-h2,
+body.light #landingPage .cta-h2 {
+  color: var(--t-text) !important;
+}
+
+html[data-theme='light'] #landingPage .cta-sub,
+html[data-theme='light'] #landingPage .cta-note-item,
+body.light #landingPage .cta-sub,
+body.light #landingPage .cta-note-item {
+  color: var(--t-text-2) !important;
+}
+
+html[data-theme='light'] #landingPage .cta-note-item i,
+body.light #landingPage .cta-note-item i {
+  color: var(--t-success) !important;
+}
+
+/* Trust strip */
+html[data-theme='light'] #landingPage .trust-strip,
+body.light #landingPage .trust-strip {
+  background: var(--t-surface-2) !important;
+  border-top-color: var(--t-divider) !important;
+}
+
+html[data-theme='light'] #landingPage .trust-item,
+body.light #landingPage .trust-item {
+  color: var(--t-text-2) !important;
+  border-right-color: var(--t-divider) !important;
+}
+
+html[data-theme='light'] #landingPage .trust-item i,
+body.light #landingPage .trust-item i {
+  color: var(--t-accent) !important;
+}
+
+/* Footer */
+html[data-theme='light'] #landingPage .footer-enhanced,
+body.light #landingPage .footer-enhanced {
+  background: var(--t-surface) !important;
+  border-top-color: var(--t-divider) !important;
+  backdrop-filter: none !important;
+}
+
+html[data-theme='light'] #landingPage .footer-brand-tagline,
+html[data-theme='light'] #landingPage .footer-col-links a,
+body.light #landingPage .footer-brand-tagline,
+body.light #landingPage .footer-col-links a {
+  color: var(--t-text-3) !important;
+}
+
+html[data-theme='light'] #landingPage .footer-col-title,
+body.light #landingPage .footer-col-title {
+  color: var(--t-text-muted) !important;
+}
+
+html[data-theme='light'] #landingPage .footer-col-links a:hover,
+body.light #landingPage .footer-col-links a:hover {
+  color: var(--t-text) !important;
+}
+
+html[data-theme='light'] #landingPage .footer-bottom,
+body.light #landingPage .footer-bottom {
+  color: var(--t-text-muted) !important;
+  border-top-color: var(--t-divider) !important;
+}
+
+html[data-theme='light'] #landingPage .footer-bottom-copy,
+html[data-theme='light'] #landingPage .footer-bottom-links a,
+body.light #landingPage .footer-bottom-copy,
+body.light #landingPage .footer-bottom-links a {
+  color: var(--t-text-3) !important;
+}
+
+html[data-theme='light'] #landingPage .footer-social-icon,
+body.light #landingPage .footer-social-icon {
+  background: var(--t-surface-3) !important;
+  border-color: var(--t-divider) !important;
+  color: var(--t-text-2) !important;
+}
+
+/* Mobile menu */
+html[data-theme='light'] #landingPage .mobile-menu,
+body.light #landingPage .mobile-menu {
+  background: rgba(255, 255, 255, 0.98) !important;
+  backdrop-filter: blur(20px);
+}
+
+html[data-theme='light'] #landingPage .mobile-menu-link,
+body.light #landingPage .mobile-menu-link {
+  color: var(--t-text-2) !important;
+}
+
+html[data-theme='light'] #landingPage .mobile-menu-close,
+body.light #landingPage .mobile-menu-close {
+  color: var(--t-text-3) !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   3.  LIGHT MODE — Dashboard / App
+═══════════════════════════════════════════════════════════════ */
+
+/* Topbar */
+html[data-theme='light'] #appPage .saas-topbar,
+body.light #appPage .saas-topbar {
+  background: rgba(255, 255, 255, 0.96) !important;
+  border-bottom-color: var(--t-divider) !important;
+  box-shadow: 0 4px 24px rgba(15, 23, 42, 0.06) !important;
+  backdrop-filter: blur(24px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(180%) !important;
+}
+
+html[data-theme='light'] #appPage .saas-topbar .topbar-title h1,
+body.light #appPage .saas-topbar .topbar-title h1 {
+  background: linear-gradient(135deg, #1e3a8a, #5b21b6) !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+}
+
+html[data-theme='light'] #appPage .saas-topbar .topbar-title p,
+body.light #appPage .saas-topbar .topbar-title p {
+  color: var(--t-text-3) !important;
+}
+
+html[data-theme='light'] #appPage .quota-widget,
+body.light #appPage .quota-widget {
+  background: var(--t-surface-2) !important;
+  border-color: var(--t-border) !important;
+}
+
+html[data-theme='light'] #appPage .saas-topbar__icon-btn,
+body.light #appPage .saas-topbar__icon-btn {
+  color: var(--t-text-2) !important;
+  background: var(--t-surface-3) !important;
+  border-color: var(--t-divider) !important;
+}
+
+html[data-theme='light'] #appPage .saas-topbar__icon-btn:hover,
+body.light #appPage .saas-topbar__icon-btn:hover {
+  color: #1e3a8a !important;
+  background: #e0e7ff !important;
+}
+
+html[data-theme='light'] #appPage .topbar-user-name,
+html[data-theme='light'] #appPage #loginStatusText,
+html[data-theme='light'] #appPage .saas-topbar__quota-values .quota-total-num,
+body.light #appPage .topbar-user-name,
+body.light #appPage #loginStatusText,
+body.light #appPage .saas-topbar__quota-values .quota-total-num {
+  color: var(--t-text-2) !important;
+}
+
+html[data-theme='light'] #appPage .saas-topbar__quota-values .quota-num,
+body.light #appPage .saas-topbar__quota-values .quota-num {
+  color: #059669 !important;
+}
+
+/* Sidebar */
+html[data-theme='light'] #appPage .nav-sidebar,
+body.light #appPage .nav-sidebar {
+  background: linear-gradient(180deg, #ffffff, var(--t-surface-2)) !important;
+  border-color: var(--t-border) !important;
+  box-shadow: var(--t-shadow) !important;
+}
+
+html[data-theme='light'] #appPage .nav-side-item,
+body.light #appPage .nav-side-item {
+  color: var(--t-text-2) !important;
+}
+
+html[data-theme='light'] #appPage .nav-side-item:hover:not(.active),
+body.light #appPage .nav-side-item:hover:not(.active) {
+  color: var(--t-text) !important;
+  background: var(--t-surface-3) !important;
+}
+
+html[data-theme='light'] #appPage .nav-side-item.active,
+body.light #appPage .nav-side-item.active {
+  color: #1e3a8a !important;
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.16), rgba(124, 58, 237, 0.1)) !important;
+  box-shadow: inset 0 0 0 1px rgba(99, 102, 241, 0.28) !important;
+}
+
+html[data-theme='light'] #appPage .nav-side-item.active i,
+body.light #appPage .nav-side-item.active i {
+  color: #6d28d9 !important;
+}
+
+/* Pages sidebar */
+html[data-theme='light'] #appPage .sidebar,
+html[data-theme='light'] #appPage .compose-col,
+html[data-theme='light'] #appPage .compose,
+html[data-theme='light'] #appPage .broadcast-col,
+body.light #appPage .sidebar,
+body.light #appPage .compose-col,
+body.light #appPage .compose,
+body.light #appPage .broadcast-col {
+  background: var(--t-surface) !important;
+  border-color: var(--t-border) !important;
+  box-shadow: var(--t-shadow) !important;
+}
+
+html[data-theme='light'] #appPage .sidebar-hdr,
+html[data-theme='light'] #appPage .sidebar-foot,
+html[data-theme='light'] #appPage .sidebar-footer,
+body.light #appPage .sidebar-hdr,
+body.light #appPage .sidebar-foot,
+body.light #appPage .sidebar-footer {
+  border-color: var(--t-divider) !important;
+  background: linear-gradient(180deg, transparent, rgba(15, 23, 42, 0.02)) !important;
+}
+
+html[data-theme='light'] #appPage .page-card,
+body.light #appPage .page-card {
+  color: var(--t-text) !important;
+}
+
+html[data-theme='light'] #appPage .page-card:hover,
+body.light #appPage .page-card:hover {
+  background: var(--t-surface-3) !important;
+  border-color: var(--t-border) !important;
+}
+
+html[data-theme='light'] #appPage .page-card.active,
+html[data-theme='light'] #appPage .page-card.selected,
+body.light #appPage .page-card.active,
+body.light #appPage .page-card.selected {
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(99, 102, 241, 0.04)) !important;
+  border-color: rgba(99, 102, 241, 0.3) !important;
+  box-shadow: inset 3px 0 0 #6366f1, 0 2px 12px rgba(99, 102, 241, 0.12) !important;
+}
+
+html[data-theme='light'] #appPage .page-name,
+body.light #appPage .page-name {
+  color: var(--t-text) !important;
+}
+
+html[data-theme='light'] #appPage .page-category,
+body.light #appPage .page-category {
+  color: var(--t-text-3) !important;
+}
+
+html[data-theme='light'] #appPage .pages-empty p,
+body.light #appPage .pages-empty p {
+  color: var(--t-text-3) !important;
+}
+
+html[data-theme='light'] #appPage .sidebar-tips,
+body.light #appPage .sidebar-tips {
+  background: var(--t-surface-2) !important;
+  border-color: var(--t-divider) !important;
+}
+
+html[data-theme='light'] #appPage .sidebar-tips-hdr,
+body.light #appPage .sidebar-tips-hdr {
+  color: var(--t-text-2) !important;
+}
+
+html[data-theme='light'] #appPage .stip-item,
+body.light #appPage .stip-item {
+  color: var(--t-text-2) !important;
+}
+
+/* Forms */
+html[data-theme='light'] #appPage input,
+html[data-theme='light'] #appPage textarea,
+html[data-theme='light'] #appPage select,
+body.light #appPage input,
+body.light #appPage textarea,
+body.light #appPage select {
+  color: var(--t-text) !important;
+  background: var(--t-surface) !important;
+  border-color: var(--t-input-border) !important;
+}
+
+html[data-theme='light'] #appPage input:focus,
+html[data-theme='light'] #appPage textarea:focus,
+html[data-theme='light'] #appPage select:focus,
+body.light #appPage input:focus,
+body.light #appPage textarea:focus,
+body.light #appPage select:focus {
+  border-color: var(--t-accent) !important;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.16) !important;
+}
+
+html[data-theme='light'] #appPage input::placeholder,
+html[data-theme='light'] #appPage textarea::placeholder,
+body.light #appPage input::placeholder,
+body.light #appPage textarea::placeholder {
+  color: var(--t-text-muted) !important;
+}
+
+/* Buttons */
+html[data-theme='light'] #appPage .ds-btn--secondary,
+html[data-theme='light'] #appPage .ds-btn--ghost,
+body.light #appPage .ds-btn--secondary,
+body.light #appPage .ds-btn--ghost {
+  background: var(--t-surface) !important;
+  border-color: var(--t-border) !important;
+  color: var(--t-text-2) !important;
+}
+
+html[data-theme='light'] #appPage .ds-btn--secondary:hover,
+html[data-theme='light'] #appPage .ds-btn--ghost:hover,
+body.light #appPage .ds-btn--secondary:hover,
+body.light #appPage .ds-btn--ghost:hover {
+  background: var(--t-surface-3) !important;
+  color: var(--t-text) !important;
+}
+
+/* Pro views (analytics, settings, help) */
+html[data-theme='light'] #appPage .pro-view,
+body.light #appPage .pro-view {
+  background: transparent !important;
+  color: var(--t-text);
+}
+
+html[data-theme='light'] #appPage .pro-view__title,
+body.light #appPage .pro-view__title {
+  color: var(--t-text) !important;
+  text-shadow: none !important;
+}
+
+html[data-theme='light'] #appPage .pro-view__sub,
+body.light #appPage .pro-view__sub {
+  color: var(--t-text-2) !important;
+}
+
+html[data-theme='light'] #appPage .pro-view__eyebrow,
+body.light #appPage .pro-view__eyebrow {
+  color: var(--t-accent) !important;
+}
+
+html[data-theme='light'] #appPage .pro-card,
+html[data-theme='light'] #appPage .analytics-kpi,
+html[data-theme='light'] #appPage .analytics-chart-wrap,
+html[data-theme='light'] #appPage .analytics-history,
+html[data-theme='light'] #appPage .settings-section,
+html[data-theme='light'] #appPage .settings-card,
+html[data-theme='light'] #appPage .saas-billing-card,
+body.light #appPage .pro-card,
+body.light #appPage .analytics-kpi,
+body.light #appPage .analytics-chart-wrap,
+body.light #appPage .analytics-history,
+body.light #appPage .settings-section,
+body.light #appPage .settings-card,
+body.light #appPage .saas-billing-card {
+  background: var(--t-surface) !important;
+  border-color: var(--t-border) !important;
+  color: var(--t-text) !important;
+  box-shadow: var(--t-shadow) !important;
+}
+
+html[data-theme='light'] #appPage .akpi-val,
+html[data-theme='light'] #appPage .analytics-history-hdr,
+html[data-theme='light'] #appPage .saas-billing-card__title,
+body.light #appPage .akpi-val,
+body.light #appPage .analytics-history-hdr,
+body.light #appPage .saas-billing-card__title {
+  color: var(--t-text) !important;
+}
+
+html[data-theme='light'] #appPage .akpi-lbl,
+html[data-theme='light'] #appPage .saas-billing-card__sub,
+html[data-theme='light'] #appPage .saas-usage-meta,
+html[data-theme='light'] #appPage .analytics-empty,
+body.light #appPage .akpi-lbl,
+body.light #appPage .saas-billing-card__sub,
+body.light #appPage .saas-usage-meta,
+body.light #appPage .analytics-empty {
+  color: var(--t-text-3) !important;
+}
+
+html[data-theme='light'] #appPage .saas-usage-bar,
+body.light #appPage .saas-usage-bar {
+  background: var(--t-surface-3) !important;
+}
+
+html[data-theme='light'] #appPage .period-btn,
+body.light #appPage .period-btn {
+  background: var(--t-surface) !important;
+  border-color: var(--t-border) !important;
+  color: var(--t-text-2) !important;
+}
+
+html[data-theme='light'] #appPage .period-btn.active,
+body.light #appPage .period-btn.active {
+  background: linear-gradient(135deg, #2563eb, #7c3aed) !important;
+  color: #ffffff !important;
+  border-color: transparent !important;
+}
+
+html[data-theme='light'] #appPage .delay-opt,
+html[data-theme='light'] #appPage .settings-btn,
+body.light #appPage .delay-opt,
+body.light #appPage .settings-btn {
+  background: var(--t-surface) !important;
+  border-color: var(--t-border) !important;
+  color: var(--t-text-2) !important;
+}
+
+html[data-theme='light'] #appPage .delay-opt.active,
+body.light #appPage .delay-opt.active {
+  background: linear-gradient(135deg, #2563eb, #7c3aed) !important;
+  color: #ffffff !important;
+  border-color: transparent !important;
+}
+
+html[data-theme='light'] #appPage .delay-opt:hover:not(.active),
+html[data-theme='light'] #appPage .settings-btn:hover,
+body.light #appPage .delay-opt:hover:not(.active),
+body.light #appPage .settings-btn:hover {
+  background: var(--t-surface-3) !important;
+  color: var(--t-text) !important;
+}
+
+html[data-theme='light'] #appPage .settings-btn--danger,
+body.light #appPage .settings-btn--danger {
+  color: #b91c1c !important;
+  border-color: rgba(239, 68, 68, 0.25) !important;
+}
+
+html[data-theme='light'] #appPage .settings-toggle,
+body.light #appPage .settings-toggle {
+  color: var(--t-text-2) !important;
+}
+
+html[data-theme='light'] #appPage .settings-card h4,
+html[data-theme='light'] #appPage .settings-card p,
+body.light #appPage .settings-card h4,
+body.light #appPage .settings-card p {
+  color: var(--t-text) !important;
+}
+
+html[data-theme='light'] #appPage .settings-card p,
+body.light #appPage .settings-card p {
+  color: var(--t-text-2) !important;
+}
+
+/* Help view */
+html[data-theme='light'] #appPage #view-help .faq-item,
+html[data-theme='light'] #appPage #view-help .help-faq .faq-item,
+body.light #appPage #view-help .faq-item,
+body.light #appPage #view-help .help-faq .faq-item {
+  background: var(--t-surface) !important;
+  border-color: var(--t-border) !important;
+  color: var(--t-text) !important;
+}
+
+/* Tables */
+html[data-theme='light'] #appPage table th,
+body.light #appPage table th {
+  color: var(--t-text-2) !important;
+  background: var(--t-surface-3) !important;
+  border-bottom-color: var(--t-divider) !important;
+}
+
+html[data-theme='light'] #appPage table td,
+body.light #appPage table td {
+  color: var(--t-text) !important;
+  border-bottom-color: var(--t-divider) !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   4.  LIGHT MODE — Modals + overlays
+═══════════════════════════════════════════════════════════════ */
+
+html[data-theme='light'] .modal-box,
+html[data-theme='light'] .upgrade-modal-box,
+html[data-theme='light'] #upgradeModal > div,
+html[data-theme='light'] .sched-modal,
+body.light .modal-box,
+body.light .upgrade-modal-box,
+body.light #upgradeModal > div,
+body.light .sched-modal {
+  background: var(--t-surface) !important;
+  border-color: var(--t-border) !important;
+  color: var(--t-text) !important;
+  box-shadow: 0 24px 80px rgba(15, 23, 42, 0.18) !important;
+}
+
+html[data-theme='light'] .modal-overlay,
+html[data-theme='light'] .upgrade-modal-overlay,
+body.light .modal-overlay,
+body.light .upgrade-modal-overlay {
+  background: rgba(15, 23, 42, 0.55) !important;
+}
+
+html[data-theme='light'] .modal-box h2,
+html[data-theme='light'] .modal-box h3,
+html[data-theme='light'] .modal-box .modal-title,
+body.light .modal-box h2,
+body.light .modal-box h3,
+body.light .modal-box .modal-title {
+  color: var(--t-text) !important;
+}
+
+html[data-theme='light'] .modal-box p,
+html[data-theme='light'] .modal-box .modal-sub,
+body.light .modal-box p,
+body.light .modal-box .modal-sub {
+  color: var(--t-text-2) !important;
+}
+
+/* Dropdowns */
+html[data-theme='light'] .topbar-user-menu,
+html[data-theme='light'] .dropdown-menu,
+body.light .topbar-user-menu,
+body.light .dropdown-menu {
+  background: var(--t-surface) !important;
+  border-color: var(--t-border) !important;
+  box-shadow: 0 12px 40px rgba(15, 23, 42, 0.14) !important;
+}
+
+html[data-theme='light'] .dropdown-menu a,
+html[data-theme='light'] .dropdown-menu button,
+html[data-theme='light'] .topbar-user-menu a,
+html[data-theme='light'] .topbar-user-menu button,
+body.light .dropdown-menu a,
+body.light .dropdown-menu button,
+body.light .topbar-user-menu a,
+body.light .topbar-user-menu button {
+  color: var(--t-text) !important;
+}
+
+html[data-theme='light'] .dropdown-menu a:hover,
+html[data-theme='light'] .dropdown-menu button:hover,
+html[data-theme='light'] .topbar-user-menu a:hover,
+html[data-theme='light'] .topbar-user-menu button:hover,
+body.light .dropdown-menu a:hover,
+body.light .dropdown-menu button:hover,
+body.light .topbar-user-menu a:hover,
+body.light .topbar-user-menu button:hover {
+  background: var(--t-surface-3) !important;
+}
+
+/* Status / network bar */
+html[data-theme='light'] #statusBar,
+body.light #statusBar {
+  border-color: var(--t-divider) !important;
+}
+
+html[data-theme='light'] #statusBar.sb-success,
+body.light #statusBar.sb-success {
+  background: rgba(16, 185, 129, 0.1) !important;
+  color: #047857 !important;
+  border-color: rgba(16, 185, 129, 0.25) !important;
+}
+
+html[data-theme='light'] #statusBar.sb-error,
+body.light #statusBar.sb-error {
+  background: rgba(239, 68, 68, 0.08) !important;
+  color: #b91c1c !important;
+  border-color: rgba(239, 68, 68, 0.25) !important;
+}
+
+html[data-theme='light'] #statusBar.sb-warning,
+body.light #statusBar.sb-warning {
+  background: rgba(245, 158, 11, 0.1) !important;
+  color: #b45309 !important;
+  border-color: rgba(245, 158, 11, 0.25) !important;
+}
+
+html[data-theme='light'] #statusBar.sb-info,
+body.light #statusBar.sb-info {
+  background: rgba(99, 102, 241, 0.08) !important;
+  color: #4338ca !important;
+  border-color: rgba(99, 102, 241, 0.25) !important;
+}
+
+html[data-theme='light'] #networkBanner.banner-offline,
+body.light #networkBanner.banner-offline {
+  background: rgba(239, 68, 68, 0.08) !important;
+  color: #b91c1c !important;
+  border-color: rgba(239, 68, 68, 0.25) !important;
+}
+
+html[data-theme='light'] #networkBanner.banner-recovering,
+body.light #networkBanner.banner-recovering {
+  background: rgba(245, 158, 11, 0.08) !important;
+  color: #b45309 !important;
+  border-color: rgba(245, 158, 11, 0.25) !important;
+}
+
+html[data-theme='light'] #networkBanner.banner-online,
+body.light #networkBanner.banner-online {
+  background: rgba(16, 185, 129, 0.08) !important;
+  color: #047857 !important;
+  border-color: rgba(16, 185, 129, 0.25) !important;
+}
+
+/* Scrollbars */
+html[data-theme='light'] ::-webkit-scrollbar-thumb,
+body.light ::-webkit-scrollbar-thumb {
+  background: rgba(99, 102, 241, 0.18) !important;
+}
+
+html[data-theme='light'] ::-webkit-scrollbar-thumb:hover,
+body.light ::-webkit-scrollbar-thumb:hover {
+  background: rgba(99, 102, 241, 0.32) !important;
+}
+
+html[data-theme='light'] ::selection,
+body.light ::selection {
+  background: rgba(99, 102, 241, 0.2);
+  color: var(--t-text);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   5.  DARK MODE — final polish (keep current dark, just tighten)
+═══════════════════════════════════════════════════════════════ */
+
+html[data-theme='dark'] #appPage,
+html[data-theme='dark'] #landingPage {
+  color: var(--t-text);
+}
+
+html[data-theme='dark'] #appPage .sidebar,
+html[data-theme='dark'] #appPage .compose,
+html[data-theme='dark'] #appPage .compose-col,
+html[data-theme='dark'] #appPage .broadcast-col {
+  background: linear-gradient(180deg, rgba(16, 26, 56, 0.98), rgba(8, 12, 28, 0.99)) !important;
+  border-color: rgba(139, 156, 255, 0.1) !important;
+}
+
+html[data-theme='dark'] #appPage .pro-view__title {
+  color: var(--t-text) !important;
+}
+
+html[data-theme='dark'] #appPage .pro-view__sub {
+  color: var(--t-text-2) !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   6.  Universal — never let solid white text show on white BG
+═══════════════════════════════════════════════════════════════ */
+
+html[data-theme='light'] [style*="color:#fff"],
+html[data-theme='light'] [style*="color: #fff"],
+html[data-theme='light'] [style*="color:white"],
+body.light [style*="color:#fff"],
+body.light [style*="color: #fff"],
+body.light [style*="color:white"] {
+  color: var(--t-text) !important;
+}
