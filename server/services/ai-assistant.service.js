@@ -1,8 +1,6 @@
 /**
- * AI Broadcast Assistant — server-side proxy for an Anthropic-compatible
- * chat API. Keeps the API key out of the browser, enforces a sensible
- * system prompt tuned for Facebook Messenger broadcast composition, and
- * streams the model's response back to the client via Server-Sent Events.
+ * AI Broadcast Assistant — server-side proxy for OpenAI-compatible (Groq)
+ * or Anthropic-compatible chat APIs. Keeps the API key out of the browser.
  */
 'use strict';
 
@@ -46,7 +44,6 @@ const MAX_TOKENS = 1024;
 const MAX_MESSAGES = 20;
 const MAX_MESSAGE_CHARS = 4000;
 
-/** Rate limiter: very simple in-memory window per user. */
 const _rateBuckets = new Map();
 function rateLimit(userId, perMin) {
     const now = Date.now();
@@ -74,21 +71,78 @@ function sanitizeMessages(messages) {
         if (!content) continue;
         out.push({ role, content });
     }
-    // Anthropic-style APIs require alternating roles starting with user.
     while (out.length && out[0].role !== 'user') out.shift();
     return out;
 }
 
+/** openai = Groq, OpenAI, etc. (/chat/completions). anthropic = /v1/messages */
+function resolveApiStyle(baseUrl, envStyle) {
+    const explicit = String(envStyle || '').trim().toLowerCase();
+    if (explicit === 'openai' || explicit === 'anthropic') return explicit;
+    const u = baseUrl.toLowerCase();
+    if (u.includes('groq.com') || u.includes('openai.com') || u.includes('/openai/')) {
+        return 'openai';
+    }
+    return 'anthropic';
+}
+
 function getConfig(env) {
+    const baseUrl = (env.AI_BASE_URL || '').trim().replace(/\/+$/, '');
+    const apiStyle = resolveApiStyle(baseUrl, env.AI_API_STYLE);
     return {
-        baseUrl: (env.AI_BASE_URL || '').trim().replace(/\/+$/, ''),
-        apiKey:  (env.AI_API_KEY  || '').trim(),
-        model:   (env.AI_MODEL    || 'minimax-m2.5-free').trim(),
-        rateLimit: parseInt(env.AI_RATE_LIMIT_PER_MIN || '20', 10) || 20
+        baseUrl,
+        apiKey: (env.AI_API_KEY || '').trim(),
+        model: (env.AI_MODEL || 'llama-3.3-70b-versatile').trim(),
+        rateLimit: parseInt(env.AI_RATE_LIMIT_PER_MIN || '20', 10) || 20,
+        apiStyle
     };
 }
 
-/** Turn raw upstream JSON/text into a short user-facing message. */
+function chatEndpoint(cfg) {
+    if (cfg.apiStyle === 'openai') {
+        return `${cfg.baseUrl}/chat/completions`;
+    }
+    return `${cfg.baseUrl}/v1/messages`;
+}
+
+function buildUpstreamRequest(cfg, cleanMessages) {
+    if (cfg.apiStyle === 'openai') {
+        return {
+            url: chatEndpoint(cfg),
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${cfg.apiKey}`,
+                'Accept': 'text/event-stream'
+            },
+            body: {
+                model: cfg.model,
+                max_tokens: MAX_TOKENS,
+                messages: [
+                    { role: 'system', content: SYSTEM_PROMPT },
+                    ...cleanMessages
+                ],
+                stream: true
+            }
+        };
+    }
+    return {
+        url: chatEndpoint(cfg),
+        headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': cfg.apiKey,
+            'anthropic-version': '2023-06-01',
+            'accept': 'text/event-stream'
+        },
+        body: {
+            model: cfg.model,
+            max_tokens: MAX_TOKENS,
+            system: SYSTEM_PROMPT,
+            messages: cleanMessages,
+            stream: true
+        }
+    };
+}
+
 function formatUpstreamError(status, bodyText) {
     let parsed = null;
     const raw = String(bodyText || '').trim();
@@ -122,12 +176,64 @@ function formatUpstreamError(status, bodyText) {
     return `AI service error (HTTP ${status}). Please try again.`;
 }
 
-/**
- * Stream a chat completion. Writes SSE events to `res`:
- *   event: token   data: { "text": "..." }
- *   event: done    data: { "stop_reason": "end_turn" }
- *   event: error   data: { "message": "..." }
- */
+function parseSseFrame(frame) {
+    let event = 'message';
+    const dataLines = [];
+    for (const line of frame.split('\n')) {
+        if (line.startsWith('event:')) {
+            event = line.slice(6).trim();
+        } else if (line.startsWith('data:')) {
+            dataLines.push(line.slice(5).trim());
+        }
+    }
+    if (!dataLines.length) return null;
+    const dataStr = dataLines.join('\n');
+    if (dataStr === '[DONE]') return { event: 'done', data: null };
+    try { return { event, data: JSON.parse(dataStr) }; }
+    catch (_) { return { event, data: dataStr }; }
+}
+
+function handleAnthropicFrame(res, parsed, state) {
+    if (parsed.event === 'content_block_delta' && parsed.data?.delta?.text) {
+        sendSseEvent(res, 'token', { text: parsed.data.delta.text });
+    } else if (parsed.event === 'message_delta' && parsed.data?.delta?.stop_reason) {
+        state.stopReason = parsed.data.delta.stop_reason;
+    } else if (parsed.event === 'error' && parsed.data) {
+        sendSseEvent(res, 'error', { message: parsed.data?.error?.message || 'Stream error' });
+    }
+}
+
+function handleOpenAiDataLine(res, dataStr, state) {
+    if (dataStr === '[DONE]') return;
+    let data;
+    try { data = JSON.parse(dataStr); } catch (_) { return; }
+    const choice = data?.choices?.[0];
+    const text = choice?.delta?.content;
+    if (text) sendSseEvent(res, 'token', { text });
+    if (choice?.finish_reason) state.stopReason = choice.finish_reason;
+    if (data?.error?.message) {
+        sendSseEvent(res, 'error', { message: data.error.message });
+    }
+}
+
+function processSseBuffer(buf, cfg, res, state) {
+    let idx;
+    while ((idx = buf.indexOf('\n\n')) !== -1) {
+        const frame = buf.slice(0, idx);
+        buf = buf.slice(idx + 2);
+        if (cfg.apiStyle === 'openai') {
+            for (const line of frame.split('\n')) {
+                if (!line.startsWith('data:')) continue;
+                handleOpenAiDataLine(res, line.slice(5).trim(), state);
+            }
+        } else {
+            const parsed = parseSseFrame(frame);
+            if (parsed) handleAnthropicFrame(res, parsed, state);
+        }
+    }
+    return buf;
+}
+
 async function streamChat({ env, fetch, userId, messages, res }) {
     const cfg = getConfig(env);
     if (!cfg.baseUrl || !cfg.apiKey) {
@@ -148,28 +254,16 @@ async function streamChat({ env, fetch, userId, messages, res }) {
         return res.end();
     }
 
-    const payload = {
-        model: cfg.model,
-        max_tokens: MAX_TOKENS,
-        system: SYSTEM_PROMPT,
-        messages: cleanMessages,
-        stream: true
-    };
-
-    let upstream;
+    const reqSpec = buildUpstreamRequest(cfg, cleanMessages);
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), DEFAULT_TIMEOUT_MS);
 
+    let upstream;
     try {
-        upstream = await fetch(`${cfg.baseUrl}/v1/messages`, {
+        upstream = await fetch(reqSpec.url, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'x-api-key': cfg.apiKey,
-                'anthropic-version': '2023-06-01',
-                'accept': 'text/event-stream'
-            },
-            body: JSON.stringify(payload),
+            headers: reqSpec.headers,
+            body: JSON.stringify(reqSpec.body),
             signal: controller.signal
         });
     } catch (err) {
@@ -197,7 +291,7 @@ async function streamChat({ env, fetch, userId, messages, res }) {
     const reader = upstream.body.getReader();
     const decoder = new TextDecoder('utf-8');
     let buf = '';
-    let stopReason = 'end_turn';
+    const state = { stopReason: 'end_turn' };
 
     res.on('close', () => {
         try { controller.abort(); } catch (_) {}
@@ -209,27 +303,9 @@ async function streamChat({ env, fetch, userId, messages, res }) {
             const { value, done } = await reader.read();
             if (done) break;
             buf += decoder.decode(value, { stream: true });
-
-            // SSE frames separated by blank line
-            let idx;
-            while ((idx = buf.indexOf('\n\n')) !== -1) {
-                const frame = buf.slice(0, idx);
-                buf = buf.slice(idx + 2);
-                const parsed = parseSseFrame(frame);
-                if (!parsed) continue;
-
-                if (parsed.event === 'content_block_delta' && parsed.data?.delta?.text) {
-                    sendSseEvent(res, 'token', { text: parsed.data.delta.text });
-                } else if (parsed.event === 'message_delta' && parsed.data?.delta?.stop_reason) {
-                    stopReason = parsed.data.delta.stop_reason;
-                } else if (parsed.event === 'message_stop') {
-                    // graceful close after stream loop
-                } else if (parsed.event === 'error' && parsed.data) {
-                    sendSseEvent(res, 'error', { message: parsed.data?.error?.message || 'Stream error' });
-                }
-            }
+            buf = processSseBuffer(buf, cfg, res, state);
         }
-        sendSseEvent(res, 'done', { stop_reason: stopReason });
+        sendSseEvent(res, 'done', { stop_reason: state.stopReason });
     } catch (err) {
         if (err?.name !== 'AbortError') {
             sendSseEvent(res, 'error', { message: 'Stream interrupted: ' + (err.message || err) });
@@ -238,23 +314,6 @@ async function streamChat({ env, fetch, userId, messages, res }) {
         clearTimeout(timeout);
         try { res.end(); } catch (_) {}
     }
-}
-
-function parseSseFrame(frame) {
-    let event = 'message';
-    const dataLines = [];
-    for (const line of frame.split('\n')) {
-        if (line.startsWith('event:')) {
-            event = line.slice(6).trim();
-        } else if (line.startsWith('data:')) {
-            dataLines.push(line.slice(5).trim());
-        }
-    }
-    if (!dataLines.length) return null;
-    const dataStr = dataLines.join('\n');
-    if (dataStr === '[DONE]') return { event, data: null };
-    try { return { event, data: JSON.parse(dataStr) }; }
-    catch (_) { return { event, data: dataStr }; }
 }
 
 function sendSseEvent(res, event, data) {
