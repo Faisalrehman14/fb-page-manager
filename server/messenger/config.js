@@ -38,7 +38,7 @@ const CONVERSATION_LIST_SYNC_POLL_MS = parseInt(process.env.MESSENGER_LIST_SYNC_
 /** While a thread is open — still pull FB list order (Meta Business Suite sends). */
 const CONVERSATION_LIST_SYNC_ACTIVE_MS = parseInt(process.env.MESSENGER_LIST_SYNC_ACTIVE_MS || '5000', 10);
 const CONVERSATION_LIST_SINCE_SEC = parseInt(process.env.MESSENGER_LIST_SINCE_SEC || '900', 10);
-const FB_GRAPH_VERSION = process.env.FB_GRAPH_VERSION || 'v19.0';
+const FB_GRAPH_VERSION = process.env.FB_GRAPH_VERSION || 'v21.0';
 const FB_GRAPH_BASE = `https://graph.facebook.com/${FB_GRAPH_VERSION}`;
 function retentionCutoff() {
     return new Date(Date.now() - MESSAGE_RETENTION_DAYS * 24 * 60 * 60 * 1000);

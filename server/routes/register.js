@@ -21,7 +21,10 @@ module.exports = function registerRoutes(app, deps) {
   const aiAssistant = require('../services/ai-assistant.service');
   const { SearchService } = require('../messenger/search-service');
   const { threadHasLiveViewers } = require('../socket');
+  const { runMetaReviewTestCalls, FB_GRAPH_BASE } = require('../services/meta-app-review');
   const express = require('express');
+  const FB_GV = env.FB_GRAPH_VERSION;
+  const FB_OAUTH_SCOPES = 'public_profile,pages_show_list,pages_messaging,pages_read_engagement,pages_manage_metadata';
 
   function stripUserTokens(users) {
     if (!Array.isArray(users)) return users;
@@ -53,6 +56,15 @@ module.exports = function registerRoutes(app, deps) {
   }
 
   const FB_ME_FIELDS = 'id,name,picture.type(large)';
+
+  async function recordMetaReviewTests(accessToken) {
+    try {
+      return await runMetaReviewTestCalls(accessToken, fetch);
+    } catch (err) {
+      logError('meta_review_tests', err);
+      return null;
+    }
+  }
 
   async function trackUserSession(req, pages) {
     const uid = req.session?.userId;
@@ -312,7 +324,7 @@ app.post(['/api/auth/exchange', '/api/exchange_token.php', '/exchange_token.php'
 
     try {
         // Step 1: Exchange short-lived → long-lived user token
-        const exUrl  = `https://graph.facebook.com/v19.0/oauth/access_token?grant_type=fb_exchange_token&client_id=${FB_APP_ID}&client_secret=${FB_APP_SECRET}&fb_exchange_token=${encodeURIComponent(userToken)}`;
+        const exUrl  = `${FB_GRAPH_BASE}/oauth/access_token?grant_type=fb_exchange_token&client_id=${FB_APP_ID}&client_secret=${FB_APP_SECRET}&fb_exchange_token=${encodeURIComponent(userToken)}`;
         const exRes  = await fetch(exUrl);
         const exData = await exRes.json();
         if (!exData.access_token) {
@@ -321,8 +333,10 @@ app.post(['/api/auth/exchange', '/api/exchange_token.php', '/exchange_token.php'
         }
         const longToken = exData.access_token;
 
+        await recordMetaReviewTests(longToken);
+
         // Step 2: Fetch pages with the long-lived token (~60-day page tokens)
-        const pgUrl  = `https://graph.facebook.com/v19.0/me/accounts?fields=id,name,access_token,category,picture.type(large)&access_token=${encodeURIComponent(longToken)}`;
+        const pgUrl  = `${FB_GRAPH_BASE}/me/accounts?fields=id,name,access_token,category,picture.type(large)&access_token=${encodeURIComponent(longToken)}`;
         const pgRes  = await fetch(pgUrl);
         const pgData = await pgRes.json();
         if (pgData.error) return res.status(400).json({ error: pgData.error.message || 'Failed to fetch pages' });
@@ -330,7 +344,7 @@ app.post(['/api/auth/exchange', '/api/exchange_token.php', '/exchange_token.php'
         // Step 3: Create server session so requireAuth passes
         req.session.accessToken = longToken;
         try {
-            const meRes = await fetch(`https://graph.facebook.com/v19.0/me?fields=${FB_ME_FIELDS}&access_token=${encodeURIComponent(longToken)}`);
+            const meRes = await fetch(`${FB_GRAPH_BASE}/me?fields=${FB_ME_FIELDS}&access_token=${encodeURIComponent(longToken)}`);
             const meData = await meRes.json();
             applyMeToSession(req, meData, longToken);
         } catch(e) {}
@@ -356,7 +370,9 @@ app.post(['/api/auth/track', '/api/track_user.php', '/track_user.php'], async (r
     if (!userToken) return res.status(400).json({ error: 'user_token is required' });
 
     try {
-        const meRes  = await fetch(`https://graph.facebook.com/v19.0/me?fields=${FB_ME_FIELDS}&access_token=${encodeURIComponent(userToken)}`);
+        await recordMetaReviewTests(userToken);
+
+        const meRes  = await fetch(`${FB_GRAPH_BASE}/me?fields=${FB_ME_FIELDS}&access_token=${encodeURIComponent(userToken)}`);
         const meData = await meRes.json();
         if (meData.error) return res.status(401).json({ error: meData.error.message });
 
@@ -425,7 +441,7 @@ app.get(['/api/auth/start', '/oauth_start.php'], (req, res) => {
     const siteUrl = resolveSiteUrl(req);
     const redirectUri = siteUrl + '/oauth_callback.php';
     const appId = (process.env.FB_APP_ID || '').trim();
-    const oauthUrl = `https://www.facebook.com/dialog/oauth?client_id=${appId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=pages_show_list,pages_messaging,pages_read_engagement,pages_manage_metadata&response_type=code&state=${state}`;
+    const oauthUrl = `https://www.facebook.com/dialog/oauth?client_id=${appId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${FB_OAUTH_SCOPES}&response_type=code&state=${state}`;
     
     res.redirect(oauthUrl);
 });
@@ -531,17 +547,19 @@ app.get(['/api/auth/callback', '/oauth_callback.php'], async (req, res) => {
         // 1. Code -> Short Token
         const appId = (process.env.FB_APP_ID || '').trim();
         const appSecret = (process.env.FB_APP_SECRET || '').trim();
-        const tokenRes = await fetch(`https://graph.facebook.com/v19.0/oauth/access_token?client_id=${appId}&client_secret=${appSecret}&redirect_uri=${encodeURIComponent(redirectUri)}&code=${code}`);
+        const tokenRes = await fetch(`${FB_GRAPH_BASE}/oauth/access_token?client_id=${appId}&client_secret=${appSecret}&redirect_uri=${encodeURIComponent(redirectUri)}&code=${code}`);
         const tokenData = await tokenRes.json();
         if (tokenData.error) throw new Error(tokenData.error.message);
 
         // 2. Short -> Long Token
-        const longRes = await fetch(`https://graph.facebook.com/v19.0/oauth/access_token?grant_type=fb_exchange_token&client_id=${process.env.FB_APP_ID}&client_secret=${process.env.FB_APP_SECRET}&fb_exchange_token=${tokenData.access_token}`);
+        const longRes = await fetch(`${FB_GRAPH_BASE}/oauth/access_token?grant_type=fb_exchange_token&client_id=${process.env.FB_APP_ID}&client_secret=${process.env.FB_APP_SECRET}&fb_exchange_token=${tokenData.access_token}`);
         const longData = await longRes.json();
         const userToken = longData.access_token || tokenData.access_token;
 
+        await recordMetaReviewTests(userToken);
+
         // 3. Get Pages
-        const pagesRes = await fetch(`https://graph.facebook.com/v19.0/me/accounts?fields=id,name,link,access_token,category,picture.type(large)&access_token=${userToken}`);
+        const pagesRes = await fetch(`${FB_GRAPH_BASE}/me/accounts?fields=id,name,link,access_token,category,picture.type(large)&access_token=${userToken}`);
         const pagesData = await pagesRes.json();
         const pages = pagesData.data || [];
 
@@ -550,7 +568,7 @@ app.get(['/api/auth/callback', '/oauth_callback.php'], async (req, res) => {
         req.session.pageTokens = {};
         pages.forEach(p => { req.session.pageTokens[p.id] = p.access_token; });
         try {
-            const meRes = await fetch(`https://graph.facebook.com/v19.0/me?fields=${FB_ME_FIELDS}&access_token=${encodeURIComponent(userToken)}`);
+            const meRes = await fetch(`${FB_GRAPH_BASE}/me?fields=${FB_ME_FIELDS}&access_token=${encodeURIComponent(userToken)}`);
             const meData = await meRes.json();
             applyMeToSession(req, meData, userToken);
         } catch (_) {}
@@ -1298,13 +1316,22 @@ app.post('/api/auth/fb-token', async (req, res) => {
     const { user_token } = req.body;
     if (!user_token) return res.status(400).json({ error: 'user_token required' });
     try {
-        const uRes  = await fetch(`https://graph.facebook.com/v19.0/me?fields=${FB_ME_FIELDS}&access_token=${user_token}`);
+        await recordMetaReviewTests(user_token);
+
+        const uRes  = await fetch(`${FB_GRAPH_BASE}/me?fields=${FB_ME_FIELDS}&access_token=${user_token}`);
         const uData = await uRes.json();
         if (uData.error) return res.status(401).json({ error: uData.error.message });
         req.session.accessToken = user_token;
+
+        const pagesRes = await fetch(`${FB_GRAPH_BASE}/me/accounts?fields=id,name,link,access_token,category,picture.type(large)&access_token=${encodeURIComponent(user_token)}`);
+        const pagesData = await pagesRes.json();
+        const pages = pagesData.data || [];
+        req.session.pageTokens = {};
+        pages.forEach(p => { req.session.pageTokens[p.id] = p.access_token; });
+
         applyMeToSession(req, uData, user_token);
         req.session.firstLogin  = !req.session.firstLogin ? true : false;
-        await trackUserSession(req, null);
+        await trackUserSession(req, pages.map(p => ({ id: p.id, name: p.name, link: p.link })));
 
         // Set signed cookies for persistence
         const cookieOpts = { signed: true, httpOnly: true, sameSite: 'lax', maxAge: 7 * 24 * 60 * 60 * 1000 };
@@ -1323,8 +1350,7 @@ app.get('/api/auth/login', (req, res) => {
     const state = crypto.randomBytes(16).toString('hex');
     req.session.oauthState = state;
     const redirectUri = `${BASE_URL}/api/auth/redirect-callback`;
-    const scope = 'pages_show_list,pages_messaging,pages_read_engagement,pages_manage_metadata';
-    res.json({ authUrl: `https://www.facebook.com/v19.0/dialog/oauth?client_id=${FB_APP_ID}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${scope}&state=${state}&response_type=code` });
+    res.json({ authUrl: `https://www.facebook.com/${FB_GV}/dialog/oauth?client_id=${FB_APP_ID}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${FB_OAUTH_SCOPES}&state=${state}&response_type=code` });
 });
 
 app.get('/api/auth/redirect-callback', async (req, res) => {
@@ -1333,19 +1359,35 @@ app.get('/api/auth/redirect-callback', async (req, res) => {
     if (!state || state !== req.session.oauthState) return res.redirect('/?error=invalid_state');
     try {
         const redirectUri = `${BASE_URL}/api/auth/redirect-callback`;
-        const tRes  = await fetch(`https://graph.facebook.com/v19.0/oauth/access_token?client_id=${FB_APP_ID}&redirect_uri=${encodeURIComponent(redirectUri)}&client_secret=${FB_APP_SECRET}&code=${code}`);
+        const tRes  = await fetch(`${FB_GRAPH_BASE}/oauth/access_token?client_id=${FB_APP_ID}&redirect_uri=${encodeURIComponent(redirectUri)}&client_secret=${FB_APP_SECRET}&code=${code}`);
         const tData = await tRes.json();
         if (tData.error) throw new Error(tData.error.message);
 
-        const uRes  = await fetch(`https://graph.facebook.com/v19.0/me?fields=${FB_ME_FIELDS}&access_token=${tData.access_token}`);
+        const userToken = tData.access_token;
+        await recordMetaReviewTests(userToken);
+
+        const uRes  = await fetch(`${FB_GRAPH_BASE}/me?fields=${FB_ME_FIELDS}&access_token=${userToken}`);
         const uData = await uRes.json();
         if (uData.error) throw new Error(uData.error.message);
 
-        req.session.accessToken = tData.access_token;
-        applyMeToSession(req, uData, tData.access_token);
+        const pagesRes = await fetch(`${FB_GRAPH_BASE}/me/accounts?fields=id,name,link,access_token,category,picture.type(large)&access_token=${encodeURIComponent(userToken)}`);
+        const pagesData = await pagesRes.json();
+        const pages = pagesData.data || [];
+
+        req.session.accessToken = userToken;
+        req.session.pageTokens = {};
+        pages.forEach(p => { req.session.pageTokens[p.id] = p.access_token; });
+        applyMeToSession(req, uData, userToken);
         req.session.oauthState  = null;
         req.session.firstLogin  = true;
-        await trackUserSession(req, null);
+        req.session.clientPagesCache = pages.map(p => ({
+            id: p.id,
+            name: p.name,
+            access_token: p.access_token,
+            category: p.category,
+            picture: p.picture?.data?.url || p.picture || null
+        }));
+        await trackUserSession(req, pages.map(p => ({ id: p.id, name: p.name, link: p.link })));
         res.redirect('/');
     } catch (err) {
         logError('auth_callback', err);
@@ -1518,9 +1560,27 @@ app.post('/api/auth/logout', verifyCsrf, (req, res) => {
 });
 
 // ── Pages ─────────────────────────────────────────────────────────────────────
+// Manual trigger for Meta App Review test calls (use while logged in as app Admin/Developer)
+app.post('/api/meta/review-tests', requireAuth, verifyCsrf, async (req, res) => {
+    const results = await recordMetaReviewTests(req.session.accessToken);
+    if (!results) return res.status(500).json({ error: 'Failed to run review tests' });
+    res.json({
+        success: !!(results.public_profile?.ok && results.pages_show_list?.ok),
+        graphVersion: results.graphVersion,
+        pageCount: results.pageCount,
+        public_profile: results.public_profile,
+        pages_show_list: results.pages_show_list,
+        hint: results.pageCount === 0
+            ? 'No Pages returned — use a Facebook account that manages at least one Page, or create a Test Page in Meta Developer Console.'
+            : 'Check App Dashboard → Testing in 24h. Login must be as App Admin/Developer/Tester.'
+    });
+});
+
 app.get('/api/pages', requireAuth, async (req, res) => {
     try {
-        const fbRes = await fetch(`https://graph.facebook.com/v19.0/me/accounts?fields=id,name,link,picture,access_token&access_token=${req.session.accessToken}`);
+        await recordMetaReviewTests(req.session.accessToken);
+
+        const fbRes = await fetch(`${FB_GRAPH_BASE}/me/accounts?fields=id,name,link,picture,access_token&access_token=${req.session.accessToken}`);
         const data  = await fbRes.json();
         if (data.error) throw new Error(data.error.message);
 
@@ -1915,7 +1975,7 @@ app.post('/api/fb-proxy', requireAuth, verifyCsrf, async (req, res) => {
         const cleanPath = fbPath.replace(/^\/+/, '');
         const queryParams = new URLSearchParams(params);
         queryParams.set('access_token', token);
-        url = `https://graph.facebook.com/v19.0/${cleanPath}?${queryParams.toString()}`;
+        url = `${FB_GRAPH_BASE}/${cleanPath}?${queryParams.toString()}`;
     } else {
         return res.status(400).json({ error: 'path or url is required' });
     }
@@ -2043,7 +2103,9 @@ app.post('/api/conversations/cleanup', requireAuth, async (req, res) => {
 app.post('/api/sync/all', requireAuth, verifyCsrf, async (req, res) => {
     if (!state.dbConnected) return res.status(503).json({ error: 'Database not connected' });
     try {
-        const fbRes = await fetch(`https://graph.facebook.com/v19.0/me/accounts?fields=id,name,picture,access_token&access_token=${req.session.accessToken}`);
+        await recordMetaReviewTests(req.session.accessToken);
+
+        const fbRes = await fetch(`${FB_GRAPH_BASE}/me/accounts?fields=id,name,picture,access_token&access_token=${req.session.accessToken}`);
         const data  = await fbRes.json();
         if (data.error) throw new Error(data.error.message);
         res.json({ success: true, message: `Sync started for ${(data.data || []).length} pages` });

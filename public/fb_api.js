@@ -24,7 +24,7 @@ const FB_AUTH = {
       return fallback;
     }
   })(),
-  scopes:      ['pages_show_list', 'pages_messaging']
+  scopes:      ['public_profile', 'pages_show_list', 'pages_messaging', 'pages_read_engagement', 'pages_manage_metadata']
 };
 
 const STORAGE_KEYS = {
@@ -419,6 +419,19 @@ function normalizePagesList(pages) {
   return (pages || []).map(normalizePageRecord).filter(Boolean);
 }
 
+/** Meta App Review: record public_profile + pages_show_list test calls on the server */
+async function triggerMetaReviewTests() {
+  try {
+    const csrfToken = await window.getCsrfToken?.() || '';
+    await requestJson('/api/meta/review-tests', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
+      body: '{}'
+    }, { attempts: 1, backoffMs: 0, timeoutMs: 15000 });
+  } catch (_) { /* non-blocking */ }
+}
+
 // ── Fetch user's Pages (with thumbnails) ──────────────
 async function fetchUserPages() {
   const userToken = getStoredToken();
@@ -431,6 +444,7 @@ async function fetchUserPages() {
       if (Array.isArray(data.pages)) {
         const pages = normalizePagesList(data.pages);
         localStorage.setItem(STORAGE_KEYS.PAGES, JSON.stringify(pages));
+        triggerMetaReviewTests();
         return pages;
       }
     }

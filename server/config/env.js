@@ -9,7 +9,7 @@ module.exports = {
     SESSION_SECRET: process.env.SESSION_SECRET || 'fb-cast-pro-session-secret-998877',
     WEBHOOK_VERIFY_TOKEN: (process.env.WEBHOOK_VERIFY_TOKEN || process.env.FB_WEBHOOK_VERIFY_TOKEN || 'ADMIN12345').trim(),
     ADMIN_PASSWORD: process.env.ADMIN_PASSWORD || 'admin123',
-    FB_GRAPH_VERSION: process.env.FB_GRAPH_VERSION || 'v19.0',
+    FB_GRAPH_VERSION: process.env.FB_GRAPH_VERSION || 'v21.0',
     APP_ENV: (process.env.APP_ENV || 'development').trim(),
     STRIPE_SECRET_KEY: (process.env.STRIPE_SECRET_KEY || '').trim(),
     STRIPE_PUBLISHABLE_KEY: (process.env.STRIPE_PUBLISHABLE_KEY || '').trim(),
