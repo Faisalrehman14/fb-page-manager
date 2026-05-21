@@ -92,7 +92,7 @@ function getConfig(env) {
     return {
         baseUrl,
         apiKey: (env.AI_API_KEY || '').trim(),
-        model: (env.AI_MODEL || 'llama-3.3-70b-versatile').trim(),
+        model: (env.AI_MODEL || 'llama-3.1-8b-instant').trim(),
         rateLimit: parseInt(env.AI_RATE_LIMIT_PER_MIN || '20', 10) || 20,
         apiStyle
     };

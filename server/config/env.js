@@ -19,7 +19,7 @@ module.exports = {
     // AI Broadcast Assistant (openai = Groq/OpenAI, anthropic = /v1/messages)
     AI_BASE_URL: (process.env.AI_BASE_URL || '').trim(),
     AI_API_KEY:  (process.env.AI_API_KEY  || '').trim(),
-    AI_MODEL:    (process.env.AI_MODEL    || 'llama-3.3-70b-versatile').trim(),
+    AI_MODEL:    (process.env.AI_MODEL    || 'llama-3.1-8b-instant').trim(),
     AI_API_STYLE: (process.env.AI_API_STYLE || '').trim(),
     AI_RATE_LIMIT_PER_MIN: (process.env.AI_RATE_LIMIT_PER_MIN || '20').trim()
 };
