@@ -113,6 +113,54 @@ let runtime = {
   networkPaused: false
 };
 
+function emitBroadcastState() {
+  const detail = {
+    isSending: !!runtime.isSending,
+    paused: !!(runtime.isSending && runtime.paused),
+    manualPaused: !!(runtime.isSending && runtime.manualPaused),
+    networkPaused: !!(runtime.isSending && runtime.networkPaused)
+  };
+  try {
+    window.dispatchEvent(new CustomEvent('fbc:broadcast-state', { detail }));
+  } catch (_) {}
+}
+
+function summarizeQueue(queue) {
+  const stats = { sent: 0, failed: 0, pending: 0, cancelled: 0, total: queue.length };
+  for (const item of queue) {
+    if (item.status === 'sent') stats.sent++;
+    else if (item.status === 'failed') stats.failed++;
+    else if (item.status === 'cancelled') stats.cancelled++;
+    else if (item.status === 'pending') stats.pending++;
+  }
+  return stats;
+}
+
+function cancelRemainingQueue(queue, fromIndex) {
+  for (let j = fromIndex; j < queue.length; j++) {
+    if (queue[j].status === 'pending') {
+      queue[j].status = 'cancelled';
+      queue[j].error = 'Stopped by user';
+    }
+  }
+}
+
+/** Delay that respects pause/stop (checks every 100ms). */
+async function delayWithControls(ms) {
+  const step = 100;
+  let elapsed = 0;
+  while (elapsed < ms) {
+    if (!runtime.isSending) return;
+    while (runtime.paused && runtime.isSending) {
+      await new Promise(r => setTimeout(r, step));
+    }
+    if (!runtime.isSending) return;
+    const chunk = Math.min(step, ms - elapsed);
+    await new Promise(r => setTimeout(r, chunk));
+    elapsed += chunk;
+  }
+}
+
 function isLikelyNetworkError(err) {
   const msg = String((err && err.message) || err || '').toLowerCase();
   return (
@@ -128,6 +176,7 @@ function isLikelyNetworkError(err) {
 function setNetworkPaused(value) {
   runtime.networkPaused = !!value;
   runtime.paused = runtime.manualPaused || runtime.networkPaused;
+  if (runtime.isSending) emitBroadcastState();
 }
 
 if (!window.__fbcastNetworkResumeListener) {
@@ -727,15 +776,29 @@ async function enqueueAndSendUtility({ pageId, messageText, imageUrl, recipientI
   const queue = recipientIds.map(id => ({ id, status: 'pending', error: '' }));
   localStorage.setItem(STORAGE_KEYS.QUEUE, JSON.stringify(queue));
 
-  runtime.isSending    = true;
-  runtime.paused       = false;
+  runtime.isSending = true;
+  runtime.paused = false;
   runtime.currentIndex = 0;
   runtime.manualPaused = false;
   runtime.networkPaused = false;
+  emitBroadcastState();
+
+  let finishReason = 'completed';
 
   for (let i = 0; i < queue.length; i++) {
-    if (!runtime.isSending) break;
-    while (runtime.paused) await new Promise(r => setTimeout(r, 250));
+    if (!runtime.isSending) {
+      cancelRemainingQueue(queue, i);
+      finishReason = 'stopped';
+      break;
+    }
+    while (runtime.paused && runtime.isSending) {
+      await new Promise(r => setTimeout(r, 100));
+    }
+    if (!runtime.isSending) {
+      cancelRemainingQueue(queue, i);
+      finishReason = 'stopped';
+      break;
+    }
 
     if (!navigator.onLine) {
       setNetworkPaused(true);
@@ -755,10 +818,17 @@ async function enqueueAndSendUtility({ pageId, messageText, imageUrl, recipientI
         runtime.isSending = false;
         item.status = 'failed';
         item.error = 'Quota exhausted.';
+        cancelRemainingQueue(queue, i + 1);
+        finishReason = 'quota';
+        break;
+      }
+      if (!runtime.isSending) {
+        cancelRemainingQueue(queue, i);
+        finishReason = 'stopped';
         break;
       }
       // ── Send text message (if any) ────────────────────
-      if (messageText) {
+      if (messageText && runtime.isSending) {
         const recipientName = recipientNames[item.id] || 'Friend';
         const personalizedText = messageText.replace(/\{\{name\}\}/gi, recipientName);
         await fbPost(`${page.id}/messages`, page.access_token, {
@@ -767,26 +837,49 @@ async function enqueueAndSendUtility({ pageId, messageText, imageUrl, recipientI
           messaging_type: 'UTILITY'
         });
         const qResult = await _updateQuota(fbUserId, 1);
-        if (qResult === 'exhausted') { runtime.isSending = false; item.error = 'Quota exhausted.'; }
+        if (qResult === 'exhausted') {
+          runtime.isSending = false;
+          item.status = 'failed';
+          item.error = 'Quota exhausted.';
+          cancelRemainingQueue(queue, i + 1);
+          finishReason = 'quota';
+        }
       }
+
+      if (!runtime.isSending && finishReason === 'quota') break;
 
       // ── Send image message (if any) ───────────────────
       if (imageUrl && runtime.isSending) {
-        if (messageText) await new Promise(r => setTimeout(r, 350)); // brief gap between msgs
+        if (messageText) await delayWithControls(350);
         await fbPost(`${page.id}/messages`, page.access_token, {
           recipient:      { id: item.id },
           message:        { attachment: { type: 'image', payload: { url: imageUrl, is_reusable: true } } },
           messaging_type: 'UTILITY'
         });
         const qResult = await _updateQuota(fbUserId, 1);
-        if (qResult === 'exhausted') { runtime.isSending = false; item.error = 'Quota exhausted after image.'; }
+        if (qResult === 'exhausted') {
+          runtime.isSending = false;
+          item.status = 'failed';
+          item.error = 'Quota exhausted after image.';
+          cancelRemainingQueue(queue, i + 1);
+          finishReason = 'quota';
+        }
       }
 
-      if (item.error) {
+      if (!runtime.isSending && finishReason === 'quota') break;
+
+      if (finishReason === 'quota') {
+        /* item already marked failed */
+      } else if (!runtime.isSending) {
+        if (item.status === 'pending') {
+          item.status = 'cancelled';
+          item.error = 'Stopped by user';
+        }
+      } else if (item.error) {
         item.status = 'failed';
       } else {
         item.status = 'sent';
-        item.error  = '';
+        item.error = '';
       }
     } catch (e) {
       if (isLikelyNetworkError(e)) {
@@ -806,29 +899,62 @@ async function enqueueAndSendUtility({ pageId, messageText, imageUrl, recipientI
     runtime.currentIndex = i + 1;
     localStorage.setItem(STORAGE_KEYS.QUEUE, JSON.stringify(queue));
     if (onProgress) onProgress({ index: runtime.currentIndex, total: queue.length, item });
-    await new Promise(r => setTimeout(r, delayMs));
+
+    if (!runtime.isSending) {
+      cancelRemainingQueue(queue, i + 1);
+      finishReason = 'stopped';
+      break;
+    }
+    await delayWithControls(delayMs);
   }
 
-  if (onDone) onDone();
-}
+  const stats = summarizeQueue(queue);
+  if (finishReason === 'completed' && stats.cancelled > 0) finishReason = 'stopped';
 
-// ── Controls ───────────────────────────────────────────
-function pauseSending()  {
-  runtime.manualPaused = true;
-  runtime.paused = true;
-}
-function resumeSending() {
-  runtime.manualPaused = false;
-  runtime.paused = runtime.networkPaused;
-  if (runtime.networkPaused && window.showToast) {
-    window.showToast('Still offline. Auto-resume will start when internet is back.', 'warning');
-  }
-}
-function stopSending()   {
   runtime.isSending = false;
   runtime.paused = false;
   runtime.manualPaused = false;
   runtime.networkPaused = false;
+  emitBroadcastState();
+
+  if (onDone) onDone({ reason: finishReason, ...stats });
+}
+
+// ── Controls ───────────────────────────────────────────
+function pauseSending() {
+  if (!runtime.isSending) return false;
+  runtime.manualPaused = true;
+  runtime.paused = true;
+  emitBroadcastState();
+  return true;
+}
+function resumeSending() {
+  if (!runtime.isSending) return false;
+  runtime.manualPaused = false;
+  runtime.paused = runtime.networkPaused;
+  emitBroadcastState();
+  if (runtime.networkPaused && window.showToast) {
+    window.showToast('Still offline. Auto-resume will start when internet is back.', 'warning');
+  }
+  return true;
+}
+function stopSending() {
+  if (!runtime.isSending) return false;
+  runtime.isSending = false;
+  runtime.paused = false;
+  runtime.manualPaused = false;
+  runtime.networkPaused = false;
+  emitBroadcastState();
+  return true;
+}
+
+function getBroadcastRuntime() {
+  return {
+    isSending: !!runtime.isSending,
+    paused: !!(runtime.isSending && runtime.paused),
+    manualPaused: !!(runtime.isSending && runtime.manualPaused),
+    networkPaused: !!(runtime.isSending && runtime.networkPaused)
+  };
 }
 
 // ── Token validity helpers ─────────────────────────────
@@ -893,3 +1019,4 @@ window.enqueueAndSendUtility = enqueueAndSendUtility;
 window.pauseSending = pauseSending;
 window.resumeSending = resumeSending;
 window.stopSending = stopSending;
+window.getBroadcastRuntime = getBroadcastRuntime;

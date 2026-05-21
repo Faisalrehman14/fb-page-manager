@@ -1539,9 +1539,21 @@ document.addEventListener('DOMContentLoaded',()=>{
   btnManual.addEventListener('click',()=>{btnManual.classList.add('active');btnAuto.classList.remove('active');manual.style.display='';auto.style.display='none';});
   btnAuto.addEventListener('click',()=>{btnAuto.classList.add('active');btnManual.classList.remove('active');auto.style.display='';manual.style.display='none';});
   document.getElementById('btnAutoStart')?.addEventListener('click',startAutoSend);
-  document.getElementById('btnAutoPause')?.addEventListener('click',()=>{pauseSending();fbTrackEvent('broadcast_pause',{mode:'auto'});setAutoButtons('paused');});
-  document.getElementById('btnAutoResume')?.addEventListener('click',()=>{resumeSending();fbTrackEvent('broadcast_resume',{mode:'auto'});setAutoButtons('running');});
-  document.getElementById('btnAutoStop')?.addEventListener('click',()=>{stopSending();fbTrackEvent('broadcast_stop',{mode:'auto'});autoRunning=false;setAutoButtons('idle');setAutoStatus('info','Stopped by user.');});
+  document.getElementById('btnAutoPause')?.addEventListener('click',()=>{
+    if(!pauseSending()){setAutoStatus('warn','No broadcast is running.');return;}
+    fbTrackEvent('broadcast_pause',{mode:'auto'});setAutoButtons('paused');
+    setAutoStatus('info','Paused — click Resume to continue.');
+  });
+  document.getElementById('btnAutoResume')?.addEventListener('click',()=>{
+    if(!resumeSending()){setAutoStatus('warn','Broadcast is not paused.');return;}
+    fbTrackEvent('broadcast_resume',{mode:'auto'});setAutoButtons('running');
+    setAutoStatus('sending','Resumed.');
+  });
+  document.getElementById('btnAutoStop')?.addEventListener('click',()=>{
+    if(!stopSending()){setAutoStatus('warn','No broadcast is running.');return;}
+    fbTrackEvent('broadcast_stop',{mode:'auto'});
+    autoRunning=false;setAutoButtons('idle');setAutoStatus('info','Stopping…');
+  });
 });
 
 /* ══════════════════════
@@ -1590,6 +1602,7 @@ async function startAutoSend(){
   autoRunning=true;runtime.isSending=true;runtime.paused=false;
   setAutoButtons('running');
   let gTotal=0,gSent=0,gFailed=0;
+  let stoppedByUser=false;
   const updStats=()=>{
     document.getElementById('statTotal').textContent=gTotal;
     document.getElementById('statSent').textContent=gSent;
@@ -1631,19 +1644,27 @@ async function startAutoSend(){
           addRecipientRow(data.item);
           setAutoStatus('sending',`"${page.name}" (${pi+1}/${pages.length}) — ${data.index} / ${data.total} sent`);
         },
-        onDone:resolve
+        onDone:(summary)=>{
+          if(summary&&summary.reason==='stopped')stoppedByUser=true;
+          resolve(summary);
+        }
       });
     });
-    if(!runtime.isSending)break;
+    if(!runtime.isSending){stoppedByUser=true;break;}
     setAutoStatus('success',`✓ "${page.name}" done. ${gSent} sent so far.`);
     await sleep(1500);
   }
-  autoRunning=false;runtime.isSending=false;setAutoButtons('idle');
+  autoRunning=false;
+  setAutoButtons('idle');
   document.getElementById('autoPageBadge').style.display='none';
   if(gTotal>0){
     document.getElementById('progressBar').style.width='100%';
     document.getElementById('progressPct').textContent='100%';
-    setAutoStatus('success',`All ${pages.length} page(s) complete — ✅ ${gSent} sent, ❌ ${gFailed} failed.`);
+    if(stoppedByUser){
+      setAutoStatus('info',`Stopped — ✅ ${gSent} sent, ❌ ${gFailed} failed.`);
+    } else {
+      setAutoStatus('success',`All ${pages.length} page(s) complete — ✅ ${gSent} sent, ❌ ${gFailed} failed.`);
+    }
   }
   fbTrackEvent('broadcast_complete', { mode: 'auto', pages: pages.length, total: gTotal, sent: gSent, failed: gFailed });
   if (typeof window.maybeNotifyBroadcast === 'function') {

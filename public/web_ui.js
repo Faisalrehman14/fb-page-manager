@@ -439,7 +439,9 @@ function renderRecipients() {
     const row = document.createElement('div');
     row.className = 'table-row';
     row.dataset.id = r.id;
-    const statusClass = { sent: 'badge-sent', failed: 'badge-failed', pending: 'badge-pending' }[r.status] || 'badge-pending';
+    const statusClass = {
+      sent: 'badge-sent', failed: 'badge-failed', pending: 'badge-pending', cancelled: 'badge-cancelled'
+    }[r.status] || 'badge-pending';
     const labelBadges = (r.labels || []).slice(0, 2).map(l => `<span class="badge badge-label" title="${escHtml(l)}">${escHtml(l)}</span>`).join('');
     const labelsSummary = (r.labels || []).length > 2 ? `<span class="badge badge-label">+${(r.labels || []).length - 2}</span>` : '';
     row.innerHTML = `<div class="mono truncate">${escHtml(r.id)}</div><div><span class="badge ${statusClass}">${escHtml(r.status)}</span>${labelBadges}${labelsSummary}</div><div class="err" title="${escHtml(r.error || '')}">${escHtml(r.error || '')}</div>`;
@@ -486,6 +488,60 @@ function updateStats() {
   window.dispatchEvent(new CustomEvent('fbc:broadcast-progress'));
 }
 
+function setManualBroadcastButtons(state) {
+  const btnStart = $('btnStart');
+  const btnPause = $('btnPause');
+  const btnResume = $('btnResume');
+  const btnStop = $('btnStop');
+  if (!btnStart) return;
+  const idle = state === 'idle';
+  const running = state === 'running';
+  const paused = state === 'paused';
+  btnStart.disabled = !idle;
+  if (idle) setLoading(btnStart, false);
+  btnPause.disabled = !running;
+  btnResume.disabled = !paused;
+  btnStop.disabled = idle;
+}
+
+function finishManualBroadcast(summary) {
+  const reason = (summary && summary.reason) || 'completed';
+  isManualBroadcastRunning = false;
+  activeBroadcastPageId = null;
+  $('progressBar')?.classList.remove('progress-bar--active');
+  setLoading(btnStart, false);
+  if ($('etaText')) $('etaText').textContent = '';
+  setManualBroadcastButtons('idle');
+
+  if (reason === 'stopped') {
+    allRecipients.forEach(r => {
+      if (r.status === 'pending') {
+        r.status = 'cancelled';
+        r.error = 'Stopped by user';
+      }
+    });
+    renderRecipients();
+    updateStats();
+    const sent = summary?.sent ?? allRecipients.filter(r => r.status === 'sent').length;
+    const cancelled = summary?.cancelled ?? allRecipients.filter(r => r.status === 'cancelled').length;
+    showStatus(`Stopped. ${sent.toLocaleString()} sent, ${cancelled.toLocaleString()} cancelled.`, 'warning');
+    return;
+  }
+
+  if (reason === 'quota') {
+    updateStats();
+    showStatus('Broadcast stopped: message quota exceeded.', 'error');
+    return;
+  }
+
+  const sent = summary?.sent ?? allRecipients.filter(r => r.status === 'sent').length;
+  const failed = summary?.failed ?? allRecipients.filter(r => r.status === 'failed').length;
+  showStatus('All messages processed.', 'success');
+  if (typeof window.maybeNotifyBroadcast === 'function') {
+    window.maybeNotifyBroadcast('complete', `Broadcast complete: ${sent.toLocaleString()} sent${failed ? ', ' + failed + ' failed' : ''}.`);
+  }
+}
+
 function updateRecipientRow(item) {
   const r = allRecipients.find(r => r.id === item.id);
   if (r) { r.status = item.status; r.error = item.error || ''; if(item.status==='sent') r.sentAt = Date.now(); }
@@ -493,7 +549,9 @@ function updateRecipientRow(item) {
   if (!row) return;
   const badge = row.querySelector('.badge');
   const error = row.querySelector('.err');
-  const statusClass = { sent: 'badge-sent', failed: 'badge-failed', pending: 'badge-pending' }[item.status] || 'badge-pending';
+  const statusClass = {
+    sent: 'badge-sent', failed: 'badge-failed', pending: 'badge-pending', cancelled: 'badge-cancelled'
+  }[item.status] || 'badge-pending';
   if (badge) { badge.className = `badge ${statusClass}`; badge.textContent = item.status; }
   if (error) { error.textContent = item.error || ''; error.title = item.error || ''; }
 }
@@ -805,9 +863,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if (!fbUserId) {
+      setManualBroadcastButtons('idle');
       return showStatus('User session not initialized. Please refresh the page.', 'warning');
     }
 
+    setManualBroadcastButtons('running');
     setLoading(btnStart, true);
     let recipientIds = [];
     try {
@@ -820,13 +880,13 @@ document.addEventListener('DOMContentLoaded', () => {
     } catch (e) {
       uiTrackEvent('recipients_auto_load_error', { pageId, message: e.message || 'failed_to_load_recipients' });
       showStatus(e.message || 'Failed to load recipients.', 'error');
-      setLoading(btnStart, false);
+      setManualBroadcastButtons('idle');
       return;
     }
 
     if (!recipientIds.length) {
       showStatus('No conversations found for this page.', 'warning');
-      setLoading(btnStart, false);
+      setManualBroadcastButtons('idle');
       return;
     }
 
@@ -834,6 +894,9 @@ document.addEventListener('DOMContentLoaded', () => {
     isManualBroadcastRunning = true;
     activeBroadcastPageId = pageId;
     sendStartTime = Date.now();
+    allRecipients.forEach(r => { r.status = 'pending'; r.error = ''; });
+    renderRecipients();
+    updateStats();
     $('progressBar')?.classList.add('progress-bar--active');
     // Build name map from loaded recipients (covers cached & freshly loaded cases)
     const recipientNamesMap = Object.fromEntries(
@@ -848,21 +911,16 @@ document.addEventListener('DOMContentLoaded', () => {
         delayMs: delay,
         fbUserId,
         onProgress: ({ index, total, item }) => { updateRecipientRow(item); updateStats(); updateEta(index, total, delay); if(window.updateQuotaUI) window.updateQuotaUI(); },
-        onDone: () => {
-          isManualBroadcastRunning = false;
-          activeBroadcastPageId = null;
-          $('progressBar')?.classList.remove('progress-bar--active');
-          setLoading(btnStart, false);
-          if ($('etaText')) $('etaText').textContent = '';
-          const sent = allRecipients.filter(r => r.status === 'sent').length;
-          const failed = allRecipients.filter(r => r.status === 'failed').length;
+        onDone: (summary) => {
+          const sent = summary?.sent ?? allRecipients.filter(r => r.status === 'sent').length;
+          const failed = summary?.failed ?? allRecipients.filter(r => r.status === 'failed').length;
           const total = allRecipients.length;
-          showStatus('All messages processed.', 'success');
-          uiTrackEvent('broadcast_complete', { mode: 'manual', pageId, total, sent, failed });
-          if (typeof window.maybeNotifyBroadcast === 'function') {
-            window.maybeNotifyBroadcast('complete', `Broadcast complete: ${sent.toLocaleString()} sent${failed ? ', ' + failed + ' failed' : ''}.`);
-          }
-          if(window.updateQuotaUI) window.updateQuotaUI();
+          const reason = summary?.reason || 'completed';
+          uiTrackEvent(reason === 'stopped' ? 'broadcast_stop' : 'broadcast_complete', {
+            mode: 'manual', pageId, total, sent, failed, reason
+          });
+          finishManualBroadcast(summary);
+          if (window.updateQuotaUI) window.updateQuotaUI();
         }
       });
     } catch (e) {
@@ -871,22 +929,46 @@ document.addEventListener('DOMContentLoaded', () => {
       $('progressBar')?.classList.remove('progress-bar--active');
       uiTrackEvent('broadcast_error', { mode: 'manual', pageId, message: e.message || 'failed_to_start' });
       showStatus(e.message || 'Failed to start.', 'error');
-      setLoading(btnStart, false);
+      setManualBroadcastButtons('idle');
     }
   });
 
-  btnPause?.addEventListener('click', () => { pauseSending(); uiTrackEvent('broadcast_pause', { mode: 'manual' }); showStatus('Paused.', 'warning'); });
-  btnResume?.addEventListener('click', () => { resumeSending(); uiTrackEvent('broadcast_resume', { mode: 'manual' }); showStatus('Resumed.', 'info'); });
-  btnStop?.addEventListener('click', () => {
-    stopSending();
-    isManualBroadcastRunning = false;
-    activeBroadcastPageId = null;
-    uiTrackEvent('broadcast_stop', { mode: 'manual' });
-    $('progressBar')?.classList.remove('progress-bar--active');
-    setLoading(btnStart, false);
-    if ($('etaText')) $('etaText').textContent = '';
-    showStatus('Stopped.', 'error');
+  btnPause?.addEventListener('click', () => {
+    if (!pauseSending()) {
+      showStatus('No broadcast is running.', 'warning');
+      return;
+    }
+    uiTrackEvent('broadcast_pause', { mode: 'manual' });
+    showStatus('Paused — click Resume to continue.', 'warning');
   });
+  btnResume?.addEventListener('click', () => {
+    if (!resumeSending()) {
+      showStatus('Broadcast is not paused.', 'warning');
+      return;
+    }
+    uiTrackEvent('broadcast_resume', { mode: 'manual' });
+    showStatus('Resumed.', 'info');
+  });
+  btnStop?.addEventListener('click', () => {
+    if (!stopSending()) {
+      showStatus('No broadcast is running.', 'warning');
+      return;
+    }
+    uiTrackEvent('broadcast_stop', { mode: 'manual' });
+    showStatus('Stopping…', 'warning');
+  });
+
+  window.addEventListener('fbc:broadcast-state', (e) => {
+    const d = e.detail || {};
+    if (!d.isSending) {
+      if (!isManualBroadcastRunning) setManualBroadcastButtons('idle');
+      return;
+    }
+    if (isManualBroadcastRunning) {
+      setManualBroadcastButtons(d.paused ? 'paused' : 'running');
+    }
+  });
+  setManualBroadcastButtons('idle');
 
   updateCampaignIntel();
 
