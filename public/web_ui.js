@@ -576,13 +576,19 @@ function initImagePanel() {
     if (uploadArea) uploadArea.style.display = 'none';
   }
 
+  function resetUploadZoneUi() {
+    if (dropZone) dropZone.style.display = '';
+    if (uploadProg) uploadProg.style.display = 'none';
+    if (fileInput) fileInput.value = '';
+  }
+
   function clearImage() {
     currentImageUrl = '';
     if (previewImg) previewImg.src = '';
     if (previewWrap) previewWrap.style.display = 'none';
     if (badge) badge.style.display = 'none';
     if (urlInput) urlInput.value = '';
-    if (fileInput) fileInput.value = '';
+    resetUploadZoneUi();
     // Show back the active tab area
     const isUpload = tabUpload && tabUpload.classList.contains('active');
     if (urlArea) urlArea.style.display = isUpload ? 'none' : '';
@@ -629,8 +635,9 @@ function initImagePanel() {
 
   // File input — drop zone is a div (not <label>) so one click opens the picker once
   fileInput?.addEventListener('change', () => {
-    if (fileInput.files[0]) handleFile(fileInput.files[0]);
+    const file = fileInput.files && fileInput.files[0];
     fileInput.value = '';
+    if (file) handleFile(file);
   });
   function openFilePicker() {
     if (fileInput) fileInput.click();
@@ -680,9 +687,11 @@ function initImagePanel() {
       }
     } catch (e) {
       if (window.showToast) window.showToast('Upload error: ' + (e.message || 'Unknown error'), 'error');
-      if (dropZone)   dropZone.style.display = '';
+      resetUploadZoneUi();
     } finally {
       if (uploadProg) uploadProg.style.display = 'none';
+      // Success hides upload area via showPreview; restore drop zone only when no image attached
+      if (!currentImageUrl) resetUploadZoneUi();
     }
   }
 
