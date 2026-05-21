@@ -107,44 +107,60 @@ body.light {
   color-scheme: light;
 }
 
-/* Smooth theme transitions for SaaS feel */
-body,
-#landingPage,
-#appPage,
-.nav,
-.saas-topbar,
-.nav-sidebar,
-.sidebar,
-.compose,
-.broadcast-col,
-.compose-col,
-.hv-kpi,
-.hv-panel,
-.hv-qa-card,
-.hv-plan-card,
-.hv-hero,
-.feat,
-.step,
-.price-card,
-.pro-card,
-.testimonial,
-.faq-item,
-.cta-box,
-.footer-enhanced,
-.modal-box,
-input,
-textarea,
-select,
-.settings-card,
-.saas-billing-card,
-#view-messenger,
-.msng-thread,
-.msng-list {
-  transition:
-    background-color 0.25s ease,
-    border-color 0.25s ease,
-    color 0.2s ease,
-    box-shadow 0.25s ease !important;
+/* ═══════════════════════════════════════════════════════════════
+   Smooth theme toggle (View Transitions + no per-element flicker)
+═══════════════════════════════════════════════════════════════ */
+@view-transition {
+  navigation: none;
+}
+
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 0.42s;
+  animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+::view-transition-old(root) {
+  z-index: 1;
+}
+
+::view-transition-new(root) {
+  z-index: 2;
+}
+
+/* Kill staggered transitions during swap — main cause of screen flicker */
+html.theme-switching,
+html.theme-switching *,
+html.theme-switching *::before,
+html.theme-switching *::after {
+  transition: none !important;
+  animation-duration: 0s !important;
+}
+
+/* Fallback crossfade when View Transitions API is unavailable */
+.theme-crossfade-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2147483646;
+  pointer-events: none;
+  opacity: 0;
+  background: var(--t-bg, #030508);
+  transition: opacity 0.38s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.theme-crossfade-overlay.is-active {
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation-duration: 0.01ms;
+  }
+
+  .theme-crossfade-overlay {
+    transition-duration: 0.01ms;
+  }
 }
 
 /* ═══════════════════════════════════════════════════════════════

@@ -89,6 +89,9 @@
 <script>
 (function () {
   try {
+    if (document.documentElement.getAttribute('data-theme') === 'light') {
+      document.body.classList.add('light');
+    }
     var p = new URLSearchParams(window.location.search);
     if (p.get('fb_connected') === '1' || sessionStorage.getItem('fbcast_oauth_pending') === '1') {
       document.documentElement.classList.add('auth-booting');

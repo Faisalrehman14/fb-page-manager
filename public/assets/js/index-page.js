@@ -1443,13 +1443,15 @@ function persistAppearanceTheme(mode) {
 }
 
 /* Theme — shared landing + dashboard */
-function setAppTheme(isLight) {
+function _applyThemeDom(isLight) {
+  const target = isLight ? 'light' : 'dark';
+  document.documentElement.classList.add('theme-switching');
   document.body.classList.toggle('light', isLight);
-  document.documentElement.setAttribute('data-theme', isLight ? 'light' : 'dark');
-  document.documentElement.style.colorScheme = isLight ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', target);
+  document.documentElement.style.colorScheme = target;
   document.documentElement.classList.toggle('theme-dark', !isLight);
   document.documentElement.classList.toggle('theme-light', isLight);
-  localStorage.setItem('promo_theme', isLight ? 'light' : 'dark');
+  localStorage.setItem('promo_theme', target);
   const metaTheme = document.querySelector('meta[name="theme-color"]:not([media])');
   if (metaTheme) metaTheme.setAttribute('content', isLight ? '#eef2ff' : '#060a16');
   const topToggle = document.getElementById('themeToggle');
@@ -1460,6 +1462,67 @@ function setAppTheme(isLight) {
   }
   const landBtn = document.getElementById('landingThemeToggle');
   if (landBtn) landBtn.setAttribute('aria-label', isLight ? 'Switch to dark mode' : 'Switch to light mode');
+  requestAnimationFrame(function () {
+    requestAnimationFrame(function () {
+      document.documentElement.classList.remove('theme-switching');
+    });
+  });
+}
+
+function _themeCrossfadeFallback(applyFn, isLight) {
+  const reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (reduced) {
+    applyFn();
+    return Promise.resolve();
+  }
+  const overlay = document.createElement('div');
+  overlay.className = 'theme-crossfade-overlay';
+  overlay.setAttribute('aria-hidden', 'true');
+  overlay.style.background = isLight ? '#f5f7ff' : '#030508';
+  document.body.appendChild(overlay);
+  return new Promise(function (resolve) {
+    requestAnimationFrame(function () {
+      overlay.classList.add('is-active');
+      setTimeout(function () {
+        applyFn();
+        requestAnimationFrame(function () {
+          overlay.classList.remove('is-active');
+          setTimeout(function () {
+            overlay.remove();
+            resolve();
+          }, 400);
+        });
+      }, 40);
+    });
+  });
+}
+
+function setAppTheme(isLight, options) {
+  const opts = options || {};
+  const target = isLight ? 'light' : 'dark';
+  const current = document.documentElement.getAttribute('data-theme');
+  const bodyLight = document.body.classList.contains('light');
+  if (current === target && bodyLight === isLight) return Promise.resolve();
+
+  const apply = function () { _applyThemeDom(isLight); };
+
+  if (opts.instant) {
+    apply();
+    return Promise.resolve();
+  }
+
+  const reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (!reduced && typeof document.startViewTransition === 'function') {
+    try {
+      const vt = document.startViewTransition(apply);
+      return vt.finished.catch(function () { apply(); });
+    } catch (_) {
+      apply();
+      return Promise.resolve();
+    }
+  }
+
+  return _themeCrossfadeFallback(apply, isLight);
 }
 
 window.setAppTheme = setAppTheme;
@@ -1477,11 +1540,11 @@ function applyTheme() {
     localStorage.setItem('theme_v', THEME_VERSION);
   }
   const mode = readAppearanceTheme();
-  setAppTheme(resolveThemeIsLight(mode));
+  setAppTheme(resolveThemeIsLight(mode), { instant: true });
   if (mode === 'system' && window.matchMedia) {
     const mq = window.matchMedia('(prefers-color-scheme: light)');
     const onChange = () => {
-      if (readAppearanceTheme() === 'system') setAppTheme(mq.matches);
+      if (readAppearanceTheme() === 'system') setAppTheme(mq.matches, { instant: false });
     };
     if (typeof mq.addEventListener === 'function') mq.addEventListener('change', onChange);
     else if (typeof mq.addListener === 'function') mq.addListener(onChange);

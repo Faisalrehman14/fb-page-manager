@@ -41,13 +41,13 @@
 
   let state = loadSettings();
 
-  function applyTheme(value) {
+  function applyTheme(value, options) {
     const wantLight =
       value === 'light' ? true :
       value === 'dark'  ? false :
       window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches;
     if (typeof window.setAppTheme === 'function') {
-      window.setAppTheme(wantLight);
+      window.setAppTheme(wantLight, options);
     }
   }
 
@@ -197,7 +197,7 @@
     setSegmented('settingsThemeSeg',   'theme',   state.appearance.theme);
     setSegmented('settingsDensitySeg', 'density', state.appearance.density);
     applyDensity(state.appearance.density);
-    applyTheme(state.appearance.theme);
+    applyTheme(state.appearance.theme, { instant: true });
     if (state.appearance.theme === 'system' && window.matchMedia) {
       const mq = window.matchMedia('(prefers-color-scheme: light)');
       const onSys = () => {
