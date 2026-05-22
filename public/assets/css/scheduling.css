@@ -213,10 +213,16 @@
 .sv2-delay-select {
   width: 100%;
   min-width: 0;
-  padding-right: 2rem;
+  padding-right: 2.25rem;
   text-overflow: ellipsis;
-  appearance: auto;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
   cursor: pointer;
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 14px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23a5b4fc' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
 }
 
 .sv2-section-label {
@@ -1026,6 +1032,7 @@ body:not(.light) #view-scheduling {
     radial-gradient(ellipse 50% 40% at 100% 0%, rgba(124, 58, 237, 0.12), transparent 50%),
     #030508 !important;
   color: #e2e8f0;
+  color-scheme: dark;
 }
 
 html[data-theme='dark'] #view-scheduling .sv2-compose,
@@ -1125,6 +1132,50 @@ body:not(.light) #view-scheduling .sv2-img-zone {
   color-scheme: dark;
 }
 
+/* Send delay dropdown — dark list/popover contrast */
+html[data-theme='dark'] #view-scheduling select.sv2-delay-select,
+html[data-theme='dark'] #view-scheduling .sv2-delay-select,
+body:not(.light) #view-scheduling select.sv2-delay-select,
+body:not(.light) #view-scheduling .sv2-delay-select {
+  color-scheme: dark !important;
+  background-color: rgba(14, 22, 48, 0.96) !important;
+  color: #f1f5f9 !important;
+  border-color: rgba(139, 156, 255, 0.28) !important;
+}
+
+html[data-theme='dark'] #view-scheduling select.sv2-delay-select option,
+html[data-theme='dark'] #view-scheduling .sv2-delay-select option,
+body:not(.light) #view-scheduling select.sv2-delay-select option,
+body:not(.light) #view-scheduling .sv2-delay-select option {
+  background-color: #0e1630 !important;
+  color: #f1f5f9 !important;
+}
+
+html[data-theme='dark'] #view-scheduling select.sv2-delay-select option:checked,
+html[data-theme='dark'] #view-scheduling .sv2-delay-select option:checked,
+body:not(.light) #view-scheduling select.sv2-delay-select option:checked,
+body:not(.light) #view-scheduling .sv2-delay-select option:checked {
+  background-color: rgba(99, 102, 241, 0.4) !important;
+  color: #e0e7ff !important;
+}
+
+html[data-theme='dark'] #view-scheduling select.sv2-delay-select:hover,
+html[data-theme='dark'] #view-scheduling .sv2-delay-select:hover,
+body:not(.light) #view-scheduling select.sv2-delay-select:hover,
+body:not(.light) #view-scheduling .sv2-delay-select:hover {
+  border-color: rgba(139, 156, 255, 0.4) !important;
+  background-color: rgba(20, 31, 69, 0.98) !important;
+}
+
+html[data-theme='dark'] #view-scheduling select.sv2-delay-select:focus,
+html[data-theme='dark'] #view-scheduling .sv2-delay-select:focus,
+body:not(.light) #view-scheduling select.sv2-delay-select:focus,
+body:not(.light) #view-scheduling .sv2-delay-select:focus {
+  border-color: rgba(99, 102, 241, 0.55) !important;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.22) !important;
+  outline: none;
+}
+
 html[data-theme='dark'] #view-scheduling .sv2-textarea::placeholder,
 html[data-theme='dark'] #view-scheduling .sv2-input::placeholder,
 body:not(.light) #view-scheduling .sv2-textarea::placeholder,
@@ -1222,6 +1273,11 @@ body.light #view-scheduling .sv2-card {
   box-shadow: 0 4px 20px rgba(15, 23, 42, 0.06) !important;
 }
 
+html[data-theme='light'] #view-scheduling,
+body.light #view-scheduling {
+  color-scheme: light;
+}
+
 html[data-theme='light'] #view-scheduling .sv2-textarea,
 html[data-theme='light'] #view-scheduling .sv2-input,
 html[data-theme='light'] #view-scheduling .sv2-pages-grid,
@@ -1232,6 +1288,33 @@ body.light #view-scheduling .sv2-pages-grid {
   border-color: #e2e8f0 !important;
   color: #0f172a !important;
   color-scheme: light;
+}
+
+html[data-theme='light'] #view-scheduling select.sv2-delay-select,
+html[data-theme='light'] #view-scheduling .sv2-delay-select,
+body.light #view-scheduling select.sv2-delay-select,
+body.light #view-scheduling .sv2-delay-select {
+  color-scheme: light !important;
+  background-color: #f8fafc !important;
+  color: #0f172a !important;
+  border-color: #e2e8f0 !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23475569' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E") !important;
+}
+
+html[data-theme='light'] #view-scheduling select.sv2-delay-select option,
+html[data-theme='light'] #view-scheduling .sv2-delay-select option,
+body.light #view-scheduling select.sv2-delay-select option,
+body.light #view-scheduling .sv2-delay-select option {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+}
+
+html[data-theme='light'] #view-scheduling select.sv2-delay-select option:checked,
+html[data-theme='light'] #view-scheduling .sv2-delay-select option:checked,
+body.light #view-scheduling select.sv2-delay-select option:checked,
+body.light #view-scheduling .sv2-delay-select option:checked {
+  background-color: #eef2ff !important;
+  color: #1e3a8a !important;
 }
 
 html[data-theme='light'] #view-scheduling .sv2-page-name,
