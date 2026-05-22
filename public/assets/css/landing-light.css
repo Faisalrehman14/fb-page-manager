@@ -598,8 +598,24 @@ body.light #landingPage .faq-a {
 }
 
 html[data-theme='light'] #landingPage .cta-h2,
-body.light #landingPage .cta-h2 {
+html[data-theme='light'] .cta-h2,
+body.light #landingPage .cta-h2,
+body.light .cta-h2 {
   color: #0f172a !important;
+  background: none !important;
+  -webkit-background-clip: unset !important;
+  background-clip: unset !important;
+  -webkit-text-fill-color: #0f172a !important;
+}
+
+html[data-theme='light'] #landingPage .cta-h2 span,
+html[data-theme='light'] .cta-h2 span,
+body.light #landingPage .cta-h2 span,
+body.light .cta-h2 span {
+  background: linear-gradient(135deg, #1d4ed8, #6d28d9) !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
 }
 
 html[data-theme='light'] #landingPage .cta-sub,

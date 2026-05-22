@@ -325,10 +325,12 @@ body.light .saas-topbar {
   border-bottom-color: var(--border) !important;
 }
 
-body.light .saas-topbar .topbar-title h1 {
+body.light .saas-topbar .topbar-title h1,
+html[data-theme='light'] .saas-topbar .topbar-title h1 {
   background: linear-gradient(135deg, #1e3a8a 0%, #6d28d9 100%);
   -webkit-background-clip: text;
   background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
 body.light .nav-sidebar,

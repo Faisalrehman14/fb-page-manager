@@ -69,9 +69,10 @@ body.light {
   --t-surface-flat: #ffffff;
 
   --t-text:         #0c1222;
+  --t-text-1:       #0c1222;
   --t-text-2:       #334155;
-  --t-text-3:       #64748b;
-  --t-text-muted:   #94a3b8;
+  --t-text-3:       #475569;
+  --t-text-muted:   #475569;
 
   --t-border:       rgba(99, 102, 241, 0.16);
   --t-border-2:     rgba(124, 58, 237, 0.24);
