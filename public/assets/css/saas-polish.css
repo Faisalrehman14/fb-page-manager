@@ -1558,7 +1558,29 @@ body.light .notif-panel {
 html[data-theme='light'] .notif-toast,
 body.light .notif-toast {
   background: #ffffff;
+  border-color: rgba(15, 23, 42, 0.12);
   box-shadow: 0 12px 36px rgba(15, 23, 42, 0.18);
+}
+
+html[data-theme='light'] .notif-toast__title,
+body.light .notif-toast__title {
+  color: #0f172a;
+}
+
+html[data-theme='light'] .notif-toast__text,
+body.light .notif-toast__text {
+  color: #475569;
+}
+
+html[data-theme='light'] .notif-toast__close,
+body.light .notif-toast__close {
+  color: #64748b;
+}
+
+html[data-theme='light'] .notif-toast__close:hover,
+body.light .notif-toast__close:hover {
+  background: #f1f5f9;
+  color: #0f172a;
 }
 
 .notif-toast--info     { border-left: 3px solid #3b82f6; }
