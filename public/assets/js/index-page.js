@@ -450,7 +450,27 @@ function isValidHttpUrl(value) {
 
 function hideAnnouncementBar() {
   const bar = document.getElementById('announcementBar');
-  if (bar) bar.hidden = true;
+  const mediaWrap = document.getElementById('announcementMediaWrap');
+  const textTrack = document.getElementById('announcementTextTrack');
+  const cta = document.getElementById('announcementCta');
+  if (bar) {
+    bar.hidden = true;
+    bar.setAttribute('aria-hidden', 'true');
+  }
+  if (mediaWrap) {
+    mediaWrap.hidden = true;
+    mediaWrap.style.display = 'none';
+    mediaWrap.innerHTML = '';
+  }
+  if (textTrack) {
+    textTrack.innerHTML = '';
+    textTrack.classList.remove('is-marquee');
+    textTrack.style.animationDuration = '';
+  }
+  if (cta) {
+    cta.hidden = true;
+    cta.removeAttribute('href');
+  }
 }
 
 function renderAnnouncementBar(data) {
@@ -485,6 +505,7 @@ function renderAnnouncementBar(data) {
       img.alt = text || 'Announcement';
       img.loading = 'lazy';
       mediaWrap.appendChild(img);
+      mediaWrap.hidden = false;
       mediaWrap.style.display = 'block';
     } else {
       const video = document.createElement('video');
@@ -495,9 +516,13 @@ function renderAnnouncementBar(data) {
       video.playsInline = true;
       video.preload = 'metadata';
       mediaWrap.appendChild(video);
+      mediaWrap.hidden = false;
       mediaWrap.style.display = 'block';
       video.play().catch(function(){});
     }
+  } else {
+    mediaWrap.hidden = true;
+    mediaWrap.style.display = 'none';
   }
 
   const tickerText = text || (type === 'video' ? 'New video update available' : 'New update available');
@@ -531,14 +556,13 @@ function renderAnnouncementBar(data) {
   }
 
   bar.hidden = false;
+  bar.removeAttribute('aria-hidden');
 }
 
 function isAnnouncementBarEnabled() {
   const bar = document.getElementById('announcementBar');
   if (!bar) return false;
-  if (bar.hasAttribute('hidden')) return false;
-  const style = bar.getAttribute('style') || '';
-  if (/display\s*:\s*none/i.test(style)) return false;
+  if (bar.dataset.disabled === '1') return false;
   return true;
 }
 

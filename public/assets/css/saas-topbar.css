@@ -480,7 +480,8 @@
     gap: 10px;
   }
   .saas-topbar__sep-v,
-  .saas-topbar__breadcrumb { display: none; }
+  .saas-topbar__breadcrumb,
+  .saas-topbar .topbar-announcement { display: none; }
   .saas-topbar__quota-values .quota-num { font-size: 18px; }
   .saas-topbar__quota-values .quota-total-num { font-size: 15px; }
   .saas-topbar #planBadge.saas-topbar__plan-btn { padding: 7px 11px; font-size: 10px; }

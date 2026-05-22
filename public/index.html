@@ -869,12 +869,18 @@ window.getCsrfToken = async (forceRefresh = false) => {
       </nav>
     </div>
 
-    <div id="announcementBar" hidden aria-hidden="true" style="display:none!important"></div>
-    <div id="announcementMediaWrap" hidden></div>
-    <div id="announcementTextTrack" hidden></div>
-    <a id="announcementCta" hidden></a>
-
     <div id="statusBar" role="status" aria-live="polite"></div>
+
+    <div id="announcementBar" class="topbar-announcement" role="status" aria-live="polite" hidden>
+      <span class="announcement-pill"><i class="fa-solid fa-bullhorn" aria-hidden="true"></i> Update</span>
+      <div class="announcement-body">
+        <div class="announcement-media-wrap" id="announcementMediaWrap" hidden></div>
+        <div class="announcement-text-wrap">
+          <div class="announcement-text-track" id="announcementTextTrack"></div>
+        </div>
+      </div>
+      <a id="announcementCta" class="announcement-cta" href="#" target="_blank" rel="noopener noreferrer" hidden>View</a>
+    </div>
 
     <div class="saas-topbar__right topbar-main">
       <div class="quota-widget saas-topbar__quota" title="Messages remaining this month">
