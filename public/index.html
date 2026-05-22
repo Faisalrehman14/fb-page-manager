@@ -85,6 +85,8 @@
 <link rel="stylesheet" href="assets/css/theme-final.css?v={{VER}}">
 <link rel="stylesheet" href="assets/css/saas-polish.css?v={{VER}}">
 <link rel="stylesheet" href="assets/css/theme-light-a11y.css?v={{VER}}">
+<link rel="stylesheet" href="assets/css/app-mobile-nav.css?v={{VER}}">
+<link rel="stylesheet" href="assets/css/ui-overhaul.css?v={{VER}}">
 </head>
 <body>
 <script>
@@ -100,7 +102,10 @@
   } catch (_) {}
 })();
 </script>
-<a class="skip-link" href="#appPage">Skip To Dashboard</a>
+<ul class="skip-links" aria-label="Skip links">
+  <li><a class="skip-link" href="#landingMain">Skip to main content</a></li>
+  <li><a class="skip-link" href="#appMain">Skip to dashboard</a></li>
+</ul>
 <script id="app-config-loader">
 // __APP_CONFIG_INJECT__
 window.APP_CONFIG = window.APP_CONFIG || { fbAppId: '', csrfToken: '', appEnv: 'production' };
@@ -159,13 +164,15 @@ window.getCsrfToken = async (forceRefresh = false) => {
     </button>
     <a class="mobile-menu-link" href="#features" onclick="closeMobileMenu()">Features</a>
     <a class="mobile-menu-link" href="#how-it-works" onclick="closeMobileMenu()">How It Works</a>
+    <a class="mobile-menu-link" href="#compare" onclick="closeMobileMenu()">Why Us</a>
     <a class="mobile-menu-link" href="#pricing" onclick="closeMobileMenu()">Pricing</a>
     <button class="mobile-menu-cta" onclick="closeMobileMenu();triggerConnect()">
       <i class="fab fa-facebook"></i> Get Started Free
     </button>
   </div>
   <!-- HERO -->
-  <section class="hero">
+  <main id="landingMain">
+  <section class="hero" tabindex="-1">
     <div class="hero-noise"></div>
     <div class="hero-grid"></div>
     <div class="hero-glow"></div>
@@ -760,6 +767,8 @@ window.getCsrfToken = async (forceRefresh = false) => {
   </div>
 
   <!-- ENHANCED FOOTER -->
+  </main>
+
   <footer class="footer-enhanced">
     <div class="footer-grid">
       <!-- Brand column -->
@@ -911,8 +920,9 @@ window.getCsrfToken = async (forceRefresh = false) => {
         <button type="button" class="saas-topbar__icon-btn" title="Settings" onclick="if(typeof switchDashboardView==='function')switchDashboardView('settings')">
           <i class="fa-solid fa-gear" aria-hidden="true"></i>
         </button>
-        <label class="theme-toggle" title="Toggle theme">
-          <input type="checkbox" id="themeToggle" checked>
+        <label class="theme-toggle theme-toggle-wrap" title="Toggle light or dark mode">
+          <span class="sr-only">Dark mode</span>
+          <input type="checkbox" id="themeToggle" checked aria-label="Use dark mode when checked, light mode when unchecked">
           <span class="tt-track">
             <i class="fa-solid fa-moon tt-icon tt-icon--dark"></i>
             <i class="fa-solid fa-sun tt-icon tt-icon--light"></i>
@@ -956,7 +966,7 @@ window.getCsrfToken = async (forceRefresh = false) => {
   <div id="networkBanner" class="network-banner" role="status" aria-live="polite" hidden></div>
 
   <!-- BODY -->
-  <div class="app-body">
+  <div class="app-body" id="appMain" tabindex="-1">
 
     <!-- COL 0: HOME/NAV SIDEBAR -->
     <div class="nav-sidebar">
@@ -965,7 +975,7 @@ window.getCsrfToken = async (forceRefresh = false) => {
         <span>Menu</span>
       </div>
       <div class="nav-sidebar-items">
-        <a class="nav-side-item active" href="#" data-view="home" id="navItemHome" title="Home">
+        <a class="nav-side-item active" href="#" data-view="home" id="navItemHome" title="Home" aria-current="page">
           <i class="fa-solid fa-house"></i>
           <span>Home</span>
         </a>
@@ -1758,7 +1768,8 @@ window.getCsrfToken = async (forceRefresh = false) => {
             <i class="fa-solid fa-users"></i> Recipients
           </button>
         </div>
-        <textarea id="messageText" rows="7" placeholder="Write your broadcast message here…"></textarea>
+        <label class="field-label sr-only" for="messageText">Broadcast message</label>
+        <textarea id="messageText" rows="7" placeholder="Write your broadcast message here…" aria-label="Broadcast message"></textarea>
         <div class="msg-personalize-row">
           <span class="msg-personalize-label">Personalize:</span>
           <button type="button" class="msg-personalize-btn" onclick="insertPersonalizationTag('{{name}}')" title="Insert recipient's name">
@@ -2005,8 +2016,8 @@ window.getCsrfToken = async (forceRefresh = false) => {
 
           <!-- Message -->
           <div class="sv2-section">
-            <div class="sv2-section-label"><i class="fa-solid fa-pen-to-square"></i> Message <span class="sv2-req">*</span></div>
-            <textarea class="sv2-textarea" id="svMessage" placeholder="Write your broadcast message… Use {{name}} for personalization." rows="5" oninput="svUpdateCharCount()"></textarea>
+            <label class="sv2-section-label field-label" for="svMessage"><i class="fa-solid fa-pen-to-square"></i> Message <span class="sv2-req">*</span></label>
+            <textarea class="sv2-textarea" id="svMessage" placeholder="Write your broadcast message… Use {{name}} for personalization." rows="5" oninput="svUpdateCharCount()" aria-required="true"></textarea>
             <div class="sv2-textarea-footer">
               <span class="sv2-hint"><i class="fa-solid fa-user-tag"></i> {{name}} will be replaced with recipient's name</span>
               <span class="sv2-charcount" id="svCharCount">0 / 2000</span>
@@ -2041,12 +2052,12 @@ window.getCsrfToken = async (forceRefresh = false) => {
           <!-- Schedule time + Delay -->
           <div class="sv2-row sv2-row--timing">
             <div class="sv2-section sv2-section--grow">
-              <div class="sv2-section-label"><i class="fa-regular fa-calendar"></i> Date &amp; Time <span class="sv2-req">*</span></div>
-              <input class="sv2-input" id="svDateTime" type="datetime-local">
+              <label class="sv2-section-label field-label" for="svDateTime"><i class="fa-regular fa-calendar"></i> Date &amp; Time <span class="sv2-req">*</span></label>
+              <input class="sv2-input" id="svDateTime" type="datetime-local" aria-label="Schedule date and time">
             </div>
             <div class="sv2-section sv2-section--delay">
-              <div class="sv2-section-label"><i class="fa-solid fa-gauge"></i> Send Delay</div>
-              <select class="sv2-input sv2-delay-select" id="svDelay" title="Delay between each message send">
+              <label class="sv2-section-label field-label" for="svDelay"><i class="fa-solid fa-gauge"></i> Send Delay</label>
+              <select class="sv2-input sv2-delay-select" id="svDelay" title="Delay between each message send" aria-label="Send delay between messages">
                 <option value="800">Fast · 0.8s</option>
                 <option value="1200" selected>Balanced · 1.2s</option>
                 <option value="2000">Safe · 2s</option>
@@ -2567,15 +2578,66 @@ window.getCsrfToken = async (forceRefresh = false) => {
     </div>
 
   </div><!-- /app-body -->
+
+  <nav class="app-mobile-nav" id="appMobileNav" aria-label="App navigation">
+    <button type="button" class="app-mobile-nav__item active" data-view="home" aria-current="page">
+      <i class="fa-solid fa-house" aria-hidden="true"></i>
+      <span>Home</span>
+    </button>
+    <button type="button" class="app-mobile-nav__item" data-view="broadcast">
+      <i class="fa-solid fa-bullhorn" aria-hidden="true"></i>
+      <span>Send</span>
+    </button>
+    <button type="button" class="app-mobile-nav__item" data-view="messenger">
+      <i class="fa-brands fa-facebook-messenger" aria-hidden="true"></i>
+      <span>Inbox</span>
+    </button>
+    <button type="button" class="app-mobile-nav__item" data-view="scheduling">
+      <i class="fa-solid fa-clock" aria-hidden="true"></i>
+      <span>Schedule</span>
+    </button>
+    <button type="button" class="app-mobile-nav__item" data-view="more" id="appMobileNavMore" aria-haspopup="dialog" aria-expanded="false" aria-controls="appMobileMore">
+      <i class="fa-solid fa-ellipsis" aria-hidden="true"></i>
+      <span>More</span>
+    </button>
+  </nav>
+
+  <div class="app-mobile-more" id="appMobileMore" role="dialog" aria-modal="true" aria-label="More options" aria-hidden="true">
+    <div class="app-mobile-more__panel" id="appMobileMorePanel">
+      <div class="app-mobile-more__hdr">
+        <span>More</span>
+        <button type="button" class="app-mobile-more__close" id="appMobileMoreClose" aria-label="Close menu">
+          <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+        </button>
+      </div>
+      <div class="app-mobile-more__grid">
+        <button type="button" class="app-mobile-more__action" data-view="analytics">
+          <i class="fa-solid fa-chart-line" aria-hidden="true"></i> Analytics
+        </button>
+        <button type="button" class="app-mobile-more__action" data-view="settings">
+          <i class="fa-solid fa-gear" aria-hidden="true"></i> Settings
+        </button>
+        <button type="button" class="app-mobile-more__action" data-view="help">
+          <i class="fa-solid fa-circle-question" aria-hidden="true"></i> Help
+        </button>
+        <button type="button" class="app-mobile-more__action" id="appMobileMoreAi">
+          <i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i> AI Assistant
+        </button>
+        <button type="button" class="app-mobile-more__action" id="appMobileMoreSupport">
+          <i class="fa-brands fa-facebook-messenger" aria-hidden="true"></i> Contact Support
+        </button>
+      </div>
+    </div>
+  </div>
 </div><!-- /appPage -->
 
 
 <!-- ═══ SCHEDULE BROADCAST MODAL ═══ -->
-<div class="sched-overlay" id="schedModal" style="display:none" onclick="if(event.target===this)closeScheduleModal()">
+<div class="sched-overlay" id="schedModal" role="dialog" aria-modal="true" aria-labelledby="schedModalTitle" aria-hidden="true" style="display:none" onclick="if(event.target===this)closeScheduleModal()">
   <div class="sched-modal">
     <div class="sched-modal-hdr">
-      <div class="sched-modal-title"><i class="fa-solid fa-clock"></i> Schedule Broadcast</div>
-      <button class="sched-modal-close" onclick="closeScheduleModal()"><i class="fa-solid fa-xmark"></i></button>
+      <div class="sched-modal-title" id="schedModalTitle"><i class="fa-solid fa-clock" aria-hidden="true"></i> Schedule Broadcast</div>
+      <button type="button" class="sched-modal-close" onclick="closeScheduleModal()" aria-label="Close schedule dialog"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
     </div>
     <div class="sched-modal-body">
       <div class="sched-field">
@@ -2784,14 +2846,14 @@ window.getCsrfToken = async (forceRefresh = false) => {
 
 
 <script src="https://js.stripe.com/v3/" defer></script>
-<script src="assets/js/user-data.js?v={{VER}}"></script>
+<script src="assets/js/user-data.js?v={{VER}}" defer></script>
 <script src="assets/js/index-page.js?v={{VER}}" defer></script>
 <script src="assets/js/ui-components.js?v={{VER}}" defer></script>
-<script src="assets/js/app-shell.js?v={{VER}}"></script>
+<script src="assets/js/app-shell.js?v={{VER}}" defer></script>
 <script src="assets/js/billing-status.js?v={{VER}}" defer></script>
 <script src="assets/js/billing.js?v={{VER}}" defer></script>
-<script src="fb_api.js?v={{VER}}"></script>
-<script src="web_ui.js?v={{VER}}"></script>
+<script src="fb_api.js?v={{VER}}" defer></script>
+<script src="web_ui.js?v={{VER}}" defer></script>
 <script src="assets/js/home-dashboard.js?v={{VER}}" defer></script>
 <script src="assets/js/analytics-dashboard.js?v={{VER}}" defer></script>
 <script src="assets/js/settings-extras.js?v={{VER}}" defer></script>
@@ -2800,9 +2862,9 @@ window.getCsrfToken = async (forceRefresh = false) => {
 <script src="assets/js/ai-assistant.js?v={{VER}}" defer></script>
 <script src="assets/js/app-pro.js?v={{VER}}" defer></script>
 
-<script src="/socket.io/socket.io.js"></script>
-<script src="assets/js/inbox.js?v={{VER}}"></script>
-<script src="assets/js/messenger.js?v={{VER}}"></script>
+<script src="/socket.io/socket.io.js" defer></script>
+<script src="assets/js/inbox.js?v={{VER}}" defer></script>
+<script src="assets/js/messenger.js?v={{VER}}" defer></script>
 
 <script>
 (function(){

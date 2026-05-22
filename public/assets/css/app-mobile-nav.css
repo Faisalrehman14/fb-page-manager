@@ -1,0 +1,226 @@
+/**
+ * FBCast Pro — Mobile dashboard navigation (bottom bar + more sheet)
+ */
+
+.app-mobile-nav {
+  display: none;
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 120;
+  height: calc(60px + env(safe-area-inset-bottom, 0px));
+  padding: 6px 8px calc(6px + env(safe-area-inset-bottom, 0px));
+  background: rgba(8, 12, 28, 0.96);
+  border-top: 1px solid var(--border2, rgba(255, 255, 255, 0.11));
+  backdrop-filter: blur(20px) saturate(160%);
+  box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.35);
+  grid-template-columns: repeat(5, 1fr);
+  gap: 4px;
+  align-items: stretch;
+}
+
+body.app-dashboard-active .app-mobile-nav {
+  display: grid;
+}
+
+.app-mobile-nav__item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  min-height: 48px;
+  padding: 4px 2px;
+  border: none;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--text3, #7d8cb0);
+  font-family: inherit;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.app-mobile-nav__item i {
+  font-size: 17px;
+  line-height: 1;
+}
+
+.app-mobile-nav__item:hover,
+.app-mobile-nav__item:focus-visible {
+  color: var(--text, #edf3ff);
+  background: rgba(255, 255, 255, 0.06);
+  outline: none;
+}
+
+.app-mobile-nav__item:focus-visible {
+  box-shadow: 0 0 0 2px var(--primary-light, #4f9fff);
+}
+
+.app-mobile-nav__item.active,
+.app-mobile-nav__item[aria-current='page'] {
+  color: var(--primary-light, #4f9fff);
+  background: rgba(8, 102, 255, 0.14);
+}
+
+.app-mobile-nav__item.active i,
+.app-mobile-nav__item[aria-current='page'] i {
+  color: var(--primary-light, #4f9fff);
+}
+
+/* More menu sheet */
+.app-mobile-more {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 130;
+  background: rgba(3, 8, 20, 0.55);
+  backdrop-filter: blur(4px);
+  align-items: flex-end;
+  justify-content: center;
+  padding: 0 12px calc(72px + env(safe-area-inset-bottom, 0px));
+}
+
+.app-mobile-more.open {
+  display: flex;
+}
+
+.app-mobile-more__panel {
+  width: 100%;
+  max-width: 420px;
+  background: var(--surface2, #112042);
+  border: 1px solid var(--border2);
+  border-radius: 16px 16px 12px 12px;
+  padding: 12px;
+  box-shadow: 0 -12px 40px rgba(0, 0, 0, 0.45);
+  animation: mobileMoreIn 0.22s ease;
+}
+
+@keyframes mobileMoreIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.app-mobile-more__hdr {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 8px 10px;
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text3);
+}
+
+.app-mobile-more__close {
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--border2);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text2);
+  cursor: pointer;
+}
+
+.app-mobile-more__grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+
+.app-mobile-more__action {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: rgba(0, 0, 0, 0.2);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.app-mobile-more__action:hover,
+.app-mobile-more__action:focus-visible {
+  background: rgba(99, 102, 241, 0.12);
+  border-color: rgba(139, 156, 255, 0.3);
+  outline: none;
+}
+
+.app-mobile-more__action i {
+  width: 18px;
+  color: #a5b4fc;
+}
+
+.app-mobile-more__action.active {
+  border-color: rgba(99, 102, 241, 0.45);
+  background: rgba(99, 102, 241, 0.18);
+  color: var(--primary-light);
+}
+
+@media (min-width: 901px) {
+  .app-mobile-nav,
+  .app-mobile-more {
+    display: none !important;
+  }
+}
+
+@media (max-width: 900px) {
+  body.app-dashboard-active #appPage .app-body {
+    padding-bottom: calc(64px + env(safe-area-inset-bottom, 0px));
+  }
+
+  body.app-dashboard-active.shell-messenger #view-messenger .msng-layout {
+    padding-bottom: 0;
+  }
+}
+
+/* Light theme */
+html[data-theme='light'] .app-mobile-nav,
+body.light .app-mobile-nav {
+  background: rgba(255, 255, 255, 0.96);
+  border-top-color: rgba(99, 102, 241, 0.14);
+  box-shadow: 0 -4px 24px rgba(15, 23, 42, 0.08);
+}
+
+html[data-theme='light'] .app-mobile-nav__item,
+body.light .app-mobile-nav__item {
+  color: #64748b;
+}
+
+html[data-theme='light'] .app-mobile-nav__item.active,
+html[data-theme='light'] .app-mobile-nav__item[aria-current='page'],
+body.light .app-mobile-nav__item.active,
+body.light .app-mobile-nav__item[aria-current='page'] {
+  color: #1d4ed8;
+  background: rgba(99, 102, 241, 0.1);
+}
+
+html[data-theme='light'] .app-mobile-more__panel,
+body.light .app-mobile-more__panel {
+  background: #ffffff;
+  border-color: rgba(99, 102, 241, 0.16);
+}
+
+html[data-theme='light'] .app-mobile-more__action,
+body.light .app-mobile-more__action {
+  background: #f8fafc;
+  color: #0f172a;
+  border-color: #e2e8f0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-mobile-more__panel {
+    animation: none;
+  }
+}

@@ -256,4 +256,16 @@ body.shell-messenger .nav-sidebar { display: flex !important; }
 @media (max-width: 900px) {
   .nav-sidebar { display: none !important; }
   .app-topbar { padding: 0 var(--ds-space-4, 16px); }
+  #appPage {
+    flex-direction: column;
+  }
+  #appPage > .app-body {
+    flex: 1;
+    min-height: 0;
+  }
+}
+
+html[data-theme='light'] .app-topbar,
+body.light .app-topbar {
+  background: rgba(255, 255, 255, 0.94);
 }

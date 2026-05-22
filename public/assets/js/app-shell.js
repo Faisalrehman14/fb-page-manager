@@ -94,10 +94,27 @@
     return document.getElementById(id);
   }
 
+  const MORE_VIEWS = ['analytics', 'settings', 'help'];
+
   function setNavActive(view) {
-    document.querySelectorAll('.nav-side-item').forEach((el) => {
+    const isMoreView = MORE_VIEWS.includes(view);
+    document.querySelectorAll('.nav-side-item[data-view]').forEach((el) => {
+      el.classList.toggle('active', el.dataset.view === view);
+      if (el.tagName === 'A') {
+        el.setAttribute('aria-current', el.dataset.view === view ? 'page' : 'false');
+      }
+    });
+    document.querySelectorAll('.app-mobile-nav__item[data-view]').forEach((el) => {
+      const v = el.dataset.view;
+      const on = v === view || (v === 'more' && isMoreView);
+      el.classList.toggle('active', on);
+      el.setAttribute('aria-current', on ? 'page' : 'false');
+    });
+    document.querySelectorAll('.app-mobile-more__action[data-view]').forEach((el) => {
       el.classList.toggle('active', el.dataset.view === view);
     });
+    const moreBtn = $('appMobileNavMore');
+    if (moreBtn) moreBtn.setAttribute('aria-expanded', isMoreView ? 'true' : 'false');
   }
 
   function setBreadcrumb(view) {
@@ -138,6 +155,7 @@
 
   function navigate(view) {
     if (!VIEWS[view]) view = 'home';
+    closeMobileMore();
     const prev = VIEWS[currentView];
     const next = VIEWS[view];
 
@@ -169,13 +187,83 @@
     }
   }
 
+  function closeMobileMore() {
+    const sheet = $('appMobileMore');
+    if (!sheet) return;
+    sheet.classList.remove('open');
+    sheet.setAttribute('aria-hidden', 'true');
+    const moreBtn = $('appMobileNavMore');
+    if (moreBtn) moreBtn.setAttribute('aria-expanded', 'false');
+  }
+
+  function openMobileMore() {
+    const sheet = $('appMobileMore');
+    if (!sheet) return;
+    sheet.classList.add('open');
+    sheet.setAttribute('aria-hidden', 'false');
+    const moreBtn = $('appMobileNavMore');
+    if (moreBtn) moreBtn.setAttribute('aria-expanded', 'true');
+  }
+
+  function initMobileNav() {
+    document.querySelectorAll('.app-mobile-nav__item[data-view]').forEach((el) => {
+      el.addEventListener('click', (e) => {
+        e.preventDefault();
+        const v = el.dataset.view;
+        if (v === 'more') {
+          openMobileMore();
+          return;
+        }
+        closeMobileMore();
+        navigate(v);
+      });
+    });
+
+    const sheet = $('appMobileMore');
+    const closeBtn = $('appMobileMoreClose');
+    if (closeBtn) closeBtn.addEventListener('click', closeMobileMore);
+    if (sheet) {
+      sheet.addEventListener('click', (e) => {
+        if (e.target === sheet) closeMobileMore();
+      });
+    }
+
+    document.querySelectorAll('.app-mobile-more__action[data-view]').forEach((el) => {
+      el.addEventListener('click', () => {
+        closeMobileMore();
+        navigate(el.dataset.view);
+      });
+    });
+
+    const aiBtn = $('appMobileMoreAi');
+    if (aiBtn) {
+      aiBtn.addEventListener('click', () => {
+        closeMobileMore();
+        if (global.fbcastAI && typeof global.fbcastAI.toggle === 'function') global.fbcastAI.toggle();
+      });
+    }
+    const supportBtn = $('appMobileMoreSupport');
+    if (supportBtn) {
+      supportBtn.addEventListener('click', () => {
+        closeMobileMore();
+        if (global.fbcastSupport && typeof global.fbcastSupport.open === 'function') global.fbcastSupport.open();
+      });
+    }
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') closeMobileMore();
+    });
+  }
+
   function initNav() {
     document.querySelectorAll('.nav-side-item[data-view]').forEach((el) => {
       el.addEventListener('click', (e) => {
         e.preventDefault();
+        closeMobileMore();
         navigate(el.dataset.view);
       });
     });
+    initMobileNav();
   }
 
   function persistBootstrapData(data) {
