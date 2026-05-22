@@ -29,23 +29,22 @@ This application **enforces strict compliance** with Facebook's messaging polici
 
 ## 📁 Project Structure
 
+See **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** for the full layout.
+
 ```
-├── .env.example          # Environment variables template
-├── README.md             # This file
-├── public/               # Frontend (static files)
-│   ├── index.html        # Home page with login
-│   ├── dashboard.html    # Pages list
-│   ├── inbox.html        # Conversations list
-│   ├── thread.html       # Message thread view
-│   ├── privacy.html      # Privacy Policy
-│   ├── terms.html        # Terms of Service
-│   ├── css/
-│   │   └── styles.css    # Main stylesheet
-│   └── js/
-│       └── app.js        # Frontend JavaScript
-└── server/               # Backend (Node.js/Express)
-    ├── index.js          # Server entry point
-    └── package.json      # Dependencies
+├── docs/ARCHITECTURE.md    # Architecture & conventions
+├── public/
+│   ├── index.html          # SPA (landing + dashboard)
+│   ├── admin2.html         # Admin panel
+│   └── assets/
+│       ├── css/            # Layered stylesheets
+│       └── js/
+│           ├── core/       # fb_api.js, web_ui.js
+│           └── …           # Feature modules (messenger, billing, …)
+└── server/
+    ├── index.js            # Entry: npm start
+    ├── createApp.js        # Express + static files
+    └── routes/register.js  # API + SPA render
 ```
 
 ## 🚀 Setup Instructions
