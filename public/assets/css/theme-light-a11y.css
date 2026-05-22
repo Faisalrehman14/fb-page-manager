@@ -467,6 +467,17 @@ body.light .mobile-menu-close {
   border-color: rgba(99, 102, 241, 0.2) !important;
 }
 
+/* ─── Upgrade modal promo strip ─── */
+html[data-theme='light'] .modal-promo-strip,
+body.light .modal-promo-strip {
+  color: #334155 !important;
+}
+
+html[data-theme='light'] .modal-promo-strip strong,
+body.light .modal-promo-strip strong {
+  color: #c2410c !important;
+}
+
 /* ─── Pricing gold accent (readable on white) ─── */
 html[data-theme='light'] .price-card--gold .price-amount,
 body.light .price-card--gold .price-amount {

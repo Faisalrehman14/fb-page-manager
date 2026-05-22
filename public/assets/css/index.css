@@ -2035,11 +2035,15 @@ body.light .badge-cancelled{background:rgba(71,85,105,.1)!important;color:#47556
   background:linear-gradient(90deg,rgba(239,68,68,.12),rgba(251,146,60,.12));
   border:1px solid rgba(239,68,68,.3);
   border-radius:8px;padding:6px 14px;
-  font-size:12px;color:rgba(255,255,255,.85);
+  font-size:12px;color:var(--text2);
   margin-top:8px;
   animation:promo-pulse 3s ease-in-out infinite;
 }
 .modal-promo-strip strong{color:#fb923c}
+body.light .modal-promo-strip,
+html[data-theme='light'] .modal-promo-strip{color:#334155!important}
+body.light .modal-promo-strip strong,
+html[data-theme='light'] .modal-promo-strip strong{color:#c2410c!important}
 
 /* Modal 50% OFF badge */
 .modal-off-badge{
