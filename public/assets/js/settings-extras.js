@@ -22,16 +22,23 @@
   function loadSettings() {
     try {
       const raw = localStorage.getItem(LS_KEY);
-      if (!raw) return JSON.parse(JSON.stringify(DEFAULTS));
-      const parsed = JSON.parse(raw);
-      return {
-        appearance: { ...DEFAULTS.appearance, ...(parsed.appearance || {}) },
-        safety:     { ...DEFAULTS.safety,     ...(parsed.safety     || {}) },
-        quiet:      { ...DEFAULTS.quiet,      ...(parsed.quiet      || {}) },
-        notify:     { ...DEFAULTS.notify,     ...(parsed.notify     || {}) }
+      const base = raw ? JSON.parse(raw) : {};
+      const merged = {
+        appearance: { ...DEFAULTS.appearance, ...(base.appearance || {}) },
+        safety:     { ...DEFAULTS.safety,     ...(base.safety     || {}) },
+        quiet:      { ...DEFAULTS.quiet,      ...(base.quiet      || {}) },
+        notify:     { ...DEFAULTS.notify,     ...(base.notify     || {}) }
       };
+      if (!raw || !base.appearance || !base.appearance.theme) {
+        const promo = localStorage.getItem('promo_theme');
+        if (promo === 'light' || promo === 'dark') merged.appearance.theme = promo;
+      }
+      return merged;
     } catch (_) {
-      return JSON.parse(JSON.stringify(DEFAULTS));
+      const fallback = JSON.parse(JSON.stringify(DEFAULTS));
+      const promo = localStorage.getItem('promo_theme');
+      if (promo === 'light' || promo === 'dark') fallback.appearance.theme = promo;
+      return fallback;
     }
   }
 
@@ -193,11 +200,20 @@
     });
   }
 
+  function syncThemeFromStorage() {
+    const mode = typeof global.readAppearanceTheme === 'function'
+      ? global.readAppearanceTheme()
+      : state.appearance.theme;
+    state.appearance.theme = mode;
+    setSegmented('settingsThemeSeg', 'theme', mode);
+    return mode;
+  }
+
   function init() {
-    setSegmented('settingsThemeSeg',   'theme',   state.appearance.theme);
+    const themeMode = syncThemeFromStorage();
     setSegmented('settingsDensitySeg', 'density', state.appearance.density);
     applyDensity(state.appearance.density);
-    applyTheme(state.appearance.theme, { instant: true });
+    applyTheme(themeMode, { instant: true });
     if (state.appearance.theme === 'system' && window.matchMedia) {
       const mq = window.matchMedia('(prefers-color-scheme: light)');
       const onSys = () => {
@@ -210,7 +226,18 @@
     bindSegmented('settingsThemeSeg', 'theme', (v) => {
       state.appearance.theme = v;
       saveSettings(state);
-      applyTheme(v);
+      if (typeof global.persistAppearanceTheme === 'function') {
+        if (v === 'light' || v === 'dark') global.persistAppearanceTheme(v);
+      }
+      applyTheme(v, { instant: true });
+    });
+
+    document.addEventListener('fbcast:theme-change', (e) => {
+      const mode = e.detail && e.detail.mode;
+      if (!mode) return;
+      state.appearance.theme = mode;
+      setSegmented('settingsThemeSeg', 'theme', mode);
+      saveSettings(state);
     });
     bindSegmented('settingsDensitySeg', 'density', (v) => {
       state.appearance.density = v;

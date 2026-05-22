@@ -920,9 +920,9 @@ window.getCsrfToken = async (forceRefresh = false) => {
         <button type="button" class="saas-topbar__icon-btn" title="Settings" onclick="if(typeof switchDashboardView==='function')switchDashboardView('settings')">
           <i class="fa-solid fa-gear" aria-hidden="true"></i>
         </button>
-        <label class="theme-toggle theme-toggle-wrap" title="Toggle light or dark mode">
-          <span class="sr-only">Dark mode</span>
-          <input type="checkbox" id="themeToggle" checked aria-label="Use dark mode when checked, light mode when unchecked">
+        <label class="theme-toggle theme-toggle-wrap" title="Toggle light or dark mode" id="themeToggleWrap">
+          <span class="sr-only" id="themeToggleLabel">Dark mode on</span>
+          <input type="checkbox" id="themeToggle" checked aria-labelledby="themeToggleLabel" aria-label="Dark mode on when checked, light mode when unchecked">
           <span class="tt-track">
             <i class="fa-solid fa-moon tt-icon tt-icon--dark"></i>
             <i class="fa-solid fa-sun tt-icon tt-icon--light"></i>

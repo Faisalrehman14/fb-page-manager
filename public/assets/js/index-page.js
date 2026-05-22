@@ -1464,10 +1464,32 @@ function persistAppearanceTheme(mode) {
     base.appearance.theme = mode;
     localStorage.setItem('fbcast.settings.v1', JSON.stringify(base));
   } catch (_) {}
+  try {
+    document.dispatchEvent(new CustomEvent('fbcast:theme-change', { detail: { mode } }));
+  } catch (_) {}
 }
 
 /* Theme — shared landing + dashboard */
-function _applyThemeDom(isLight) {
+function _syncThemeToggleUi(isLight) {
+  const topToggle = document.getElementById('themeToggle');
+  if (topToggle) topToggle.checked = !isLight;
+  const toggleLabel = document.getElementById('themeToggleLabel');
+  if (toggleLabel) toggleLabel.textContent = isLight ? 'Light mode on' : 'Dark mode on';
+  const toggleWrap = document.getElementById('themeToggleWrap');
+  if (toggleWrap) toggleWrap.title = isLight ? 'Switch to dark mode' : 'Switch to light mode';
+  const landIcon = document.getElementById('landingThemeIcon');
+  if (landIcon) {
+    landIcon.className = isLight ? 'fa-solid fa-moon' : 'fa-solid fa-sun';
+  }
+  const landBtn = document.getElementById('landingThemeToggle');
+  if (landBtn) {
+    landBtn.setAttribute('aria-label', isLight ? 'Switch to dark mode' : 'Switch to light mode');
+    landBtn.setAttribute('title', isLight ? 'Switch to dark mode' : 'Switch to light mode');
+  }
+}
+
+function _applyThemeDom(isLight, options) {
+  const opts = options || {};
   const target = isLight ? 'light' : 'dark';
   document.documentElement.classList.add('theme-switching');
   document.body.classList.toggle('light', isLight);
@@ -1478,19 +1500,17 @@ function _applyThemeDom(isLight) {
   localStorage.setItem('promo_theme', target);
   const metaTheme = document.querySelector('meta[name="theme-color"]:not([media])');
   if (metaTheme) metaTheme.setAttribute('content', isLight ? '#eef2ff' : '#060a16');
-  const topToggle = document.getElementById('themeToggle');
-  if (topToggle) topToggle.checked = !isLight;
-  const landIcon = document.getElementById('landingThemeIcon');
-  if (landIcon) {
-    landIcon.className = isLight ? 'fa-solid fa-moon' : 'fa-solid fa-sun';
-  }
-  const landBtn = document.getElementById('landingThemeToggle');
-  if (landBtn) landBtn.setAttribute('aria-label', isLight ? 'Switch to dark mode' : 'Switch to light mode');
-  requestAnimationFrame(function () {
+  _syncThemeToggleUi(isLight);
+  const clearSwitching = function () {
+    document.documentElement.classList.remove('theme-switching');
+  };
+  if (opts.instant) {
+    clearSwitching();
+  } else {
     requestAnimationFrame(function () {
-      document.documentElement.classList.remove('theme-switching');
+      requestAnimationFrame(clearSwitching);
     });
-  });
+  }
 }
 
 function _themeCrossfadeFallback(applyFn, isLight) {
@@ -1514,9 +1534,9 @@ function _themeCrossfadeFallback(applyFn, isLight) {
           setTimeout(function () {
             overlay.remove();
             resolve();
-          }, 400);
+          }, 220);
         });
-      }, 40);
+      }, 16);
     });
   });
 }
@@ -1526,9 +1546,12 @@ function setAppTheme(isLight, options) {
   const target = isLight ? 'light' : 'dark';
   const current = document.documentElement.getAttribute('data-theme');
   const bodyLight = document.body.classList.contains('light');
-  if (current === target && bodyLight === isLight) return Promise.resolve();
+  if (current === target && bodyLight === isLight) {
+    _syncThemeToggleUi(isLight);
+    return Promise.resolve();
+  }
 
-  const apply = function () { _applyThemeDom(isLight); };
+  const apply = function () { _applyThemeDom(isLight, opts); };
 
   if (opts.instant) {
     apply();
@@ -1554,7 +1577,7 @@ window.persistAppearanceTheme = persistAppearanceTheme;
 window.readAppearanceTheme = readAppearanceTheme;
 window.toggleAppTheme = function () {
   const nextLight = document.documentElement.getAttribute('data-theme') !== 'light';
-  setAppTheme(nextLight);
+  setAppTheme(nextLight, { instant: true });
   persistAppearanceTheme(nextLight ? 'light' : 'dark');
 };
 
@@ -1575,13 +1598,15 @@ function applyTheme() {
   }
 }
 
+window.applyTheme = applyTheme;
+
 (function () {
   const topToggle = document.getElementById('themeToggle');
   if (topToggle) {
     topToggle.addEventListener('change', function () {
-      const isDark = this.checked;
-      setAppTheme(!isDark);
-      persistAppearanceTheme(isDark ? 'dark' : 'light');
+      const wantLight = !this.checked;
+      setAppTheme(wantLight, { instant: true });
+      persistAppearanceTheme(wantLight ? 'light' : 'dark');
     });
   }
   const landToggle = document.getElementById('landingThemeToggle');
@@ -1590,6 +1615,7 @@ function applyTheme() {
       toggleAppTheme();
     });
   }
+  _syncThemeToggleUi(document.documentElement.getAttribute('data-theme') === 'light');
 })();
 
 /* Periodic server sync (every 45s) */
