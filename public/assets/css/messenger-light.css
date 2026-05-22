@@ -12,7 +12,7 @@ body.light #view-messenger {
   --msng-bubble-them: #ffffff;
   --msng-text: #0f172a;
   --msng-text-sub: #334155;
-  --msng-text-muted: #64748b;
+  --msng-text-muted: #475569;
   --msng-border: rgba(99, 102, 241, 0.14);
   background: #f1f5f9 !important;
   border-color: #e2e8f0 !important;
@@ -70,7 +70,7 @@ body.light #view-messenger .msng-pages-hdr,
 body.light #view-messenger .msng-convs-hdr {
   background: linear-gradient(180deg, rgba(99, 102, 241, 0.06), transparent) !important;
   border-bottom-color: #e2e8f0 !important;
-  color: #64748b !important;
+  color: #475569 !important;
 }
 
 html[data-theme='light'] #view-messenger .msng-convs-title,
@@ -115,7 +115,7 @@ html[data-theme='light'] #view-messenger .msng-page-sub,
 body.light #view-messenger .msng-ci-last,
 body.light #view-messenger .msng-ci-time,
 body.light #view-messenger .msng-page-sub {
-  color: #64748b !important;
+  color: #475569 !important;
 }
 
 html[data-theme='light'] #view-messenger .msng-conv-item.unread .msng-ci-last,
@@ -148,13 +148,13 @@ body.light #view-messenger .msng-search-input {
 
 html[data-theme='light'] #view-messenger .msng-search-input::placeholder,
 body.light #view-messenger .msng-search-input::placeholder {
-  color: #94a3b8 !important;
+  color: #576375 !important;
   opacity: 1 !important;
 }
 
 html[data-theme='light'] #view-messenger .msng-filter-chip,
 body.light #view-messenger .msng-filter-chip {
-  color: #64748b !important;
+  color: #475569 !important;
   border-color: #e2e8f0 !important;
   background: #f8fafc !important;
 }
@@ -210,7 +210,7 @@ body.light #view-messenger .msng-chat-hdr-name {
 
 html[data-theme='light'] #view-messenger .msng-chat-hdr-sub,
 body.light #view-messenger .msng-chat-hdr-sub {
-  color: #64748b !important;
+  color: #475569 !important;
 }
 
 /* Message bubbles */
@@ -224,7 +224,7 @@ body.light #view-messenger .msng-msg:not(.from-me) .msng-bubble {
 
 html[data-theme='light'] #view-messenger .msng-msg.from-me .msng-bubble,
 body.light #view-messenger .msng-msg.from-me .msng-bubble {
-  background: linear-gradient(135deg, #3b82f6, #2563eb) !important;
+  background: linear-gradient(135deg, #2563eb, #1d4ed8) !important;
   color: #ffffff !important;
   box-shadow: 0 4px 14px rgba(37, 99, 235, 0.25) !important;
 }
@@ -233,7 +233,7 @@ html[data-theme='light'] #view-messenger .msng-msg-time,
 html[data-theme='light'] #view-messenger .msng-date-sep,
 body.light #view-messenger .msng-msg-time,
 body.light #view-messenger .msng-date-sep {
-  color: #64748b !important;
+  color: #475569 !important;
 }
 
 html[data-theme='light'] #view-messenger .msng-date-sep::before,
@@ -245,12 +245,12 @@ body.light #view-messenger .msng-date-sep::after {
 
 html[data-theme='light'] #view-messenger .msng-msg.from-me .msng-tick--sending,
 body.light #view-messenger .msng-msg.from-me .msng-tick--sending {
-  color: #94a3b8 !important;
+  color: #576375 !important;
 }
 
 html[data-theme='light'] #view-messenger .msng-msg.from-me .msng-tick--sent,
 body.light #view-messenger .msng-msg.from-me .msng-tick--sent {
-  color: #64748b !important;
+  color: #475569 !important;
 }
 
 html[data-theme='light'] #view-messenger .msng-msg.from-me .msng-tick--delivered,
@@ -260,7 +260,7 @@ body.light #view-messenger .msng-msg.from-me .msng-tick--delivered {
 
 html[data-theme='light'] #view-messenger .msng-msg.from-me .msng-tick--read,
 body.light #view-messenger .msng-msg.from-me .msng-tick--read {
-  color: #2563eb !important;
+  color: #1d4ed8 !important;
 }
 
 html[data-theme='light'] #view-messenger .msng-media-placeholder,
@@ -309,7 +309,7 @@ body.light #view-messenger .msng-textarea {
 
 html[data-theme='light'] #view-messenger .msng-textarea::placeholder,
 body.light #view-messenger .msng-textarea::placeholder {
-  color: #94a3b8 !important;
+  color: #576375 !important;
   opacity: 1 !important;
 }
 
@@ -331,7 +331,7 @@ body.light #view-messenger .msng-input-btn.active {
 
 html[data-theme='light'] #view-messenger .msng-char-count,
 body.light #view-messenger .msng-char-count {
-  color: #64748b !important;
+  color: #475569 !important;
 }
 
 /* Scrollbars */

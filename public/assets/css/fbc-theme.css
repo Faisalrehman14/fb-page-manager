@@ -259,8 +259,11 @@ html[data-theme='light'] {
 
   --text: #0c1222;
   --text2: #334155;
-  --text3: #64748b;
+  --text3: #475569;
+  --primary: #1d4ed8;
   --primary-light: #2563eb;
+  --primary-dim: rgba(29, 78, 216, 0.1);
+  --primary-glow: rgba(29, 78, 216, 0.25);
 
   --border: rgba(99, 102, 241, 0.12);
   --border2: rgba(124, 58, 237, 0.2);
@@ -276,7 +279,7 @@ html[data-theme='light'] {
   --fbc-purple-dim: rgba(124, 58, 237, 0.1);
 
   --fbc-canvas:
-    radial-gradient(ellipse 80% 50% at 20% -10%, rgba(167, 139, 250, 0.15), transparent 50%),
+    radial-gradient(ellipse 80% 55% at 20% -10%, rgba(167, 139, 250, 0.15), transparent 50%),
     radial-gradient(ellipse 60% 40% at 90% 0%, rgba(96, 165, 250, 0.12), transparent 45%),
     var(--bg);
 
@@ -289,6 +292,17 @@ html[data-theme='light'] {
   --premium-shadow-hover:
     0 0 0 1px rgba(99, 102, 241, 0.18),
     0 12px 32px rgba(99, 102, 241, 0.1);
+
+  /* Accessible Semantic Colors */
+  --green: #166534;
+  --red: #b91c1c;
+  --amber: #9a3412;
+}
+
+body.light :focus-visible,
+html[data-theme='light'] :focus-visible {
+  outline: 2px solid #1d4ed8 !important;
+  outline-offset: 2px !important;
 }
 
 body.light {

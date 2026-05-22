@@ -11,7 +11,7 @@ body.light #landingPage {
     0 0 0 1px rgba(15, 23, 42, 0.04),
     0 4px 24px rgba(99, 102, 241, 0.08);
   --lp-heading: #0c1222;
-  --lp-muted: #64748b;
+  --lp-muted: #475569;
   background: var(--fbc-canvas) !important;
   color: var(--lp-heading);
 }
@@ -87,7 +87,7 @@ body.light #landingPage .mobile-menu-link {
 
 html[data-theme='light'] #landingPage .mobile-menu-close,
 body.light #landingPage .mobile-menu-close {
-  color: #64748b !important;
+  color: #475569 !important;
 }
 
 /* Hero */
@@ -192,7 +192,7 @@ body.light #landingPage .metric .counter-num {
 
 html[data-theme='light'] #landingPage .metric-lbl,
 body.light #landingPage .metric-lbl {
-  color: #64748b !important;
+  color: #475569 !important;
 }
 
 html[data-theme='light'] #landingPage .metric,
@@ -212,7 +212,7 @@ body.light #landingPage .hero-metric-val {
 
 html[data-theme='light'] #landingPage .hero-metric-lbl,
 body.light #landingPage .hero-metric-lbl {
-  color: #64748b !important;
+  color: #475569 !important;
 }
 
 html[data-theme='light'] #landingPage .hero-preview-frame,
@@ -231,7 +231,7 @@ body.light #landingPage .marquee-strip {
 
 html[data-theme='light'] #landingPage .marquee-item,
 body.light #landingPage .marquee-item {
-  color: #64748b !important;
+  color: #475569 !important;
 }
 
 html[data-theme='light'] #landingPage .stats-proof-section,
@@ -251,7 +251,7 @@ body.light #landingPage .stats-proof-num {
 
 html[data-theme='light'] #landingPage .stats-proof-lbl,
 body.light #landingPage .stats-proof-lbl {
-  color: #64748b !important;
+  color: #475569 !important;
 }
 
 /* Big feature */
@@ -291,7 +291,7 @@ body.light #landingPage .section-sub {
 
 html[data-theme='light'] #landingPage .section-label,
 body.light #landingPage .section-label {
-  color: #6366f1 !important;
+  color: #4338ca !important;
   background: rgba(99, 102, 241, 0.1) !important;
   border-color: rgba(99, 102, 241, 0.2) !important;
 }
@@ -336,12 +336,12 @@ html[data-theme='light'] #landingPage .pricing-grid--6 .price-name,
 html[data-theme='light'] #landingPage .pricing-grid--6 .price-card:nth-child(n) .price-name,
 body.light #landingPage .pricing-grid--6 .price-name,
 body.light #landingPage .pricing-grid--6 .price-card:nth-child(n) .price-name {
-  color: #64748b !important;
+  color: #475569 !important;
 }
 
 html[data-theme='light'] #landingPage .pricing-grid--6 .price-card--gold .price-name,
 body.light #landingPage .pricing-grid--6 .price-card--gold .price-name {
-  color: #4f46e5 !important;
+  color: #4338ca !important;
 }
 
 html[data-theme='light'] #landingPage .pricing-grid--6 .price-amount,
@@ -365,7 +365,7 @@ html[data-theme='light'] #landingPage .pricing-grid--6 .price-original,
 html[data-theme='light'] #landingPage .pricing-grid--6 .price-original s,
 body.light #landingPage .pricing-grid--6 .price-original,
 body.light #landingPage .pricing-grid--6 .price-original s {
-  color: #94a3b8 !important;
+  color: #576375 !important;
 }
 
 html[data-theme='light'] #landingPage .pricing-grid--6 .price-feats li,
@@ -378,12 +378,12 @@ html[data-theme='light'] #landingPage .pricing-grid--6 .price-billing,
 html[data-theme='light'] #landingPage .pricing-grid--6 .price-amount sub,
 body.light #landingPage .pricing-grid--6 .price-billing,
 body.light #landingPage .pricing-grid--6 .price-amount sub {
-  color: #64748b !important;
+  color: #475569 !important;
 }
 
 html[data-theme='light'] #landingPage .billing-toggle button,
 body.light #landingPage .billing-toggle button {
-  color: #64748b !important;
+  color: #475569 !important;
 }
 
 html[data-theme='light'] #landingPage .billing-toggle button.active,
@@ -400,7 +400,7 @@ body.light #landingPage .billing-toggle {
 
 html[data-theme='light'] #landingPage .billing-toggle button,
 body.light #landingPage .billing-toggle button {
-  color: #64748b !important;
+  color: #475569 !important;
 }
 
 html[data-theme='light'] #landingPage .billing-toggle button.active,
@@ -454,17 +454,17 @@ body.light #landingPage .trust-item {
 
 html[data-theme='light'] #landingPage .trust-item i,
 body.light #landingPage .trust-item i {
-  color: #6366f1 !important;
+  color: #4338ca !important;
 }
 
 html[data-theme='light'] #landingPage .cta-note-item,
 body.light #landingPage .cta-note-item {
-  color: #64748b !important;
+  color: #475569 !important;
 }
 
 html[data-theme='light'] #landingPage .cta-note-item i,
 body.light #landingPage .cta-note-item i {
-  color: #059669 !important;
+  color: #166534 !important;
 }
 
 /* Stats strip */
@@ -481,12 +481,12 @@ html[data-theme='light'] #landingPage .proof-label,
 html[data-theme='light'] #landingPage .proof-sub,
 body.light #landingPage .proof-label,
 body.light #landingPage .proof-sub {
-  color: #64748b !important;
+  color: #475569 !important;
 }
 
 html[data-theme='light'] #landingPage .stat-strip-lbl,
 body.light #landingPage .stat-strip-lbl {
-  color: #64748b !important;
+  color: #475569 !important;
 }
 
 /* Hero preview mock UI */
@@ -497,7 +497,7 @@ body.light #landingPage .hp-stat-num {
 
 html[data-theme='light'] #landingPage .hp-stat-lbl,
 body.light #landingPage .hp-stat-lbl {
-  color: #64748b !important;
+  color: #475569 !important;
 }
 
 html[data-theme='light'] #landingPage .hero-preview-topbar,
@@ -529,7 +529,7 @@ body.light #landingPage .pro-compare__table {
 html[data-theme='light'] #landingPage .pro-compare__table th,
 body.light #landingPage .pro-compare__table th {
   background: #f1f5f9 !important;
-  color: #64748b !important;
+  color: #475569 !important;
   border-bottom-color: #e2e8f0 !important;
 }
 
@@ -573,7 +573,7 @@ body.light #landingPage .testimonial-name {
 
 html[data-theme='light'] #landingPage .testimonial-role,
 body.light #landingPage .testimonial-role {
-  color: #64748b !important;
+  color: #475569 !important;
 }
 
 html[data-theme='light'] #landingPage .testimonial-author,
@@ -619,12 +619,12 @@ html[data-theme='light'] #landingPage .footer-brand-tagline,
 html[data-theme='light'] #landingPage .footer-col-links a,
 body.light #landingPage .footer-brand-tagline,
 body.light #landingPage .footer-col-links a {
-  color: #64748b !important;
+  color: #475569 !important;
 }
 
 html[data-theme='light'] #landingPage .footer-col-title,
 body.light #landingPage .footer-col-title {
-  color: #94a3b8 !important;
+  color: #475569 !important;
 }
 
 html[data-theme='light'] #landingPage .footer-col-links a:hover,
@@ -634,6 +634,6 @@ body.light #landingPage .footer-col-links a:hover {
 
 html[data-theme='light'] #landingPage .footer-bottom,
 body.light #landingPage .footer-bottom {
-  color: #94a3b8 !important;
+  color: #475569 !important;
   border-top-color: #e2e8f0 !important;
 }

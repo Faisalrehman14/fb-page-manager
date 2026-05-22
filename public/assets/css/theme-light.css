@@ -45,7 +45,7 @@ body.light #appPage .saas-topbar .topbar-title h1 {
 
 html[data-theme='light'] #appPage .saas-topbar .topbar-title p,
 body.light #appPage .saas-topbar .topbar-title p {
-  color: #64748b !important;
+  color: #475569 !important;
 }
 
 html[data-theme='light'] #appPage .saas-topbar .quota-widget,
@@ -65,7 +65,7 @@ body.light #appPage #loginStatus {
 
 html[data-theme='light'] #appPage .saas-topbar__quota-values .quota-num,
 body.light #appPage .saas-topbar__quota-values .quota-num {
-  color: #059669 !important;
+  color: #166534 !important;
 }
 
 html[data-theme='light'] #appPage .saas-topbar__icon-btn,
@@ -190,7 +190,7 @@ html[data-theme='light'] #view-home .hv-sync-time,
 body.light #view-home .hv-metrics-eyebrow,
 body.light #view-home .hv-kpi-lbl,
 body.light #view-home .hv-sync-time {
-  color: #64748b !important;
+  color: #475569 !important;
 }
 
 html[data-theme='light'] #view-home .hv-hero-status,
@@ -236,7 +236,7 @@ body.light #view-home .hv-hero-sched-title i {
 
 html[data-theme='light'] #view-home .hv-hero-sched-empty,
 body.light #view-home .hv-hero-sched-empty {
-  color: #64748b !important;
+  color: #475569 !important;
   background: #f8fafc !important;
   border-color: #e2e8f0 !important;
 }
@@ -268,17 +268,17 @@ body.light #view-home .hv-panel-hdr {
 
 html[data-theme='light'] #view-home .hv-green,
 body.light #view-home .hv-green {
-  color: #059669 !important;
+  color: #166534 !important;
 }
 
 html[data-theme='light'] #view-home .hv-amber,
 body.light #view-home .hv-amber {
-  color: #d97706 !important;
+  color: #9a3412 !important;
 }
 
 html[data-theme='light'] #view-home .hv-red,
 body.light #view-home .hv-red {
-  color: #dc2626 !important;
+  color: #b91c1c !important;
 }
 
 html[data-theme='light'] #view-home .hv-sched-main-item,
@@ -311,7 +311,7 @@ html[data-theme='light'] #view-home .hv-half-stat-lbl,
 html[data-theme='light'] #view-home .hv-ph-half-stat-lbl,
 body.light #view-home .hv-half-stat-lbl,
 body.light #view-home .hv-ph-half-stat-lbl {
-  color: #64748b !important;
+  color: #475569 !important;
 }
 
 /* Plan card */
@@ -378,7 +378,7 @@ body.light #view-home .hv-pstatus-badge {
 html[data-theme='light'] #view-home .hv-qa-card-blue .hv-qa-card-icon,
 body.light #view-home .hv-qa-card-blue .hv-qa-card-icon {
   background: rgba(59, 130, 246, 0.12) !important;
-  color: #2563eb !important;
+  color: #1d4ed8 !important;
 }
 
 html[data-theme='light'] #view-home .hv-qa-card-cyan .hv-qa-card-icon,
@@ -459,7 +459,7 @@ html[data-theme='light'] #appPage input::placeholder,
 html[data-theme='light'] #appPage textarea::placeholder,
 body.light #appPage input::placeholder,
 body.light #appPage textarea::placeholder {
-  color: #94a3b8 !important;
+  color: #576375 !important;
 }
 
 /* Tables in light */
@@ -620,7 +620,7 @@ html[data-theme='light'] #appPage .text-muted,
 body.light #appPage .stat-lbl,
 body.light #appPage .muted,
 body.light #appPage .text-muted {
-  color: #64748b !important;
+  color: #475569 !important;
 }
 
 /* Scheduling view — light overrides live in scheduling.css */
@@ -637,7 +637,7 @@ html[data-theme='light'] #view-scheduling .sv2-sub,
 html[data-theme='light'] #view-scheduling .sv2-muted,
 body.light #view-scheduling .sv2-sub,
 body.light #view-scheduling .sv2-muted {
-  color: #64748b !important;
+  color: #475569 !important;
 }
 
 /* Modals & overlays in app */
@@ -682,7 +682,7 @@ html[data-theme='light'] #appPage .saas-topbar__breadcrumb,
 body.light #appPage .saas-topbar__breadcrumb {
   background: #f1f5f9 !important;
   border: 1px solid #e2e8f0 !important;
-  color: #64748b !important;
+  color: #475569 !important;
 }
 
 html[data-theme='light'] #appPage .saas-topbar__breadcrumb strong,
@@ -718,7 +718,7 @@ html[data-theme='light'] #appPage .page-card-cat,
 html[data-theme='light'] #appPage .page-category,
 body.light #appPage .page-card-cat,
 body.light #appPage .page-category {
-  color: #64748b !important;
+  color: #475569 !important;
 }
 
 html[data-theme='light'] #appPage .page-card.active,
@@ -751,7 +751,7 @@ body.light #appPage .stip-item {
 
 html[data-theme='light'] #appPage .stip-green,
 body.light #appPage .stip-green {
-  color: #059669 !important;
+  color: #166534 !important;
 }
 
 html[data-theme='light'] #appPage .stip-item strong,
@@ -782,14 +782,14 @@ body.light #appPage #messageText {
 
 html[data-theme='light'] #appPage #messageText::placeholder,
 body.light #appPage #messageText::placeholder {
-  color: #94a3b8 !important;
+  color: #576375 !important;
 }
 
 html[data-theme='light'] #appPage #charCount,
 html[data-theme='light'] #appPage .msg-personalize-label,
 body.light #appPage #charCount,
 body.light #appPage .msg-personalize-label {
-  color: #64748b !important;
+  color: #475569 !important;
 }
 
 html[data-theme='light'] #appPage .img-attach-panel,
@@ -803,12 +803,12 @@ body.light #appPage .img-drop-zone {
 
 html[data-theme='light'] #appPage .img-drop-zone i,
 body.light #appPage .img-drop-zone i {
-  color: #2563eb !important;
+  color: #1d4ed8 !important;
 }
 
 html[data-theme='light'] #appPage .img-drop-zone small,
 body.light #appPage .img-drop-zone small {
-  color: #64748b !important;
+  color: #475569 !important;
 }
 
 html[data-theme='light'] #appPage .compose-notice,
@@ -851,7 +851,7 @@ body.light #appPage .bcast-mini-stat {
 
 html[data-theme='light'] #appPage .bcast-mini-stat-lbl,
 body.light #appPage .bcast-mini-stat-lbl {
-  color: #64748b !important;
+  color: #475569 !important;
 }
 
 html[data-theme='light'] #appPage .bms-total .bcast-mini-stat-val,
@@ -861,12 +861,12 @@ body.light #appPage .bms-total .bcast-mini-stat-val {
 
 html[data-theme='light'] #appPage .bms-sent .bcast-mini-stat-val,
 body.light #appPage .bms-sent .bcast-mini-stat-val {
-  color: #059669 !important;
+  color: #166534 !important;
 }
 
 html[data-theme='light'] #appPage .bms-failed .bcast-mini-stat-val,
 body.light #appPage .bms-failed .bcast-mini-stat-val {
-  color: #dc2626 !important;
+  color: #b91c1c !important;
 }
 
 /* Templates & tips */
@@ -919,22 +919,22 @@ body.light #appPage .qs-val {
 
 html[data-theme='light'] #appPage .qs-lbl,
 body.light #appPage .qs-lbl {
-  color: #64748b !important;
+  color: #475569 !important;
 }
 
 html[data-theme='light'] #appPage .qs-success .qs-val,
 body.light #appPage .qs-success .qs-val {
-  color: #059669 !important;
+  color: #166534 !important;
 }
 
 html[data-theme='light'] #appPage .qs-speed .qs-val,
 body.light #appPage .qs-speed .qs-val {
-  color: #2563eb !important;
+  color: #1d4ed8 !important;
 }
 
 html[data-theme='light'] #appPage .qs-pending .qs-val,
 body.light #appPage .qs-pending .qs-val {
-  color: #d97706 !important;
+  color: #9a3412 !important;
 }
 
 html[data-theme='light'] #appPage .qs-audience .qs-val,
@@ -951,7 +951,7 @@ body.light #appPage .stat-box {
 
 html[data-theme='light'] #appPage .stat-lbl,
 body.light #appPage .stat-lbl {
-  color: #64748b !important;
+  color: #475569 !important;
 }
 
 html[data-theme='light'] #appPage .stat-val,
@@ -962,17 +962,17 @@ body.light #appPage .stat-val {
 
 html[data-theme='light'] #appPage .stat-box.s-total .stat-val,
 body.light #appPage .stat-box.s-total .stat-val {
-  color: #2563eb !important;
+  color: #1d4ed8 !important;
 }
 
 html[data-theme='light'] #appPage .stat-box.s-sent .stat-val,
 body.light #appPage .stat-box.s-sent .stat-val {
-  color: #059669 !important;
+  color: #166534 !important;
 }
 
 html[data-theme='light'] #appPage .stat-box.s-failed .stat-val,
 body.light #appPage .stat-box.s-failed .stat-val {
-  color: #dc2626 !important;
+  color: #b91c1c !important;
 }
 
 html[data-theme='light'] #appPage .progress-bar-area,
@@ -985,7 +985,7 @@ html[data-theme='light'] #appPage .progress-left,
 html[data-theme='light'] #appPage .eta-text,
 body.light #appPage .progress-left,
 body.light #appPage .eta-text {
-  color: #64748b !important;
+  color: #475569 !important;
 }
 
 html[data-theme='light'] #appPage .progress-pct,
@@ -1013,7 +1013,7 @@ html[data-theme='light'] #appPage .intel-label,
 html[data-theme='light'] #appPage .ops-row-label,
 body.light #appPage .intel-label,
 body.light #appPage .ops-row-label {
-  color: #64748b !important;
+  color: #475569 !important;
 }
 
 html[data-theme='light'] #appPage .intel-val,
@@ -1025,12 +1025,12 @@ body.light #appPage .intel-advice {
 
 html[data-theme='light'] #appPage .intel-neutral,
 body.light #appPage .intel-neutral {
-  color: #2563eb !important;
+  color: #1d4ed8 !important;
 }
 
 html[data-theme='light'] #appPage .intel-good,
 body.light #appPage .intel-good {
-  color: #059669 !important;
+  color: #166534 !important;
 }
 
 html[data-theme='light'] #appPage .ops-badge-green,

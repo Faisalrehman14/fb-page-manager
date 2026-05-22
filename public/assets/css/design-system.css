@@ -259,7 +259,7 @@ html[data-theme="light"] {
   --surface3: #eaf1ff;
   --text: #061640;
   --text2: #3a5080;
-  --text3: #7090b8;
+  --text3: #475569;
   --border: rgba(8, 102, 255, 0.1);
   --border2: rgba(8, 102, 255, 0.15);
   --ds-bg: var(--bg);
@@ -269,4 +269,10 @@ html[data-theme="light"] {
   --ds-text-muted: var(--text2);
   --ds-text-subtle: var(--text3);
   --ds-border: var(--border);
+
+  /* Accessible Semantic Colors */
+  --ds-success: #166534;
+  --ds-warning: #9a3412;
+  --ds-danger: #b91c1c;
+  --ds-info: #1d4ed8;
 }

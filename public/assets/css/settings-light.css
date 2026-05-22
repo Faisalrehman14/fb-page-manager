@@ -16,7 +16,7 @@ body.light #view-settings .pro-view__scroll {
 
 html[data-theme='light'] #view-settings .pro-view__eyebrow,
 body.light #view-settings .pro-view__eyebrow {
-  color: #6366f1 !important;
+  color: #4338ca !important;
 }
 
 html[data-theme='light'] #view-settings .pro-view__title,
@@ -75,7 +75,7 @@ html[data-theme='light'] #view-settings .settings-card p,
 html[data-theme='light'] #view-settings .saas-billing-card__sub,
 body.light #view-settings .settings-card p,
 body.light #view-settings .saas-billing-card__sub {
-  color: #64748b !important;
+  color: #475569 !important;
 }
 
 html[data-theme='light'] #view-settings .saas-plan-badge,
@@ -99,7 +99,7 @@ body.light #view-settings .saas-usage-bar {
 
 html[data-theme='light'] #view-settings .saas-usage-meta,
 body.light #view-settings .saas-usage-meta {
-  color: #64748b !important;
+  color: #475569 !important;
 }
 
 html[data-theme='light'] #view-settings #saasPlanName,
@@ -112,7 +112,7 @@ html[data-theme='light'] #view-settings .delay-opt,
 body.light #view-settings .delay-opt {
   background: #f8fafc !important;
   border: 1px solid #e2e8f0 !important;
-  color: #64748b !important;
+  color: #475569 !important;
 }
 
 html[data-theme='light'] #view-settings .delay-opt:hover,
@@ -173,7 +173,7 @@ html[data-theme='light'] #view-settings .settings-btn--danger:hover,
 body.light #view-settings .settings-btn--danger:hover {
   background: #fef2f2 !important;
   border-color: rgba(239, 68, 68, 0.35) !important;
-  color: #dc2626 !important;
+  color: #b91c1c !important;
 }
 
 /* Design-system buttons in billing card */
