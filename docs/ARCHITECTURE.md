@@ -31,7 +31,9 @@ fb-page-manager-main/
 │   ├── config/                # env, paths, plans
 │   ├── middleware/            # auth, csrf, session, legacy PHP aliases
 │   ├── routes/
-│   │   ├── register.js        # Main API + SPA HTML render
+│   │   ├── register.js        # Orchestrates domain routers
+│   │   ├── lib/register-context.js
+│   │   ├── domains/           # webhook, oauth, admin, inbox-legacy, broadcast, spa, …
 │   │   ├── billing.js         # Stripe
 │   │   └── composer.js        # Route wiring
 │   ├── messenger/             # Messenger API module
@@ -43,9 +45,9 @@ fb-page-manager-main/
 
 ## Frontend load order
 
-CSS loads in cascade: `index.css` → brand (`fbc-theme`) → components → view CSS → light overrides → `theme-final` → `saas-polish` → `theme-light-a11y` → `ui-overhaul`.
+CSS loads in cascade: `index.css` → brand (`fbc-theme`) → components → view CSS → `theme-light.bundle.css` (merged light overrides) → `theme-final` → `saas-polish` → `ui-overhaul`. `messenger.js` loads on demand when entering the Messenger view (`app-shell.js`).
 
-JS: `user-data` → `index-page` → `ui-components` → `app-shell` → billing → **core** (`fb_api`, `web_ui`) → feature modules → `messenger` → inline helpers.
+JS: `user-data` → `index-page` → `ui-components` → `app-shell` → billing → **core** (`fb_api`, `web_ui`) → feature modules → inline helpers. `messenger.js` is injected when the Messenger view opens.
 
 ## PHP compatibility URLs
 
@@ -58,8 +60,3 @@ Meta OAuth and legacy clients use paths like `/oauth_callback.php`. These are **
 - Unused npm: `crypto-js`, `express-mysql-session`
 - Orphan images and `payment_status.html` (Stripe returns to `/?payment=…`)
 
-## Future consolidation (optional)
-
-- Merge overlapping theme CSS into fewer files
-- Lazy-load `messenger.js` when opening Messenger view
-- Split `register.js` into domain routers under `server/routes/domains/`

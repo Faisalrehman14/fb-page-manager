@@ -5,6 +5,33 @@
 (function (global) {
   'use strict';
 
+  let messengerScriptPromise = null;
+
+  function assetVersion() {
+    const probe = document.querySelector('script[src*="fb_api.js"]');
+    if (!probe) return '';
+    const m = probe.src.match(/[?&]v=([^&]+)/);
+    return m ? m[1] : '';
+  }
+
+  function loadMessengerScript() {
+    if (typeof global.msngInit === 'function') return Promise.resolve();
+    if (messengerScriptPromise) return messengerScriptPromise;
+    messengerScriptPromise = new Promise((resolve, reject) => {
+      const s = document.createElement('script');
+      const v = assetVersion();
+      s.src = 'assets/js/messenger.js' + (v ? '?v=' + encodeURIComponent(v) : '');
+      s.defer = true;
+      s.onload = () => resolve();
+      s.onerror = () => {
+        messengerScriptPromise = null;
+        reject(new Error('Failed to load messenger.js'));
+      };
+      document.head.appendChild(s);
+    });
+    return messengerScriptPromise;
+  }
+
   const VIEWS = {
     home: {
       label: 'Home',
@@ -36,8 +63,14 @@
       hideSidebar: false,
       bodyClass: 'shell-messenger',
       onEnter() {
-        if (typeof loadMessengerConversations === 'function') loadMessengerConversations();
         document.body.classList.add('in-messenger');
+        loadMessengerScript()
+          .then(() => {
+            if (typeof loadMessengerConversations === 'function') loadMessengerConversations();
+          })
+          .catch(() => {
+            if (typeof showStatus === 'function') showStatus('Could not load Messenger. Refresh and try again.', 'error');
+          });
       },
       onLeave() {
         document.body.classList.remove('in-messenger');

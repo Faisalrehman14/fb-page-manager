@@ -1,0 +1,3271 @@
+/* FBCast Pro — unified light theme (merged from theme-light*.css) */
+
+/* ========== theme-light.css ========== */
+/**
+ * FBCast Pro — Light mode readability fixes
+ * Loads last. Overrides dark-only hardcoded colors from dashboard-premium.css
+ */
+
+html[data-theme='light'],
+body.light {
+  color-scheme: light;
+}
+
+html[data-theme='light'] body,
+body.light {
+  color: var(--text, #0f172a);
+  background: var(--fbc-canvas, #eef2ff);
+}
+
+/* ─── Topbar ─── */
+html[data-theme='light'] #appPage .saas-topbar,
+body.light #appPage .saas-topbar {
+  background: rgba(255, 255, 255, 0.96) !important;
+  border-bottom: 1px solid rgba(99, 102, 241, 0.14) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 1),
+    0 4px 20px rgba(15, 23, 42, 0.06) !important;
+}
+
+html[data-theme='light'] #appPage .saas-topbar::after,
+body.light #appPage .saas-topbar::after {
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(99, 102, 241, 0.25) 30%,
+    rgba(124, 58, 237, 0.3) 70%,
+    transparent
+  ) !important;
+}
+
+html[data-theme='light'] #appPage .saas-topbar .topbar-title h1,
+body.light #appPage .saas-topbar .topbar-title h1 {
+  background: linear-gradient(135deg, #1e3a8a 0%, #5b21b6 100%) !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+}
+
+html[data-theme='light'] #appPage .saas-topbar .topbar-title p,
+body.light #appPage .saas-topbar .topbar-title p {
+  color: #475569 !important;
+}
+
+html[data-theme='light'] #appPage .saas-topbar .quota-widget,
+body.light #appPage .saas-topbar .quota-widget {
+  background: #f8fafc !important;
+  border: 1px solid rgba(99, 102, 241, 0.18) !important;
+}
+
+html[data-theme='light'] #appPage .saas-topbar__quota-values .quota-total-num,
+html[data-theme='light'] #appPage .topbar-user-name,
+html[data-theme='light'] #appPage #loginStatus,
+body.light #appPage .saas-topbar__quota-values .quota-total-num,
+body.light #appPage .topbar-user-name,
+body.light #appPage #loginStatus {
+  color: #334155 !important;
+}
+
+html[data-theme='light'] #appPage .saas-topbar__quota-values .quota-num,
+body.light #appPage .saas-topbar__quota-values .quota-num {
+  color: #166534 !important;
+}
+
+html[data-theme='light'] #appPage .saas-topbar__icon-btn,
+body.light #appPage .saas-topbar__icon-btn {
+  color: #475569 !important;
+  background: #f1f5f9 !important;
+  border-color: #e2e8f0 !important;
+}
+
+html[data-theme='light'] #appPage .saas-topbar__icon-btn:hover,
+body.light #appPage .saas-topbar__icon-btn:hover {
+  color: #1e3a8a !important;
+  background: #e0e7ff !important;
+}
+
+/* ─── Sidebar ─── */
+html[data-theme='light'] #appPage .nav-sidebar,
+body.light #appPage .nav-sidebar {
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%) !important;
+  box-shadow: 1px 0 0 #e2e8f0 !important;
+}
+
+html[data-theme='light'] #appPage .nav-side-item,
+body.light #appPage .nav-side-item {
+  color: #475569 !important;
+}
+
+html[data-theme='light'] #appPage .nav-side-item:hover,
+body.light #appPage .nav-side-item:hover {
+  color: #1e293b !important;
+  background: #f1f5f9 !important;
+}
+
+html[data-theme='light'] #appPage .nav-side-item.active,
+body.light #appPage .nav-side-item.active {
+  color: #1e3a8a !important;
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.12), rgba(124, 58, 237, 0.08)) !important;
+  box-shadow: inset 0 0 0 1px rgba(99, 102, 241, 0.2) !important;
+}
+
+/* ─── Home dashboard ─── */
+html[data-theme='light'] #view-home,
+body.light #view-home {
+  --hd-glass: #ffffff;
+  --hd-border: rgba(99, 102, 241, 0.16);
+  --prem-surface: #ffffff;
+  --prem-surface-2: #f8fafc;
+  --prem-surface-3: #f1f5f9;
+  --prem-edge: rgba(99, 102, 241, 0.14);
+  --prem-shadow:
+    0 0 0 1px rgba(15, 23, 42, 0.04),
+    0 4px 16px rgba(15, 23, 42, 0.06);
+  --prem-shadow-hover:
+    0 0 0 1px rgba(99, 102, 241, 0.2),
+    0 12px 32px rgba(99, 102, 241, 0.12);
+  background: linear-gradient(180deg, #e8eeff 0%, #f1f5ff 55%, #eef2ff 100%);
+}
+
+html[data-theme='light'] #view-home .hv-hero,
+body.light #view-home .hv-hero {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.9) 0%, transparent 35%),
+    linear-gradient(118deg, rgba(99, 102, 241, 0.12) 0%, rgba(167, 139, 250, 0.1) 50%, transparent 75%),
+    linear-gradient(180deg, #ffffff 0%, #f1f5ff 100%) !important;
+  border: 1px solid rgba(99, 102, 241, 0.18) !important;
+}
+
+html[data-theme='light'] #view-home .hv-hero-orb1,
+html[data-theme='light'] #view-home .hv-hero-orb2,
+body.light #view-home .hv-hero-orb1,
+body.light #view-home .hv-hero-orb2 {
+  opacity: 0.35;
+}
+
+html[data-theme='light'] #view-home .hv-hero-title,
+html[data-theme='light'] #view-home .hv-metrics-title,
+html[data-theme='light'] #view-home .hv-panel-title,
+html[data-theme='light'] #view-home .hv-kpi-val,
+html[data-theme='light'] #view-home .hv-plan-used,
+html[data-theme='light'] #view-home .hv-qa-card-label,
+html[data-theme='light'] #view-home .hv-hero-sched-title,
+html[data-theme='light'] #view-home .hv-pstatus-title,
+body.light #view-home .hv-hero-title,
+body.light #view-home .hv-metrics-title,
+body.light #view-home .hv-panel-title,
+body.light #view-home .hv-kpi-val,
+body.light #view-home .hv-plan-used,
+body.light #view-home .hv-qa-card-label,
+body.light #view-home .hv-hero-sched-title,
+body.light #view-home .hv-pstatus-title {
+  color: #0f172a !important;
+  text-shadow: none !important;
+}
+
+html[data-theme='light'] #view-home .hv-hero-name,
+body.light #view-home .hv-hero-name {
+  background: linear-gradient(135deg, #1d4ed8 0%, #6d28d9 100%) !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  filter: none !important;
+}
+
+html[data-theme='light'] #view-home .hv-hero-sub,
+html[data-theme='light'] #view-home .hv-panel-sub,
+html[data-theme='light'] #view-home .hv-qa-card-desc,
+html[data-theme='light'] #view-home .hv-sync-left,
+html[data-theme='light'] #view-home .hv-plan-feat,
+html[data-theme='light'] #view-home .hv-lifetime-desc,
+body.light #view-home .hv-hero-sub,
+body.light #view-home .hv-panel-sub,
+body.light #view-home .hv-qa-card-desc,
+body.light #view-home .hv-sync-left,
+body.light #view-home .hv-plan-feat,
+body.light #view-home .hv-lifetime-desc {
+  color: #475569 !important;
+}
+
+html[data-theme='light'] #view-home .hv-metrics-eyebrow,
+html[data-theme='light'] #view-home .hv-kpi-lbl,
+html[data-theme='light'] #view-home .hv-sync-time,
+body.light #view-home .hv-metrics-eyebrow,
+body.light #view-home .hv-kpi-lbl,
+body.light #view-home .hv-sync-time {
+  color: #475569 !important;
+}
+
+html[data-theme='light'] #view-home .hv-hero-status,
+body.light #view-home .hv-hero-status {
+  background: rgba(16, 185, 129, 0.12) !important;
+  border-color: rgba(5, 150, 105, 0.28) !important;
+  color: #047857 !important;
+}
+
+html[data-theme='light'] #view-home .hv-hero-badge-fb,
+body.light #view-home .hv-hero-badge-fb {
+  background: rgba(99, 102, 241, 0.1) !important;
+  border-color: rgba(99, 102, 241, 0.22) !important;
+  color: #4338ca !important;
+}
+
+html[data-theme='light'] #view-home .hv-hero-cta2,
+body.light #view-home .hv-hero-cta2 {
+  color: #1e293b !important;
+  background: #ffffff !important;
+  border: 1px solid rgba(99, 102, 241, 0.22) !important;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06) !important;
+}
+
+html[data-theme='light'] #view-home .hv-hero-cta2:hover,
+body.light #view-home .hv-hero-cta2:hover {
+  background: #f8fafc !important;
+  border-color: rgba(99, 102, 241, 0.35) !important;
+  color: #1e3a8a !important;
+}
+
+html[data-theme='light'] #view-home .hv-hero-sched-card,
+body.light #view-home .hv-hero-sched-card {
+  background: #ffffff !important;
+  border: 1px solid rgba(99, 102, 241, 0.16) !important;
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.06) !important;
+}
+
+html[data-theme='light'] #view-home .hv-hero-sched-title i,
+body.light #view-home .hv-hero-sched-title i {
+  color: #4f46e5 !important;
+}
+
+html[data-theme='light'] #view-home .hv-hero-sched-empty,
+body.light #view-home .hv-hero-sched-empty {
+  color: #475569 !important;
+  background: #f8fafc !important;
+  border-color: #e2e8f0 !important;
+}
+
+html[data-theme='light'] #view-home .hv-hero-sched-btn,
+body.light #view-home .hv-hero-sched-btn {
+  color: #4338ca !important;
+  background: #eef2ff !important;
+  border-color: rgba(99, 102, 241, 0.25) !important;
+}
+
+html[data-theme='light'] #view-home .hv-kpi,
+html[data-theme='light'] #view-home .hv-panel,
+html[data-theme='light'] #view-home .hv-qa-card,
+html[data-theme='light'] #view-home .hv-sync-bar,
+body.light #view-home .hv-kpi,
+body.light #view-home .hv-panel,
+body.light #view-home .hv-qa-card,
+body.light #view-home .hv-sync-bar {
+  background: #ffffff !important;
+  border-color: rgba(99, 102, 241, 0.12) !important;
+}
+
+html[data-theme='light'] #view-home .hv-panel-hdr,
+body.light #view-home .hv-panel-hdr {
+  background: #f8fafc !important;
+  border-bottom-color: #e2e8f0 !important;
+}
+
+html[data-theme='light'] #view-home .hv-green,
+body.light #view-home .hv-green {
+  color: #166534 !important;
+}
+
+html[data-theme='light'] #view-home .hv-amber,
+body.light #view-home .hv-amber {
+  color: #9a3412 !important;
+}
+
+html[data-theme='light'] #view-home .hv-red,
+body.light #view-home .hv-red {
+  color: #b91c1c !important;
+}
+
+html[data-theme='light'] #view-home .hv-sched-main-item,
+body.light #view-home .hv-sched-main-item {
+  background: #f8fafc !important;
+  border: 1px solid #e2e8f0 !important;
+}
+
+html[data-theme='light'] #view-home .hv-sched-main-item:hover,
+body.light #view-home .hv-sched-main-item:hover {
+  background: #eef2ff !important;
+  border-color: rgba(99, 102, 241, 0.25) !important;
+}
+
+html[data-theme='light'] #view-home .hv-half-stats,
+html[data-theme='light'] #view-home .hv-ph-half-stat,
+body.light #view-home .hv-half-stats,
+body.light #view-home .hv-ph-half-stat {
+  background: #f8fafc !important;
+}
+
+html[data-theme='light'] #view-home .hv-half-stat-val,
+html[data-theme='light'] #view-home .hv-ph-half-stat-val,
+body.light #view-home .hv-half-stat-val,
+body.light #view-home .hv-ph-half-stat-val {
+  color: #0f172a !important;
+}
+
+html[data-theme='light'] #view-home .hv-half-stat-lbl,
+html[data-theme='light'] #view-home .hv-ph-half-stat-lbl,
+body.light #view-home .hv-half-stat-lbl,
+body.light #view-home .hv-ph-half-stat-lbl {
+  color: #475569 !important;
+}
+
+/* Plan card */
+html[data-theme='light'] #view-home .hv-plan-card,
+body.light #view-home .hv-plan-card {
+  border-color: rgba(124, 58, 237, 0.3) !important;
+  box-shadow: 0 8px 32px rgba(99, 102, 241, 0.1) !important;
+}
+
+html[data-theme='light'] #view-home .hv-plan-card-bg,
+body.light #view-home .hv-plan-card-bg {
+  background: linear-gradient(165deg, #faf5ff 0%, #ffffff 55%, #f8fafc 100%) !important;
+}
+
+html[data-theme='light'] #view-home .hv-plan-badge,
+html[data-theme='light'] #view-home .hv-plan-badge span,
+html[data-theme='light'] #view-home .hv-plan-total,
+html[data-theme='light'] #view-home .hv-plan-pct,
+body.light #view-home .hv-plan-badge,
+body.light #view-home .hv-plan-badge span,
+body.light #view-home .hv-plan-total,
+body.light #view-home .hv-plan-pct {
+  color: #334155 !important;
+}
+
+html[data-theme='light'] #view-home .hv-plan-bar,
+body.light #view-home .hv-plan-bar {
+  background: #e2e8f0 !important;
+}
+
+html[data-theme='light'] #view-home .hv-lifetime-card,
+body.light #view-home .hv-lifetime-card {
+  border-color: rgba(245, 158, 11, 0.35) !important;
+}
+
+html[data-theme='light'] #view-home .hv-lifetime-bg,
+body.light #view-home .hv-lifetime-bg {
+  background: linear-gradient(135deg, #fffbeb, #fef3c7) !important;
+}
+
+html[data-theme='light'] #view-home .hv-lifetime-title,
+body.light #view-home .hv-lifetime-title {
+  color: #0f172a !important;
+}
+
+html[data-theme='light'] #view-home .hv-lifetime-btn,
+body.light #view-home .hv-lifetime-btn {
+  color: #1e3a8a !important;
+  background: #fff !important;
+  border-color: #e2e8f0 !important;
+}
+
+html[data-theme='light'] #view-home .hv-pstatus-name,
+body.light #view-home .hv-pstatus-name {
+  color: #334155 !important;
+}
+
+html[data-theme='light'] #view-home .hv-pstatus-badge,
+body.light #view-home .hv-pstatus-badge {
+  color: #047857 !important;
+}
+
+/* QA icon tints — keep readable on white */
+html[data-theme='light'] #view-home .hv-qa-card-blue .hv-qa-card-icon,
+body.light #view-home .hv-qa-card-blue .hv-qa-card-icon {
+  background: rgba(59, 130, 246, 0.12) !important;
+  color: #1d4ed8 !important;
+}
+
+html[data-theme='light'] #view-home .hv-qa-card-cyan .hv-qa-card-icon,
+body.light #view-home .hv-qa-card-cyan .hv-qa-card-icon {
+  background: rgba(6, 182, 212, 0.12) !important;
+  color: #0891b2 !important;
+}
+
+html[data-theme='light'] #view-home .hv-qa-card-green .hv-qa-card-icon,
+body.light #view-home .hv-qa-card-green .hv-qa-card-icon {
+  background: rgba(16, 185, 129, 0.12) !important;
+  color: #059669 !important;
+}
+
+html[data-theme='light'] #view-home .hv-qa-card-purple .hv-qa-card-icon,
+body.light #view-home .hv-qa-card-purple .hv-qa-card-icon {
+  background: rgba(124, 58, 237, 0.12) !important;
+  color: #7c3aed !important;
+}
+
+html[data-theme='light'] #view-home .hv-add-btn,
+html[data-theme='light'] #view-home .hv-add-btn-purple,
+body.light #view-home .hv-add-btn,
+body.light #view-home .hv-add-btn-purple {
+  color: #4338ca !important;
+  background: #eef2ff !important;
+  border-color: rgba(99, 102, 241, 0.25) !important;
+}
+
+/* Other app views */
+html[data-theme='light'] #appPage .compose,
+html[data-theme='light'] #appPage .compose-col,
+html[data-theme='light'] #appPage .sidebar,
+html[data-theme='light'] #appPage .broadcast-col,
+body.light #appPage .compose,
+body.light #appPage .compose-col,
+body.light #appPage .sidebar,
+body.light #appPage .broadcast-col {
+  background: #ffffff !important;
+  color: #0f172a !important;
+}
+
+html[data-theme='light'] #appPage .pro-card,
+html[data-theme='light'] #appPage .settings-section,
+html[data-theme='light'] #view-messenger,
+body.light #appPage .pro-card,
+body.light #appPage .settings-section,
+body.light #view-messenger {
+  background: #ffffff !important;
+  color: #0f172a !important;
+}
+
+html[data-theme='light'] #appPage label,
+html[data-theme='light'] #appPage .form-label,
+html[data-theme='light'] #appPage h1,
+html[data-theme='light'] #appPage h2,
+html[data-theme='light'] #appPage h3,
+body.light #appPage label,
+body.light #appPage .form-label,
+body.light #appPage h1,
+body.light #appPage h2,
+body.light #appPage h3 {
+  color: #0f172a;
+}
+
+html[data-theme='light'] #appPage input,
+html[data-theme='light'] #appPage textarea,
+html[data-theme='light'] #appPage select,
+body.light #appPage input,
+body.light #appPage textarea,
+body.light #appPage select {
+  color: #0f172a !important;
+  background-color: #ffffff !important;
+  border-color: #cbd5e1 !important;
+}
+
+html[data-theme='light'] #appPage input::placeholder,
+html[data-theme='light'] #appPage textarea::placeholder,
+body.light #appPage input::placeholder,
+body.light #appPage textarea::placeholder {
+  color: #576375 !important;
+}
+
+/* Tables in light */
+html[data-theme='light'] #appPage table th,
+body.light #appPage table th {
+  color: #475569 !important;
+  background: #f1f5f9 !important;
+}
+
+html[data-theme='light'] #appPage table td,
+body.light #appPage table td {
+  color: #334155 !important;
+}
+
+/* ─── App shell CSS vars (override dashboard-premium dark tokens) ─── */
+html[data-theme='light'] #appPage,
+body.light #appPage {
+  --prem-edge: rgba(99, 102, 241, 0.14);
+  --prem-edge-soft: rgba(99, 102, 241, 0.08);
+  --prem-surface: #ffffff;
+  --prem-surface-2: #f8fafc;
+  --prem-surface-3: #f1f5f9;
+  --prem-inset: inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  --prem-shadow:
+    0 0 0 1px rgba(15, 23, 42, 0.04),
+    0 4px 16px rgba(15, 23, 42, 0.06);
+  --prem-shadow-hover:
+    0 0 0 1px rgba(99, 102, 241, 0.2),
+    0 12px 32px rgba(99, 102, 241, 0.12);
+  background: var(--fbc-canvas, #eef2ff) !important;
+  color: #0f172a;
+}
+
+html[data-theme='light'] #appPage .nav-side-item.active,
+body.light #appPage .nav-side-item.active {
+  color: #1e3a8a !important;
+}
+
+/* saas-pro sidebar dark gradient */
+html[data-theme='light'] #appPage .nav-sidebar,
+body.light #appPage .nav-sidebar {
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%) !important;
+  box-shadow: 1px 0 0 #e2e8f0 !important;
+}
+
+html[data-theme='light'] #appPage .nav-side-item:hover:not(.active),
+body.light #appPage .nav-side-item:hover:not(.active) {
+  background: #f1f5f9 !important;
+}
+
+/* Legacy topbar (index.css) */
+html[data-theme='light'] #appPage .topbar-title h1,
+body.light #appPage .topbar-title h1 {
+  color: #0f172a !important;
+  background: linear-gradient(135deg, #1e3a8a 0%, #5b21b6 100%) !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+}
+
+/* ─── Analytics / Settings / Help pro views ─── */
+html[data-theme='light'] #view-analytics .analytics-kpi,
+html[data-theme='light'] #view-analytics .pro-history-item,
+body.light #view-analytics .analytics-kpi,
+body.light #view-analytics .pro-history-item {
+  background: #ffffff !important;
+  border-color: rgba(99, 102, 241, 0.12) !important;
+}
+
+html[data-theme='light'] #view-analytics .analytics-kpi .akpi-val,
+html[data-theme='light'] #view-analytics .analytics-kpi .akpi-lbl,
+html[data-theme='light'] #view-analytics .akpi-val,
+body.light #view-analytics .analytics-kpi .akpi-val,
+body.light #view-analytics .analytics-kpi .akpi-lbl,
+body.light #view-analytics .akpi-val {
+  color: #0f172a !important;
+}
+
+html[data-theme='light'] #view-analytics .analytics-period,
+body.light #view-analytics .analytics-period {
+  background: #f1f5f9 !important;
+  border-color: #e2e8f0 !important;
+}
+
+html[data-theme='light'] #view-analytics .period-btn,
+body.light #view-analytics .period-btn {
+  color: #475569 !important;
+}
+
+html[data-theme='light'] #view-analytics .analytics-chart-box,
+body.light #view-analytics .analytics-chart-box {
+  background: #f8fafc !important;
+  border-color: #e2e8f0 !important;
+}
+
+html[data-theme='light'] .pro-view__title,
+html[data-theme='light'] .pro-view__sub,
+html[data-theme='light'] .pro-history-item__title,
+html[data-theme='light'] .pro-history-item__meta,
+body.light .pro-view__title,
+body.light .pro-view__sub,
+body.light .pro-history-item__title,
+body.light .pro-history-item__meta {
+  color: inherit;
+}
+
+/* ─── Broadcast / Messenger panels ─── */
+html[data-theme='light'] #appPage .sidebar,
+html[data-theme='light'] #appPage .broadcast-col,
+html[data-theme='light'] #appPage .compose-col,
+html[data-theme='light'] #appPage .msg-panel,
+html[data-theme='light'] #appPage .broadcast-panel,
+body.light #appPage .sidebar,
+body.light #appPage .broadcast-col,
+body.light #appPage .compose-col,
+body.light #appPage .msg-panel,
+body.light #appPage .broadcast-panel {
+  background: #ffffff !important;
+  border-color: #e2e8f0 !important;
+}
+
+html[data-theme='light'] #appPage .sidebar-hdr h2,
+html[data-theme='light'] #appPage .broadcast-hdr h2,
+html[data-theme='light'] #appPage .compose-hdr h2,
+html[data-theme='light'] #appPage .panel-title,
+html[data-theme='light'] #appPage .section-title,
+body.light #appPage .sidebar-hdr h2,
+body.light #appPage .broadcast-hdr h2,
+body.light #appPage .compose-hdr h2,
+body.light #appPage .panel-title,
+body.light #appPage .section-title {
+  color: #0f172a !important;
+}
+
+html[data-theme='light'] #appPage .conv-item,
+html[data-theme='light'] #appPage .msg-row,
+body.light #appPage .conv-item,
+body.light #appPage .msg-row {
+  color: #334155 !important;
+}
+
+html[data-theme='light'] #appPage .conv-item.active,
+body.light #appPage .conv-item.active {
+  background: #eef2ff !important;
+  color: #1e3a8a !important;
+}
+
+html[data-theme='light'] #appPage .stat-num,
+html[data-theme='light'] #appPage .broadcast-stat-num,
+body.light #appPage .stat-num,
+body.light #appPage .broadcast-stat-num {
+  color: #0f172a !important;
+}
+
+html[data-theme='light'] #appPage .stat-lbl,
+html[data-theme='light'] #appPage .muted,
+html[data-theme='light'] #appPage .text-muted,
+body.light #appPage .stat-lbl,
+body.light #appPage .muted,
+body.light #appPage .text-muted {
+  color: #475569 !important;
+}
+
+/* Scheduling view — light overrides live in scheduling.css */
+html[data-theme='light'] #view-scheduling .sv2-title,
+html[data-theme='light'] #view-scheduling .sv2-h2,
+html[data-theme='light'] #view-scheduling label,
+body.light #view-scheduling .sv2-title,
+body.light #view-scheduling .sv2-h2,
+body.light #view-scheduling label {
+  color: #0f172a !important;
+}
+
+html[data-theme='light'] #view-scheduling .sv2-sub,
+html[data-theme='light'] #view-scheduling .sv2-muted,
+body.light #view-scheduling .sv2-sub,
+body.light #view-scheduling .sv2-muted {
+  color: #475569 !important;
+}
+
+/* Modals & overlays in app */
+html[data-theme='light'] #appPage .modal-box,
+html[data-theme='light'] #appPage .sched-modal,
+body.light #appPage .modal-box,
+body.light #appPage .sched-modal {
+  background: #ffffff !important;
+  color: #0f172a !important;
+  border-color: #e2e8f0 !important;
+}
+
+html[data-theme='light'] #appPage .sched-modal-title,
+html[data-theme='light'] #appPage .modal-title,
+body.light #appPage .sched-modal-title,
+body.light #appPage .modal-title {
+  color: #0f172a !important;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   BROADCAST WORKSPACE — professional light mode
+═══════════════════════════════════════════════════════════ */
+
+/* Premium glass panels (saas-premium) */
+html[data-theme='light'] #appPage .sidebar,
+html[data-theme='light'] #appPage .compose,
+html[data-theme='light'] #appPage .compose-col,
+html[data-theme='light'] #appPage .broadcast-col,
+body.light #appPage .sidebar,
+body.light #appPage .compose,
+body.light #appPage .compose-col,
+body.light #appPage .broadcast-col {
+  background: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  box-shadow:
+    0 0 0 1px rgba(15, 23, 42, 0.03),
+    0 4px 20px rgba(15, 23, 42, 0.06) !important;
+}
+
+/* Topbar breadcrumb */
+html[data-theme='light'] #appPage .saas-topbar__breadcrumb,
+body.light #appPage .saas-topbar__breadcrumb {
+  background: #f1f5f9 !important;
+  border: 1px solid #e2e8f0 !important;
+  color: #475569 !important;
+}
+
+html[data-theme='light'] #appPage .saas-topbar__breadcrumb strong,
+body.light #appPage .saas-topbar__breadcrumb strong {
+  color: #0f172a !important;
+}
+
+html[data-theme='light'] #appPage .saas-topbar__sep-v,
+body.light #appPage .saas-topbar__sep-v {
+  background: linear-gradient(180deg, transparent, #cbd5e1, transparent) !important;
+}
+
+/* Pages sidebar */
+html[data-theme='light'] #appPage .sidebar-hdr-label-left,
+body.light #appPage .sidebar-hdr-label-left {
+  color: #334155 !important;
+}
+
+html[data-theme='light'] #appPage .page-card,
+body.light #appPage .page-card {
+  background: #ffffff !important;
+  border-color: #e2e8f0 !important;
+}
+
+html[data-theme='light'] #appPage .page-card-name,
+html[data-theme='light'] #appPage .page-name,
+body.light #appPage .page-card-name,
+body.light #appPage .page-name {
+  color: #0f172a !important;
+}
+
+html[data-theme='light'] #appPage .page-card-cat,
+html[data-theme='light'] #appPage .page-category,
+body.light #appPage .page-card-cat,
+body.light #appPage .page-category {
+  color: #475569 !important;
+}
+
+html[data-theme='light'] #appPage .page-card.active,
+html[data-theme='light'] #appPage .page-card.selected,
+body.light #appPage .page-card.active,
+body.light #appPage .page-card.selected {
+  background: #eef2ff !important;
+  border-color: rgba(99, 102, 241, 0.28) !important;
+}
+
+html[data-theme='light'] #appPage .page-card.active .page-card-name,
+html[data-theme='light'] #appPage .page-card.active .page-name,
+body.light #appPage .page-card.active .page-card-name,
+body.light #appPage .page-card.active .page-name {
+  color: #1e3a8a !important;
+}
+
+html[data-theme='light'] #appPage .sidebar-tips,
+body.light #appPage .sidebar-tips {
+  background: #f8fafc !important;
+  border-color: #e2e8f0 !important;
+}
+
+html[data-theme='light'] #appPage .sidebar-tips-hdr,
+html[data-theme='light'] #appPage .stip-item,
+body.light #appPage .sidebar-tips-hdr,
+body.light #appPage .stip-item {
+  color: #475569 !important;
+}
+
+html[data-theme='light'] #appPage .stip-green,
+body.light #appPage .stip-green {
+  color: #166534 !important;
+}
+
+html[data-theme='light'] #appPage .stip-item strong,
+body.light #appPage .stip-item strong {
+  color: #1e293b !important;
+}
+
+/* Compose / message column */
+html[data-theme='light'] #appPage .compose-hdr,
+body.light #appPage .compose-hdr {
+  background: linear-gradient(180deg, #f8fafc, #ffffff) !important;
+  border-bottom-color: #e2e8f0 !important;
+}
+
+html[data-theme='light'] #appPage .compose-hdr h3,
+html[data-theme='light'] #appPage .field-label,
+body.light #appPage .compose-hdr h3,
+body.light #appPage .field-label {
+  color: #334155 !important;
+}
+
+html[data-theme='light'] #appPage #messageText,
+body.light #appPage #messageText {
+  background: #ffffff !important;
+  border-color: #cbd5e1 !important;
+  color: #0f172a !important;
+}
+
+html[data-theme='light'] #appPage #messageText::placeholder,
+body.light #appPage #messageText::placeholder {
+  color: #576375 !important;
+}
+
+html[data-theme='light'] #appPage #charCount,
+html[data-theme='light'] #appPage .msg-personalize-label,
+body.light #appPage #charCount,
+body.light #appPage .msg-personalize-label {
+  color: #475569 !important;
+}
+
+html[data-theme='light'] #appPage .img-attach-panel,
+html[data-theme='light'] #appPage .img-drop-zone,
+body.light #appPage .img-attach-panel,
+body.light #appPage .img-drop-zone {
+  background: #f8fafc !important;
+  border-color: #cbd5e1 !important;
+  color: #475569 !important;
+}
+
+html[data-theme='light'] #appPage .img-drop-zone i,
+body.light #appPage .img-drop-zone i {
+  color: #1d4ed8 !important;
+}
+
+html[data-theme='light'] #appPage .img-drop-zone small,
+body.light #appPage .img-drop-zone small {
+  color: #475569 !important;
+}
+
+html[data-theme='light'] #appPage .compose-notice,
+body.light #appPage .compose-notice {
+  background: #eff6ff !important;
+  border-color: rgba(59, 130, 246, 0.2) !important;
+  color: #334155 !important;
+}
+
+/* Settings / delay presets */
+html[data-theme='light'] #appPage .delay-preset,
+body.light #appPage .delay-preset {
+  background: #ffffff !important;
+  border-color: #e2e8f0 !important;
+  color: #334155 !important;
+}
+
+html[data-theme='light'] #appPage .delay-preset.active,
+body.light #appPage .delay-preset.active {
+  background: #eef2ff !important;
+  border-color: rgba(99, 102, 241, 0.35) !important;
+  color: #1e3a8a !important;
+  box-shadow: 0 0 0 1px rgba(99, 102, 241, 0.12) inset !important;
+}
+
+html[data-theme='light'] #appPage .field-hint,
+html[data-theme='light'] #appPage #sendHint,
+body.light #appPage .field-hint,
+body.light #appPage #sendHint {
+  color: #475569 !important;
+  background: #f1f5f9 !important;
+  border-color: #e2e8f0 !important;
+}
+
+html[data-theme='light'] #appPage .bcast-mini-stat,
+body.light #appPage .bcast-mini-stat {
+  background: #f8fafc !important;
+  border-color: #e2e8f0 !important;
+}
+
+html[data-theme='light'] #appPage .bcast-mini-stat-lbl,
+body.light #appPage .bcast-mini-stat-lbl {
+  color: #475569 !important;
+}
+
+html[data-theme='light'] #appPage .bms-total .bcast-mini-stat-val,
+body.light #appPage .bms-total .bcast-mini-stat-val {
+  color: #0f172a !important;
+}
+
+html[data-theme='light'] #appPage .bms-sent .bcast-mini-stat-val,
+body.light #appPage .bms-sent .bcast-mini-stat-val {
+  color: #166534 !important;
+}
+
+html[data-theme='light'] #appPage .bms-failed .bcast-mini-stat-val,
+body.light #appPage .bms-failed .bcast-mini-stat-val {
+  color: #b91c1c !important;
+}
+
+/* Templates & tips */
+html[data-theme='light'] #appPage .tpl-item,
+html[data-theme='light'] #appPage .tip-item,
+body.light #appPage .tpl-item,
+body.light #appPage .tip-item {
+  background: #f8fafc !important;
+  border-color: #e2e8f0 !important;
+}
+
+html[data-theme='light'] #appPage .tpl-name,
+body.light #appPage .tpl-name {
+  color: #0f172a !important;
+}
+
+html[data-theme='light'] #appPage .tpl-preview,
+html[data-theme='light'] #appPage .tip-item,
+body.light #appPage .tpl-preview,
+body.light #appPage .tip-item {
+  color: #475569 !important;
+}
+
+/* ─── Stats panel (right column) ─── */
+html[data-theme='light'] #appPage .stats-panel,
+body.light #appPage .stats-panel {
+  background: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  box-shadow:
+    0 0 0 1px rgba(15, 23, 42, 0.03),
+    0 8px 28px rgba(15, 23, 42, 0.06) !important;
+}
+
+html[data-theme='light'] #appPage .panel-hdr > span:first-child,
+body.light #appPage .panel-hdr > span:first-child {
+  color: #334155 !important;
+}
+
+html[data-theme='light'] #appPage .quick-stat-card,
+body.light #appPage .quick-stat-card {
+  background: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04) !important;
+}
+
+html[data-theme='light'] #appPage .qs-val,
+body.light #appPage .qs-val {
+  color: #0f172a !important;
+}
+
+html[data-theme='light'] #appPage .qs-lbl,
+body.light #appPage .qs-lbl {
+  color: #475569 !important;
+}
+
+html[data-theme='light'] #appPage .qs-success .qs-val,
+body.light #appPage .qs-success .qs-val {
+  color: #166534 !important;
+}
+
+html[data-theme='light'] #appPage .qs-speed .qs-val,
+body.light #appPage .qs-speed .qs-val {
+  color: #1d4ed8 !important;
+}
+
+html[data-theme='light'] #appPage .qs-pending .qs-val,
+body.light #appPage .qs-pending .qs-val {
+  color: #9a3412 !important;
+}
+
+html[data-theme='light'] #appPage .qs-audience .qs-val,
+body.light #appPage .qs-audience .qs-val {
+  color: #7c3aed !important;
+}
+
+/* Total / Sent / Failed strip */
+html[data-theme='light'] #appPage .stat-box,
+body.light #appPage .stat-box {
+  background: #f8fafc !important;
+  border-color: #e2e8f0 !important;
+}
+
+html[data-theme='light'] #appPage .stat-lbl,
+body.light #appPage .stat-lbl {
+  color: #475569 !important;
+}
+
+html[data-theme='light'] #appPage .stat-val,
+body.light #appPage .stat-val {
+  color: #0f172a !important;
+  text-shadow: none !important;
+}
+
+html[data-theme='light'] #appPage .stat-box.s-total .stat-val,
+body.light #appPage .stat-box.s-total .stat-val {
+  color: #1d4ed8 !important;
+}
+
+html[data-theme='light'] #appPage .stat-box.s-sent .stat-val,
+body.light #appPage .stat-box.s-sent .stat-val {
+  color: #166534 !important;
+}
+
+html[data-theme='light'] #appPage .stat-box.s-failed .stat-val,
+body.light #appPage .stat-box.s-failed .stat-val {
+  color: #b91c1c !important;
+}
+
+html[data-theme='light'] #appPage .progress-bar-area,
+body.light #appPage .progress-bar-area {
+  background: #f8fafc !important;
+  border-color: #e2e8f0 !important;
+}
+
+html[data-theme='light'] #appPage .progress-left,
+html[data-theme='light'] #appPage .eta-text,
+body.light #appPage .progress-left,
+body.light #appPage .eta-text {
+  color: #475569 !important;
+}
+
+html[data-theme='light'] #appPage .progress-pct,
+body.light #appPage .progress-pct {
+  color: #0f172a !important;
+}
+
+html[data-theme='light'] #appPage .progress-track,
+body.light #appPage .progress-track {
+  background: #e2e8f0 !important;
+}
+
+/* Campaign intelligence */
+html[data-theme='light'] #appPage .intel-card,
+html[data-theme='light'] #appPage .intel-advice,
+html[data-theme='light'] #appPage .ops-row,
+body.light #appPage .intel-card,
+body.light #appPage .intel-advice,
+body.light #appPage .ops-row {
+  background: #f8fafc !important;
+  border-color: #e2e8f0 !important;
+}
+
+html[data-theme='light'] #appPage .intel-label,
+html[data-theme='light'] #appPage .ops-row-label,
+body.light #appPage .intel-label,
+body.light #appPage .ops-row-label {
+  color: #475569 !important;
+}
+
+html[data-theme='light'] #appPage .intel-val,
+html[data-theme='light'] #appPage .intel-advice,
+body.light #appPage .intel-val,
+body.light #appPage .intel-advice {
+  color: #0f172a !important;
+}
+
+html[data-theme='light'] #appPage .intel-neutral,
+body.light #appPage .intel-neutral {
+  color: #1d4ed8 !important;
+}
+
+html[data-theme='light'] #appPage .intel-good,
+body.light #appPage .intel-good {
+  color: #166534 !important;
+}
+
+html[data-theme='light'] #appPage .ops-badge-green,
+body.light #appPage .ops-badge-green {
+  background: rgba(16, 185, 129, 0.12) !important;
+  color: #047857 !important;
+  border-color: rgba(5, 150, 105, 0.25) !important;
+}
+
+html[data-theme='light'] #appPage .ops-badge-violet,
+body.light #appPage .ops-badge-violet {
+  background: rgba(99, 102, 241, 0.1) !important;
+  color: #4338ca !important;
+  border-color: rgba(99, 102, 241, 0.22) !important;
+}
+
+html[data-theme='light'] #appPage .ops-badge-cyan,
+body.light #appPage .ops-badge-cyan {
+  background: rgba(6, 182, 212, 0.1) !important;
+  color: #0e7490 !important;
+  border-color: rgba(6, 182, 212, 0.22) !important;
+}
+
+html[data-theme='light'] #appPage .ops-badge-amber,
+body.light #appPage .ops-badge-amber {
+  background: rgba(245, 158, 11, 0.12) !important;
+  color: #b45309 !important;
+  border-color: rgba(245, 158, 11, 0.25) !important;
+}
+
+html[data-theme='light'] #appPage .live-badge,
+body.light #appPage .live-badge {
+  background: rgba(16, 185, 129, 0.1) !important;
+  color: #047857 !important;
+  border-color: rgba(5, 150, 105, 0.22) !important;
+}
+
+html[data-theme='light'] #appPage .mode-pill:not(.active),
+html[data-theme='light'] #appPage .recipients-toggle-btn,
+html[data-theme='light'] #appPage .img-attach-toggle,
+html[data-theme='light'] #appPage .img-tab-btn,
+body.light #appPage .mode-pill:not(.active),
+body.light #appPage .recipients-toggle-btn,
+body.light #appPage .img-attach-toggle,
+body.light #appPage .img-tab-btn {
+  color: #475569 !important;
+  background: #f1f5f9 !important;
+  border-color: #e2e8f0 !important;
+}
+
+html[data-theme='light'] #appPage .mode-pills,
+body.light #appPage .mode-pills {
+  background: #f1f5f9 !important;
+  border-color: #e2e8f0 !important;
+}
+
+
+/* ========== home-dashboard-light.css ========== */
+/**
+ * Home dashboard — light / white theme polish
+ * Loads last. Fixes conflicts from dashboard-premium + dark home styles.
+ */
+
+html[data-theme='light'] body.shell-home .app-body,
+body.light.shell-home .app-body {
+  background: #eef2ff !important;
+}
+
+html[data-theme='light'] #appPage #view-home,
+body.light #appPage #view-home {
+  --hd-glass: #ffffff;
+  --hd-border: rgba(99, 102, 241, 0.18);
+  --hd-shadow:
+    0 0 0 1px rgba(15, 23, 42, 0.05),
+    0 4px 20px rgba(99, 102, 241, 0.08);
+  --hd-shadow-hover:
+    0 0 0 1px rgba(99, 102, 241, 0.22),
+    0 12px 32px rgba(99, 102, 241, 0.14);
+  min-height: 100%;
+  background: linear-gradient(180deg, #e8eeff 0%, #f4f6ff 45%, #eef2ff 100%) !important;
+  color: #0f172a;
+}
+
+html[data-theme='light'] #appPage #view-home::before,
+body.light #appPage #view-home::before {
+  opacity: 0.18;
+  background-image:
+    linear-gradient(rgba(99, 102, 241, 0.07) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(99, 102, 241, 0.07) 1px, transparent 1px);
+}
+
+/* Hero */
+html[data-theme='light'] #appPage #view-home .hv-hero,
+body.light #appPage #view-home .hv-hero {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.95) 0%, transparent 40%),
+    linear-gradient(118deg, rgba(99, 102, 241, 0.18) 0%, rgba(167, 139, 250, 0.14) 48%, transparent 78%),
+    linear-gradient(180deg, #f5f3ff 0%, #eef2ff 55%, #e8eeff 100%) !important;
+  border: 1px solid rgba(99, 102, 241, 0.22) !important;
+  box-shadow: var(--hd-shadow) !important;
+}
+
+html[data-theme='light'] #appPage #view-home .hv-hero::after,
+body.light #appPage #view-home .hv-hero::after {
+  opacity: 0.25;
+  background-image:
+    linear-gradient(rgba(99, 102, 241, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(99, 102, 241, 0.06) 1px, transparent 1px);
+}
+
+html[data-theme='light'] #appPage #view-home .hv-hero-orb1,
+html[data-theme='light'] #appPage #view-home .hv-hero-orb2,
+body.light #appPage #view-home .hv-hero-orb1,
+body.light #appPage #view-home .hv-hero-orb2 {
+  opacity: 0.45;
+}
+
+/* Typography */
+html[data-theme='light'] #appPage #view-home .hv-hero-title,
+html[data-theme='light'] #appPage #view-home .hv-metrics-title,
+html[data-theme='light'] #appPage #view-home .hv-panel-title,
+html[data-theme='light'] #appPage #view-home .hv-kpi-val,
+html[data-theme='light'] #appPage #view-home .hv-hero-sched-title,
+html[data-theme='light'] #appPage #view-home .hv-pstatus-title,
+html[data-theme='light'] #appPage #view-home .hv-qa-card-label,
+html[data-theme='light'] #appPage #view-home .hv-plan-used,
+html[data-theme='light'] #appPage #view-home .hv-half-stat-val,
+html[data-theme='light'] #appPage #view-home .hv-ph-half-stat-val,
+html[data-theme='light'] #appPage #view-home .hv-lifetime-title,
+html[data-theme='light'] #appPage #view-home .hv-pstatus-name,
+body.light #appPage #view-home .hv-hero-title,
+body.light #appPage #view-home .hv-metrics-title,
+body.light #appPage #view-home .hv-panel-title,
+body.light #appPage #view-home .hv-kpi-val,
+body.light #appPage #view-home .hv-hero-sched-title,
+body.light #appPage #view-home .hv-pstatus-title,
+body.light #appPage #view-home .hv-qa-card-label,
+body.light #appPage #view-home .hv-plan-used,
+body.light #appPage #view-home .hv-half-stat-val,
+body.light #appPage #view-home .hv-ph-half-stat-val,
+body.light #appPage #view-home .hv-lifetime-title,
+body.light #appPage #view-home .hv-pstatus-name {
+  color: #0f172a !important;
+  text-shadow: none !important;
+}
+
+html[data-theme='light'] #appPage #view-home .hv-hero-name,
+body.light #appPage #view-home .hv-hero-name {
+  background: linear-gradient(135deg, #1d4ed8 0%, #6d28d9 100%) !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  filter: none !important;
+}
+
+html[data-theme='light'] #appPage #view-home .hv-hero-sub,
+html[data-theme='light'] #appPage #view-home .hv-panel-sub,
+html[data-theme='light'] #appPage #view-home .hv-qa-card-desc,
+html[data-theme='light'] #appPage #view-home .hv-sync-left,
+html[data-theme='light'] #appPage #view-home .hv-plan-feat,
+html[data-theme='light'] #appPage #view-home .hv-lifetime-desc,
+body.light #appPage #view-home .hv-hero-sub,
+body.light #appPage #view-home .hv-panel-sub,
+body.light #appPage #view-home .hv-qa-card-desc,
+body.light #appPage #view-home .hv-sync-left,
+body.light #appPage #view-home .hv-plan-feat,
+body.light #appPage #view-home .hv-lifetime-desc {
+  color: #475569 !important;
+}
+
+html[data-theme='light'] #appPage #view-home .hv-metrics-eyebrow,
+body.light #appPage #view-home .hv-metrics-eyebrow {
+  color: #6366f1 !important;
+}
+
+html[data-theme='light'] #appPage #view-home .hv-kpi-lbl,
+html[data-theme='light'] #appPage #view-home .hv-sync-time,
+html[data-theme='light'] #appPage #view-home .hv-half-stat-lbl,
+html[data-theme='light'] #appPage #view-home .hv-ph-half-stat-lbl,
+body.light #appPage #view-home .hv-kpi-lbl,
+body.light #appPage #view-home .hv-sync-time,
+body.light #appPage #view-home .hv-half-stat-lbl,
+body.light #appPage #view-home .hv-ph-half-stat-lbl {
+  color: #475569 !important;
+}
+
+/* Cards */
+html[data-theme='light'] #appPage #view-home .hv-kpi,
+html[data-theme='light'] #appPage #view-home .hv-panel,
+html[data-theme='light'] #appPage #view-home .hv-qa-card,
+html[data-theme='light'] #appPage #view-home .hv-plan-card,
+html[data-theme='light'] #appPage #view-home .hv-sync-bar,
+body.light #appPage #view-home .hv-kpi,
+body.light #appPage #view-home .hv-panel,
+body.light #appPage #view-home .hv-qa-card,
+body.light #appPage #view-home .hv-plan-card,
+body.light #appPage #view-home .hv-sync-bar {
+  background: #ffffff !important;
+  border: 1px solid rgba(99, 102, 241, 0.14) !important;
+  box-shadow: var(--hd-shadow) !important;
+  backdrop-filter: none !important;
+}
+
+html[data-theme='light'] #appPage #view-home .hv-kpi:hover,
+html[data-theme='light'] #appPage #view-home .hv-panel:hover,
+body.light #appPage #view-home .hv-kpi:hover,
+body.light #appPage #view-home .hv-panel:hover {
+  border-color: rgba(99, 102, 241, 0.28) !important;
+  box-shadow: var(--hd-shadow-hover) !important;
+}
+
+/* Key metrics icons */
+html[data-theme='light'] #appPage #view-home .hv-kpi-icon,
+body.light #appPage #view-home .hv-kpi-icon {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 44px !important;
+  height: 44px !important;
+  min-width: 44px !important;
+  min-height: 44px !important;
+  border-radius: 11px !important;
+  font-size: 18px !important;
+  color: #ffffff !important;
+  flex-shrink: 0 !important;
+  position: relative !important;
+  z-index: 1 !important;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.12) !important;
+}
+
+html[data-theme='light'] #appPage #view-home .hv-kpi-icon i,
+body.light #appPage #view-home .hv-kpi-icon i {
+  color: #ffffff !important;
+  line-height: 1 !important;
+}
+
+html[data-theme='light'] #appPage #view-home .hv-kpi-icon.hv-kpi-blue,
+body.light #appPage #view-home .hv-kpi-icon.hv-kpi-blue {
+  background: linear-gradient(135deg, #2563eb, #1d4ed8) !important;
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35) !important;
+}
+
+html[data-theme='light'] #appPage #view-home .hv-kpi-icon.hv-kpi-green,
+body.light #appPage #view-home .hv-kpi-icon.hv-kpi-green {
+  background: linear-gradient(135deg, #16a34a, #15803d) !important;
+  box-shadow: 0 4px 14px rgba(34, 197, 94, 0.35) !important;
+}
+
+html[data-theme='light'] #appPage #view-home .hv-kpi-icon.hv-kpi-indigo,
+body.light #appPage #view-home .hv-kpi-icon.hv-kpi-indigo {
+  background: linear-gradient(135deg, #4f46e5, #4338ca) !important;
+  box-shadow: 0 4px 14px rgba(99, 102, 241, 0.35) !important;
+}
+
+html[data-theme='light'] #appPage #view-home .hv-kpi-icon.hv-kpi-amber,
+body.light #appPage #view-home .hv-kpi-icon.hv-kpi-amber {
+  background: linear-gradient(135deg, #d97706, #b45309) !important;
+  box-shadow: 0 4px 14px rgba(245, 158, 11, 0.35) !important;
+}
+
+html[data-theme='light'] #appPage #view-home .hv-kpi-icon.hv-kpi-red,
+body.light #appPage #view-home #view-home .hv-kpi-icon.hv-kpi-red,
+body.light #appPage #view-home .hv-kpi-icon.hv-kpi-red {
+  background: linear-gradient(135deg, #dc2626, #b91c1c) !important;
+  box-shadow: 0 4px 14px rgba(239, 68, 68, 0.35) !important;
+}
+
+html[data-theme='light'] #appPage #view-home .hv-panel-hdr,
+body.light #appPage #view-home .hv-panel-hdr {
+  background: #f8fafc !important;
+  border-bottom: 1px solid #e2e8f0 !important;
+}
+
+/* Hero widgets */
+html[data-theme='light'] #appPage #view-home .hv-hero-status,
+body.light #appPage #view-home .hv-hero-status {
+  background: rgba(16, 185, 129, 0.12) !important;
+  border-color: rgba(5, 150, 105, 0.28) !important;
+  color: #047857 !important;
+}
+
+html[data-theme='light'] #appPage #view-home .hv-hero-badge-fb,
+body.light #appPage #view-home .hv-hero-badge-fb {
+  background: rgba(99, 102, 241, 0.1) !important;
+  border-color: rgba(99, 102, 241, 0.22) !important;
+  color: #4338ca !important;
+}
+
+html[data-theme='light'] #appPage #view-home .hv-hero-cta2,
+body.light #appPage #view-home .hv-hero-cta2 {
+  color: #1e293b !important;
+  background: #ffffff !important;
+  border: 1px solid rgba(99, 102, 241, 0.22) !important;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06) !important;
+}
+
+html[data-theme='light'] #appPage #view-home .hv-hero-cta2:hover,
+body.light #appPage #view-home .hv-hero-cta2:hover {
+  background: #f8fafc !important;
+  border-color: rgba(99, 102, 241, 0.35) !important;
+  color: #1e3a8a !important;
+}
+
+html[data-theme='light'] #appPage #view-home .hv-hero-sched-card,
+body.light #appPage #view-home .hv-hero-sched-card {
+  background: #ffffff !important;
+  border: 1px solid rgba(99, 102, 241, 0.16) !important;
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.06) !important;
+}
+
+html[data-theme='light'] #appPage #view-home .hv-hero-sched-title,
+body.light #appPage #view-home .hv-hero-sched-title {
+  color: #0f172a !important;
+}
+
+html[data-theme='light'] #appPage #view-home .hv-hero-sched-title i,
+body.light #appPage #view-home .hv-hero-sched-title i {
+  color: #4338ca !important;
+}
+
+html[data-theme='light'] #appPage #view-home .hv-hero-sched-empty,
+body.light #appPage #view-home .hv-hero-sched-empty {
+  color: #475569 !important;
+  background: #f8fafc !important;
+  border-color: #e2e8f0 !important;
+}
+
+html[data-theme='light'] #appPage #view-home .hv-hero-sched-btn,
+body.light #appPage #view-home .hv-hero-sched-btn {
+  color: #4338ca !important;
+  background: #eef2ff !important;
+  border-color: rgba(99, 102, 241, 0.25) !important;
+}
+
+html[data-theme='light'] #appPage #view-home .hv-sync-refresh,
+body.light #appPage #view-home .hv-sync-refresh {
+  background: #f1f5f9 !important;
+  border-color: #e2e8f0 !important;
+  color: #475569 !important;
+}
+
+/* Inner stats & plan */
+html[data-theme='light'] #appPage #view-home .hv-half-stats,
+html[data-theme='light'] #appPage #view-home .hv-ph-half-stat,
+html[data-theme='light'] #appPage #view-home .hv-sched-main-item,
+body.light #appPage #view-home .hv-half-stats,
+body.light #appPage #view-home .hv-ph-half-stat,
+body.light #appPage #view-home .hv-sched-main-item {
+  background: #f8fafc !important;
+  border: 1px solid #e2e8f0 !important;
+}
+
+html[data-theme='light'] #appPage #view-home .hv-plan-card-bg,
+body.light #appPage #view-home .hv-plan-card-bg {
+  background: linear-gradient(165deg, #faf5ff 0%, #ffffff 55%, #f8fafc 100%) !important;
+}
+
+html[data-theme='light'] #appPage #view-home .hv-plan-badge,
+html[data-theme='light'] #appPage #view-home .hv-plan-badge span,
+html[data-theme='light'] #appPage #view-home .hv-plan-total,
+html[data-theme='light'] #appPage #view-home .hv-plan-pct,
+body.light #appPage #view-home .hv-plan-badge,
+body.light #appPage #view-home .hv-plan-badge span,
+body.light #appPage #view-home .hv-plan-total,
+body.light #appPage #view-home .hv-plan-pct {
+  color: #334155 !important;
+}
+
+html[data-theme='light'] #appPage #view-home .hv-plan-bar,
+body.light #appPage #view-home .hv-plan-bar {
+  background: #e2e8f0 !important;
+}
+
+html[data-theme='light'] #appPage #view-home .hv-lifetime-bg,
+body.light #appPage #view-home .hv-lifetime-bg {
+  background: linear-gradient(135deg, #fffbeb, #fef3c7) !important;
+}
+
+html[data-theme='light'] #appPage #view-home .hv-green,
+body.light #appPage #view-home .hv-green {
+  color: #166534 !important;
+}
+
+html[data-theme='light'] #appPage #view-home .hv-amber,
+body.light #appPage #view-home .hv-amber {
+  color: #9a3412 !important;
+}
+
+html[data-theme='light'] #appPage #view-home .hv-red,
+body.light #appPage #view-home .hv-red {
+  color: #b91c1c !important;
+}
+
+html[data-theme='light'] #appPage #view-home .hv-panel-icon-wrap,
+body.light #appPage #view-home .hv-panel-icon-wrap {
+  background: #f1f5f9 !important;
+  color: #475569 !important;
+}
+
+html[data-theme='light'] #appPage #view-home .hv-panel-icon-purple,
+body.light #appPage #view-home .hv-panel-icon-purple {
+  background: rgba(99, 102, 241, 0.12) !important;
+  color: #4338ca !important;
+}
+
+html[data-theme='light'] #appPage #view-home .hv-panel-icon-indigo,
+body.light #appPage #view-home .hv-panel-icon-indigo {
+  background: rgba(99, 102, 241, 0.12) !important;
+  color: #4338ca !important;
+}
+
+html[data-theme='light'] #appPage #view-home .hv-panel-icon-amber,
+body.light #appPage #view-home .hv-panel-icon-amber {
+  background: rgba(245, 158, 11, 0.12) !important;
+  color: #9a3412 !important;
+}
+
+/* ========== messenger-light.css ========== */
+/**
+ * Messenger — light / white theme polish
+ * Loads after theme-light.css. Fixes low-contrast text, bubbles, and panels.
+ */
+
+html[data-theme='light'] #view-messenger,
+body.light #view-messenger {
+  --msng-bg: #f1f5f9;
+  --msng-sidebar: #ffffff;
+  --msng-chat-bg: #eef2ff;
+  --msng-surface2: #f8fafc;
+  --msng-bubble-them: #ffffff;
+  --msng-text: #0f172a;
+  --msng-text-sub: #334155;
+  --msng-text-muted: #475569;
+  --msng-border: rgba(99, 102, 241, 0.14);
+  background: #f1f5f9 !important;
+  border-color: #e2e8f0 !important;
+  color: #0f172a !important;
+}
+
+html[data-theme='light'] #view-messenger .msng-root,
+body.light #view-messenger .msng-root {
+  background: var(--msng-bg) !important;
+  color: var(--msng-text) !important;
+}
+
+/* Toolbar */
+html[data-theme='light'] #view-messenger .msng-toolbar,
+body.light #view-messenger .msng-toolbar {
+  background: rgba(255, 255, 255, 0.98) !important;
+  border-bottom: 1px solid #e2e8f0 !important;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 1) inset !important;
+}
+
+html[data-theme='light'] #view-messenger .msng-toolbar-title,
+body.light #view-messenger .msng-toolbar-title {
+  background: linear-gradient(135deg, #1e3a8a 0%, #6d28d9 100%) !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+}
+
+html[data-theme='light'] #view-messenger .msng-toolbar-sub,
+html[data-theme='light'] #view-messenger .msng-stat-pill,
+body.light #view-messenger .msng-toolbar-sub,
+body.light #view-messenger .msng-stat-pill {
+  color: #475569 !important;
+}
+
+html[data-theme='light'] #view-messenger .msng-stat-pill,
+body.light #view-messenger .msng-stat-pill {
+  background: #f8fafc !important;
+  border-color: #e2e8f0 !important;
+}
+
+/* Columns */
+html[data-theme='light'] #view-messenger .msng-pages,
+html[data-theme='light'] #view-messenger .msng-convs,
+body.light #view-messenger .msng-pages,
+body.light #view-messenger .msng-convs {
+  background: #ffffff !important;
+  border-color: #e2e8f0 !important;
+  box-shadow: none !important;
+}
+
+html[data-theme='light'] #view-messenger .msng-pages-hdr,
+html[data-theme='light'] #view-messenger .msng-convs-hdr,
+body.light #view-messenger .msng-pages-hdr,
+body.light #view-messenger .msng-convs-hdr {
+  background: linear-gradient(180deg, rgba(99, 102, 241, 0.06), transparent) !important;
+  border-bottom-color: #e2e8f0 !important;
+  color: #475569 !important;
+}
+
+html[data-theme='light'] #view-messenger .msng-convs-title,
+html[data-theme='light'] #view-messenger .msng-page-name,
+body.light #view-messenger .msng-convs-title,
+body.light #view-messenger .msng-page-name {
+  color: #0f172a !important;
+}
+
+html[data-theme='light'] #view-messenger .msng-page-item:hover,
+html[data-theme='light'] #view-messenger .msng-conv-item:hover,
+body.light #view-messenger .msng-page-item:hover,
+body.light #view-messenger .msng-conv-item:hover {
+  background: #f1f5f9 !important;
+  border-color: #e2e8f0 !important;
+}
+
+html[data-theme='light'] #view-messenger .msng-page-item.active,
+html[data-theme='light'] #view-messenger .msng-conv-item.active,
+body.light #view-messenger .msng-page-item.active,
+body.light #view-messenger .msng-conv-item.active {
+  background: #eef2ff !important;
+  border-color: rgba(99, 102, 241, 0.28) !important;
+  box-shadow: inset 3px 0 0 #4f46e5, 0 2px 8px rgba(99, 102, 241, 0.1) !important;
+}
+
+html[data-theme='light'] #view-messenger .msng-page-item.active .msng-page-name,
+html[data-theme='light'] #view-messenger .msng-conv-item.active .msng-ci-name,
+body.light #view-messenger .msng-page-item.active .msng-page-name,
+body.light #view-messenger .msng-conv-item.active .msng-ci-name {
+  color: #1e3a8a !important;
+}
+
+html[data-theme='light'] #view-messenger .msng-ci-name,
+body.light #view-messenger .msng-ci-name {
+  color: #334155 !important;
+}
+
+html[data-theme='light'] #view-messenger .msng-ci-last,
+html[data-theme='light'] #view-messenger .msng-ci-time,
+html[data-theme='light'] #view-messenger .msng-page-sub,
+body.light #view-messenger .msng-ci-last,
+body.light #view-messenger .msng-ci-time,
+body.light #view-messenger .msng-page-sub {
+  color: #475569 !important;
+}
+
+html[data-theme='light'] #view-messenger .msng-conv-item.unread .msng-ci-last,
+body.light #view-messenger .msng-conv-item.unread .msng-ci-last {
+  color: #475569 !important;
+}
+
+html[data-theme='light'] #view-messenger .msng-page-item.has-unread:not(.active) .msng-page-name,
+body.light #view-messenger .msng-page-item.has-unread:not(.active) .msng-page-name {
+  color: #b91c1c !important;
+}
+
+/* Search & filters */
+html[data-theme='light'] #view-messenger .msng-search-wrap,
+body.light #view-messenger .msng-search-wrap {
+  background: #f8fafc !important;
+  border: 1px solid #e2e8f0 !important;
+}
+
+html[data-theme='light'] #view-messenger .msng-search-wrap:focus-within,
+body.light #view-messenger .msng-search-wrap:focus-within {
+  background: #ffffff !important;
+  border-color: rgba(99, 102, 241, 0.4) !important;
+}
+
+html[data-theme='light'] #view-messenger .msng-search-input,
+body.light #view-messenger .msng-search-input {
+  color: #0f172a !important;
+}
+
+html[data-theme='light'] #view-messenger .msng-search-input::placeholder,
+body.light #view-messenger .msng-search-input::placeholder {
+  color: #576375 !important;
+  opacity: 1 !important;
+}
+
+html[data-theme='light'] #view-messenger .msng-filter-chip,
+body.light #view-messenger .msng-filter-chip {
+  color: #475569 !important;
+  border-color: #e2e8f0 !important;
+  background: #f8fafc !important;
+}
+
+html[data-theme='light'] #view-messenger .msng-filter-chip:hover,
+body.light #view-messenger .msng-filter-chip:hover {
+  background: #f1f5f9 !important;
+  color: #334155 !important;
+}
+
+html[data-theme='light'] #view-messenger .msng-filter-chip.active,
+body.light #view-messenger .msng-filter-chip.active {
+  background: #eef2ff !important;
+  border-color: rgba(99, 102, 241, 0.35) !important;
+  color: #1e3a8a !important;
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.12) !important;
+}
+
+html[data-theme='light'] #view-messenger .msng-icon-btn,
+html[data-theme='light'] #view-messenger .msng-chat-hdr-btn,
+body.light #view-messenger .msng-icon-btn,
+body.light #view-messenger .msng-chat-hdr-btn {
+  background: #f8fafc !important;
+  border: 1px solid #e2e8f0 !important;
+  color: #475569 !important;
+}
+
+html[data-theme='light'] #view-messenger .msng-icon-btn:hover,
+html[data-theme='light'] #view-messenger .msng-chat-hdr-btn:hover,
+body.light #view-messenger .msng-icon-btn:hover,
+body.light #view-messenger .msng-chat-hdr-btn:hover {
+  background: #eef2ff !important;
+  border-color: rgba(99, 102, 241, 0.3) !important;
+  color: #1e3a8a !important;
+}
+
+/* Chat window */
+html[data-theme='light'] #view-messenger .msng-chat,
+body.light #view-messenger .msng-chat {
+  background: #eef2ff !important;
+}
+
+html[data-theme='light'] #view-messenger .msng-chat-hdr,
+body.light #view-messenger .msng-chat-hdr {
+  background: rgba(255, 255, 255, 0.96) !important;
+  border-bottom-color: #e2e8f0 !important;
+}
+
+html[data-theme='light'] #view-messenger .msng-chat-hdr-name,
+body.light #view-messenger .msng-chat-hdr-name {
+  color: #0f172a !important;
+}
+
+html[data-theme='light'] #view-messenger .msng-chat-hdr-sub,
+body.light #view-messenger .msng-chat-hdr-sub {
+  color: #475569 !important;
+}
+
+/* Message bubbles */
+html[data-theme='light'] #view-messenger .msng-msg:not(.from-me) .msng-bubble,
+body.light #view-messenger .msng-msg:not(.from-me) .msng-bubble {
+  background: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  color: #0f172a !important;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06) !important;
+}
+
+html[data-theme='light'] #view-messenger .msng-msg.from-me .msng-bubble,
+body.light #view-messenger .msng-msg.from-me .msng-bubble {
+  background: linear-gradient(135deg, #2563eb, #1d4ed8) !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.25) !important;
+}
+
+html[data-theme='light'] #view-messenger .msng-msg-time,
+html[data-theme='light'] #view-messenger .msng-date-sep,
+body.light #view-messenger .msng-msg-time,
+body.light #view-messenger .msng-date-sep {
+  color: #475569 !important;
+}
+
+html[data-theme='light'] #view-messenger .msng-date-sep::before,
+html[data-theme='light'] #view-messenger .msng-date-sep::after,
+body.light #view-messenger .msng-date-sep::before,
+body.light #view-messenger .msng-date-sep::after {
+  background: #cbd5e1 !important;
+}
+
+html[data-theme='light'] #view-messenger .msng-msg.from-me .msng-tick--sending,
+body.light #view-messenger .msng-msg.from-me .msng-tick--sending {
+  color: #576375 !important;
+}
+
+html[data-theme='light'] #view-messenger .msng-msg.from-me .msng-tick--sent,
+body.light #view-messenger .msng-msg.from-me .msng-tick--sent {
+  color: #475569 !important;
+}
+
+html[data-theme='light'] #view-messenger .msng-msg.from-me .msng-tick--delivered,
+body.light #view-messenger .msng-msg.from-me .msng-tick--delivered {
+  color: #475569 !important;
+}
+
+html[data-theme='light'] #view-messenger .msng-msg.from-me .msng-tick--read,
+body.light #view-messenger .msng-msg.from-me .msng-tick--read {
+  color: #1d4ed8 !important;
+}
+
+html[data-theme='light'] #view-messenger .msng-media-placeholder,
+body.light #view-messenger .msng-media-placeholder {
+  background: #f1f5f9 !important;
+  color: #475569 !important;
+  border: 1px solid #e2e8f0 !important;
+}
+
+html[data-theme='light'] #view-messenger .msng-load-more-btn,
+body.light #view-messenger .msng-load-more-btn {
+  background: #eef2ff !important;
+  border-color: rgba(99, 102, 241, 0.25) !important;
+  color: #1e3a8a !important;
+}
+
+html[data-theme='light'] #view-messenger .msng-load-more-btn:hover,
+body.light #view-messenger .msng-load-more-btn:hover {
+  background: #e0e7ff !important;
+  color: #1e3a8a !important;
+}
+
+/* Input bar */
+html[data-theme='light'] #view-messenger .msng-input-bar,
+body.light #view-messenger .msng-input-bar {
+  background: #ffffff !important;
+  border-top-color: #e2e8f0 !important;
+}
+
+html[data-theme='light'] #view-messenger .msng-input-wrap,
+body.light #view-messenger .msng-input-wrap {
+  background: #f8fafc !important;
+  border: 1px solid #e2e8f0 !important;
+}
+
+html[data-theme='light'] #view-messenger .msng-input-wrap:focus-within,
+body.light #view-messenger .msng-input-wrap:focus-within {
+  background: #ffffff !important;
+  border-color: rgba(99, 102, 241, 0.45) !important;
+}
+
+html[data-theme='light'] #view-messenger .msng-textarea,
+body.light #view-messenger .msng-textarea {
+  color: #0f172a !important;
+}
+
+html[data-theme='light'] #view-messenger .msng-textarea::placeholder,
+body.light #view-messenger .msng-textarea::placeholder {
+  color: #576375 !important;
+  opacity: 1 !important;
+}
+
+html[data-theme='light'] #view-messenger .msng-input-btn,
+body.light #view-messenger .msng-input-btn {
+  background: #f8fafc !important;
+  border: 1px solid #e2e8f0 !important;
+  color: #475569 !important;
+}
+
+html[data-theme='light'] #view-messenger .msng-input-btn:hover,
+html[data-theme='light'] #view-messenger .msng-input-btn.active,
+body.light #view-messenger .msng-input-btn:hover,
+body.light #view-messenger .msng-input-btn.active {
+  background: #eef2ff !important;
+  border-color: rgba(99, 102, 241, 0.3) !important;
+  color: #1e3a8a !important;
+}
+
+html[data-theme='light'] #view-messenger .msng-char-count,
+body.light #view-messenger .msng-char-count {
+  color: #475569 !important;
+}
+
+/* Scrollbars */
+html[data-theme='light'] #view-messenger .msng-msgs,
+html[data-theme='light'] #view-messenger .msng-conv-list,
+html[data-theme='light'] #view-messenger .msng-pages-list,
+body.light #view-messenger .msng-msgs,
+body.light #view-messenger .msng-conv-list,
+body.light #view-messenger .msng-pages-list {
+  scrollbar-color: #cbd5e1 transparent;
+}
+
+html[data-theme='light'] #view-messenger .msng-msgs::-webkit-scrollbar-thumb,
+html[data-theme='light'] #view-messenger .msng-conv-list::-webkit-scrollbar-thumb,
+html[data-theme='light'] #view-messenger .msng-pages-list::-webkit-scrollbar-thumb,
+body.light #view-messenger .msng-msgs::-webkit-scrollbar-thumb,
+body.light #view-messenger .msng-conv-list::-webkit-scrollbar-thumb,
+body.light #view-messenger .msng-pages-list::-webkit-scrollbar-thumb {
+  background: #cbd5e1 !important;
+}
+
+/* Modals & canned replies */
+html[data-theme='light'] #view-messenger .msng-canned-panel,
+html[data-theme='light'] #view-messenger .msng-modal-box,
+body.light #view-messenger .msng-canned-panel,
+body.light #view-messenger .msng-modal-box {
+  background: #ffffff !important;
+  border-color: #e2e8f0 !important;
+  color: #0f172a !important;
+}
+
+html[data-theme='light'] #view-messenger .msng-modal-hdr h3,
+html[data-theme='light'] #view-messenger .msng-canned-hdr-title,
+body.light #view-messenger .msng-modal-hdr h3,
+body.light #view-messenger .msng-canned-hdr-title {
+  color: #0f172a !important;
+}
+
+html[data-theme='light'] #view-messenger .msng-modal-btn--ghost,
+body.light #view-messenger .msng-modal-btn--ghost {
+  color: #475569 !important;
+  border-color: #e2e8f0 !important;
+}
+
+html[data-theme='light'] #view-messenger .msng-modal-btn--ghost:hover,
+body.light #view-messenger .msng-modal-btn--ghost:hover {
+  background: #f1f5f9 !important;
+  color: #0f172a !important;
+}
+
+/* ========== settings-light.css ========== */
+/**
+ * Settings view — light / white theme polish
+ * Loads last. Overrides saas-pro dark glass on #view-settings.
+ */
+
+html[data-theme='light'] #view-settings.pro-view,
+body.light #view-settings.pro-view {
+  background: linear-gradient(180deg, #eef2ff 0%, #f8fafc 55%, #f1f5f9 100%) !important;
+  color: #0f172a !important;
+}
+
+html[data-theme='light'] #view-settings .pro-view__scroll,
+body.light #view-settings .pro-view__scroll {
+  background: transparent !important;
+}
+
+html[data-theme='light'] #view-settings .pro-view__eyebrow,
+body.light #view-settings .pro-view__eyebrow {
+  color: #4338ca !important;
+}
+
+html[data-theme='light'] #view-settings .pro-view__title,
+body.light #view-settings .pro-view__title {
+  color: #0f172a !important;
+}
+
+html[data-theme='light'] #view-settings .pro-view__sub,
+body.light #view-settings .pro-view__sub {
+  color: #475569 !important;
+}
+
+html[data-theme='light'] #view-settings .settings-section,
+body.light #view-settings .settings-section {
+  background: transparent !important;
+  color: #0f172a !important;
+}
+
+/* Cards */
+html[data-theme='light'] #view-settings .settings-card,
+html[data-theme='light'] #view-settings .saas-billing-card,
+body.light #view-settings .settings-card,
+body.light #view-settings .saas-billing-card {
+  background: #ffffff !important;
+  border: 1px solid rgba(99, 102, 241, 0.16) !important;
+  box-shadow:
+    0 0 0 1px rgba(15, 23, 42, 0.04),
+    0 4px 20px rgba(99, 102, 241, 0.08) !important;
+  backdrop-filter: none !important;
+}
+
+html[data-theme='light'] #view-settings .saas-billing-card,
+body.light #view-settings .saas-billing-card {
+  background: linear-gradient(135deg, #f5f3ff 0%, #ffffff 55%, #f8fafc 100%) !important;
+  border-color: rgba(99, 102, 241, 0.22) !important;
+}
+
+html[data-theme='light'] #view-settings .settings-card:hover,
+body.light #view-settings .settings-card:hover {
+  border-color: rgba(99, 102, 241, 0.28) !important;
+}
+
+html[data-theme='light'] #view-settings .settings-card h4,
+html[data-theme='light'] #view-settings .saas-billing-card__title,
+body.light #view-settings .settings-card h4,
+body.light #view-settings .saas-billing-card__title {
+  color: #0f172a !important;
+}
+
+html[data-theme='light'] #view-settings .settings-card h4 i,
+body.light #view-settings .settings-card h4 i {
+  color: #4f46e5 !important;
+}
+
+html[data-theme='light'] #view-settings .settings-card p,
+html[data-theme='light'] #view-settings .saas-billing-card__sub,
+body.light #view-settings .settings-card p,
+body.light #view-settings .saas-billing-card__sub {
+  color: #475569 !important;
+}
+
+html[data-theme='light'] #view-settings .saas-plan-badge,
+body.light #view-settings .saas-plan-badge {
+  background: #eef2ff !important;
+  color: #4338ca !important;
+  border-color: rgba(99, 102, 241, 0.28) !important;
+}
+
+html[data-theme='light'] #view-settings .saas-plan-badge--pro,
+body.light #view-settings .saas-plan-badge--pro {
+  background: #f3e8ff !important;
+  color: #6d28d9 !important;
+  border-color: rgba(124, 58, 237, 0.3) !important;
+}
+
+html[data-theme='light'] #view-settings .saas-usage-bar,
+body.light #view-settings .saas-usage-bar {
+  background: #e2e8f0 !important;
+}
+
+html[data-theme='light'] #view-settings .saas-usage-meta,
+body.light #view-settings .saas-usage-meta {
+  color: #475569 !important;
+}
+
+html[data-theme='light'] #view-settings #saasPlanName,
+body.light #view-settings #saasPlanName {
+  color: #0f172a !important;
+}
+
+/* Delay options */
+html[data-theme='light'] #view-settings .delay-opt,
+body.light #view-settings .delay-opt {
+  background: #f8fafc !important;
+  border: 1px solid #e2e8f0 !important;
+  color: #475569 !important;
+}
+
+html[data-theme='light'] #view-settings .delay-opt:hover,
+body.light #view-settings .delay-opt:hover {
+  background: #f1f5f9 !important;
+  border-color: rgba(99, 102, 241, 0.25) !important;
+  color: #334155 !important;
+}
+
+html[data-theme='light'] #view-settings .delay-opt.active,
+body.light #view-settings .delay-opt.active {
+  background: #eef2ff !important;
+  border-color: rgba(99, 102, 241, 0.35) !important;
+  color: #1e3a8a !important;
+  box-shadow: 0 0 0 1px rgba(99, 102, 241, 0.15) inset !important;
+}
+
+html[data-theme='light'] #view-settings .delay-opt i,
+body.light #view-settings .delay-opt i {
+  color: inherit !important;
+}
+
+/* Toggles */
+html[data-theme='light'] #view-settings .settings-toggle,
+body.light #view-settings .settings-toggle {
+  background: #f8fafc !important;
+  border: 1px solid #e2e8f0 !important;
+  color: #334155 !important;
+}
+
+html[data-theme='light'] #view-settings .settings-toggle:hover,
+body.light #view-settings .settings-toggle:hover {
+  background: #eef2ff !important;
+  border-color: rgba(99, 102, 241, 0.22) !important;
+}
+
+html[data-theme='light'] #view-settings .settings-toggle span,
+body.light #view-settings .settings-toggle span {
+  color: #334155 !important;
+}
+
+/* Action buttons */
+html[data-theme='light'] #view-settings .settings-btn,
+body.light #view-settings .settings-btn {
+  background: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  color: #334155 !important;
+}
+
+html[data-theme='light'] #view-settings .settings-btn:hover,
+body.light #view-settings .settings-btn:hover {
+  background: #eef2ff !important;
+  border-color: rgba(99, 102, 241, 0.28) !important;
+  color: #1e3a8a !important;
+}
+
+html[data-theme='light'] #view-settings .settings-btn--danger:hover,
+body.light #view-settings .settings-btn--danger:hover {
+  background: #fef2f2 !important;
+  border-color: rgba(239, 68, 68, 0.35) !important;
+  color: #b91c1c !important;
+}
+
+/* Design-system buttons in billing card */
+html[data-theme='light'] #view-settings .ds-btn--secondary,
+body.light #view-settings .ds-btn--secondary {
+  background: #ffffff !important;
+  color: #0f172a !important;
+  border-color: #e2e8f0 !important;
+}
+
+html[data-theme='light'] #view-settings .ds-btn--secondary:hover:not(:disabled),
+body.light #view-settings .ds-btn--secondary:hover:not(:disabled) {
+  background: #f8fafc !important;
+  border-color: rgba(99, 102, 241, 0.3) !important;
+}
+
+html[data-theme='light'] #view-settings .ds-btn--ghost,
+body.light #view-settings .ds-btn--ghost {
+  color: #475569 !important;
+  background: transparent !important;
+}
+
+html[data-theme='light'] #view-settings .ds-btn--ghost:hover:not(:disabled),
+body.light #view-settings .ds-btn--ghost:hover:not(:disabled) {
+  background: #f1f5f9 !important;
+  color: #0f172a !important;
+}
+
+/* ========== landing-light.css ========== */
+/**
+ * FBCast Pro — Landing page light / white theme
+ * Loads last. Overrides saas-premium dark !important rules on #landingPage.
+ */
+
+html[data-theme='light'] #landingPage,
+body.light #landingPage {
+  --lp-glass: #ffffff;
+  --lp-border: rgba(99, 102, 241, 0.16);
+  --lp-shadow:
+    0 0 0 1px rgba(15, 23, 42, 0.04),
+    0 4px 24px rgba(99, 102, 241, 0.08);
+  --lp-heading: #0c1222;
+  --lp-muted: #475569;
+  background: var(--fbc-canvas) !important;
+  color: var(--lp-heading);
+}
+
+/* Nav */
+html[data-theme='light'] #landingPage .nav,
+html[data-theme='light'] #landingPage .nav.nav--scrolled,
+html[data-theme='light'] #landingPage .nav.scrolled,
+body.light #landingPage .nav,
+body.light #landingPage .nav.nav--scrolled,
+body.light #landingPage .nav.scrolled {
+  background: rgba(255, 255, 255, 0.92) !important;
+  border-bottom-color: rgba(99, 102, 241, 0.12) !important;
+  box-shadow: 0 4px 24px rgba(15, 23, 42, 0.06) !important;
+  backdrop-filter: blur(20px) saturate(180%);
+}
+
+html[data-theme='light'] #landingPage .nav-brand-name,
+body.light #landingPage .nav-brand-name {
+  color: #0c1222 !important;
+  -webkit-text-fill-color: unset;
+}
+
+html[data-theme='light'] #landingPage .nav-brand-name em,
+body.light #landingPage .nav-brand-name em {
+  background: linear-gradient(135deg, #2563eb, #7c3aed);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+html[data-theme='light'] #landingPage .nav-links a,
+body.light #landingPage .nav-links a {
+  color: #475569 !important;
+}
+
+html[data-theme='light'] #landingPage .nav-links a:hover,
+body.light #landingPage .nav-links a:hover {
+  color: #0f172a !important;
+  background: rgba(99, 102, 241, 0.08) !important;
+}
+
+html[data-theme='light'] #landingPage .nav-hamburger,
+body.light #landingPage .nav-hamburger {
+  color: #475569 !important;
+}
+
+html[data-theme='light'] #landingPage .nav-theme-btn,
+body.light #landingPage .nav-theme-btn {
+  color: #475569 !important;
+  background: #f1f5f9 !important;
+  border-color: rgba(99, 102, 241, 0.18) !important;
+}
+
+html[data-theme='light'] #landingPage .nav-theme-btn:hover,
+body.light #landingPage .nav-theme-btn:hover {
+  color: #1e3a8a !important;
+  background: #e0e7ff !important;
+  border-color: rgba(99, 102, 241, 0.3) !important;
+}
+
+/* Mobile menu */
+html[data-theme='light'] #landingPage .mobile-menu,
+body.light #landingPage .mobile-menu {
+  background: rgba(255, 255, 255, 0.98) !important;
+  backdrop-filter: blur(20px);
+}
+
+html[data-theme='light'] #landingPage .mobile-menu-link,
+body.light #landingPage .mobile-menu-link {
+  color: #334155 !important;
+}
+
+html[data-theme='light'] #landingPage .mobile-menu-close,
+body.light #landingPage .mobile-menu-close {
+  color: #475569 !important;
+}
+
+/* Hero */
+html[data-theme='light'] #landingPage .hero,
+body.light #landingPage .hero {
+  background:
+    radial-gradient(ellipse 80% 60% at 50% -10%, rgba(99, 102, 241, 0.1) 0%, transparent 55%),
+    #ffffff !important;
+  border-radius: 24px !important;
+  margin: 16px !important;
+  box-shadow:
+    0 0 0 1px rgba(99, 102, 241, 0.1),
+    0 8px 40px rgba(99, 102, 241, 0.08) !important;
+}
+
+/* Headline: solid dark text + gradient accent only on .grad (fixes invisible white clip) */
+html[data-theme='light'] .hero-h1,
+html[data-theme='light'] #landingPage .hero-h1,
+body.light .hero-h1,
+body.light #landingPage .hero-h1 {
+  background: none !important;
+  -webkit-background-clip: unset !important;
+  background-clip: unset !important;
+  -webkit-text-fill-color: #0c1222 !important;
+  color: #0c1222 !important;
+}
+
+html[data-theme='light'] .hero-h1 .grad,
+html[data-theme='light'] .hero-h1 em,
+html[data-theme='light'] #landingPage .hero-h1 .grad,
+html[data-theme='light'] #landingPage .hero-h1 em,
+body.light .hero-h1 .grad,
+body.light .hero-h1 em,
+body.light #landingPage .hero-h1 .grad,
+body.light #landingPage .hero-h1 em {
+  background: linear-gradient(135deg, #2563eb 0%, #6d28d9 100%) !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  color: transparent !important;
+}
+
+html[data-theme='light'] #landingPage .hero-sub,
+html[data-theme='light'] #landingPage .hero-sp-text,
+body.light #landingPage .hero-sub,
+body.light #landingPage .hero-sp-text {
+  color: #475569 !important;
+}
+
+html[data-theme='light'] #landingPage .hero-sp-text strong,
+body.light #landingPage .hero-sp-text strong {
+  color: #0f172a !important;
+}
+
+html[data-theme='light'] #landingPage .hero-grid,
+body.light #landingPage .hero-grid {
+  background-image:
+    linear-gradient(rgba(99, 102, 241, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(99, 102, 241, 0.06) 1px, transparent 1px) !important;
+}
+
+html[data-theme='light'] #landingPage .hero-badge,
+body.light #landingPage .hero-badge {
+  background: rgba(99, 102, 241, 0.08) !important;
+  border-color: rgba(99, 102, 241, 0.22) !important;
+  color: #4338ca !important;
+}
+
+html[data-theme='light'] #landingPage .activity-ticker,
+html[data-theme='light'] #landingPage .ticker-text,
+body.light #landingPage .activity-ticker,
+body.light #landingPage .ticker-text {
+  background: rgba(16, 185, 129, 0.1) !important;
+  border-color: rgba(16, 185, 129, 0.28) !important;
+  color: #047857 !important;
+}
+
+html[data-theme='light'] #landingPage .ticker-text,
+body.light #landingPage .ticker-text {
+  background: transparent !important;
+  border: none !important;
+}
+
+/* Hero metrics bar */
+html[data-theme='light'] #landingPage .hero-metrics,
+body.light #landingPage .hero-metrics {
+  background: #ffffff !important;
+  border-color: rgba(99, 102, 241, 0.14) !important;
+  box-shadow: var(--lp-shadow) !important;
+}
+
+html[data-theme='light'] #landingPage .metric-val,
+html[data-theme='light'] #landingPage .metric .counter-num,
+body.light #landingPage .metric-val,
+body.light #landingPage .metric .counter-num {
+  background: none !important;
+  -webkit-background-clip: unset !important;
+  background-clip: unset !important;
+  -webkit-text-fill-color: #0f172a !important;
+  color: #0f172a !important;
+}
+
+html[data-theme='light'] #landingPage .metric-lbl,
+body.light #landingPage .metric-lbl {
+  color: #475569 !important;
+}
+
+html[data-theme='light'] #landingPage .metric,
+body.light #landingPage .metric {
+  border-right-color: #e2e8f0 !important;
+}
+
+html[data-theme='light'] #landingPage .hero-social-proof,
+body.light #landingPage .hero-social-proof {
+  color: #475569 !important;
+}
+
+html[data-theme='light'] #landingPage .hero-metric-val,
+body.light #landingPage .hero-metric-val {
+  color: #0f172a !important;
+}
+
+html[data-theme='light'] #landingPage .hero-metric-lbl,
+body.light #landingPage .hero-metric-lbl {
+  color: #475569 !important;
+}
+
+html[data-theme='light'] #landingPage .hero-preview-frame,
+body.light #landingPage .hero-preview-frame {
+  background: #ffffff !important;
+  border-color: rgba(99, 102, 241, 0.18) !important;
+  box-shadow: 0 24px 64px rgba(99, 102, 241, 0.12) !important;
+}
+
+/* Marquee + stats */
+html[data-theme='light'] #landingPage .marquee-strip,
+body.light #landingPage .marquee-strip {
+  background: linear-gradient(180deg, #e8eeff, #eef2ff) !important;
+  border-color: rgba(99, 102, 241, 0.12) !important;
+}
+
+html[data-theme='light'] #landingPage .marquee-item,
+body.light #landingPage .marquee-item {
+  color: #475569 !important;
+}
+
+html[data-theme='light'] #landingPage .stats-proof-section,
+body.light #landingPage .stats-proof-section {
+  background: linear-gradient(180deg, #e0e7ff, #eef2ff) !important;
+}
+
+html[data-theme='light'] #landingPage .stats-proof-item,
+body.light #landingPage .stats-proof-item {
+  background: #ffffff !important;
+}
+
+html[data-theme='light'] #landingPage .stats-proof-num,
+body.light #landingPage .stats-proof-num {
+  color: #0f172a !important;
+}
+
+html[data-theme='light'] #landingPage .stats-proof-lbl,
+body.light #landingPage .stats-proof-lbl {
+  color: #475569 !important;
+}
+
+/* Big feature */
+html[data-theme='light'] #landingPage .bigfeat-section,
+body.light #landingPage .bigfeat-section {
+  background: linear-gradient(180deg, #f8fafc, #eef2ff) !important;
+  border-bottom-color: rgba(99, 102, 241, 0.1) !important;
+}
+
+html[data-theme='light'] #landingPage .bigfeat-h2,
+html[data-theme='light'] #landingPage .section-h2,
+body.light #landingPage .bigfeat-h2,
+body.light #landingPage .section-h2 {
+  background: none !important;
+  -webkit-background-clip: unset !important;
+  background-clip: unset !important;
+  -webkit-text-fill-color: #0f172a !important;
+  color: #0f172a !important;
+}
+
+html[data-theme='light'] #landingPage .bigfeat-h2 em,
+html[data-theme='light'] #landingPage .section-h2 em,
+body.light #landingPage .bigfeat-h2 em,
+body.light #landingPage .section-h2 em {
+  background: linear-gradient(135deg, #2563eb, #7c3aed) !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+}
+
+html[data-theme='light'] #landingPage .bigfeat-p,
+html[data-theme='light'] #landingPage .section-sub,
+body.light #landingPage .bigfeat-p,
+body.light #landingPage .section-sub {
+  color: #475569 !important;
+}
+
+html[data-theme='light'] #landingPage .section-label,
+body.light #landingPage .section-label {
+  color: #4338ca !important;
+  background: rgba(99, 102, 241, 0.1) !important;
+  border-color: rgba(99, 102, 241, 0.2) !important;
+}
+
+/* Cards: features, steps, pricing, CTA */
+html[data-theme='light'] #landingPage .feat,
+html[data-theme='light'] #landingPage .step,
+html[data-theme='light'] #landingPage .price-card,
+html[data-theme='light'] #landingPage .cta-box,
+body.light #landingPage .feat,
+body.light #landingPage .step,
+body.light #landingPage .price-card,
+body.light #landingPage .cta-box {
+  background: var(--lp-glass) !important;
+  border-color: var(--lp-border) !important;
+  box-shadow: var(--lp-shadow) !important;
+  backdrop-filter: none !important;
+}
+
+html[data-theme='light'] #landingPage .feat h3,
+html[data-theme='light'] #landingPage .step h3,
+body.light #landingPage .feat h3,
+body.light #landingPage .step h3 {
+  color: #0f172a !important;
+}
+
+html[data-theme='light'] #landingPage .feat p,
+html[data-theme='light'] #landingPage .step p,
+body.light #landingPage .feat p,
+body.light #landingPage .step p {
+  color: #475569 !important;
+}
+
+html[data-theme='light'] #landingPage .pricing-grid--6 .price-card--gold,
+body.light #landingPage .pricing-grid--6 .price-card--gold {
+  background: linear-gradient(160deg, rgba(99, 102, 241, 0.1) 0%, #ffffff 48%) !important;
+  border-color: rgba(99, 102, 241, 0.28) !important;
+  box-shadow: 0 12px 40px rgba(99, 102, 241, 0.12) !important;
+}
+
+html[data-theme='light'] #landingPage .pricing-grid--6 .price-name,
+html[data-theme='light'] #landingPage .pricing-grid--6 .price-card:nth-child(n) .price-name,
+body.light #landingPage .pricing-grid--6 .price-name,
+body.light #landingPage .pricing-grid--6 .price-card:nth-child(n) .price-name {
+  color: #475569 !important;
+}
+
+html[data-theme='light'] #landingPage .pricing-grid--6 .price-card--gold .price-name,
+body.light #landingPage .pricing-grid--6 .price-card--gold .price-name {
+  color: #4338ca !important;
+}
+
+html[data-theme='light'] #landingPage .pricing-grid--6 .price-amount,
+html[data-theme='light'] #landingPage .pricing-grid--6 .price-card:nth-child(n) .price-amount,
+body.light #landingPage .pricing-grid--6 .price-amount,
+body.light #landingPage .pricing-grid--6 .price-card:nth-child(n) .price-amount {
+  color: #0f172a !important;
+  background: none !important;
+  -webkit-text-fill-color: #0f172a !important;
+}
+
+html[data-theme='light'] #landingPage .pricing-grid--6 .price-card--gold .price-amount,
+body.light #landingPage .pricing-grid--6 .price-card--gold .price-amount {
+  background: linear-gradient(135deg, #1e40af, #6d28d9) !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+}
+
+html[data-theme='light'] #landingPage .pricing-grid--6 .price-original,
+html[data-theme='light'] #landingPage .pricing-grid--6 .price-original s,
+body.light #landingPage .pricing-grid--6 .price-original,
+body.light #landingPage .pricing-grid--6 .price-original s {
+  color: #576375 !important;
+}
+
+html[data-theme='light'] #landingPage .pricing-grid--6 .price-feats li,
+body.light #landingPage .pricing-grid--6 .price-feats li {
+  color: #475569 !important;
+  border-bottom-color: #e2e8f0 !important;
+}
+
+html[data-theme='light'] #landingPage .pricing-grid--6 .price-billing,
+html[data-theme='light'] #landingPage .pricing-grid--6 .price-amount sub,
+body.light #landingPage .pricing-grid--6 .price-billing,
+body.light #landingPage .pricing-grid--6 .price-amount sub {
+  color: #475569 !important;
+}
+
+html[data-theme='light'] #landingPage .billing-toggle button,
+body.light #landingPage .billing-toggle button {
+  color: #475569 !important;
+}
+
+html[data-theme='light'] #landingPage .billing-toggle button.active,
+body.light #landingPage .billing-toggle button.active {
+  color: #ffffff !important;
+  background: linear-gradient(135deg, #2563eb, #6d28d9) !important;
+}
+
+html[data-theme='light'] #landingPage .billing-toggle,
+body.light #landingPage .billing-toggle {
+  background: #f1f5f9 !important;
+  border: 1px solid #e2e8f0 !important;
+}
+
+html[data-theme='light'] #landingPage .billing-toggle button,
+body.light #landingPage .billing-toggle button {
+  color: #475569 !important;
+}
+
+html[data-theme='light'] #landingPage .billing-toggle button.active,
+body.light #landingPage .billing-toggle button.active {
+  color: #0f172a !important;
+  background: #ffffff !important;
+}
+
+html[data-theme='light'] #landingPage .promo-banner,
+body.light #landingPage .promo-banner {
+  background: rgba(239, 68, 68, 0.08) !important;
+  border-color: rgba(239, 68, 68, 0.3) !important;
+  color: #1e293b !important;
+}
+
+html[data-theme='light'] #landingPage .promo-banner-text,
+html[data-theme='light'] .promo-banner-text,
+body.light #landingPage .promo-banner-text,
+body.light .promo-banner-text {
+  color: #1e293b !important;
+}
+
+html[data-theme='light'] #landingPage .promo-banner-text strong,
+html[data-theme='light'] .promo-banner-text strong,
+body.light #landingPage .promo-banner-text strong,
+body.light .promo-banner-text strong {
+  color: #c2410c !important;
+}
+
+html[data-theme='light'] #landingPage .promo-countdown,
+html[data-theme='light'] .promo-countdown,
+body.light #landingPage .promo-countdown,
+body.light .promo-countdown {
+  color: #1d4ed8 !important;
+  background: rgba(59, 130, 246, 0.14) !important;
+  border-color: rgba(59, 130, 246, 0.3) !important;
+}
+
+/* Trust strip + CTA notes */
+html[data-theme='light'] #landingPage .trust-strip,
+body.light #landingPage .trust-strip {
+  background: #f8fafc !important;
+  border-top-color: #e2e8f0 !important;
+}
+
+html[data-theme='light'] #landingPage .trust-item,
+body.light #landingPage .trust-item {
+  color: #475569 !important;
+  border-right-color: #e2e8f0 !important;
+}
+
+html[data-theme='light'] #landingPage .trust-item i,
+body.light #landingPage .trust-item i {
+  color: #4338ca !important;
+}
+
+html[data-theme='light'] #landingPage .cta-note-item,
+body.light #landingPage .cta-note-item {
+  color: #475569 !important;
+}
+
+html[data-theme='light'] #landingPage .cta-note-item i,
+body.light #landingPage .cta-note-item i {
+  color: #166534 !important;
+}
+
+/* Stats strip */
+html[data-theme='light'] #landingPage .stat-strip-num,
+html[data-theme='light'] #landingPage .proof-num,
+body.light #landingPage .stat-strip-num,
+body.light #landingPage .proof-num {
+  color: #0f172a !important;
+  background: none !important;
+  -webkit-text-fill-color: #0f172a !important;
+}
+
+html[data-theme='light'] #landingPage .proof-label,
+html[data-theme='light'] #landingPage .proof-sub,
+body.light #landingPage .proof-label,
+body.light #landingPage .proof-sub {
+  color: #475569 !important;
+}
+
+html[data-theme='light'] #landingPage .stat-strip-lbl,
+body.light #landingPage .stat-strip-lbl {
+  color: #475569 !important;
+}
+
+/* Hero preview mock UI */
+html[data-theme='light'] #landingPage .hp-stat-num,
+body.light #landingPage .hp-stat-num {
+  color: #0f172a !important;
+}
+
+html[data-theme='light'] #landingPage .hp-stat-lbl,
+body.light #landingPage .hp-stat-lbl {
+  color: #475569 !important;
+}
+
+html[data-theme='light'] #landingPage .hero-preview-topbar,
+body.light #landingPage .hero-preview-topbar {
+  background: #f1f5f9 !important;
+  border-bottom-color: #e2e8f0 !important;
+}
+
+/* Pro sections */
+html[data-theme='light'] #landingPage .pro-logo-cloud,
+body.light #landingPage .pro-logo-cloud {
+  background: #f8fafc !important;
+  border-color: rgba(99, 102, 241, 0.1) !important;
+}
+
+html[data-theme='light'] #landingPage .pro-logo-pill,
+body.light #landingPage .pro-logo-pill {
+  background: #ffffff !important;
+  border-color: rgba(99, 102, 241, 0.14) !important;
+  color: #475569 !important;
+}
+
+html[data-theme='light'] #landingPage .pro-compare__table,
+body.light #landingPage .pro-compare__table {
+  background: #ffffff !important;
+  border-color: rgba(99, 102, 241, 0.14) !important;
+}
+
+html[data-theme='light'] #landingPage .pro-compare__table th,
+body.light #landingPage .pro-compare__table th {
+  background: #f1f5f9 !important;
+  color: #475569 !important;
+  border-bottom-color: #e2e8f0 !important;
+}
+
+html[data-theme='light'] #landingPage .pro-compare__table td,
+body.light #landingPage .pro-compare__table td {
+  border-bottom-color: #f1f5f9 !important;
+  color: #475569 !important;
+}
+
+html[data-theme='light'] #landingPage .pro-compare__table th:first-child,
+html[data-theme='light'] #landingPage .pro-compare__table td:first-child,
+body.light #landingPage .pro-compare__table th:first-child,
+body.light #landingPage .pro-compare__table td:first-child {
+  color: #0f172a !important;
+}
+
+html[data-theme='light'] #landingPage .pro-compare__highlight,
+body.light #landingPage .pro-compare__highlight {
+  background: rgba(99, 102, 241, 0.06) !important;
+}
+
+/* Testimonials, FAQ, CTA */
+html[data-theme='light'] #landingPage .testimonial,
+html[data-theme='light'] #landingPage .testimonial-meta,
+body.light #landingPage .testimonial,
+body.light #landingPage .testimonial-meta {
+  background: #ffffff !important;
+  border-color: rgba(99, 102, 241, 0.14) !important;
+  box-shadow: var(--lp-shadow) !important;
+}
+
+html[data-theme='light'] #landingPage .testimonial-text,
+body.light #landingPage .testimonial-text {
+  color: #334155 !important;
+}
+
+html[data-theme='light'] #landingPage .testimonial-name,
+body.light #landingPage .testimonial-name {
+  color: #0f172a !important;
+}
+
+html[data-theme='light'] #landingPage .testimonial-role,
+body.light #landingPage .testimonial-role {
+  color: #475569 !important;
+}
+
+html[data-theme='light'] #landingPage .testimonial-author,
+body.light #landingPage .testimonial-author {
+  border-top-color: #e2e8f0 !important;
+}
+
+html[data-theme='light'] #landingPage .faq-item,
+body.light #landingPage .faq-item {
+  background: #ffffff !important;
+  border-color: rgba(99, 102, 241, 0.12) !important;
+}
+
+html[data-theme='light'] #landingPage .faq-q,
+body.light #landingPage .faq-q {
+  color: #0f172a !important;
+}
+
+html[data-theme='light'] #landingPage .faq-a,
+body.light #landingPage .faq-a {
+  color: #475569 !important;
+}
+
+html[data-theme='light'] #landingPage .cta-h2,
+html[data-theme='light'] .cta-h2,
+body.light #landingPage .cta-h2,
+body.light .cta-h2 {
+  color: #0f172a !important;
+  background: none !important;
+  -webkit-background-clip: unset !important;
+  background-clip: unset !important;
+  -webkit-text-fill-color: #0f172a !important;
+}
+
+html[data-theme='light'] #landingPage .cta-h2 span,
+html[data-theme='light'] .cta-h2 span,
+body.light #landingPage .cta-h2 span,
+body.light .cta-h2 span {
+  background: linear-gradient(135deg, #1d4ed8, #6d28d9) !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+}
+
+html[data-theme='light'] #landingPage .cta-sub,
+body.light #landingPage .cta-sub {
+  color: #475569 !important;
+}
+
+/* Footer */
+html[data-theme='light'] #landingPage .footer-enhanced,
+body.light #landingPage .footer-enhanced {
+  background: #ffffff !important;
+  border-top-color: rgba(99, 102, 241, 0.12) !important;
+  backdrop-filter: none !important;
+}
+
+html[data-theme='light'] #landingPage .footer-brand-tagline,
+html[data-theme='light'] #landingPage .footer-col-links a,
+body.light #landingPage .footer-brand-tagline,
+body.light #landingPage .footer-col-links a {
+  color: #475569 !important;
+}
+
+html[data-theme='light'] #landingPage .footer-col-title,
+body.light #landingPage .footer-col-title {
+  color: #475569 !important;
+}
+
+html[data-theme='light'] #landingPage .footer-col-links a:hover,
+body.light #landingPage .footer-col-links a:hover {
+  color: #0f172a !important;
+}
+
+html[data-theme='light'] #landingPage .footer-bottom,
+body.light #landingPage .footer-bottom {
+  color: #475569 !important;
+  border-top-color: #e2e8f0 !important;
+}
+
+/* ========== theme-light-a11y.css ========== */
+/**
+ * Light theme accessibility — final cascade layer.
+ * WCAG AA targets: body text ≥4.5:1, large/UI ≥3:1 on white/light surfaces.
+ */
+
+/* ─── Readable token aliases ─── */
+html[data-theme='light'],
+html.theme-light,
+body.light {
+  --t-text-1: #0c1222;
+  --t-text-muted: #475569;
+  --t-text-3: #475569;
+  --text3: #475569;
+  --ds-text-subtle: #475569;
+}
+
+/* ─── Base typography on light surfaces ─── */
+html[data-theme='light'] body,
+html[data-theme='light'] #appPage,
+html[data-theme='light'] #landingPage,
+body.light,
+body.light #appPage,
+body.light #landingPage {
+  color: #0c1222;
+}
+
+html[data-theme='light'] p,
+html[data-theme='light'] li,
+html[data-theme='light'] label,
+html[data-theme='light'] .form-label,
+html[data-theme='light'] .field-label,
+body.light p,
+body.light li,
+body.light label,
+body.light .form-label,
+body.light .field-label {
+  color: inherit;
+}
+
+html[data-theme='light'] small,
+html[data-theme='light'] .hint,
+html[data-theme='light'] .help-text,
+html[data-theme='light'] .field-hint,
+html[data-theme='light'] .settings-row-hint,
+html[data-theme='light'] .compose-hint,
+body.light small,
+body.light .hint,
+body.light .help-text,
+body.light .field-hint,
+body.light .settings-row-hint,
+body.light .compose-hint {
+  color: #475569 !important;
+}
+
+/* ─── Placeholders ─── */
+html[data-theme='light'] input::placeholder,
+html[data-theme='light'] textarea::placeholder,
+body.light input::placeholder,
+body.light textarea::placeholder {
+  color: #64748b !important;
+  opacity: 1 !important;
+}
+
+/* ─── Forms & inputs ─── */
+html[data-theme='light'] input,
+html[data-theme='light'] textarea,
+html[data-theme='light'] select,
+html[data-theme='light'] .form-input,
+html[data-theme='light'] .input,
+body.light input,
+body.light textarea,
+body.light select,
+body.light .form-input,
+body.light .input {
+  color: #0c1222 !important;
+}
+
+html[data-theme='light'] input:disabled,
+html[data-theme='light'] textarea:disabled,
+html[data-theme='light'] select:disabled,
+html[data-theme='light'] button:disabled,
+html[data-theme='light'] .btn:disabled,
+html[data-theme='light'] .act-btn:disabled,
+body.light input:disabled,
+body.light textarea:disabled,
+body.light select:disabled,
+body.light button:disabled,
+body.light .btn:disabled,
+body.light .act-btn:disabled {
+  color: #64748b !important;
+  opacity: 1 !important;
+}
+
+/* ─── Tables ─── */
+html[data-theme='light'] .table-head,
+html[data-theme='light'] .table-header,
+html[data-theme='light'] thead th,
+body.light .table-head,
+body.light .table-header,
+body.light thead th {
+  color: #334155 !important;
+}
+
+html[data-theme='light'] .table-row,
+html[data-theme='light'] tbody td,
+body.light .table-row,
+body.light tbody td {
+  color: #0c1222;
+}
+
+html[data-theme='light'] .table-row .mono,
+html[data-theme='light'] .table-row .muted,
+body.light .table-row .mono,
+body.light .table-row .muted {
+  color: #334155 !important;
+}
+
+html[data-theme='light'] .table-row .err,
+html[data-theme='light'] .table-row .error,
+body.light .table-row .err,
+body.light .table-row .error {
+  color: #b91c1c !important;
+}
+
+html[data-theme='light'] .table-row:hover,
+body.light .table-row:hover {
+  background: rgba(99, 102, 241, 0.06) !important;
+}
+
+/* ─── Cards, panels, modals ─── */
+html[data-theme='light'] .card,
+html[data-theme='light'] .panel,
+html[data-theme='light'] .modal-box,
+html[data-theme='light'] .modal-content,
+html[data-theme='light'] .saas-card,
+html[data-theme='light'] .saas-empty-card,
+body.light .card,
+body.light .panel,
+body.light .modal-box,
+body.light .modal-content,
+body.light .saas-card,
+body.light .saas-empty-card {
+  color: #0c1222;
+}
+
+html[data-theme='light'] .card-sub,
+html[data-theme='light'] .panel-sub,
+html[data-theme='light'] .modal-sub,
+html[data-theme='light'] .saas-empty-card p,
+html[data-theme='light'] .empty-state p,
+body.light .card-sub,
+body.light .panel-sub,
+body.light .modal-sub,
+body.light .saas-empty-card p,
+body.light .empty-state p {
+  color: #475569 !important;
+}
+
+html[data-theme='light'] .modal-title,
+html[data-theme='light'] .modal-h2,
+body.light .modal-title,
+body.light .modal-h2 {
+  color: #0f172a !important;
+}
+
+/* ─── Navigation ─── */
+html[data-theme='light'] #landingPage .nav-links a,
+html[data-theme='light'] .nav-links a,
+html[data-theme='light'] .sidebar-link,
+html[data-theme='light'] .nav-item,
+body.light #landingPage .nav-links a,
+body.light .nav-links a,
+body.light .sidebar-link,
+body.light .nav-item {
+  color: #334155 !important;
+}
+
+html[data-theme='light'] #landingPage .nav-links a:hover,
+html[data-theme='light'] #landingPage .nav-links a:focus-visible,
+html[data-theme='light'] .nav-links a:hover,
+html[data-theme='light'] .nav-links a:focus-visible,
+html[data-theme='light'] .sidebar-link:hover,
+html[data-theme='light'] .sidebar-link.active,
+html[data-theme='light'] .nav-item:hover,
+html[data-theme='light'] .nav-item.active,
+body.light #landingPage .nav-links a:hover,
+body.light #landingPage .nav-links a:focus-visible,
+body.light .nav-links a:hover,
+body.light .nav-links a:focus-visible,
+body.light .sidebar-link:hover,
+body.light .sidebar-link.active,
+body.light .nav-item:hover,
+body.light .nav-item.active {
+  color: #0f172a !important;
+}
+
+html[data-theme='light'] .saas-topbar .topbar-title p,
+body.light .saas-topbar .topbar-title p {
+  color: #475569 !important;
+}
+
+html[data-theme='light'] .saas-topbar .topbar-title h1,
+body.light .saas-topbar .topbar-title h1 {
+  background: linear-gradient(135deg, #1e3a8a 0%, #6d28d9 100%) !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+}
+
+/* ─── Buttons (secondary / ghost) ─── */
+html[data-theme='light'] .btn-ghost,
+html[data-theme='light'] .btn-outline,
+html[data-theme='light'] .btn-secondary,
+html[data-theme='light'] .act-btn--ghost,
+body.light .btn-ghost,
+body.light .btn-outline,
+body.light .btn-secondary,
+body.light .act-btn--ghost {
+  color: #334155 !important;
+  border-color: rgba(99, 102, 241, 0.25) !important;
+}
+
+html[data-theme='light'] .btn-ghost:hover,
+html[data-theme='light'] .btn-outline:hover,
+html[data-theme='light'] .btn-secondary:hover,
+html[data-theme='light'] .act-btn--ghost:hover:not(:disabled),
+body.light .btn-ghost:hover,
+body.light .btn-outline:hover,
+body.light .btn-secondary:hover,
+body.light .act-btn--ghost:hover:not(:disabled) {
+  color: #0f172a !important;
+  background: rgba(99, 102, 241, 0.08) !important;
+}
+
+html[data-theme='light'] .btn-ghost:focus-visible,
+html[data-theme='light'] .btn-outline:focus-visible,
+body.light .btn-ghost:focus-visible,
+body.light .btn-outline:focus-visible {
+  outline: 2px solid #2563eb !important;
+  outline-offset: 2px;
+}
+
+/* ─── Segmented controls ─── */
+html[data-theme='light'] .seg-opt:not(.active),
+body.light .seg-opt:not(.active) {
+  color: #475569 !important;
+}
+
+html[data-theme='light'] .seg-opt.active,
+body.light .seg-opt.active {
+  color: #0f172a !important;
+}
+
+html[data-theme='light'] .seg-opt:hover:not(.active),
+body.light .seg-opt:hover:not(.active) {
+  color: #334155 !important;
+}
+
+/* ─── Badges & status ─── */
+html[data-theme='light'] .badge,
+html[data-theme='light'] .status-pill,
+body.light .badge,
+body.light .status-pill {
+  font-weight: 600;
+}
+
+html[data-theme='light'] .badge-cancelled,
+body.light .badge-cancelled {
+  color: #475569 !important;
+  background: rgba(71, 85, 105, 0.1) !important;
+  border-color: rgba(71, 85, 105, 0.22) !important;
+}
+
+html[data-theme='light'] .badge-muted,
+html[data-theme='light'] .badge-neutral,
+body.light .badge-muted,
+body.light .badge-neutral {
+  color: #475569 !important;
+}
+
+/* ─── Landing / marketing headings (no invisible gradient text) ─── */
+html[data-theme='light'] #landingPage .cta-h2,
+html[data-theme='light'] .cta-h2,
+body.light #landingPage .cta-h2,
+body.light .cta-h2 {
+  color: #0f172a !important;
+  background: none !important;
+  -webkit-background-clip: unset !important;
+  background-clip: unset !important;
+  -webkit-text-fill-color: #0f172a !important;
+}
+
+html[data-theme='light'] #landingPage .section-label,
+html[data-theme='light'] .section-label,
+html[data-theme='light'] .footer-col-title,
+body.light #landingPage .section-label,
+body.light .section-label,
+body.light .footer-col-title {
+  color: #475569 !important;
+}
+
+html[data-theme='light'] #landingPage .faq-q,
+body.light #landingPage .faq-q {
+  color: #0f172a !important;
+}
+
+html[data-theme='light'] #landingPage .faq-a,
+body.light #landingPage .faq-a {
+  color: #475569 !important;
+}
+
+/* ─── AI / chat widgets (fix dark-theme fallbacks) ─── */
+html[data-theme='light'] .chatw__welcome-title,
+html[data-theme='light'] .aiw__welcome-title,
+body.light .chatw__welcome-title,
+body.light .aiw__welcome-title {
+  color: #0f172a !important;
+  background: none !important;
+  -webkit-text-fill-color: #0f172a !important;
+}
+
+html[data-theme='light'] .chatw__welcome-sub,
+html[data-theme='light'] .aiw__welcome-sub,
+body.light .chatw__welcome-sub,
+body.light .aiw__welcome-sub {
+  color: #334155 !important;
+}
+
+html[data-theme='light'] .chatw__chip,
+html[data-theme='light'] .aiw__chip,
+body.light .chatw__chip,
+body.light .aiw__chip {
+  background: #e8edff !important;
+  color: #0f172a !important;
+  border: 1px solid rgba(99, 102, 241, 0.22) !important;
+}
+
+html[data-theme='light'] .chatw__chip:hover,
+html[data-theme='light'] .aiw__chip:hover,
+body.light .chatw__chip:hover,
+body.light .aiw__chip:hover {
+  background: #dbe4ff !important;
+  color: #0c1222 !important;
+}
+
+html[data-theme='light'] .chatw__send:disabled,
+html[data-theme='light'] .aiw__send:disabled,
+body.light .chatw__send:disabled,
+body.light .aiw__send:disabled {
+  color: #64748b !important;
+  background: #e2e8f0 !important;
+  opacity: 1 !important;
+}
+
+html[data-theme='light'] .chatw__msg--bot,
+html[data-theme='light'] .aiw__msg--bot,
+body.light .chatw__msg--bot,
+body.light .aiw__msg--bot {
+  color: #0c1222 !important;
+}
+
+/* ─── Messenger ─── */
+html[data-theme='light'] .msng-toolbar-sub,
+html[data-theme='light'] .msng-chat-hdr-sub,
+html[data-theme='light'] .msng-thread-preview,
+html[data-theme='light'] .msng-empty-hint,
+body.light .msng-toolbar-sub,
+body.light .msng-chat-hdr-sub,
+body.light .msng-thread-preview,
+body.light .msng-empty-hint {
+  color: #475569 !important;
+}
+
+html[data-theme='light'] .msng-thread-name,
+html[data-theme='light'] .msng-chat-hdr-title,
+body.light .msng-thread-name,
+body.light .msng-chat-hdr-title {
+  color: #0f172a !important;
+}
+
+/* ─── Analytics / KPIs ─── */
+html[data-theme='light'] .akpi-delta-lbl,
+html[data-theme='light'] .breakdown-label,
+html[data-theme='light'] .kbd-desc,
+html[data-theme='light'] .chart-legend-item,
+body.light .akpi-delta-lbl,
+body.light .breakdown-label,
+body.light .kbd-desc,
+body.light .chart-legend-item {
+  color: #475569 !important;
+  opacity: 1 !important;
+}
+
+html[data-theme='light'] .akpi-val,
+html[data-theme='light'] .metric-val,
+body.light .akpi-val,
+body.light .metric-val {
+  color: #0f172a !important;
+}
+
+/* ─── Support / empty states with low-opacity icons ─── */
+html[data-theme='light'] .support-empty,
+html[data-theme='light'] .support-empty p,
+html[data-theme='light'] .ds-empty__title,
+html[data-theme='light'] .ds-empty__text,
+body.light .support-empty,
+body.light .support-empty p,
+body.light .ds-empty__title,
+body.light .ds-empty__text {
+  color: #475569 !important;
+}
+
+html[data-theme='light'] .ds-empty__title,
+body.light .ds-empty__title {
+  color: #334155 !important;
+}
+
+/* ─── Links ─── */
+html[data-theme='light'] a:not(.btn):not(.nav-cta):not(.mobile-menu-cta):not([class*='btn']),
+body.light a:not(.btn):not(.nav-cta):not(.mobile-menu-cta):not([class*='btn']) {
+  color: #1d4ed8;
+}
+
+html[data-theme='light'] a:not(.btn):hover,
+body.light a:not(.btn):hover {
+  color: #1e40af;
+}
+
+/* ─── Focus rings (reinforce) ─── */
+html[data-theme='light'] :focus-visible,
+body.light :focus-visible {
+  outline: 2px solid #2563eb !important;
+  outline-offset: 2px;
+}
+
+html[data-theme='light'] .nav-hamburger:focus-visible,
+html[data-theme='light'] .theme-toggle:focus-visible,
+body.light .nav-hamburger:focus-visible,
+body.light .theme-toggle:focus-visible {
+  outline: 2px solid #2563eb !important;
+  outline-offset: 2px;
+}
+
+/* ─── Mobile menu (light overlay) ─── */
+html[data-theme='light'] .mobile-menu,
+body.light .mobile-menu {
+  background: rgba(255, 255, 255, 0.97) !important;
+}
+
+html[data-theme='light'] .mobile-menu-link,
+body.light .mobile-menu-link {
+  color: #334155 !important;
+}
+
+html[data-theme='light'] .mobile-menu-link:hover,
+html[data-theme='light'] .mobile-menu-link:focus-visible,
+body.light .mobile-menu-link:hover,
+body.light .mobile-menu-link:focus-visible {
+  color: #0f172a !important;
+  background: #f1f5f9 !important;
+}
+
+html[data-theme='light'] .mobile-menu-close,
+body.light .mobile-menu-close {
+  color: #334155 !important;
+  background: #f1f5f9 !important;
+  border-color: rgba(99, 102, 241, 0.2) !important;
+}
+
+/* ─── Scheduling: Send Delay select chevron (prevent tiled arrows in light theme) ─── */
+html[data-theme='light'] #view-scheduling select.sv2-delay-select,
+html[data-theme='light'] #view-scheduling select.sv2-input.sv2-delay-select,
+body.light #view-scheduling select.sv2-delay-select,
+body.light #view-scheduling select.sv2-input.sv2-delay-select {
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  background-color: #f8fafc !important;
+  background-repeat: no-repeat !important;
+  background-position: right 12px center !important;
+  background-size: 14px !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23475569' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E") !important;
+}
+
+/* ─── Upgrade modal promo strip ─── */
+html[data-theme='light'] .modal-promo-strip,
+body.light .modal-promo-strip {
+  color: #334155 !important;
+}
+
+html[data-theme='light'] .modal-promo-strip strong,
+body.light .modal-promo-strip strong {
+  color: #c2410c !important;
+}
+
+/* ─── Pricing gold accent (readable on white) ─── */
+html[data-theme='light'] .price-card--gold .price-amount,
+body.light .price-card--gold .price-amount {
+  background: linear-gradient(135deg, #92400e, #b45309) !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+}
+
+/* ─── Broadcast / compose toolbar ─── */
+html[data-theme='light'] .broadcast-meta,
+html[data-theme='light'] .compose-meta,
+html[data-theme='light'] .stat-label,
+body.light .broadcast-meta,
+body.light .compose-meta,
+body.light .stat-label {
+  color: #475569 !important;
+}
+
+html[data-theme='light'] .stat-val,
+body.light .stat-val {
+  color: #0f172a !important;
+}
+
+/* ─── Scheduling view ─── */
+html[data-theme='light'] #view-scheduling .sv2-topbar-sub,
+html[data-theme='light'] #view-scheduling .sv2-hero-sub,
+html[data-theme='light'] #view-scheduling .sv2-list-sub,
+html[data-theme='light'] #view-scheduling .sv2-card-msg,
+html[data-theme='light'] #view-scheduling .sv2-card-meta,
+html[data-theme='light'] #view-scheduling .sv2-empty-sub,
+html[data-theme='light'] #view-scheduling .sv2-hint,
+html[data-theme='light'] #view-scheduling .sv2-section-label,
+html[data-theme='light'] #view-scheduling .sv2-note,
+html[data-theme='light'] #view-scheduling .sv2-charcount,
+html[data-theme='light'] #view-scheduling .sv2-stat-lbl,
+body.light #view-scheduling .sv2-topbar-sub,
+body.light #view-scheduling .sv2-hero-sub,
+body.light #view-scheduling .sv2-list-sub,
+body.light #view-scheduling .sv2-card-msg,
+body.light #view-scheduling .sv2-card-meta,
+body.light #view-scheduling .sv2-empty-sub,
+body.light #view-scheduling .sv2-hint,
+body.light #view-scheduling .sv2-section-label,
+body.light #view-scheduling .sv2-note,
+body.light #view-scheduling .sv2-charcount,
+body.light #view-scheduling .sv2-stat-lbl {
+  color: #475569 !important;
+}
+
+html[data-theme='light'] #view-scheduling .sv2-topbar-title,
+body.light #view-scheduling .sv2-topbar-title {
+  color: #0f172a !important;
+}
+
+html[data-theme='light'] #view-scheduling .sv2-refresh-btn:hover,
+html[data-theme='light'] #view-scheduling .sv2-chip:hover,
+body.light #view-scheduling .sv2-refresh-btn:hover,
+body.light #view-scheduling .sv2-chip:hover {
+  color: #334155 !important;
+}
+
+/* ─── Admin badges ─── */
+html[data-theme='light'] .badge-free,
+body.light .badge-free {
+  color: #475569 !important;
+  background: rgba(71, 85, 105, 0.12) !important;
+}
+
+/* ─── Prevent accidental light-on-light from dark fallbacks ─── */
+html[data-theme='light'] [class*='welcome-title'],
+html[data-theme='light'] [class*='welcome-sub'],
+body.light [class*='welcome-title'],
+body.light [class*='welcome-sub'] {
+  -webkit-text-fill-color: unset;
+}

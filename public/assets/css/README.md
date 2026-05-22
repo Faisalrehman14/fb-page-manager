@@ -8,7 +8,7 @@ Load order is defined in `public/index.html` (do not reorder without visual QA).
 | Components | `ui-components.css`, `design-system.css` | Shared UI primitives |
 | Layout | `app-shell.css`, `saas-topbar.css`, `app-mobile-nav.css` | Dashboard chrome |
 | Views | `messenger.css`, `scheduling.css`, `home-dashboard.css`, … | Per-screen UI |
-| Themes | `theme-light.css`, `*-light.css`, `theme-final.css` | Light mode overrides |
-| Polish | `saas-polish.css`, `theme-light-a11y.css`, `ui-overhaul.css` | Final contrast & fixes |
+| Themes | `theme-light.bundle.css`, `theme-final.css` | Light mode overrides (single merged bundle) |
+| Polish | `saas-polish.css`, `ui-overhaul.css` | Final contrast & fixes |
 
 New view-specific styles: add a dedicated file and link it before `theme-final.css`.
