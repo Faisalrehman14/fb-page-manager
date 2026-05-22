@@ -219,6 +219,8 @@
   -webkit-appearance: none;
   -moz-appearance: none;
   cursor: pointer;
+  /* Longhand only — `background:` shorthand resets repeat to `repeat` and tiles the chevron */
+  background-color: inherit;
   background-repeat: no-repeat;
   background-position: right 12px center;
   background-size: 14px;
@@ -1121,12 +1123,12 @@ body:not(.light) #view-scheduling .sv2-sidebar-hint strong {
 }
 
 html[data-theme='dark'] #view-scheduling .sv2-textarea,
-html[data-theme='dark'] #view-scheduling .sv2-input,
+html[data-theme='dark'] #view-scheduling input.sv2-input,
 html[data-theme='dark'] #view-scheduling .sv2-img-zone,
 body:not(.light) #view-scheduling .sv2-textarea,
-body:not(.light) #view-scheduling .sv2-input,
+body:not(.light) #view-scheduling input.sv2-input,
 body:not(.light) #view-scheduling .sv2-img-zone {
-  background: rgba(0, 0, 0, 0.35) !important;
+  background-color: rgba(0, 0, 0, 0.35) !important;
   border-color: rgba(139, 156, 255, 0.22) !important;
   color: #f1f5f9 !important;
   color-scheme: dark;
@@ -1138,9 +1140,13 @@ html[data-theme='dark'] #view-scheduling .sv2-delay-select,
 body:not(.light) #view-scheduling select.sv2-delay-select,
 body:not(.light) #view-scheduling .sv2-delay-select {
   color-scheme: dark !important;
-  background-color: rgba(14, 22, 48, 0.96) !important;
   color: #f1f5f9 !important;
   border-color: rgba(139, 156, 255, 0.28) !important;
+  background-color: rgba(14, 22, 48, 0.96) !important;
+  background-repeat: no-repeat !important;
+  background-position: right 12px center !important;
+  background-size: 14px !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23a5b4fc' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E") !important;
 }
 
 html[data-theme='dark'] #view-scheduling select.sv2-delay-select option,
@@ -1279,12 +1285,12 @@ body.light #view-scheduling {
 }
 
 html[data-theme='light'] #view-scheduling .sv2-textarea,
-html[data-theme='light'] #view-scheduling .sv2-input,
+html[data-theme='light'] #view-scheduling input.sv2-input,
 html[data-theme='light'] #view-scheduling .sv2-pages-grid,
 body.light #view-scheduling .sv2-textarea,
-body.light #view-scheduling .sv2-input,
+body.light #view-scheduling input.sv2-input,
 body.light #view-scheduling .sv2-pages-grid {
-  background: #f8fafc !important;
+  background-color: #f8fafc !important;
   border-color: #e2e8f0 !important;
   color: #0f172a !important;
   color-scheme: light;
@@ -1295,9 +1301,12 @@ html[data-theme='light'] #view-scheduling .sv2-delay-select,
 body.light #view-scheduling select.sv2-delay-select,
 body.light #view-scheduling .sv2-delay-select {
   color-scheme: light !important;
-  background-color: #f8fafc !important;
   color: #0f172a !important;
   border-color: #e2e8f0 !important;
+  background-color: #f8fafc !important;
+  background-repeat: no-repeat !important;
+  background-position: right 12px center !important;
+  background-size: 14px !important;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23475569' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E") !important;
 }
 

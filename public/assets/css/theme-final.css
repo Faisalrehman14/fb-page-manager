@@ -943,7 +943,7 @@ body.light #appPage input,
 body.light #appPage textarea,
 body.light #appPage select {
   color: var(--t-text) !important;
-  background: var(--t-surface) !important;
+  background-color: var(--t-surface) !important;
   border-color: var(--t-input-border) !important;
 }
 

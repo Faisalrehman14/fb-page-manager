@@ -451,7 +451,7 @@ body.light #appPage input,
 body.light #appPage textarea,
 body.light #appPage select {
   color: #0f172a !important;
-  background: #ffffff !important;
+  background-color: #ffffff !important;
   border-color: #cbd5e1 !important;
 }
 

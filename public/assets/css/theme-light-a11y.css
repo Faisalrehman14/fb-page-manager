@@ -467,6 +467,20 @@ body.light .mobile-menu-close {
   border-color: rgba(99, 102, 241, 0.2) !important;
 }
 
+/* ─── Scheduling: Send Delay select chevron (prevent tiled arrows in light theme) ─── */
+html[data-theme='light'] #view-scheduling select.sv2-delay-select,
+html[data-theme='light'] #view-scheduling select.sv2-input.sv2-delay-select,
+body.light #view-scheduling select.sv2-delay-select,
+body.light #view-scheduling select.sv2-input.sv2-delay-select {
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  background-color: #f8fafc !important;
+  background-repeat: no-repeat !important;
+  background-position: right 12px center !important;
+  background-size: 14px !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23475569' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E") !important;
+}
+
 /* ─── Upgrade modal promo strip ─── */
 html[data-theme='light'] .modal-promo-strip,
 body.light .modal-promo-strip {
