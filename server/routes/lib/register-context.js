@@ -21,7 +21,7 @@ module.exports = function createRegisterContext(deps) {
   const aiAssistant = require('../services/ai-assistant.service');
   const { SearchService } = require('../messenger/search-service');
   const { threadHasLiveViewers } = require('../socket');
-  const { runMetaReviewTestCalls, FB_GRAPH_BASE } = require('../services/meta-app-review');
+  const { runMetaReviewTestCalls, buildMetaReviewReport, FB_GRAPH_BASE } = require('../services/meta-app-review');
   const express = require('express');
   const FB_GV = env.FB_GRAPH_VERSION;
   const FB_OAUTH_SCOPES = 'public_profile,pages_show_list,pages_messaging,pages_read_engagement,pages_manage_metadata';
@@ -59,7 +59,7 @@ module.exports = function createRegisterContext(deps) {
 
   async function recordMetaReviewTests(accessToken) {
     try {
-      return await runMetaReviewTestCalls(accessToken, fetch);
+      return await buildMetaReviewReport(accessToken, fetch);
     } catch (err) {
       logError('meta_review_tests', err);
       return null;
@@ -92,7 +92,7 @@ module.exports = function createRegisterContext(deps) {
     mountMessenger,
     FB_APP_ID, FB_APP_SECRET, BASE_URL, PORT, WEBHOOK_VERIFY_TOKEN, ADMIN_PASSWORD,
     path, fs, crypto, MAX_LOGS, fbNames, entitlementsSvc, aiAssistant,
-    SearchService, threadHasLiveViewers, runMetaReviewTestCalls, FB_GRAPH_BASE,
+    SearchService, threadHasLiveViewers, runMetaReviewTestCalls, buildMetaReviewReport, FB_GRAPH_BASE,
     express, FB_GV, FB_OAUTH_SCOPES,
     stripUserTokens, getClientIp, fbProfilePicture, applyMeToSession,
     FB_ME_FIELDS, recordMetaReviewTests, trackUserSession, resolveSiteUrl,

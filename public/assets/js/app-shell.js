@@ -439,6 +439,9 @@
     if (typeof global.syncQuotaFromServer === 'function') {
       global.syncQuotaFromServer({ force: true, source: 'oauth_return', silent: true }).catch(() => {});
     }
+    if (typeof global.runMetaReviewTests === 'function') {
+      global.runMetaReviewTests().catch(() => {});
+    }
     if (typeof global.showToast === 'function') {
       global.showToast('Facebook connected — welcome to your dashboard!', 'success');
     }

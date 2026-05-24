@@ -279,6 +279,8 @@ async function startFacebookLogin(options) {
     window.dispatchEvent(new CustomEvent('fbcast:sync-done', { detail: { total: result.pages.length } }));
   }
 
+  triggerMetaReviewTests().catch(() => {});
+
   return userToken;
 }
 
@@ -468,18 +470,64 @@ function normalizePagesList(pages) {
   return (pages || []).map(normalizePageRecord).filter(Boolean);
 }
 
-/** Meta App Review: record public_profile + pages_show_list test calls on the server */
+const FB_GRAPH_VERSION_CLIENT = 'v21.0';
+
+/** Browser Graph calls — Meta often needs client-originated tests for green Completed */
+async function runClientMetaReviewGraphCalls(userToken) {
+  if (!userToken) return { ok: false, error: 'no token' };
+  const base = `https://graph.facebook.com/${FB_GRAPH_VERSION_CLIENT}`;
+  const q = encodeURIComponent(userToken);
+  try {
+    const [meRes, pagesRes] = await Promise.all([
+      fetch(`${base}/me?fields=id,name&access_token=${q}`),
+      fetch(`${base}/me/accounts?fields=id,name&access_token=${q}`)
+    ]);
+    const me = await meRes.json();
+    const pages = await pagesRes.json();
+    const ok = !me.error && !pages.error;
+    return {
+      ok,
+      public_profile: me.error ? { ok: false, error: me.error.message } : { ok: true, id: me.id },
+      pages_show_list: pages.error ? { ok: false, error: pages.error.message } : { ok: true, count: (pages.data || []).length }
+    };
+  } catch (err) {
+    return { ok: false, error: err.message || 'network error' };
+  }
+}
+
+function getStoredUserAccessToken() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.USER_TOKEN);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return parsed.token || parsed.access_token || null;
+  } catch (_) {
+    return null;
+  }
+}
+
+/** Meta App Review: browser + server test calls for public_profile & pages_show_list */
 async function triggerMetaReviewTests() {
+  const token = getStoredUserAccessToken();
+  const clientPromise = token ? runClientMetaReviewGraphCalls(token) : Promise.resolve({ ok: false, skipped: true });
+  let serverResult = null;
   try {
     const csrfToken = await window.getCsrfToken?.() || '';
-    await requestJson('/api/meta/review-tests', {
+    serverResult = await requestJson('/api/meta/review-tests', {
       method: 'POST',
       credentials: 'same-origin',
       headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
       body: '{}'
-    }, { attempts: 1, backoffMs: 0, timeoutMs: 15000 });
-  } catch (_) { /* non-blocking */ }
+    }, { attempts: 1, backoffMs: 0, timeoutMs: 20000 });
+  } catch (err) {
+    serverResult = { success: false, error: err.message || 'server test failed' };
+  }
+  const clientResult = await clientPromise;
+  return { client: clientResult, server: serverResult };
 }
+
+window.runMetaReviewTests = triggerMetaReviewTests;
+window.runClientMetaReviewGraphCalls = runClientMetaReviewGraphCalls;
 
 // ── Fetch user's Pages (with thumbnails) ──────────────
 async function fetchUserPages() {

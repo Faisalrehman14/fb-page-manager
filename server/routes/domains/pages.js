@@ -16,17 +16,24 @@ module.exports = function mountPages(app, ctx) {
 // ── Pages ─────────────────────────────────────────────────────────────────────
 // Manual trigger for Meta App Review test calls (use while logged in as app Admin/Developer)
 app.post('/api/meta/review-tests', requireAuth, verifyCsrf, async (req, res) => {
-    const results = await recordMetaReviewTests(req.session.accessToken);
-    if (!results) return res.status(500).json({ error: 'Failed to run review tests' });
+    const report = await recordMetaReviewTests(req.session.accessToken);
+    if (!report) return res.status(500).json({ error: 'Failed to run review tests' });
+    const tests = report.tests || report;
     res.json({
-        success: !!(results.public_profile?.ok && results.pages_show_list?.ok),
-        graphVersion: results.graphVersion,
-        pageCount: results.pageCount,
-        public_profile: results.public_profile,
-        pages_show_list: results.pages_show_list,
-        hint: results.pageCount === 0
-            ? 'No Pages returned — use a Facebook account that manages at least one Page, or create a Test Page in Meta Developer Console.'
-            : 'Check App Dashboard → Testing in 24h. Login must be as App Admin/Developer/Tester.'
+        success: !!(tests.public_profile?.ok && tests.pages_show_list?.ok),
+        qualified: !!report.qualified,
+        graphVersion: report.graphVersion || tests.graphVersion,
+        pageCount: report.pageCount ?? tests.pageCount,
+        public_profile: tests.public_profile,
+        pages_show_list: tests.pages_show_list,
+        tokenInfo: report.tokenInfo || null,
+        role: report.role || null,
+        dashboardNote: report.dashboardNote || (
+            report.pageCount === 0
+                ? 'No Pages returned — use a Facebook account that manages at least one Page.'
+                : 'Check App Dashboard → Testing in 24h. Login must be as App Admin/Developer/Tester.'
+        ),
+        nextSteps: report.nextSteps || []
     });
 });
 

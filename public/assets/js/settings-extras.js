@@ -178,6 +178,44 @@
     }
   }
 
+  function bindMetaReviewTests() {
+    const btn = $('metaReviewRunBtn');
+    const out = $('metaReviewStatus');
+    if (!btn || !out) return;
+    btn.addEventListener('click', async () => {
+      btn.disabled = true;
+      out.hidden = false;
+      out.textContent = 'Running browser + server Graph API tests…';
+      try {
+        if (typeof global.runMetaReviewTests !== 'function') {
+          throw new Error('Connect with Facebook first, then try again.');
+        }
+        const result = await global.runMetaReviewTests();
+        const s = result.server || {};
+        const lines = [
+          s.dashboardNote || 'Tests finished.',
+          '',
+          `Server: public_profile ${s.public_profile?.ok ? 'OK' : 'FAIL'}, pages_show_list ${s.pages_show_list?.ok ? 'OK' : 'FAIL'}`,
+          `App role account: ${s.role?.hasRole === true ? 'YES' : s.role?.hasRole === false ? 'NO — add as Admin/Developer/Tester in Meta App roles' : 'unknown'}`,
+          `Browser: ${result.client?.ok ? 'OK' : result.client?.error || 'skipped'}`,
+          s.pageCount != null ? `Pages found: ${s.pageCount}` : ''
+        ].filter(Boolean);
+        if (Array.isArray(s.nextSteps) && s.nextSteps.length) {
+          lines.push('', 'Steps:', ...s.nextSteps.map((step, i) => `${i + 1}. ${step}`));
+        }
+        out.textContent = lines.join('\n');
+        if (global.showToast) {
+          global.showToast(s.qualified ? 'Review tests OK for role account' : (s.role?.hasRole === false ? 'Not an app role account — see Settings' : 'Tests sent — check Meta in 24h'), s.qualified ? 'success' : 'warning');
+        }
+      } catch (err) {
+        out.textContent = err.message || 'Test failed';
+        if (global.showToast) global.showToast(out.textContent, 'error');
+      } finally {
+        btn.disabled = false;
+      }
+    });
+  }
+
   function bindClearCache() {
     const btn = $('settingsClearCache');
     if (!btn) return;
@@ -280,6 +318,7 @@
       (v) => { state.notify.sound = v; });
 
     bindClearCache();
+    bindMetaReviewTests();
 
     setTimeout(loadProfile, 200);
     setTimeout(loadProfile, 1500);
