@@ -162,7 +162,7 @@ app.get('/api/admin/users', requireAdminAuth, async (req, res) => {
 
 // Plan catalog for admin UI
 app.get('/api/admin/plans', requireAdminAuth, (req, res) => {
-    const { getPlanCatalogForAdmin } = require('../config/plans');
+    const { getPlanCatalogForAdmin } = require('../../config/plans');
     res.json({ plans: getPlanCatalogForAdmin() });
 });
 

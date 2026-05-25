@@ -8,6 +8,7 @@ module.exports = function mountBroadcast(app, ctx) {
     FB_APP_ID, FB_APP_SECRET, BASE_URL, PORT, WEBHOOK_VERIFY_TOKEN, ADMIN_PASSWORD,
     path, fs, crypto, MAX_LOGS, fbNames, entitlementsSvc, aiAssistant,
     SearchService, threadHasLiveViewers, runMetaReviewTestCalls, FB_GRAPH_BASE,
+    graphUrlWithProof,
     express, FB_GV, FB_OAUTH_SCOPES,
     stripUserTokens, getClientIp, fbProfilePicture, applyMeToSession,
     FB_ME_FIELDS, recordMetaReviewTests, trackUserSession, resolveSiteUrl
@@ -99,7 +100,7 @@ app.post('/api/sync/all', requireAuth, verifyCsrf, async (req, res) => {
     try {
         await recordMetaReviewTests(req.session.accessToken);
 
-        const fbRes = await fetch(`${FB_GRAPH_BASE}/me/accounts?fields=id,name,picture,access_token&access_token=${req.session.accessToken}`);
+        const fbRes = await fetch(graphUrlWithProof('/me/accounts?fields=id,name,picture,access_token', req.session.accessToken));
         const data  = await fbRes.json();
         if (data.error) throw new Error(data.error.message);
         res.json({ success: true, message: `Sync started for ${(data.data || []).length} pages` });
@@ -211,7 +212,7 @@ app.delete('/api/schedules/:id', requireAuth, verifyCsrf, async (req, res) => {
 // Send messages exactly like manual broadcast (enqueueAndSendUtility in fb_api.js)
 async function sendToPage(pageId, pageToken, psids, nameMap, message, image_url, delay_ms) {
     let sent = 0, failed = 0;
-    const base = `https://graph.facebook.com/v19.0/${pageId}/messages`;
+    const base = `${FB_GRAPH_BASE}/${pageId}/messages`;
 
     for (const psid of psids) {
         try {
@@ -257,8 +258,7 @@ async function fetchPageRecipients(pageId, pageToken) {
     const nameMap = {};
 
     try {
-        let url = `https://graph.facebook.com/v19.0/${pageId}/conversations` +
-                  `?fields=id,participants{id,name},can_reply&limit=200&access_token=${pageToken}`;
+        let url = graphUrlWithProof(`/${pageId}/conversations?fields=id,participants{id,name},can_reply&limit=200`, pageToken);
         while (url) {
             const r    = await fetch(url);
             const data = await r.json();

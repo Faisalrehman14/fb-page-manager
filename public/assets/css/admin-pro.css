@@ -1013,14 +1013,14 @@ body.admin-pro::before {
   .support-admin{grid-template-columns:1fr;height:auto}
 }
 .support-admin__list{
-  background:var(--s);
+  background:var(--s1);
   border:1px solid var(--border);
   border-radius:14px;
   overflow-y:auto;
   padding:6px;
 }
 .support-admin__chat{
-  background:var(--s);
+  background:var(--s1);
   border:1px solid var(--border);
   border-radius:14px;
   display:flex;
@@ -1086,7 +1086,7 @@ body.admin-pro::before {
   padding:14px 16px;
   border-bottom:1px solid var(--border);
   display:flex;align-items:center;gap:12px;
-  background:var(--s);
+  background:var(--s1);
   flex-shrink:0;
 }
 .sc-hdr-avatar{
@@ -1121,7 +1121,7 @@ body.admin-pro::before {
   word-wrap:break-word;overflow-wrap:anywhere;
 }
 .sc-msg--in .sc-bubble{
-  background:var(--s);
+  background:var(--s1);
   color:var(--text);
   border:1px solid var(--border);
   border-bottom-left-radius:4px;
@@ -1138,7 +1138,7 @@ body.admin-pro::before {
 .sc-ftr{
   border-top:1px solid var(--border);
   padding:10px 12px;
-  background:var(--s);
+  background:var(--s1);
   flex-shrink:0;
 }
 .sc-ftr form{display:flex;gap:8px;align-items:flex-end}

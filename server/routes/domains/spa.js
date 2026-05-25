@@ -31,7 +31,7 @@ app.get('/api/debug/fb-convs', requireAdminAuth, async (req, res) => {
     const { page_id, page_token } = req.query;
     if (!page_id || !page_token) return res.status(400).json({ error: 'page_id and page_token required' });
     try {
-        const url = `https://graph.facebook.com/v19.0/${page_id}/conversations?fields=id,participants,snippet,updated_time,unread_count&limit=3&access_token=${page_token}`;
+        const url = `${FB_GRAPH_BASE}/${page_id}/conversations?fields=id,participants,snippet,updated_time,unread_count&limit=3&access_token=${page_token}`;
         const r = await fetch(url);
         const data = await r.json();
         res.json({ url_called: url.replace(page_token, '[TOKEN]'), raw: data });
@@ -106,22 +106,6 @@ app.get(['/app', '/dashboard.html', '/inbox.html', '/messenger.html', '/index.ht
     } catch (err) {
         logError('render_index', err);
         res.status(500).send('<h1>Server Error</h1><p>Could not load application.</p>');
-    }
-});
-
-// ── Global Error Handler ──────────────────────────────────────────────────────
-app.use((err, req, res, next) => {
-    // Skip DB connection errors for static assets — they're non-fatal
-    const isDbConnErr = err.code === 'ECONNREFUSED' || err.code === 'ECONNRESET' || err.message?.includes('Connection lost');
-    if (!isDbConnErr) {
-        logError('express', err, { url: req.url, method: req.method });
-    }
-    if (res.headersSent) return;
-    const isApi = req.url.startsWith('/api/') || req.url.startsWith('/messenger');
-    if (isApi) {
-        res.status(500).json({ error: 'Internal server error' });
-    } else {
-        res.status(500).send('<h1>500 Server Error</h1><p>Please try refreshing the page.</p>');
     }
 });
 

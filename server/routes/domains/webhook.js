@@ -88,7 +88,7 @@ app.post(['/webhook', '/fb_webhook.php'], async (req, res) => {
                 }
                 // Customer 👍 reaction on a message (Meta Business Suite / Messenger app)
                 if (event.reaction) {
-                    const { isThumbsUpReaction, normalizeIncomingSave, snippetForMessage, toClientMessage } = require('../messenger/message-content');
+                    const { isThumbsUpReaction, normalizeIncomingSave, snippetForMessage, toClientMessage } = require('../../messenger/message-content');
                     if (!isThumbsUpReaction(event.reaction)) continue;
 
                     const participantId = event.sender?.id;
@@ -163,7 +163,7 @@ app.post(['/webhook', '/fb_webhook.php'], async (req, res) => {
                 const text = (event.message.text || '').trim();
                 const ts   = event.timestamp ? new Date(event.timestamp).toISOString() : new Date().toISOString();
 
-                const { parseWebhookAttachments, normalizeIncomingSave, snippetForMessage, toClientMessage } = require('../messenger/message-content');
+                const { parseWebhookAttachments, normalizeIncomingSave, snippetForMessage, toClientMessage } = require('../../messenger/message-content');
                 const rawAttachments = parseWebhookAttachments(event.message.attachments || []);
                 const normalized = normalizeIncomingSave({ text, attachments: rawAttachments });
                 const saveText = normalized.text;
@@ -200,7 +200,7 @@ app.post(['/webhook', '/fb_webhook.php'], async (req, res) => {
                             try {
                                 const token = await db.getPageToken(pageId);
                                 if (token && participantId) {
-                                    const { FacebookClient } = require('../messenger/facebook-client');
+                                    const { FacebookClient } = require('../../messenger/facebook-client');
                                     await new FacebookClient(fetch).markSeenWithRetry(token, participantId, pageId);
                                 }
                             } catch (err) {

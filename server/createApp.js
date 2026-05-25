@@ -126,6 +126,7 @@ function createApp() {
         upload,
         uploadDisk,
         syncCooldown: state.syncCooldown,
+        getDbConnected: () => state.dbConnected,
         requireAuth,
         verifyCsrf,
         requireAdminAuth,

@@ -136,7 +136,7 @@ app.post('/api/threads/:threadId/reply', requireAuth, verifyCsrf, async (req, re
     if (!token) return res.status(401).json({ error: 'Page token not found', tokenMissing: true });
 
     try {
-        const { SendService } = require('../messenger/send-service');
+        const { SendService } = require('../../messenger/send-service');
         const sendService = new SendService({ db, io, fetchFn: fetch });
         const result = await sendService.send({
             pageId,
@@ -163,7 +163,7 @@ app.post('/api/threads/:threadId/read', requireAuth, verifyCsrf, async (req, res
                 const psid = row?.fb_user_id;
                 const token = await db.getPageToken(pageId);
                 if (psid && token) {
-                    const { FacebookClient } = require('../messenger/facebook-client');
+                    const { FacebookClient } = require('../../messenger/facebook-client');
                     await new FacebookClient(fetch).markSeenWithRetry(token, psid, pageId);
                 }
             } catch (err) {
@@ -266,7 +266,7 @@ app.post('/api/threads/:threadId/attach', requireAuth, verifyCsrf, upload.single
     if (!token) return res.status(401).json({ error: 'Page token not found' });
 
     try {
-        const { FacebookClient } = require('../messenger/facebook-client');
+        const { FacebookClient } = require('../../messenger/facebook-client');
         const mime = file.mimetype || 'application/octet-stream';
         const attachType = mime.startsWith('image/') ? 'image' : mime.startsWith('video/') ? 'video' : 'file';
         const fbClient = new FacebookClient(fetch);
@@ -282,7 +282,7 @@ app.post('/api/threads/:threadId/attach', requireAuth, verifyCsrf, upload.single
         res.json({ success: true, messageId: data.message_id });
     } catch (err) {
         logError('attach_route', err, { pageId, threadId });
-        const { FacebookClient } = require('../messenger/facebook-client');
+        const { FacebookClient } = require('../../messenger/facebook-client');
         const fbErr = err.fbCode != null ? { code: err.fbCode, message: err.message } : null;
         const msg = fbErr ? FacebookClient.formatSendError(fbErr) : err.message;
         res.status(500).json({ error: msg });
@@ -291,7 +291,7 @@ app.post('/api/threads/:threadId/attach', requireAuth, verifyCsrf, upload.single
 
 // ── Messenger Image Upload ────────────────────────────────────────────────────
 app.post('/api/messenger/upload', requireAuth, upload.single('file'), async (req, res) => {
-    const { FacebookClient } = require('../messenger/facebook-client');
+    const { FacebookClient } = require('../../messenger/facebook-client');
     const { page_id: pageId, psid, page_token: bodyToken } = req.body;
     const file = req.file;
     if (!pageId      || !/^\d+$/.test(pageId)) return res.status(400).json({ error: 'Invalid page_id' });

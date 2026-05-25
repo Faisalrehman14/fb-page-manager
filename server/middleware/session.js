@@ -6,12 +6,13 @@ const env = require('../config/env');
 // restored by restoreSessionFromCookies middleware — MySQL sessions caused
 // disk exhaustion on Railway (sessions table filling the volume).
 function createSessionMiddleware() {
+    const isProd = env.APP_ENV === 'production';
     return session({
         secret: env.SESSION_SECRET,
         resave: false,
         saveUninitialized: false,
         cookie: {
-            secure: false,
+            secure: isProd,
             httpOnly: true,
             sameSite: 'lax',
             maxAge: 7 * 24 * 60 * 60 * 1000

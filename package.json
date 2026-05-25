@@ -1,6 +1,9 @@
 {
   "name": "facebook-page-inbox",
   "version": "1.0.0",
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "scripts": {
     "start": "node server/index.js",
     "dev": "node server/index.js"

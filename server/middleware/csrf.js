@@ -1,10 +1,11 @@
 const crypto = require('crypto');
+const env = require('../config/env');
 
 function csrfBootstrap(req, res, next) {
     let token = req.cookies?.CSRF_TOKEN || req.signedCookies?._csrf || req.session?.csrfToken;
     if (!token) token = crypto.randomBytes(32).toString('hex');
     if (!req.cookies?.CSRF_TOKEN) {
-        res.cookie('CSRF_TOKEN', token, { httpOnly: false, sameSite: 'lax', secure: false });
+        res.cookie('CSRF_TOKEN', token, { httpOnly: false, sameSite: 'lax', secure: env.APP_ENV === 'production' });
     }
     if (req.session && !req.session.csrfToken) req.session.csrfToken = token;
     req.generatedCsrf = token;
