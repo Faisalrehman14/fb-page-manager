@@ -382,5 +382,5 @@ app.post('/api/upload-image', verifyCsrf, uploadDisk.single('image'), (req, res)
 });
 
 
-  mountMessenger(app, ctx.deps);
+  mountMessenger({ ...ctx.deps, app });
 };
