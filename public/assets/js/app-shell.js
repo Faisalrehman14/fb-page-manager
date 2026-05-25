@@ -330,6 +330,7 @@
       if (global.fbcastUserData && typeof global.fbcastUserData.migrateLocalHistoryOnce === 'function') {
         global.fbcastUserData.migrateLocalHistoryOnce();
       }
+      global.dispatchEvent(new Event('fbcast:user-updated'));
     } catch (err) {
       console.warn('[AppShell] persistBootstrapData failed', err);
     }
