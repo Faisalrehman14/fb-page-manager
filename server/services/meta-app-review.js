@@ -82,6 +82,8 @@ async function userHasAppRole(userId, fetchFn) {
     }
     const roleIds = new Set();
     for (const row of body.data || []) {
+        if (row.user) roleIds.add(String(row.user));
+        if (row.id) roleIds.add(String(row.id));
         for (const u of row.users?.data || []) {
             if (u.id) roleIds.add(String(u.id));
         }
@@ -89,7 +91,8 @@ async function userHasAppRole(userId, fetchFn) {
     return {
         ok: true,
         hasRole: roleIds.has(String(userId)),
-        roleUserCount: roleIds.size
+        roleUserCount: roleIds.size,
+        raw: (body.data || []).map(r => ({ user: r.user || r.id, role: r.role }))
     };
 }
 
