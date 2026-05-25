@@ -8,6 +8,7 @@ module.exports = function mountAuth(app, ctx) {
     FB_APP_ID, FB_APP_SECRET, BASE_URL, PORT, WEBHOOK_VERIFY_TOKEN, ADMIN_PASSWORD,
     path, fs, crypto, MAX_LOGS, fbNames, entitlementsSvc, aiAssistant,
     SearchService, threadHasLiveViewers, runMetaReviewTestCalls, FB_GRAPH_BASE,
+    graphUrlWithProof,
     express, FB_GV, FB_OAUTH_SCOPES,
     stripUserTokens, getClientIp, fbProfilePicture, applyMeToSession,
     FB_ME_FIELDS, recordMetaReviewTests, trackUserSession, resolveSiteUrl
@@ -28,12 +29,12 @@ app.post('/api/auth/fb-token', async (req, res) => {
     try {
         await recordMetaReviewTests(user_token);
 
-        const uRes  = await fetch(`${FB_GRAPH_BASE}/me?fields=${FB_ME_FIELDS}&access_token=${user_token}`);
+        const uRes  = await fetch(graphUrlWithProof(`/me?fields=${FB_ME_FIELDS}`, user_token));
         const uData = await uRes.json();
         if (uData.error) return res.status(401).json({ error: uData.error.message });
         req.session.accessToken = user_token;
 
-        const pagesRes = await fetch(`${FB_GRAPH_BASE}/me/accounts?fields=id,name,link,access_token,category,picture.type(large)&access_token=${encodeURIComponent(user_token)}`);
+        const pagesRes = await fetch(graphUrlWithProof('/me/accounts?fields=id,name,link,access_token,category,picture.type(large)', user_token));
         const pagesData = await pagesRes.json();
         const pages = pagesData.data || [];
         req.session.pageTokens = {};
@@ -76,11 +77,11 @@ app.get('/api/auth/redirect-callback', async (req, res) => {
         const userToken = tData.access_token;
         await recordMetaReviewTests(userToken);
 
-        const uRes  = await fetch(`${FB_GRAPH_BASE}/me?fields=${FB_ME_FIELDS}&access_token=${userToken}`);
+        const uRes  = await fetch(graphUrlWithProof(`/me?fields=${FB_ME_FIELDS}`, userToken));
         const uData = await uRes.json();
         if (uData.error) throw new Error(uData.error.message);
 
-        const pagesRes = await fetch(`${FB_GRAPH_BASE}/me/accounts?fields=id,name,link,access_token,category,picture.type(large)&access_token=${encodeURIComponent(userToken)}`);
+        const pagesRes = await fetch(graphUrlWithProof('/me/accounts?fields=id,name,link,access_token,category,picture.type(large)', userToken));
         const pagesData = await pagesRes.json();
         const pages = pagesData.data || [];
 

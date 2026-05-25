@@ -8,6 +8,7 @@ module.exports = function mountPages(app, ctx) {
     FB_APP_ID, FB_APP_SECRET, BASE_URL, PORT, WEBHOOK_VERIFY_TOKEN, ADMIN_PASSWORD,
     path, fs, crypto, MAX_LOGS, fbNames, entitlementsSvc, aiAssistant,
     SearchService, threadHasLiveViewers, runMetaReviewTestCalls, FB_GRAPH_BASE,
+    graphUrlWithProof,
     express, FB_GV, FB_OAUTH_SCOPES,
     stripUserTokens, getClientIp, fbProfilePicture, applyMeToSession,
     FB_ME_FIELDS, recordMetaReviewTests, trackUserSession, resolveSiteUrl
@@ -15,6 +16,15 @@ module.exports = function mountPages(app, ctx) {
 
 // ── Pages ─────────────────────────────────────────────────────────────────────
 // Manual trigger for Meta App Review test calls (use while logged in as app Admin/Developer)
+app.get('/api/meta/appsecret-proof', requireAuth, (req, res) => {
+    const token = req.query.token || req.session.accessToken;
+    if (!token) return res.status(400).json({ error: 'no token' });
+    const { computeAppSecretProof } = require('../../services/meta-app-review');
+    const proof = computeAppSecretProof(token);
+    if (!proof) return res.status(500).json({ error: 'app secret not configured' });
+    res.json({ proof });
+});
+
 app.post('/api/meta/review-tests', requireAuth, verifyCsrf, async (req, res) => {
     const report = await recordMetaReviewTests(req.session.accessToken);
     if (!report) return res.status(500).json({ error: 'Failed to run review tests' });
@@ -22,6 +32,7 @@ app.post('/api/meta/review-tests', requireAuth, verifyCsrf, async (req, res) => 
     res.json({
         success: !!(tests.public_profile?.ok && tests.pages_show_list?.ok),
         qualified: !!report.qualified,
+        appsecretProofSent: !!report.appsecretProofSent,
         graphVersion: report.graphVersion || tests.graphVersion,
         pageCount: report.pageCount ?? tests.pageCount,
         public_profile: tests.public_profile,
@@ -41,7 +52,7 @@ app.get('/api/pages', requireAuth, async (req, res) => {
     try {
         await recordMetaReviewTests(req.session.accessToken);
 
-        const fbRes = await fetch(`${FB_GRAPH_BASE}/me/accounts?fields=id,name,link,picture,access_token&access_token=${req.session.accessToken}`);
+        const fbRes = await fetch(graphUrlWithProof('/me/accounts?fields=id,name,link,picture,access_token', req.session.accessToken));
         const data  = await fbRes.json();
         if (data.error) throw new Error(data.error.message);
 

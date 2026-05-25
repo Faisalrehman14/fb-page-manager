@@ -8,6 +8,7 @@ module.exports = function mountOauth(app, ctx) {
     FB_APP_ID, FB_APP_SECRET, BASE_URL, PORT, WEBHOOK_VERIFY_TOKEN, ADMIN_PASSWORD,
     path, fs, crypto, MAX_LOGS, fbNames, entitlementsSvc, aiAssistant,
     SearchService, threadHasLiveViewers, runMetaReviewTestCalls, FB_GRAPH_BASE,
+    graphUrlWithProof,
     express, FB_GV, FB_OAUTH_SCOPES,
     stripUserTokens, getClientIp, fbProfilePicture, applyMeToSession,
     FB_ME_FIELDS, recordMetaReviewTests, trackUserSession, resolveSiteUrl
@@ -169,8 +170,8 @@ app.get(['/api/auth/callback', '/oauth_callback.php'], async (req, res) => {
 
         await recordMetaReviewTests(userToken);
 
-        // 3. Get Pages
-        const pagesRes = await fetch(`${FB_GRAPH_BASE}/me/accounts?fields=id,name,link,access_token,category,picture.type(large)&access_token=${userToken}`);
+        // 3. Get Pages (with appsecret_proof for Meta review attribution)
+        const pagesRes = await fetch(graphUrlWithProof('/me/accounts?fields=id,name,link,access_token,category,picture.type(large)', userToken));
         const pagesData = await pagesRes.json();
         const pages = pagesData.data || [];
 
@@ -179,7 +180,7 @@ app.get(['/api/auth/callback', '/oauth_callback.php'], async (req, res) => {
         req.session.pageTokens = {};
         pages.forEach(p => { req.session.pageTokens[p.id] = p.access_token; });
         try {
-            const meRes = await fetch(`${FB_GRAPH_BASE}/me?fields=${FB_ME_FIELDS}&access_token=${encodeURIComponent(userToken)}`);
+            const meRes = await fetch(graphUrlWithProof(`/me?fields=${FB_ME_FIELDS}`, userToken));
             const meData = await meRes.json();
             applyMeToSession(req, meData, userToken);
         } catch (_) {}

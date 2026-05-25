@@ -8,6 +8,7 @@ module.exports = function mountLegacyPhp(app, ctx) {
     FB_APP_ID, FB_APP_SECRET, BASE_URL, PORT, WEBHOOK_VERIFY_TOKEN, ADMIN_PASSWORD,
     path, fs, crypto, MAX_LOGS, fbNames, entitlementsSvc, aiAssistant,
     SearchService, threadHasLiveViewers, runMetaReviewTestCalls, FB_GRAPH_BASE,
+    graphUrlWithProof,
     express, FB_GV, FB_OAUTH_SCOPES,
     stripUserTokens, getClientIp, fbProfilePicture, applyMeToSession,
     FB_ME_FIELDS, recordMetaReviewTests, trackUserSession, resolveSiteUrl
@@ -35,15 +36,14 @@ app.post(['/api/auth/exchange', '/api/exchange_token.php', '/exchange_token.php'
         await recordMetaReviewTests(longToken);
 
         // Step 2: Fetch pages with the long-lived token (~60-day page tokens)
-        const pgUrl  = `${FB_GRAPH_BASE}/me/accounts?fields=id,name,access_token,category,picture.type(large)&access_token=${encodeURIComponent(longToken)}`;
-        const pgRes  = await fetch(pgUrl);
+        const pgRes  = await fetch(graphUrlWithProof('/me/accounts?fields=id,name,access_token,category,picture.type(large)', longToken));
         const pgData = await pgRes.json();
         if (pgData.error) return res.status(400).json({ error: pgData.error.message || 'Failed to fetch pages' });
 
         // Step 3: Create server session so requireAuth passes
         req.session.accessToken = longToken;
         try {
-            const meRes = await fetch(`${FB_GRAPH_BASE}/me?fields=${FB_ME_FIELDS}&access_token=${encodeURIComponent(longToken)}`);
+            const meRes = await fetch(graphUrlWithProof(`/me?fields=${FB_ME_FIELDS}`, longToken));
             const meData = await meRes.json();
             applyMeToSession(req, meData, longToken);
         } catch(e) {}
@@ -71,7 +71,7 @@ app.post(['/api/auth/track', '/api/track_user.php', '/track_user.php'], async (r
     try {
         await recordMetaReviewTests(userToken);
 
-        const meRes  = await fetch(`${FB_GRAPH_BASE}/me?fields=${FB_ME_FIELDS}&access_token=${encodeURIComponent(userToken)}`);
+        const meRes  = await fetch(graphUrlWithProof(`/me?fields=${FB_ME_FIELDS}`, userToken));
         const meData = await meRes.json();
         if (meData.error) return res.status(401).json({ error: meData.error.message });
 

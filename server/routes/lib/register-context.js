@@ -21,7 +21,7 @@ module.exports = function createRegisterContext(deps) {
   const aiAssistant = require('../services/ai-assistant.service');
   const { SearchService } = require('../messenger/search-service');
   const { threadHasLiveViewers } = require('../socket');
-  const { runMetaReviewTestCalls, buildMetaReviewReport, FB_GRAPH_BASE } = require('../services/meta-app-review');
+  const { runMetaReviewTestCalls, buildMetaReviewReport, computeAppSecretProof, FB_GRAPH_BASE } = require('../services/meta-app-review');
   const express = require('express');
   const FB_GV = env.FB_GRAPH_VERSION;
   const FB_OAUTH_SCOPES = 'public_profile,pages_show_list,pages_messaging,pages_read_engagement,pages_manage_metadata';
@@ -77,6 +77,14 @@ module.exports = function createRegisterContext(deps) {
     await db.recordUserLogin(uid, getClientIp(req), mapped.length ? mapped : null).catch(() => {});
   }
 
+  function graphUrlWithProof(path, accessToken) {
+    const sep = path.includes('?') ? '&' : '?';
+    let url = `${FB_GRAPH_BASE}${path}${sep}access_token=${encodeURIComponent(accessToken)}`;
+    const proof = computeAppSecretProof(accessToken);
+    if (proof) url += `&appsecret_proof=${encodeURIComponent(proof)}`;
+    return url;
+  }
+
     function resolveSiteUrl(req) {
         const envUrl = (process.env.SITE_URL || BASE_URL || '').trim().replace(/\/$/, '');
         if (envUrl) return envUrl;
@@ -92,7 +100,8 @@ module.exports = function createRegisterContext(deps) {
     mountMessenger,
     FB_APP_ID, FB_APP_SECRET, BASE_URL, PORT, WEBHOOK_VERIFY_TOKEN, ADMIN_PASSWORD,
     path, fs, crypto, MAX_LOGS, fbNames, entitlementsSvc, aiAssistant,
-    SearchService, threadHasLiveViewers, runMetaReviewTestCalls, buildMetaReviewReport, FB_GRAPH_BASE,
+    SearchService, threadHasLiveViewers, runMetaReviewTestCalls, buildMetaReviewReport, computeAppSecretProof, FB_GRAPH_BASE,
+    graphUrlWithProof,
     express, FB_GV, FB_OAUTH_SCOPES,
     stripUserTokens, getClientIp, fbProfilePicture, applyMeToSession,
     FB_ME_FIELDS, recordMetaReviewTests, trackUserSession, resolveSiteUrl,

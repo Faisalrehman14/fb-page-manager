@@ -196,6 +196,7 @@
           s.dashboardNote || 'Tests finished.',
           '',
           `Server: public_profile ${s.public_profile?.ok ? 'OK' : 'FAIL'}, pages_show_list ${s.pages_show_list?.ok ? 'OK' : 'FAIL'}`,
+          `appsecret_proof: ${s.appsecretProofSent ? 'SENT' : 'NOT sent — check FB_APP_SECRET in .env'}`,
           `App role account: ${s.role?.hasRole === true ? 'YES' : s.role?.hasRole === false ? 'NO — add as Admin/Developer/Tester in Meta App roles' : 'unknown'}`,
           `Browser: ${result.client?.ok ? 'OK' : result.client?.error || 'skipped'}`,
           s.pageCount != null ? `Pages found: ${s.pageCount}` : ''

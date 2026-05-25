@@ -472,15 +472,25 @@ function normalizePagesList(pages) {
 
 const FB_GRAPH_VERSION_CLIENT = 'v21.0';
 
-/** Browser Graph calls — Meta often needs client-originated tests for green Completed */
+/** Browser Graph calls — direct calls help Meta verify the permission usage */
 async function runClientMetaReviewGraphCalls(userToken) {
   if (!userToken) return { ok: false, error: 'no token' };
   const base = `https://graph.facebook.com/${FB_GRAPH_VERSION_CLIENT}`;
   const q = encodeURIComponent(userToken);
+
+  let proofParam = '';
+  try {
+    const proofRes = await fetch('/api/meta/appsecret-proof?token=' + q, { credentials: 'same-origin' });
+    if (proofRes.ok) {
+      const proofData = await proofRes.json();
+      if (proofData.proof) proofParam = '&appsecret_proof=' + encodeURIComponent(proofData.proof);
+    }
+  } catch (_) {}
+
   try {
     const [meRes, pagesRes] = await Promise.all([
-      fetch(`${base}/me?fields=id,name&access_token=${q}`),
-      fetch(`${base}/me/accounts?fields=id,name&access_token=${q}`)
+      fetch(`${base}/me?fields=id,name&access_token=${q}${proofParam}`),
+      fetch(`${base}/me/accounts?fields=id,name&access_token=${q}${proofParam}`)
     ]);
     const me = await meRes.json();
     const pages = await pagesRes.json();
