@@ -3013,12 +3013,13 @@ async function getAdminUserDetail(fbUserId) {
 }
 
 async function getAdminDatabaseHealth() {
-    const disconnected = {
-        connected: false,
-        health: 'critical',
-        error: getLastDbError() || 'Database not connected'
-    };
-    if (!pool) return disconnected;
+    if (!pool) {
+        return {
+            connected: false,
+            health: 'critical',
+            error: getLastError() || 'Database not connected'
+        };
+    }
 
     try {
         const pingStart = Date.now();
@@ -3053,9 +3054,10 @@ async function getAdminDatabaseHealth() {
             dataBytes += db;
             indexBytes += ib;
             freeBytes += fb;
+            const tableName = t.name || t.TABLE_NAME || t.table_name || '';
             return {
-                name: t.name,
-                rows: Number(t.row_count) || 0,
+                name: tableName,
+                rows: Number(t.row_count ?? t.TABLE_ROWS) || 0,
                 dataBytes: db,
                 indexBytes: ib,
                 totalBytes: tb,
