@@ -531,6 +531,19 @@
     if (lastEl && lastEl.textContent !== short) lastEl.textContent = short;
     if (timeEl && timeEl.textContent !== timeStr) timeEl.textContent = timeStr;
 
+    const pageLbl = activePageName();
+    let pageEl = node.querySelector('.msng-ci-page');
+    if (pageLbl) {
+      if (!pageEl) {
+        const row1 = node.querySelector('.msng-ci-row1');
+        if (row1) row1.insertAdjacentHTML('afterend', `<div class="msng-ci-page">${esc(pageLbl)}</div>`);
+      } else if (pageEl.textContent !== pageLbl) {
+        pageEl.textContent = pageLbl;
+      }
+    } else if (pageEl) {
+      pageEl.remove();
+    }
+
     if (c.unread > 0) {
       const badgeTxt = c.unread > 9 ? '9+' : String(c.unread);
       if (!badgeEl) {
@@ -758,12 +771,20 @@
     return last || 'No messages yet';
   }
 
+  function activePageName() {
+    return (M.pages.find(p => p.id === M.activePageId) || {}).name || '';
+  }
+
   function convItemHtml(c, activePsid) {
     const isActive = c.psid === activePsid;
     const isUnread = c.unread > 0;
     const preview  = formatConvPreview(c);
     const short    = preview.length > 42 ? preview.slice(0, 42) + '…' : preview;
     const badge    = isUnread ? `<span class="msng-ci-badge">${c.unread > 9 ? '9+' : c.unread}</span>` : '';
+    const pageLbl  = activePageName();
+    const pageRow  = pageLbl
+      ? `<div class="msng-ci-page">${esc(pageLbl)}</div>`
+      : '';
 
     return `<div class="msng-conv-item ${isActive ? 'active' : ''} ${isUnread ? 'unread' : ''}"
                  data-psid="${esc(c.psid)}"
@@ -776,6 +797,7 @@
           <span class="msng-ci-name">${esc(c.name)}</span>
           <span class="msng-ci-time">${esc(fmtTime(c.lastMsgAt))}</span>
         </div>
+        ${pageRow}
         <div class="msng-ci-last">${esc(short)}</div>
       </div>
       ${badge}
@@ -1236,6 +1258,7 @@
     }
 
     bindScrollListener(msgsEl);
+    if ($('msngContactPanel')?.classList.contains('is-open')) renderContactMedia();
   }
 
   function appendNewMessagesFromIndex(startIndex, opts = {}) {
@@ -1278,6 +1301,7 @@
     trackMsgId(msg);
     const stick = isMsgsNearBottom(msgsEl) || msg.from_me == 1;
     if (stick) scrollToBottom(true, true);
+    if ($('msngContactPanel')?.classList.contains('is-open')) renderContactMedia();
   }
 
   function trackMsgId(msg) {
@@ -1455,19 +1479,82 @@
     };
   }
 
+  function contactNoteKey() {
+    if (!M.activePageId || !M.activePsid) return '';
+    return `msng_note_${M.activePageId}_${M.activePsid}`;
+  }
+
+  function renderContactMedia() {
+    const grid = $('msngContactMedia');
+    if (!grid) return;
+    const urls = [];
+    for (const m of M.msgs) {
+      const url = m.attachment_url;
+      const t = String(m.attachment_type || '').toLowerCase();
+      if (!url || isThumbsUpUrl(url)) continue;
+      if (t === 'image' || t === 'photo' || t === 'sticker' || /\.(jpe?g|png|gif|webp)(\?|$)/i.test(url)) {
+        if (!urls.includes(url)) urls.push(url);
+      }
+    }
+    if (!urls.length) {
+      grid.innerHTML = '<p class="msng-contact-empty">No shared images in this chat yet.</p>';
+      return;
+    }
+    grid.innerHTML = urls.slice(0, 12).map((u) =>
+      `<a href="${esc(u)}" target="_blank" rel="noopener noreferrer" class="msng-media-thumb">` +
+      `<img src="${esc(u)}" alt="" loading="lazy" decoding="async"></a>`
+    ).join('');
+  }
+
+  function updateContactPanel() {
+    const panel = $('msngContactPanel');
+    if (!panel || !M.activePsid) return;
+
+    const nameEl = $('msngContactName');
+    if (nameEl) nameEl.textContent = M.activeConvName || 'Contact';
+
+    const av = $('msngContactAvatar');
+    if (av) av.innerHTML = avatarHtml(M.activeConvPic, M.activeConvName, 'msng-contact-av');
+
+    const groups = $('msngContactGroups');
+    if (groups) groups.textContent = activePageName() || 'Facebook Page';
+
+    const note = $('msngContactNote');
+    if (note) note.value = localStorage.getItem(contactNoteKey()) || '';
+
+    renderContactMedia();
+
+    const toggle = $('msngContactToggleBtn');
+    if (toggle) toggle.setAttribute('aria-expanded', panel.classList.contains('is-open') ? 'true' : 'false');
+  }
+
   function showChatWindow(name, picture) {
     $('msngChatEmpty').style.display  = 'none';
     $('msngChatWindow').style.display = 'flex';
     $('msngChatHdrName').textContent  = name || 'User';
-    $('msngChatHdrSub').innerHTML = `<span class="msng-online-dot"></span> Facebook Messenger · real-time`;
+    $('msngChatHdrSub').innerHTML = `<span class="msng-online-dot"></span> Facebook Messenger`;
     const wrap = $('msngChatHdrAvatar');
     if (wrap) wrap.innerHTML = avatarHtml(picture, name, 'msng-hdr-avatar');
+    updateContactPanel();
+    const panel = $('msngContactPanel');
+    if (panel && window.innerWidth > 1200) {
+      panel.classList.add('is-open');
+      panel.setAttribute('aria-hidden', 'false');
+      updateContactPanel();
+    }
   }
 
   function showChatEmpty() {
     const w = $('msngChatWindow'), e = $('msngChatEmpty');
     if (w) w.style.display = 'none';
     if (e) e.style.display = 'flex';
+    const panel = $('msngContactPanel');
+    if (panel) {
+      panel.classList.remove('is-open');
+      panel.setAttribute('aria-hidden', 'true');
+    }
+    const toggle = $('msngContactToggleBtn');
+    if (toggle) toggle.setAttribute('aria-expanded', 'false');
   }
 
   // ══════════════════════════════════════════════════════════
@@ -2663,6 +2750,27 @@
   window.msngOpenConv = function (psid, name, picture, pageId) { openConv(psid, name, picture, pageId); };
   window.msngRetry    = function (tempId, text) { doSend(text, tempId); };
 
+  window.msngToggleContact = function (force) {
+    const panel = $('msngContactPanel');
+    if (!panel || !M.activePsid) return;
+    const next = typeof force === 'boolean' ? force : !panel.classList.contains('is-open');
+    panel.classList.toggle('is-open', next);
+    panel.setAttribute('aria-hidden', next ? 'false' : 'true');
+    const btn = $('msngContactToggleBtn');
+    if (btn) btn.setAttribute('aria-expanded', next ? 'true' : 'false');
+    if (next) updateContactPanel();
+  };
+
+  window.msngSaveContactNote = function () {
+    const key = contactNoteKey();
+    const note = $('msngContactNote');
+    if (!key || !note) return;
+    const text = note.value.trim();
+    if (text) localStorage.setItem(key, text);
+    else localStorage.removeItem(key);
+    showToast('Note saved', 'success', 1600);
+  };
+
   window.msngSend = async function () {
     const ta = $('msngMsgTextarea');
     const text = ta ? ta.value.trim() : '';
@@ -3313,6 +3421,20 @@
     showToast('Marked as unread', 'info', 1800);
   };
 
+  function syncPageSelectDropdown() {
+    const wrap = $('msngPageSelectWrap');
+    const sel = $('msngPageSelect');
+    if (!sel) return;
+    if (!M.pages.length) {
+      if (wrap) wrap.hidden = true;
+      return;
+    }
+    sel.innerHTML = M.pages.map((p) =>
+      `<option value="${esc(p.id)}"${p.id === M.activePageId ? ' selected' : ''}>${esc(p.name || 'Page')}</option>`
+    ).join('');
+    if (wrap) wrap.hidden = M.pages.length <= 1;
+  }
+
   // ── Page Selector Column Renderer ────────────────────────────────────────────
   function renderPages() {
     const listEl = document.getElementById('msngPagesList');
@@ -3358,6 +3480,7 @@
     }).join('');
 
     updateMessengerChrome();
+    syncPageSelectDropdown();
 
     // Click handlers
     listEl.querySelectorAll('.msng-page-item').forEach(el => {

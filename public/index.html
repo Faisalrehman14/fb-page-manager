@@ -68,6 +68,7 @@
 
 <!-- UI Assets -->
 <link rel="stylesheet" href="assets/css/messenger.css?v={{VER}}">
+<link rel="stylesheet" href="assets/css/messenger-inbox-pro.css?v={{VER}}">
 <link rel="stylesheet" href="assets/css/design-system.css?v={{VER}}">
 <link rel="stylesheet" href="assets/css/app-shell.css?v={{VER}}">
 <link rel="stylesheet" href="assets/css/saas.css?v={{VER}}">
@@ -1584,7 +1585,7 @@ window.getCsrfToken = async (forceRefresh = false) => {
 
     <!-- MESSENGER VIEW — Premium Inbox -->
     <div id="view-messenger" style="display:none;height:100%;overflow:hidden;flex-direction:column">
-      <div class="msng-root">
+      <div class="msng-root msng-layout-pro">
         <header class="msng-toolbar">
           <div class="msng-toolbar-brand">
             <span class="msng-toolbar-icon"><i class="fa-brands fa-facebook-messenger"></i></span>
@@ -1612,23 +1613,22 @@ window.getCsrfToken = async (forceRefresh = false) => {
 
           <section class="msng-convs" id="msngConvsCol">
             <div class="msng-convs-hdr">
-              <div class="msng-convs-title-wrap">
-                <div>
-                  <h2 class="msng-convs-title">Conversations</h2>
-                  <p class="msng-convs-sub" id="msngConvsSub">All customer chats</p>
-                </div>
-                <div class="msng-convs-actions">
-                  <button type="button" class="msng-icon-btn spinning" onclick="msngRefresh()" title="Auto-refreshing list" id="msngRefreshBtn"><i class="fa-solid fa-rotate"></i></button>
-                </div>
+              <div class="msng-inbox-top">
+                <h2 class="msng-convs-title"><i class="fa-solid fa-inbox" aria-hidden="true"></i> Inbox</h2>
+                <button type="button" class="msng-icon-btn spinning" onclick="msngRefresh()" title="Refresh conversations" id="msngRefreshBtn"><i class="fa-solid fa-rotate"></i></button>
               </div>
+              <p class="msng-convs-sub" id="msngConvsSub" hidden>All customer chats</p>
+              <div class="msng-page-select-wrap" id="msngPageSelectWrap" hidden>
+                <select id="msngPageSelect" class="msng-page-select" aria-label="Facebook Page" onchange="if(this.value)window.msngSelectPage(this.value)"></select>
+              </div>
+              <label class="msng-search-wrap">
+                <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+                <input type="search" id="msngSearchInput" class="msng-search-input" placeholder="Search conversations…" autocomplete="off">
+              </label>
               <div class="msng-filter-row" role="tablist" aria-label="Filter conversations">
                 <button type="button" class="msng-filter-chip active" data-filter="all" id="msngFilterAll" onclick="msngSetFilter('all')">All</button>
                 <button type="button" class="msng-filter-chip" data-filter="unread" id="msngFilterUnread" onclick="msngSetFilter('unread')">Unread</button>
               </div>
-              <label class="msng-search-wrap">
-                <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
-                <input type="search" id="msngSearchInput" class="msng-search-input" placeholder="Search by name or message…" autocomplete="off">
-              </label>
             </div>
             <div id="msngSyncBanner" class="msng-sync-banner"></div>
             <div id="msngConvList" class="msng-conv-list"></div>
@@ -1660,9 +1660,10 @@ window.getCsrfToken = async (forceRefresh = false) => {
                   </div>
                 </div>
                 <div class="msng-chat-hdr-btns">
-                  <button type="button" class="msng-icon-btn" id="msngSoundBtn" onclick="msngToggleSound()" title="Toggle sound notifications"><i class="fa-solid fa-volume-high"></i></button>
-                  <button type="button" class="msng-icon-btn" onclick="msngMarkUnread()" title="Mark as unread"><i class="fa-solid fa-envelope"></i></button>
-                  <button type="button" class="msng-icon-btn" onclick="msngMarkRead()" title="Mark as read"><i class="fa-solid fa-check-double"></i></button>
+                  <button type="button" class="msng-icon-btn" title="Page / group" aria-label="Page"><i class="fa-solid fa-layer-group"></i></button>
+                  <button type="button" class="msng-icon-btn" title="Labels" aria-label="Labels"><i class="fa-solid fa-tag"></i></button>
+                  <button type="button" class="msng-icon-btn" id="msngSoundBtn" onclick="msngToggleSound()" title="Sound notifications"><i class="fa-solid fa-bell-slash"></i></button>
+                  <button type="button" class="msng-icon-btn" id="msngContactToggleBtn" onclick="msngToggleContact()" title="Contact info" aria-expanded="false" aria-controls="msngContactPanel"><i class="fa-solid fa-circle-info"></i></button>
                 </div>
               </header>
 
@@ -1717,16 +1718,16 @@ window.getCsrfToken = async (forceRefresh = false) => {
                 </div>
               </div>
               <footer class="msng-input-bar">
-                <button type="button" class="msng-input-btn" title="Attach image" onclick="document.getElementById('msngFileInput').click()"><i class="fa-solid fa-image"></i></button>
-                <button type="button" class="msng-input-btn" title="Saved replies" onclick="msngToggleCanned()" id="msngCannedBtn"><i class="fa-solid fa-bookmark"></i></button>
-                <button type="button" class="msng-input-btn" title="Emoji" onclick="msngToggleEmoji()" id="msngEmojiBtn"><i class="fa-regular fa-face-smile"></i></button>
+                <button type="button" class="msng-input-btn" title="Attach image" onclick="document.getElementById('msngFileInput').click()"><i class="fa-solid fa-paperclip"></i></button>
                 <div class="msng-input-wrap">
-                  <textarea id="msngMsgTextarea" class="msng-textarea" placeholder="Write a reply… Type / for saved replies" rows="1"
+                  <textarea id="msngMsgTextarea" class="msng-textarea" placeholder="Type a message…" rows="1"
                     oninput="msngTextareaInput(this);msngUpdateCharCount(this)"
                     onkeydown="msngKeydown(event)"
                     onpaste="msngOnPaste(event)"></textarea>
                 </div>
                 <span id="msngCharCount" class="msng-char-count"></span>
+                <button type="button" class="msng-input-btn" title="Saved replies" onclick="msngToggleCanned()" id="msngCannedBtn"><i class="fa-solid fa-wand-magic-sparkles"></i></button>
+                <button type="button" class="msng-input-btn" title="Emoji" onclick="msngToggleEmoji()" id="msngEmojiBtn"><i class="fa-regular fa-face-smile"></i></button>
                 <button type="button" id="msngLikeBtn" class="msng-input-btn msng-like-btn" title="Send thumbs up" onclick="msngSendLike()" aria-label="Send thumbs up">👍</button>
                 <button type="button" id="msngSendBtn" class="msng-send-btn" onclick="msngSend()" aria-label="Send"><i class="fa-solid fa-paper-plane"></i></button>
               </footer>
@@ -1735,6 +1736,34 @@ window.getCsrfToken = async (forceRefresh = false) => {
 
             <button type="button" id="msngScrollBtn" class="msng-scroll-btn" onclick="msngScrollToBottom()" aria-label="Scroll to bottom"><i class="fa-solid fa-arrow-down"></i></button>
           </main>
+
+          <aside class="msng-contact" id="msngContactPanel" aria-hidden="true">
+            <header class="msng-contact-hdr">
+              <button type="button" class="msng-contact-close" onclick="msngToggleContact(false)" aria-label="Close contact panel"><i class="fa-solid fa-xmark"></i></button>
+              <div class="msng-contact-avatar" id="msngContactAvatar"></div>
+              <h3 id="msngContactName">Contact</h3>
+              <p class="msng-contact-sub">Contact Info</p>
+            </header>
+            <div class="msng-contact-body">
+              <details class="msng-contact-section" open>
+                <summary><i class="fa-solid fa-layer-group"></i> Groups</summary>
+                <div class="msng-contact-section-body" id="msngContactGroups">—</div>
+              </details>
+              <details class="msng-contact-section" open>
+                <summary><i class="fa-solid fa-note-sticky"></i> Notes</summary>
+                <div class="msng-contact-section-body">
+                  <textarea id="msngContactNote" class="msng-contact-note" placeholder="Add a note…" rows="3" maxlength="2000"></textarea>
+                  <button type="button" class="msng-contact-note-btn" onclick="msngSaveContactNote()"><i class="fa-solid fa-plus"></i> Add Note</button>
+                </div>
+              </details>
+              <details class="msng-contact-section" open>
+                <summary><i class="fa-solid fa-images"></i> Shared Media</summary>
+                <div class="msng-contact-section-body">
+                  <div class="msng-media-grid" id="msngContactMedia"></div>
+                </div>
+              </details>
+            </div>
+          </aside>
         </div>
       </div>
       
