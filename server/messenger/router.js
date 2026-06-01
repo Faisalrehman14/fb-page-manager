@@ -155,6 +155,20 @@ function createMessengerRouter(deps) {
                         });
                         return res.json(result);
                     }
+                    case 'conversation_media': {
+                        const psid = req.query.psid;
+                        if (!pageId || !psid) {
+                            return res.status(400).json({ error: 'page_id and psid required' });
+                        }
+                        const result = await messageService.loadMedia({
+                            pageId,
+                            psid,
+                            limit: req.query.limit,
+                            session: req.session,
+                            dbConnected
+                        });
+                        return res.json(result);
+                    }
                     case 'recent_changes':
                     case 'poll': {
                         if (!pageId) return res.status(400).json({ error: 'page_id required' });

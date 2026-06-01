@@ -1277,6 +1277,79 @@ async function getMessages(threadId, limit = 100, before = null) {
     }
 }
 
+const CONVERSATION_MEDIA_LIMIT_MAX = 200;
+
+function _mediaFromAttachment(url, type) {
+    if (!url || typeof url !== 'string') return null;
+    const u = url.trim();
+    if (!u || u[0] === '[') return null;
+    const t = String(type || '').toLowerCase();
+    if (t === 'like' || t === 'thumbs_up') return null;
+    const isImage = t === 'image' || t === 'photo' || t === 'sticker'
+        || /\.(jpe?g|png|gif|webp)(\?|$)/i.test(u)
+        || /fbcdn|fbsbx|scontent/i.test(u);
+    if (!isImage && t !== 'video') return null;
+    return { url: u, type: isImage ? 'image' : (t || 'file') };
+}
+
+/** All shared images/videos in a thread (retention window), newest first. */
+async function getConversationMedia(conversationId, limit = 120) {
+    if (!pool || !conversationId) return [];
+
+    const safeLimit = Math.min(Math.max(parseInt(limit, 10) || 120, 1), CONVERSATION_MEDIA_LIMIT_MAX);
+    const cutoff = messageRetentionCutoff();
+
+    try {
+        const [rows] = await pool.query(
+            `SELECT attachment_url, attachment_type, metadata, created_at
+             FROM messenger_messages
+             WHERE conversation_id = ?
+               AND created_at >= ?
+               AND (
+                 (attachment_url IS NOT NULL AND attachment_url != '')
+                 OR (metadata IS NOT NULL AND metadata != '' AND metadata != '[]')
+               )
+             ORDER BY created_at DESC
+             LIMIT ?`,
+            [conversationId, cutoff, safeLimit * 3]
+        );
+
+        const seen = new Set();
+        const items = [];
+
+        for (const row of rows) {
+            const candidates = [];
+            const att = _readAttachment(row.attachment_url, row.attachment_type);
+            if (att.url) candidates.push(att);
+            if (row.metadata) {
+                try {
+                    const meta = JSON.parse(row.metadata);
+                    if (Array.isArray(meta)) {
+                        for (const a of meta) {
+                            if (a?.u) candidates.push({ url: a.u, type: a.t });
+                        }
+                    }
+                } catch { /* ignore */ }
+            }
+            for (const c of candidates) {
+                const m = _mediaFromAttachment(c.url, c.type);
+                if (!m || seen.has(m.url)) continue;
+                seen.add(m.url);
+                items.push({
+                    url: m.url,
+                    type: m.type,
+                    created_at: row.created_at
+                });
+                if (items.length >= safeLimit) return items;
+            }
+        }
+        return items;
+    } catch (err) {
+        addDbError(`getConversationMedia: ${err.message}`);
+        return [];
+    }
+}
+
 // =============================================================================
 // Sync Functions
 // =============================================================================
@@ -3994,6 +4067,7 @@ const dbModule = {
     saveMessage,
     saveMessages,
     getMessages,
+    getConversationMedia,
     syncConversationsFromFacebook,
     syncMessagesFromFacebook,
     syncAllPageData,

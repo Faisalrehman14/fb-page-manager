@@ -33,6 +33,11 @@
     msgs:            [],        // ordered oldest→newest
     renderedMsgIds:  new Set(), // dedup — O(1) via message_id or content hash
     oldestMsgTime:   null,
+    hasOlderMessages: false,
+    msgPageSize:     50,
+    contactMedia:    null,
+    _contactMediaPsid: null,
+    _contactMediaTimer: null,
 
     poll: { timer: null, since: null, failures: 0 },
     pagePoll: { timer: null, since: null },
@@ -849,10 +854,29 @@
         messages: data.data.messages,
         nextCursor: data.data.nextCursor,
         backfillPending: data.data.backfillPending,
+        hasMore: data.data.hasMore ?? data.hasMore,
         conv_id: data.conv_id || data.data.conversation_id
       };
     }
     return data;
+  }
+
+  function mergeOlderMessages(older, current) {
+    const keys = new Set(current.map(msgStableKey));
+    const unique = older.filter((m) => !keys.has(msgStableKey(m)));
+    return [...unique, ...current];
+  }
+
+  function updateHasOlderMessages(fresh, payload, before) {
+    const limit = M.msgPageSize;
+    const fromApi = payload.hasMore === true || payload.data?.hasMore === true;
+    const fromCount = fresh.length >= limit;
+    if (before) {
+      M.hasOlderMessages = fresh.length > 0 && (fromApi || fromCount) && !_atRetentionBoundary();
+    } else {
+      M.hasOlderMessages = (fromApi || fromCount) && !_atRetentionBoundary();
+    }
+    if (before && fresh.length === 0) M.hasOlderMessages = false;
   }
 
   function applyMsgStatusFromMessages(msgs) {
@@ -1259,13 +1283,11 @@
       return;
     }
 
-    const showLoadMore = M.msgs.length > 30 && !_atRetentionBoundary();
+    const showLoadMore = M.hasOlderMessages && !_atRetentionBoundary();
     const showStart    = M.msgs.length > 0 && !showLoadMore;
     let html = showLoadMore
       ? `<div class="msng-load-more" id="msngLoadMoreWrap">
-           <button class="msng-load-more-btn" data-action="load-more">
-             <i class="fa-solid fa-chevron-up"></i> Load earlier messages
-           </button>
+           <div class="msng-load-more-hint"><i class="fa-solid fa-chevron-up"></i> Scroll up for older messages</div>
          </div>`
       : showStart
       ? `<div class="msng-conv-start">
@@ -1329,11 +1351,11 @@
 
     // Replace empty-state div if it's the only content
     if (msgsEl.querySelector('.msng-empty') && !msgsEl.querySelector('.msng-msg')) {
-      msgsEl.innerHTML = `<div class="msng-load-more" id="msngLoadMoreWrap">
-        <button class="msng-load-more-btn" data-action="load-more">
-          <i class="fa-solid fa-chevron-up"></i> Load earlier messages
-        </button>
-      </div>`;
+      msgsEl.innerHTML = M.hasOlderMessages
+        ? `<div class="msng-load-more" id="msngLoadMoreWrap">
+             <div class="msng-load-more-hint"><i class="fa-solid fa-chevron-up"></i> Scroll up for older messages</div>
+           </div>`
+        : '';
     }
 
     // Add date separator if needed
@@ -1521,12 +1543,23 @@
     });
   }
 
+  const SCROLL_LOAD_TOP_PX = 100;
+  let _scrollLoadDebounce = null;
+
   function bindScrollListener(msgsEl) {
     const btn = $('msngScrollBtn');
-    if (!btn) return;
     msgsEl.onscroll = () => {
       const atBottom = msgsEl.scrollHeight - msgsEl.scrollTop - msgsEl.clientHeight < 60;
-      btn.classList.toggle('visible', !atBottom);
+      if (btn) btn.classList.toggle('visible', !atBottom);
+
+      if (msgsEl.scrollTop > SCROLL_LOAD_TOP_PX) return;
+      if (!M.hasOlderMessages || M.ui.loadingMore || !M.oldestMsgTime || !M.activePsid) return;
+      clearTimeout(_scrollLoadDebounce);
+      _scrollLoadDebounce = setTimeout(() => {
+        if (msgsEl.scrollTop <= SCROLL_LOAD_TOP_PX && M.hasOlderMessages && !M.ui.loadingMore) {
+          window.msngLoadMore();
+        }
+      }, 120);
     };
   }
 
@@ -1535,23 +1568,75 @@
     return `msng_note_${M.activePageId}_${M.activePsid}`;
   }
 
+  function mediaUrlsFromMsgs(msgs) {
+    const items = [];
+    const seen = new Set();
+    for (const m of msgs) {
+      const url = m.attachment_url;
+      const t = String(m.attachment_type || '').toLowerCase();
+      if (!url || isThumbsUpUrl(url) || seen.has(url)) continue;
+      if (t === 'image' || t === 'photo' || t === 'sticker' || /\.(jpe?g|png|gif|webp)(\?|$)/i.test(url)) {
+        seen.add(url);
+        items.push(url);
+      }
+    }
+    return items;
+  }
+
+  function scheduleContactMediaRefresh() {
+    clearTimeout(M._contactMediaTimer);
+    M._contactMediaTimer = setTimeout(() => loadContactMedia(), 450);
+  }
+
+  async function loadContactMedia() {
+    if (!M.activePageId || !M.activePsid) return;
+    const forPsid = M.activePsid;
+    try {
+      const qs = new URLSearchParams({
+        action: 'conversation_media',
+        page_id: M.activePageId,
+        psid: forPsid,
+        limit: '120'
+      }).toString();
+      const r = await fetch('/api/messenger?' + qs, { credentials: 'same-origin' });
+      if (!r.ok || M.activePsid !== forPsid) return;
+      const data = await r.json();
+      if (M.activePsid !== forPsid) return;
+      M.contactMedia = data.data?.media || data.media || [];
+      M._contactMediaPsid = forPsid;
+    } catch {
+      if (M.activePsid === forPsid) M.contactMedia = null;
+    }
+    renderContactMedia();
+  }
+
   function renderContactMedia() {
     const grid = $('msngContactMedia');
     if (!grid) return;
+
+    const seen = new Set();
     const urls = [];
-    for (const m of M.msgs) {
-      const url = m.attachment_url;
-      const t = String(m.attachment_type || '').toLowerCase();
-      if (!url || isThumbsUpUrl(url)) continue;
-      if (t === 'image' || t === 'photo' || t === 'sticker' || /\.(jpe?g|png|gif|webp)(\?|$)/i.test(url)) {
-        if (!urls.includes(url)) urls.push(url);
+
+    const fromApi = (M._contactMediaPsid === M.activePsid && Array.isArray(M.contactMedia))
+      ? M.contactMedia : [];
+    for (const item of fromApi) {
+      const u = item?.url || item;
+      if (!u || seen.has(u) || isThumbsUpUrl(u)) continue;
+      seen.add(u);
+      urls.push(u);
+    }
+    for (const u of mediaUrlsFromMsgs(M.msgs)) {
+      if (!seen.has(u)) {
+        seen.add(u);
+        urls.push(u);
       }
     }
+
     if (!urls.length) {
       grid.innerHTML = '<p class="msng-contact-empty">No shared images in this chat yet.</p>';
       return;
     }
-    grid.innerHTML = urls.slice(0, 12).map((u) =>
+    grid.innerHTML = urls.slice(0, 24).map((u) =>
       `<a href="${esc(u)}" target="_blank" rel="noopener noreferrer" class="msng-media-thumb">` +
       `<img src="${esc(u)}" alt="" loading="lazy" decoding="async"></a>`
     ).join('');
@@ -1574,6 +1659,7 @@
     if (note) note.value = localStorage.getItem(contactNoteKey()) || '';
 
     renderContactMedia();
+    loadContactMedia();
 
     const toggle = $('msngContactToggleBtn');
     if (toggle) toggle.setAttribute('aria-expanded', panel.classList.contains('is-open') ? 'true' : 'false');
@@ -2652,11 +2738,12 @@
 
         const fresh = _filterMsgsByRetention((payload.messages || []).map(normalizeMsg));
       applyMsgStatusFromMessages(fresh);
+      updateHasOlderMessages(fresh, payload, before);
       if (before) {
-        // "Load earlier" — prepend older messages
-        M.msgs = [...fresh, ...M.msgs];
+        M.msgs = mergeOlderMessages(fresh, M.msgs);
         sortMsgsInPlace();
         renderMessages('prepend');
+        scheduleContactMediaRefresh();
       } else {
         const prevMsgs = M.msgs.slice();
         const pending   = M.msgs.filter(m => m._pending || m._failed);
@@ -2676,6 +2763,7 @@
       }
       if (M.msgs.length > 0) M.oldestMsgTime = M.msgs[0].created_at;
       _cacheSave(forPsid);
+      if (!before) scheduleContactMediaRefresh();
       if (!before && syncOpenConvSidebarFromMessages()) renderConvs();
 
     } catch (e) {
@@ -2718,7 +2806,11 @@
     if (!psid || !M.msgs.length) return;
     const stable = M.msgs.filter(m => !m._pending && !m._failed);
     if (!stable.length) return;
-    _msgCache.set(psid, { msgs: _filterMsgsByRetention(stable), oldestMsgTime: M.oldestMsgTime });
+    _msgCache.set(psid, {
+      msgs: _filterMsgsByRetention(stable),
+      oldestMsgTime: M.oldestMsgTime,
+      hasOlderMessages: M.hasOlderMessages
+    });
     // Evict oldest entry when over limit
     if (_msgCache.size > MSG_CACHE_MAX) {
       _msgCache.delete(_msgCache.keys().next().value);
@@ -2738,6 +2830,9 @@
     M.activeConvName = name;
     M.activeConvPic  = picture;
     M.msgStatus      = { delivered: 0, read: 0 };
+    M.hasOlderMessages = false;
+    M.contactMedia = null;
+    M._contactMediaPsid = null;
     if (pageId) {
       M.activePageId = pageId;
       M.activeToken  = (M.pages.find(p => p.id === pageId) || {}).access_token || M.activeToken;
@@ -2775,6 +2870,7 @@
       M.msgs           = _filterMsgsByRetention(cached.msgs);
       M.renderedMsgIds = new Set();
       M.oldestMsgTime  = cached.oldestMsgTime;
+      M.hasOlderMessages = cached.hasOlderMessages ?? (cached.msgs.length >= M.msgPageSize);
       renderMessages('replace', { scroll: 'force' });
       // Silent background refresh — patch DOM only if messages changed
       loadMessages(null, { silent: true }).catch(() => {});
@@ -2810,7 +2906,10 @@
     panel.setAttribute('aria-hidden', next ? 'false' : 'true');
     const btn = $('msngContactToggleBtn');
     if (btn) btn.setAttribute('aria-expanded', next ? 'true' : 'false');
-    if (next) updateContactPanel();
+    if (next) {
+      updateContactPanel();
+      loadContactMedia();
+    }
   };
 
   window.msngSaveContactNote = function () {
@@ -3412,11 +3511,13 @@
   };
 
   window.msngLoadMore = async function () {
-    if (!M.oldestMsgTime || M.ui.loadingMore) return;
+    if (!M.oldestMsgTime || M.ui.loadingMore || !M.hasOlderMessages) return;
     M.ui.loadingMore = true;
     const wrap = $('msngLoadMoreWrap');
+    const msgsEl = $('msngMsgs');
     const origHtml = wrap?.innerHTML;
     if (wrap) wrap.innerHTML = '<div class="msng-sk-line" style="width:120px;margin:auto"></div>';
+    if (msgsEl) msgsEl.classList.add('msng-loading-older');
     try {
       await loadMessages(M.oldestMsgTime);
     } catch (e) {
@@ -3424,6 +3525,7 @@
       showToast('Could not load earlier messages', 'error');
     } finally {
       M.ui.loadingMore = false;
+      if (msgsEl) msgsEl.classList.remove('msng-loading-older');
     }
   };
 
