@@ -2276,7 +2276,7 @@ async function getUserQuotaRow(fbUserId) {
     await ensureUserExists(fbUserId);
     const [rows] = await pool.query(
         `SELECT messenger_messages_used, messenger_messages_limit, plan, subscription_expires,
-                free_trial_expires_at, stripe_subscription_id, created_at
+                free_trial_expires_at, stripe_subscription_id, plan_activated_at, created_at
          FROM users WHERE fb_user_id = ?`,
         [fbUserId]
     );
@@ -2595,7 +2595,7 @@ async function renewPlan(fbUserId, planKey, { invoiceId, amountCents, billingRea
         : 'DATE_ADD(NOW(), INTERVAL 1 MONTH)';
     await pool.query(
         `UPDATE users SET messenger_messages_used = 0, messenger_messages_limit = ?,
-         subscription_expires = ${expiresExpr}, plan = ?
+         subscription_expires = ${expiresExpr}, plan = ?, plan_activated_at = NOW()
          WHERE fb_user_id = ?`,
         [plan.limit, plan.dbPlan, fbUserId]
     );
@@ -2618,7 +2618,7 @@ async function downgradeToFree(fbUserId) {
 }
 
 /** Admin: fully activate a plan (limits, expiry, quota reset) like Stripe checkout */
-async function adminActivatePlan(fbUserId, planInput, { messages_used, messages_limit } = {}) {
+async function adminActivatePlan(fbUserId, planInput, { messages_limit } = {}) {
     if (!pool || !fbUserId) return { ok: false, error: 'Invalid user' };
     const catalogKey = resolvePlanKey(planInput);
     if (!catalogKey) return { ok: false, error: 'Unknown plan' };
@@ -2634,10 +2634,6 @@ async function adminActivatePlan(fbUserId, planInput, { messages_used, messages_
     if (messages_limit !== undefined && messages_limit !== null && messages_limit !== '') {
         sets.push('messenger_messages_limit=?');
         vals.push(Math.max(0, parseInt(messages_limit, 10) || 0));
-    }
-    if (messages_used !== undefined && messages_used !== null && messages_used !== '') {
-        sets.push('messenger_messages_used=?');
-        vals.push(Math.max(0, parseInt(messages_used, 10) || 0));
     }
     if (sets.length) {
         vals.push(fbUserId);
@@ -2667,6 +2663,40 @@ async function adminActivatePlan(fbUserId, planInput, { messages_used, messages_
     };
 }
 
+/**
+ * If Stripe renewed the billing period but usage was not reset (missed webhook),
+ * reset messenger_messages_used when plan_activated_at is before the current period start.
+ */
+async function maybeResetQuotaForNewBillingPeriod(fbUserId, row) {
+    if (!pool || !row) return row;
+    const dbPlan = String(row.plan || 'free').toLowerCase();
+    if (dbPlan === 'free' || dbPlan === 'unknown' || !row.subscription_expires) return row;
+
+    const expires = new Date(row.subscription_expires);
+    const now = new Date();
+    if (expires <= now) return row;
+
+    const catalogKey = resolvePlanKey(dbPlan);
+    const plan = catalogKey ? getPlan(catalogKey) : null;
+    const periodStart = new Date(expires);
+    if (plan?.interval === 'year') {
+        periodStart.setFullYear(periodStart.getFullYear() - 1);
+    } else {
+        periodStart.setMonth(periodStart.getMonth() - 1);
+    }
+
+    const activated = row.plan_activated_at ? new Date(row.plan_activated_at) : null;
+    const used = Number(row.messenger_messages_used) || 0;
+    if (used > 0 && (!activated || activated < periodStart)) {
+        await pool.query(
+            'UPDATE users SET messenger_messages_used = 0, plan_activated_at = ? WHERE fb_user_id = ?',
+            [periodStart, fbUserId]
+        );
+        return getUserQuotaRow(fbUserId);
+    }
+    return row;
+}
+
 /** Single source for entitlement state (trial sync, paid expiry downgrade). */
 async function computeEntitlements(fbUserId) {
     if (!pool || !fbUserId) return null;
@@ -2680,6 +2710,9 @@ async function computeEntitlements(fbUserId) {
         row = await getUserQuotaRow(fbUserId);
         if (!row) return null;
     }
+
+    row = await maybeResetQuotaForNewBillingPeriod(fbUserId, row);
+    if (!row) return null;
 
     let effective = resolveEffectiveQuota(row);
     await syncExpiredFreeTrial(fbUserId, row, effective);

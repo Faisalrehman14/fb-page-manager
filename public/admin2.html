@@ -1355,7 +1355,7 @@ const App = {
     async save() {
       const id = $('editId').value;
       const planKey = $('editPlan').value;
-      const body = { plan: planKey, messages_limit: $('editLimit').value, messages_used: $('editUsed').value };
+      const body = { plan: planKey, messages_limit: $('editLimit').value };
       try {
         const r = await fetch(`/api/admin/users/${encodeURIComponent(id)}/update`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
         const d = await r.json().catch(() => ({}));

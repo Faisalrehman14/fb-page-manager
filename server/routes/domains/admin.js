@@ -172,7 +172,7 @@ app.post('/api/admin/users/:id/update', requireAdminAuth, async (req, res) => {
     try {
         const { plan, messages_limit, messages_used } = req.body;
         if (plan !== undefined) {
-            const result = await db.adminActivatePlan(req.params.id, plan, { messages_limit, messages_used });
+            const result = await db.adminActivatePlan(req.params.id, plan, { messages_limit });
             if (!result.ok) return res.status(400).json(result);
             return res.json({ success: true, ...result });
         }
