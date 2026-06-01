@@ -929,3 +929,316 @@ body.light .nav-side-item.active i {
 #landingPage .pricing-grid--6 .price-card:nth-child(6)::before {
   background: linear-gradient(90deg, #0866ff, #3b82f6) !important;
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   14. BROADCAST VIEW — DARK MODE (senior pro polish)
+   Overrides fbc-theme / saas-premium purple glass on broadcast screen
+═══════════════════════════════════════════════════════════════ */
+
+body:not(.light) #appPage,
+html[data-theme='dark'] #appPage {
+  --premium-glass: var(--pro-surface);
+  --premium-glass-border: var(--pro-border);
+  --premium-shadow-card: var(--pro-shadow-sm);
+}
+
+body:not(.light) #view-broadcast,
+html[data-theme='dark'] #view-broadcast {
+  background: transparent !important;
+}
+
+/* ── Sidebar nav: no purple gradient pill ── */
+body:not(.light) #appPage .nav-side-item.active,
+html[data-theme='dark'] #appPage .nav-side-item.active {
+  background: var(--pro-accent-muted) !important;
+  color: #93c5fd !important;
+  border-color: rgba(8, 102, 255, 0.22) !important;
+  box-shadow: inset 0 0 0 1px rgba(8, 102, 255, 0.12) !important;
+}
+
+body:not(.light) #appPage .nav-side-item.active::before,
+html[data-theme='dark'] #appPage .nav-side-item.active::before {
+  background: var(--pro-accent) !important;
+  height: 55% !important;
+}
+
+body:not(.light) #appPage .nav-side-item.active i,
+html[data-theme='dark'] #appPage .nav-side-item.active i {
+  color: #60a5fa !important;
+  filter: none !important;
+}
+
+/* AI Assistant — subtle blue, not purple */
+body:not(.light) #appPage .nav-ai-btn,
+html[data-theme='dark'] #appPage .nav-ai-btn {
+  background: var(--pro-accent-subtle) !important;
+  border: 1px solid var(--pro-accent-border) !important;
+  color: var(--pro-text) !important;
+  box-shadow: none !important;
+}
+
+body:not(.light) #appPage .nav-ai-btn:hover,
+html[data-theme='dark'] #appPage .nav-ai-btn:hover {
+  background: var(--pro-accent-muted) !important;
+  border-color: rgba(8, 102, 255, 0.4) !important;
+  box-shadow: var(--pro-shadow-sm) !important;
+}
+
+body:not(.light) #appPage .nav-ai-btn i,
+html[data-theme='dark'] #appPage .nav-ai-btn i {
+  color: #60a5fa !important;
+  filter: none !important;
+}
+
+body:not(.light) #appPage .nav-ai-tag,
+html[data-theme='dark'] #appPage .nav-ai-tag {
+  background: var(--pro-accent) !important;
+  color: #fff !important;
+}
+
+/* ── All broadcast columns: flat pro surfaces (no purple glass) ── */
+body:not(.light) #appPage .nav-sidebar,
+body:not(.light) #appPage .sidebar,
+body:not(.light) #appPage .compose-col,
+body:not(.light) #appPage .compose,
+body:not(.light) #appPage .broadcast-col,
+body:not(.light) #appPage .stats-panel,
+body:not(.light) #appPage .analytics-panel,
+html[data-theme='dark'] #appPage .nav-sidebar,
+html[data-theme='dark'] #appPage .sidebar,
+html[data-theme='dark'] #appPage .compose-col,
+html[data-theme='dark'] #appPage .compose,
+html[data-theme='dark'] #appPage .broadcast-col,
+html[data-theme='dark'] #appPage .stats-panel,
+html[data-theme='dark'] #appPage .analytics-panel {
+  background: var(--pro-surface) !important;
+  border: 1px solid var(--pro-border) !important;
+  border-radius: var(--pro-radius-lg) !important;
+  box-shadow: var(--pro-shadow-sm) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+body:not(.light) #appPage .sidebar-hdr,
+html[data-theme='dark'] #appPage .sidebar-hdr {
+  background: var(--pro-surface-raised) !important;
+  border-bottom-color: var(--pro-divider) !important;
+}
+
+body:not(.light) #appPage .sidebar-tips,
+html[data-theme='dark'] #appPage .sidebar-tips {
+  background: var(--pro-bg-subtle) !important;
+  border-top-color: var(--pro-divider) !important;
+}
+
+/* Pages list */
+body:not(.light) #appPage .page-card:hover,
+html[data-theme='dark'] #appPage .page-card:hover {
+  background: var(--pro-surface-hover) !important;
+  border-color: var(--pro-border) !important;
+}
+
+body:not(.light) #appPage .page-card.active,
+body:not(.light) #appPage .page-card.selected,
+html[data-theme='dark'] #appPage .page-card.active,
+html[data-theme='dark'] #appPage .page-card.selected {
+  background: var(--pro-accent-muted) !important;
+  border-color: rgba(8, 102, 255, 0.35) !important;
+  box-shadow: inset 3px 0 0 var(--pro-accent), var(--pro-shadow-sm) !important;
+}
+
+/* Compose message area */
+body:not(.light) #appPage #messageText,
+body:not(.light) #appPage .compose-textarea,
+html[data-theme='dark'] #appPage #messageText,
+html[data-theme='dark'] #appPage .compose-textarea {
+  background: var(--pro-bg-subtle) !important;
+  border-color: var(--pro-border-strong) !important;
+  color: var(--pro-text) !important;
+}
+
+body:not(.light) #appPage #messageText:focus,
+html[data-theme='dark'] #appPage #messageText:focus {
+  background: var(--pro-surface-raised) !important;
+  border-color: var(--pro-accent) !important;
+  box-shadow: var(--pro-shadow-focus) !important;
+}
+
+body:not(.light) #appPage .compose-hdr,
+html[data-theme='dark'] #appPage .compose-hdr {
+  background: var(--pro-surface-raised) !important;
+  border-bottom-color: var(--pro-divider) !important;
+}
+
+body:not(.light) #appPage .compose-section,
+html[data-theme='dark'] #appPage .compose-section {
+  border-bottom-color: var(--pro-divider) !important;
+  border-left-color: rgba(8, 102, 255, 0.2) !important;
+}
+
+body:not(.light) #appPage .img-attach-panel,
+body:not(.light) #appPage .img-drop-zone,
+html[data-theme='dark'] #appPage .img-attach-panel,
+html[data-theme='dark'] #appPage .img-drop-zone {
+  background: var(--pro-bg-subtle) !important;
+  border-color: var(--pro-border) !important;
+}
+
+body:not(.light) #appPage .char-count-fill,
+html[data-theme='dark'] #appPage .char-count-fill {
+  background: linear-gradient(90deg, var(--pro-accent), #3b82f6) !important;
+}
+
+/* Delay presets */
+body:not(.light) #appPage .delay-preset,
+html[data-theme='dark'] #appPage .delay-preset {
+  background: var(--pro-surface-raised) !important;
+  border-color: var(--pro-border) !important;
+  color: var(--pro-text-secondary) !important;
+}
+
+body:not(.light) #appPage .delay-preset.active,
+html[data-theme='dark'] #appPage .delay-preset.active {
+  background: var(--pro-accent-muted) !important;
+  border-color: rgba(8, 102, 255, 0.4) !important;
+  color: #93c5fd !important;
+  box-shadow: inset 0 0 0 1px rgba(8, 102, 255, 0.1) !important;
+}
+
+body:not(.light) #appPage .delay-preset.active::after,
+html[data-theme='dark'] #appPage .delay-preset.active::after {
+  background: var(--pro-accent) !important;
+}
+
+/* Broadcast stats strip */
+body:not(.light) #appPage .stat-box,
+html[data-theme='dark'] #appPage .stat-box {
+  background: var(--pro-surface-raised) !important;
+}
+
+body:not(.light) #appPage .stat-box.s-total::before,
+html[data-theme='dark'] #appPage .stat-box.s-total::before {
+  background: var(--pro-accent) !important;
+  box-shadow: none !important;
+}
+
+body:not(.light) #appPage .stat-val,
+html[data-theme='dark'] #appPage .stat-val {
+  color: var(--pro-text) !important;
+  text-shadow: none !important;
+}
+
+body:not(.light) #appPage .stat-box.s-total .stat-val,
+html[data-theme='dark'] #appPage .stat-box.s-total .stat-val {
+  color: #93c5fd !important;
+}
+
+body:not(.light) #appPage .stat-box.s-sent .stat-val,
+html[data-theme='dark'] #appPage .stat-box.s-sent .stat-val {
+  color: var(--pro-success) !important;
+}
+
+body:not(.light) #appPage .progress-bar-area,
+html[data-theme='dark'] #appPage .progress-bar-area {
+  background: var(--pro-bg-subtle) !important;
+}
+
+body:not(.light) #appPage .progress-track,
+html[data-theme='dark'] #appPage .progress-track {
+  background: var(--pro-surface-hover) !important;
+}
+
+body:not(.light) #appPage .progress-fill,
+html[data-theme='dark'] #appPage .progress-fill {
+  background: linear-gradient(90deg, var(--pro-accent), #3b82f6) !important;
+  box-shadow: none !important;
+}
+
+/* Quick stats — audience card: blue not purple */
+body:not(.light) #appPage .qs-audience i,
+html[data-theme='dark'] #appPage .qs-audience i {
+  background: rgba(8, 102, 255, 0.12) !important;
+  color: #60a5fa !important;
+}
+
+body:not(.light) #appPage .qs-audience,
+html[data-theme='dark'] #appPage .qs-audience {
+  border-left-color: rgba(8, 102, 255, 0.4) !important;
+}
+
+body:not(.light) #appPage .quick-stat-card,
+body:not(.light) #appPage .intel-card,
+body:not(.light) #appPage .bcast-mini-stat,
+body:not(.light) #appPage .tpl-item,
+html[data-theme='dark'] #appPage .quick-stat-card,
+html[data-theme='dark'] #appPage .intel-card,
+html[data-theme='dark'] #appPage .bcast-mini-stat,
+html[data-theme='dark'] #appPage .tpl-item {
+  background: var(--pro-surface-raised) !important;
+  border-color: var(--pro-border) !important;
+}
+
+body:not(.light) #appPage .panel-section,
+html[data-theme='dark'] #appPage .panel-section {
+  border-bottom-color: var(--pro-divider) !important;
+}
+
+body:not(.light) #appPage .tpl-icon--greet,
+html[data-theme='dark'] #appPage .tpl-icon--greet {
+  background: rgba(59, 130, 246, 0.12) !important;
+  color: #60a5fa !important;
+}
+
+/* Action buttons — professional, not neon */
+body:not(.light) #appPage #btnStart,
+body:not(.light) #appPage #btnAutoStart,
+html[data-theme='dark'] #appPage #btnStart,
+html[data-theme='dark'] #appPage #btnAutoStart {
+  background: linear-gradient(180deg, #0d9668 0%, #059669 100%) !important;
+  box-shadow: 0 2px 12px rgba(5, 150, 105, 0.35) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+body:not(.light) #appPage #btnStart:hover:not(:disabled),
+html[data-theme='dark'] #appPage #btnStart:hover:not(:disabled) {
+  box-shadow: 0 4px 18px rgba(5, 150, 105, 0.45) !important;
+}
+
+body:not(.light) #appPage #btnPause,
+body:not(.light) #appPage #btnAutoPause,
+html[data-theme='dark'] #appPage #btnPause,
+html[data-theme='dark'] #appPage #btnAutoPause {
+  background: linear-gradient(180deg, #b45309 0%, #d97706 100%) !important;
+  box-shadow: 0 2px 10px rgba(217, 119, 6, 0.3) !important;
+}
+
+body:not(.light) #appPage #btnStop,
+body:not(.light) #appPage #btnAutoStop,
+html[data-theme='dark'] #appPage #btnStop,
+html[data-theme='dark'] #appPage #btnAutoStop {
+  background: linear-gradient(180deg, #b91c1c 0%, #dc2626 100%) !important;
+  box-shadow: 0 2px 10px rgba(220, 38, 38, 0.3) !important;
+}
+
+body:not(.light) #appPage #btnResume,
+body:not(.light) #appPage #btnAutoResume,
+body:not(.light) #appPage .btn-extra,
+html[data-theme='dark'] #appPage #btnResume,
+html[data-theme='dark'] #appPage #btnAutoResume,
+html[data-theme='dark'] #appPage .btn-extra {
+  background: var(--pro-surface-raised) !important;
+  border-color: var(--pro-border) !important;
+  color: var(--pro-text-secondary) !important;
+  box-shadow: none !important;
+}
+
+body:not(.light) #appPage .akpi-purple .akpi-icon,
+html[data-theme='dark'] #appPage .akpi-purple .akpi-icon {
+  background: rgba(8, 102, 255, 0.12) !important;
+  color: #60a5fa !important;
+}
+
+body:not(.light) #appPage .akpi-purple,
+html[data-theme='dark'] #appPage .akpi-purple {
+  border-left-color: rgba(8, 102, 255, 0.45) !important;
+}
