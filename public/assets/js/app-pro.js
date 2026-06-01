@@ -67,7 +67,7 @@
       if (typeof global.showToast === 'function') global.showToast(message, type === 'failed' ? 'warning' : 'success');
       if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
         try {
-          new Notification('FBCast Pro', { body: message, icon: '/images/castpro2.png' });
+          new Notification('FBCast Pro', { body: message, icon: '/images/logo-64.png' });
         } catch (_) {}
       }
     };
