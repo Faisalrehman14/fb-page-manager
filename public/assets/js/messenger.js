@@ -828,16 +828,67 @@
     return false;
   }
 
+  function resolveMsgFromMe(raw) {
+    if (raw.from_me == 1 || raw.from_me === true) return 1;
+    if (raw.from_me == 0 || raw.from_me === false) return 0;
+    const dir = String(raw.direction || '').toUpperCase();
+    if (dir === 'OUT' || dir === 'OUTBOUND') return 1;
+    if (dir === 'IN' || dir === 'INBOUND') return 0;
+    return 0;
+  }
+
+  function resolveMsgTime(raw) {
+    return raw.fb_created_at || raw.created_at || raw.createdTime || null;
+  }
+
+  function unwrapMessagesResponse(data) {
+    if (!data || data.error) return data;
+    if (data.success === true && data.data && Array.isArray(data.data.messages)) {
+      return {
+        ...data,
+        messages: data.data.messages,
+        nextCursor: data.data.nextCursor,
+        backfillPending: data.data.backfillPending,
+        conv_id: data.conv_id || data.data.conversation_id
+      };
+    }
+    return data;
+  }
+
+  function applyMsgStatusFromMessages(msgs) {
+    let delivered = 0;
+    let read = 0;
+    for (const m of msgs) {
+      if (m.from_me != 1) continue;
+      const seen = m.seen_at ? new Date(m.seen_at).getTime() : 0;
+      const del = m.delivered_at ? new Date(m.delivered_at).getTime() : 0;
+      if (seen && seen > read) read = seen;
+      if (del && del > delivered) delivered = del;
+    }
+    if (read) M.msgStatus.read = Math.max(M.msgStatus.read, read);
+    if (delivered) M.msgStatus.delivered = Math.max(M.msgStatus.delivered, delivered);
+    if (read || delivered) updateTicksInDom();
+  }
+
   function normalizeMsg(raw) {
     if (!raw) return raw;
     const like = looksLikeThumbsMsg(raw);
+    const att0 = Array.isArray(raw.attachments) && raw.attachments[0] ? raw.attachments[0] : null;
+    const attUrl = like ? null : (
+      raw.media_permanent_url || raw.attachment_url || att0?.url || att0?.u || null
+    );
+    const attType = like ? 'like' : (
+      raw.attachment_type || att0?.type || att0?.t || null
+    );
     return {
-      message_id: raw.message_id || raw.mid || null,
+      message_id: raw.fb_message_id || raw.message_id || raw.mid || raw.id || null,
       message: like ? '👍' : (raw.message || raw.text || ''),
-      from_me: raw.from_me == 1 || raw.from_me === true ? 1 : 0,
-      created_at: raw.created_at || raw.createdTime || null,
-      attachment_url: like ? null : (raw.attachment_url || null),
-      attachment_type: like ? 'like' : (raw.attachment_type || null),
+      from_me: resolveMsgFromMe(raw),
+      created_at: resolveMsgTime(raw),
+      attachment_url: attUrl,
+      attachment_type: attType,
+      delivered_at: raw.delivered_at || null,
+      seen_at: raw.seen_at || null,
       is_like: like,
       _tempId: raw._tempId,
       _pending: raw._pending,
@@ -2591,15 +2642,16 @@
       if (r.status === 401) throw Object.assign(new Error('Session expired — please reload the page'), { _userFacing: true });
       if (!r.ok) throw new Error('Server error (' + r.status + ')');
 
-      const data = await r.json();
+      const payload = unwrapMessagesResponse(await r.json());
       if (M.activePsid !== forPsid) return; // second stale check after JSON parse
 
-      if (data.error) {
-        if (!before && msgsEl) _showMsgError(msgsEl, data.error);
+      if (payload.error) {
+        if (!before && msgsEl) _showMsgError(msgsEl, payload.error);
         return;
       }
 
-        const fresh = _filterMsgsByRetention((data.messages || []).map(normalizeMsg));
+        const fresh = _filterMsgsByRetention((payload.messages || []).map(normalizeMsg));
+      applyMsgStatusFromMessages(fresh);
       if (before) {
         // "Load earlier" — prepend older messages
         M.msgs = [...fresh, ...M.msgs];

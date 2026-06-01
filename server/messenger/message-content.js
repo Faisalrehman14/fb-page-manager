@@ -192,12 +192,39 @@ function pickPrimaryAttachment(msg = {}) {
     return { attachment_url: url, attachment_type: type || null };
 }
 
+/** OUT/IN (competitor APIs) + legacy from_me / isFromPage */
+function resolveFromMe(msg = {}) {
+    if (msg.from_me === 1 || msg.from_me === true) return 1;
+    if (msg.from_me === 0 || msg.from_me === false) return 0;
+    if (msg.isFromPage === true || msg.isFromPage === 1) return 1;
+    const dir = String(msg.direction || '').toUpperCase();
+    if (dir === 'OUT' || dir === 'OUTBOUND') return 1;
+    if (dir === 'IN' || dir === 'INBOUND') return 0;
+    return 0;
+}
+
+/** Prefer Facebook timestamp over DB insert time (import/backfill often share created_at). */
+function resolveMessageTime(msg = {}) {
+    return msg.fb_created_at || msg.created_at || msg.createdTime || null;
+}
+
+function normalizeAttachmentsInput(msg = {}) {
+    if (Array.isArray(msg.attachments) && msg.attachments.length) {
+        return msg.attachments.map((a) => {
+            if (!a || typeof a !== 'object') return null;
+            const u = a.url || a.u || a.media_permanent_url || a.payload?.url || null;
+            const t = a.type || a.t || a.mime_type || (u ? 'image' : 'file');
+            return u || t ? { t, u } : null;
+        }).filter(Boolean);
+    }
+    const url = msg.media_permanent_url || msg.attachment_url || null;
+    const type = msg.attachment_type || null;
+    if (url || type) return [{ t: type, u: url }];
+    return [];
+}
+
 function normalizeMessengerMessage(msg = {}) {
-    const attachments = msg.attachments?.length
-        ? msg.attachments
-        : (msg.attachment_url || msg.attachment_type
-            ? [{ t: msg.attachment_type, u: msg.attachment_url }]
-            : []);
+    const attachments = normalizeAttachmentsInput(msg);
 
     const { attachment_url, attachment_type } = pickPrimaryAttachment({
         ...msg,
@@ -215,26 +242,34 @@ function normalizeMessengerMessage(msg = {}) {
     let message = String(msg.message ?? msg.text ?? '').trim();
     if (isPlaceholderText(message)) message = '';
 
+    const fromMe = resolveFromMe(msg);
+    const createdAt = resolveMessageTime(msg);
+    const messageId = msg.fb_message_id || msg.message_id || msg.mid || msg.id || null;
+
     if (like) {
         return {
-            message_id: msg.message_id || msg.mid || msg.id,
+            message_id: messageId,
             message: '👍',
-            from_me: msg.from_me != null ? msg.from_me : (msg.isFromPage ? 1 : 0),
-            created_at: msg.created_at || msg.createdTime,
+            from_me: fromMe,
+            created_at: createdAt,
             attachment_url: null,
             attachment_type: 'like',
-            is_like: true
+            is_like: true,
+            delivered_at: msg.delivered_at || null,
+            seen_at: msg.seen_at || null
         };
     }
 
     return {
-        message_id: msg.message_id || msg.mid || msg.id,
+        message_id: messageId,
         message,
-        from_me: msg.from_me != null ? msg.from_me : (msg.isFromPage ? 1 : 0),
-        created_at: msg.created_at || msg.createdTime,
+        from_me: fromMe,
+        created_at: createdAt,
         attachment_url,
         attachment_type,
-        is_like: false
+        is_like: false,
+        delivered_at: msg.delivered_at || null,
+        seen_at: msg.seen_at || null
     };
 }
 

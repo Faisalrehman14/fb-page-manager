@@ -29,7 +29,12 @@ class MessageService {
         if (before) {
             const beforeDate = new Date(before);
             if (!isNaN(beforeDate) && beforeDate <= cutoff) {
-                return { messages: [], conv_id: dbConvId };
+                return {
+                    success: true,
+                    data: { messages: [], nextCursor: null, backfillPending: false },
+                    messages: [],
+                    conv_id: dbConvId
+                };
             }
         }
 
@@ -44,7 +49,13 @@ class MessageService {
             if (dbConvId) {
                 const cached = await this.db.getMessages(dbConvId, safeLimit, before);
                 if (cached.length > 0) {
-                    return { messages: cached.map(mapMessage), conv_id: dbConvId };
+                    const mapped = cached.map(mapMessage);
+                    return {
+                        success: true,
+                        data: { messages: mapped, nextCursor: null, backfillPending: false },
+                        messages: mapped,
+                        conv_id: dbConvId
+                    };
                 }
             }
             return { messages: [], error: 'No page token found. Please reload the pages list.' };
@@ -82,7 +93,13 @@ class MessageService {
             if (dbConvId) {
                 const rows = await this.db.getMessages(dbConvId, safeLimit, before);
                 if (rows.length > 0) {
-                    return { messages: rows.map(mapMessage), conv_id: dbConvId };
+                    const mapped = rows.map(mapMessage);
+                    return {
+                        success: true,
+                        data: { messages: mapped, nextCursor: null, backfillPending: false },
+                        messages: mapped,
+                        conv_id: dbConvId
+                    };
                 }
             }
 
@@ -113,13 +130,28 @@ class MessageService {
                 }
             }
 
-            return { messages, conv_id: dbConvId || fbConvId };
+            return {
+                success: true,
+                data: {
+                    messages: messages.map(mapMessage),
+                    nextCursor: null,
+                    backfillPending: false
+                },
+                messages: messages.map(mapMessage),
+                conv_id: dbConvId || fbConvId
+            };
         } catch (err) {
             this.logError('load_messages_fb', err, { pageId, psid });
             if (dbConvId) {
                 const fallback = await this.db.getMessages(dbConvId, safeLimit, before);
                 if (fallback.length > 0) {
-                    return { messages: fallback.map(mapMessage), conv_id: dbConvId };
+                    const mapped = fallback.map(mapMessage);
+                    return {
+                        success: true,
+                        data: { messages: mapped, nextCursor: null, backfillPending: false },
+                        messages: mapped,
+                        conv_id: dbConvId
+                    };
                 }
             }
             return {

@@ -29,15 +29,22 @@ function mapConversation(c) {
 function mapMessage(m) {
     const out = toClientMessage({
         ...m,
-        message_id: m.mid || m.message_id || m.id,
-        message: m.text || m.message || '',
-        from_me: Object.prototype.hasOwnProperty.call(m, 'from_me')
-            ? m.from_me
-            : (m.isFromPage ? 1 : 0),
-        created_at: m.createdTime || m.created_at,
-        attachment_url: m.attachment_url || m.attachments?.[0]?.u || null,
+        fb_message_id: m.fb_message_id,
+        message_id: m.fb_message_id || m.mid || m.message_id || m.id,
+        message: m.text ?? m.message ?? '',
+        text: m.text ?? m.message ?? '',
+        direction: m.direction,
+        from_me: m.from_me,
+        isFromPage: m.isFromPage ?? m.is_from_page,
+        created_at: m.created_at,
+        fb_created_at: m.fb_created_at,
+        createdTime: m.createdTime || m.fb_created_at || m.created_at,
+        attachment_url: m.media_permanent_url || m.attachment_url || m.attachments?.[0]?.u || null,
         attachment_type: m.attachment_type || m.attachments?.[0]?.t || null,
         attachments: m.attachments,
+        media_permanent_url: m.media_permanent_url,
+        delivered_at: m.delivered_at,
+        seen_at: m.seen_at,
         is_like: m.is_like
     });
     return out;
