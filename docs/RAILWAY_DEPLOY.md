@@ -34,10 +34,11 @@ Without `DATABASE_URL`, the app still starts but login/data will not persist.
 
 ## Deploy failed?
 
-1. **Deploy logs** → look for `Cannot find module` → build did not run `npm ci`; redeploy.
-2. **Healthcheck failed** → ensure start command is `npm start` and path `/api/health` returns 200.
-3. **Wrong branch** → Settings → Source → branch must include `server/index.js` (not old `server.js` only).
-4. **Wrong root** → Root Directory must be empty unless the repo is a monorepo.
+1. **Build image failed** → do not use custom `nixpacks.toml` with invalid `nixPkgs`. Node version is set via `package.json` → `"engines": { "node": "20" }` and `.nvmrc`. Let Nixpacks run default `npm install` (no custom `buildCommand`).
+2. **Deploy logs** → look for `Cannot find module` → build did not install dependencies; redeploy.
+3. **Healthcheck failed** → ensure start command is `npm start` and path `/api/health` returns 200.
+4. **Wrong branch** → Settings → Source → branch must be `main` with `server/index.js`.
+5. **Wrong root** → Root Directory must be empty unless the repo is a monorepo.
 
 ## Binance / Stripe webhooks
 
