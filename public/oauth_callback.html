@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Connecting Facebook — FBCast Pro</title>
+  <script>
+    // Legacy static file — OAuth must hit server route oauth_callback.php
+    var q = window.location.search || '';
+    var h = window.location.hash || '';
+    window.location.replace('/oauth_callback.php' + q + h);
+  </script>
+</head>
+<body>
+  <p>Redirecting to Facebook login…</p>
+</body>
+</html>

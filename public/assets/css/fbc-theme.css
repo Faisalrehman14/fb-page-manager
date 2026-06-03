@@ -1,0 +1,366 @@
+/**
+ * FBCast Pro — Aurora Theme (v4)
+ * Deep navy canvas · violet purple accents · electric blue CTAs
+ */
+
+:root {
+  --fbc-brand: #4f7cff;
+  --fbc-brand-hover: #6b93ff;
+  --fbc-brand-deep: #2b4fd4;
+  --fbc-brand-dim: rgba(79, 124, 255, 0.14);
+  --fbc-brand-glow: rgba(79, 124, 255, 0.35);
+  --fbc-purple: #a855f7;
+  --fbc-purple-deep: #7c3aed;
+  --fbc-purple-dim: rgba(168, 85, 247, 0.14);
+  --fbc-purple-glow: rgba(168, 85, 247, 0.32);
+  --fbc-accent: #c084fc;
+  --fbc-accent-dim: rgba(192, 132, 252, 0.12);
+  --fbc-accent-soft: #e9d5ff;
+
+  --primary: var(--fbc-brand);
+  --primary-light: #a5c4ff;
+  --primary-dim: var(--fbc-brand-dim);
+  --primary-glow: var(--fbc-brand-glow);
+  --cyan: var(--fbc-accent-soft);
+  --cyan-light: #ddd6fe;
+  --cyan-dim: var(--fbc-purple-dim);
+
+  --bg: #030508;
+  --bg2: #050a14;
+  --bg3: #080f1e;
+  --surface: #0b1224;
+  --surface2: #0f1630;
+  --surface3: #141e42;
+
+  --text: #ffffff;
+  --text2: #b4c0dc;
+  --text3: #7d8cb0;
+
+  --border: rgba(255, 255, 255, 0.1);
+  --border2: rgba(168, 85, 247, 0.22);
+  --border3: rgba(79, 124, 255, 0.32);
+
+  --green: #34d399;
+  --green-light: #6ee7b7;
+  --red: #f87171;
+  --amber: #fbbf24;
+
+  --radius: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
+
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.35);
+  --shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
+  --shadow-lg: 0 24px 60px rgba(0, 0, 0, 0.55);
+  --shadow-violet: 0 12px 40px rgba(124, 58, 237, 0.22);
+  --shadow-accent: 0 8px 32px rgba(79, 124, 255, 0.28);
+
+  --gradient-brand: linear-gradient(135deg, #3b82f6 0%, #6366f1 45%, #a855f7 100%);
+  --gradient-hero: linear-gradient(135deg, #1d4ed8 0%, #6d28d9 50%, #7c3aed 100%);
+  --gradient-surface: linear-gradient(165deg, rgba(139, 92, 246, 0.08) 0%, rgba(59, 130, 246, 0.04) 40%, transparent 100%);
+  --gradient-mesh:
+    radial-gradient(ellipse 80% 55% at 0% -8%, rgba(124, 58, 237, 0.18), transparent 52%),
+    radial-gradient(ellipse 65% 45% at 100% 0%, rgba(37, 99, 235, 0.14), transparent 50%),
+    radial-gradient(ellipse 45% 35% at 50% 100%, rgba(15, 23, 42, 0.9), transparent 55%),
+    #030508;
+  --messenger: linear-gradient(135deg, #3b82f6, #a855f7);
+
+  --fbc-canvas: var(--gradient-mesh), var(--bg);
+
+  color-scheme: dark;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--fbc-canvas);
+  background-attachment: fixed;
+  color: var(--text);
+}
+
+::selection {
+  background: rgba(168, 85, 247, 0.35);
+  color: #fff;
+}
+
+#landingPage {
+  background: var(--fbc-canvas);
+  background-attachment: fixed;
+}
+
+.nav {
+  background: rgba(6, 10, 22, 0.82) !important;
+  border-bottom-color: var(--border) !important;
+  backdrop-filter: blur(24px) saturate(180%);
+}
+
+.nav.scrolled {
+  background: rgba(6, 10, 22, 0.94) !important;
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.5);
+}
+
+.hero {
+  background:
+    radial-gradient(ellipse 80% 60% at 50% -10%, rgba(124, 58, 237, 0.2) 0%, transparent 55%),
+    radial-gradient(ellipse 50% 40% at 80% 20%, rgba(37, 99, 235, 0.15) 0%, transparent 50%),
+    transparent !important;
+}
+
+.nav-cta,
+.mobile-menu-cta,
+.hv-hero-cta,
+.btn-upgrade,
+.ds-btn--primary {
+  background: var(--gradient-brand) !important;
+  border: none !important;
+}
+
+#appPage {
+  background: var(--fbc-canvas) !important;
+  background-attachment: fixed;
+}
+
+.app-body {
+  background: transparent !important;
+  position: relative;
+}
+
+.theme-surface,
+.nav-sidebar,
+.sidebar,
+.compose-col,
+.compose,
+.broadcast-col,
+.quota-widget,
+.saas-topbar,
+#view-messenger,
+.hv-kpi,
+.hv-qa-card,
+.hv-plan-card,
+.modal-box,
+.upgrade-modal-box,
+#upgradeModal .modal-box,
+.settings-section,
+.price-card,
+.feature-card,
+.step-item {
+  border-color: var(--border) !important;
+}
+
+.nav-sidebar,
+.sidebar,
+.compose-col,
+.compose {
+  background: linear-gradient(180deg, rgba(16, 26, 56, 0.98) 0%, rgba(10, 16, 34, 0.99) 100%) !important;
+  box-shadow:
+    0 0 0 1px rgba(139, 156, 255, 0.06) inset,
+    4px 0 24px rgba(0, 0, 0, 0.35) !important;
+}
+
+.nav-side-item.active {
+  background: linear-gradient(135deg, rgba(79, 124, 255, 0.18), rgba(168, 85, 247, 0.12)) !important;
+  color: #fff !important;
+  box-shadow: inset 0 0 0 1px rgba(168, 85, 247, 0.25);
+}
+
+.nav-side-item.active i {
+  color: var(--fbc-accent);
+}
+
+html[data-theme='dark'] #view-home,
+html.theme-dark #view-home {
+  background: transparent;
+}
+
+html[data-theme='dark'] .hv-kpi,
+html.theme-dark .hv-kpi {
+  background: linear-gradient(165deg, rgba(20, 31, 69, 0.95), rgba(16, 26, 56, 0.9)) !important;
+  border: 1px solid var(--border) !important;
+  transition: border-color 0.22s ease, transform 0.22s ease, box-shadow 0.22s ease;
+}
+
+.hv-kpi {
+  border: 1px solid var(--border);
+  transition: border-color 0.22s ease, transform 0.22s ease, box-shadow 0.22s ease;
+}
+
+.hv-kpi:hover {
+  border-color: var(--border2) !important;
+  box-shadow: var(--shadow-violet);
+  transform: translateY(-2px);
+}
+
+.hv-qa-card,
+.hv-plan-card {
+  background: linear-gradient(165deg, rgba(20, 31, 69, 0.92), rgba(16, 26, 56, 0.88)) !important;
+  border: 1px solid var(--border) !important;
+}
+
+.hv-hero-cta {
+  background: var(--gradient-brand) !important;
+  box-shadow: var(--shadow-accent) !important;
+}
+
+.hv-hero-cta2:hover {
+  border-color: var(--border2) !important;
+  color: var(--primary-light) !important;
+  background: rgba(124, 58, 237, 0.12) !important;
+}
+
+.compose-section,
+.broadcast-panel {
+  background: var(--surface) !important;
+}
+
+.settings-section,
+.modal-content {
+  background: var(--surface) !important;
+  border: 1px solid var(--border) !important;
+}
+
+.saas-topbar {
+  background: rgba(6, 10, 22, 0.88) !important;
+  border-bottom-color: var(--border) !important;
+}
+
+.msng-root {
+  background:
+    radial-gradient(ellipse 80% 50% at 0% 0%, rgba(124, 58, 237, 0.1), transparent 50%),
+    radial-gradient(ellipse 60% 40% at 100% 0%, rgba(37, 99, 235, 0.08), transparent 45%),
+    var(--bg2) !important;
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, rgba(79, 124, 255, 0.35), rgba(168, 85, 247, 0.35));
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, rgba(79, 124, 255, 0.5), rgba(168, 85, 247, 0.5));
+}
+
+:focus-visible {
+  outline-color: var(--fbc-accent);
+}
+
+/* ─── Light theme ─── */
+body.light,
+html[data-theme='light'] {
+  color-scheme: light;
+
+  --bg: #eef2ff;
+  --bg2: #e0e7ff;
+  --bg3: #c7d2fe;
+  --surface: #ffffff;
+  --surface2: #f5f7ff;
+  --surface3: #e8edff;
+
+  --text: #0c1222;
+  --text2: #334155;
+  --text3: #475569;
+  --primary: #1d4ed8;
+  --primary-light: #2563eb;
+  --primary-dim: rgba(29, 78, 216, 0.1);
+  --primary-glow: rgba(29, 78, 216, 0.25);
+
+  --border: rgba(99, 102, 241, 0.12);
+  --border2: rgba(124, 58, 237, 0.2);
+  --border3: rgba(59, 130, 246, 0.25);
+
+  --shadow-sm: 0 2px 8px rgba(99, 102, 241, 0.08);
+  --shadow: 0 12px 32px rgba(99, 102, 241, 0.12);
+  --shadow-lg: 0 20px 48px rgba(99, 102, 241, 0.15);
+  --shadow-violet: 0 12px 32px rgba(124, 58, 237, 0.15);
+  --shadow-accent: 0 8px 24px rgba(59, 130, 246, 0.2);
+
+  --fbc-brand-dim: rgba(59, 130, 246, 0.1);
+  --fbc-purple-dim: rgba(124, 58, 237, 0.1);
+
+  --fbc-canvas:
+    radial-gradient(ellipse 80% 55% at 20% -10%, rgba(167, 139, 250, 0.15), transparent 50%),
+    radial-gradient(ellipse 60% 40% at 90% 0%, rgba(96, 165, 250, 0.12), transparent 45%),
+    var(--bg);
+
+  --premium-glass: #ffffff;
+  --premium-glass-border: rgba(99, 102, 241, 0.14);
+  --premium-glass-highlight: rgba(255, 255, 255, 1);
+  --premium-shadow-card:
+    0 0 0 1px rgba(15, 23, 42, 0.04),
+    0 4px 20px rgba(15, 23, 42, 0.06);
+  --premium-shadow-hover:
+    0 0 0 1px rgba(99, 102, 241, 0.18),
+    0 12px 32px rgba(99, 102, 241, 0.1);
+
+  /* Accessible Semantic Colors */
+  --green: #166534;
+  --red: #b91c1c;
+  --amber: #9a3412;
+}
+
+body.light :focus-visible,
+html[data-theme='light'] :focus-visible {
+  outline: 2px solid #1d4ed8 !important;
+  outline-offset: 2px !important;
+}
+
+body.light {
+  background: var(--fbc-canvas);
+  background-attachment: fixed;
+}
+
+body.light #appPage,
+body.light #landingPage {
+  background: var(--fbc-canvas) !important;
+  background-attachment: fixed;
+}
+
+body.light .nav {
+  background: rgba(255, 255, 255, 0.9) !important;
+}
+
+body.light .saas-topbar {
+  background: rgba(255, 255, 255, 0.92) !important;
+  border-bottom-color: var(--border) !important;
+}
+
+body.light .saas-topbar .topbar-title h1,
+html[data-theme='light'] .saas-topbar .topbar-title h1 {
+  background: linear-gradient(135deg, #1e3a8a 0%, #6d28d9 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+body.light .nav-sidebar,
+body.light .sidebar,
+body.light .compose-col,
+body.light .compose,
+body.light .broadcast-col {
+  background: linear-gradient(180deg, #fff 0%, var(--surface2) 100%) !important;
+}
+
+body.light .hv-kpi,
+body.light .hv-qa-card,
+body.light .hv-plan-card {
+  background: #fff !important;
+}
+
+body.light .msng-root {
+  background: var(--bg2) !important;
+}
+
+body.light ::-webkit-scrollbar-thumb {
+  background: rgba(124, 58, 237, 0.25);
+}
+
+.price-card.featured {
+  border-color: rgba(168, 85, 247, 0.4) !important;
+  box-shadow: var(--shadow-violet) !important;
+}
+
+.price-btn--pro,
+.price-btn--basic {
+  background: var(--gradient-brand) !important;
+}

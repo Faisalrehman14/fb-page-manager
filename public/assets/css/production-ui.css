@@ -1,0 +1,641 @@
+/**
+ * FBCast Pro — Production UI (final polish layer)
+ * Loads last. Refines landing, dashboard, forms, modals, and light theme parity.
+ */
+
+/* ─── Global foundation ─── */
+:root {
+  --prod-focus: rgba(79, 159, 255, 0.55);
+  --prod-focus-ring: 0 0 0 3px var(--prod-focus);
+  --prod-surface-glass: rgba(13, 27, 56, 0.72);
+  --prod-nav-h: 68px;
+}
+
+html {
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  -moz-osx-font-smoothing: grayscale;
+}
+
+::selection {
+  background: rgba(8, 102, 255, 0.35);
+  color: #fff;
+}
+
+html[data-theme='light'] ::selection,
+body.light ::selection {
+  background: rgba(8, 102, 255, 0.22);
+  color: #0f172a;
+}
+
+/* Scrollbars (WebKit + Firefox) */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(123, 143, 181, 0.35) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: rgba(123, 143, 181, 0.28);
+  border-radius: 100px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: rgba(123, 143, 181, 0.45);
+  background-clip: padding-box;
+}
+
+html[data-theme='light'] *::-webkit-scrollbar-thumb,
+body.light *::-webkit-scrollbar-thumb {
+  background: rgba(100, 116, 139, 0.35);
+  background-clip: padding-box;
+}
+
+/* Focus — consistent product ring */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[tabindex]:focus-visible {
+  outline: none;
+  box-shadow: var(--prod-focus-ring);
+}
+
+/* ═══════════════════════════════════════
+   LANDING — Navigation
+═══════════════════════════════════════ */
+#landingPage .nav {
+  height: var(--prod-nav-h);
+  padding-left: clamp(20px, 4vw, 52px);
+  padding-right: clamp(20px, 4vw, 52px);
+  background: rgba(3, 12, 26, 0.78);
+  border-bottom-color: rgba(255, 255, 255, 0.04);
+}
+
+#landingPage .nav::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 10%;
+  right: 10%;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(8, 102, 255, 0.35) 30%,
+    rgba(179, 127, 235, 0.3) 70%,
+    transparent
+  );
+  pointer-events: none;
+  opacity: 0.6;
+}
+
+#landingPage .nav.scrolled {
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.05) inset,
+    0 12px 40px rgba(0, 0, 0, 0.45);
+}
+
+#landingPage .nav-brand-mark {
+  transition: transform 0.25s var(--ds-ease, ease), box-shadow 0.25s ease;
+}
+
+#landingPage .nav-brand:hover .nav-brand-mark {
+  transform: scale(1.04);
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.14),
+    0 6px 20px rgba(8, 102, 255, 0.35);
+}
+
+#landingPage .nav-links a {
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+#landingPage .nav-links a:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+#landingPage .nav-cta {
+  border-radius: 12px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+/* ═══════════════════════════════════════
+   LANDING — Hero & sections
+═══════════════════════════════════════ */
+#landingPage .hero {
+  padding-top: clamp(100px, 14vw, 140px);
+  padding-left: clamp(20px, 4vw, 52px);
+  padding-right: clamp(20px, 4vw, 52px);
+}
+
+#landingPage .hero-h1 {
+  letter-spacing: -0.04em;
+  line-height: 1.05;
+  text-wrap: balance;
+}
+
+#landingPage .hero-sub {
+  max-width: 52ch;
+  line-height: 1.65;
+  color: rgba(237, 243, 255, 0.72);
+}
+
+#landingPage .btn-hero,
+#landingPage .btn-hero-secondary {
+  border-radius: 12px;
+  min-height: 48px;
+  padding-left: 28px;
+  padding-right: 28px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+#landingPage .section-h2 {
+  letter-spacing: -0.03em;
+  text-wrap: balance;
+}
+
+#landingPage .section-sub {
+  max-width: 56ch;
+  margin-left: auto;
+  margin-right: auto;
+  line-height: 1.65;
+}
+
+#landingPage .section-label {
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+/* Feature / step cards on landing */
+#landingPage .feat,
+#landingPage .step,
+#landingPage .bigfeat-item {
+  transition:
+    transform 0.28s cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 0.28s ease,
+    box-shadow 0.28s ease;
+}
+
+#landingPage .feat:hover,
+#landingPage .step:hover {
+  transform: translateY(-4px);
+}
+
+#landingPage .feat {
+  border-radius: 16px;
+}
+
+#landingPage .feat:hover {
+  border-color: rgba(79, 159, 255, 0.22);
+  box-shadow:
+    0 0 0 1px rgba(79, 159, 255, 0.08) inset,
+    0 20px 48px rgba(0, 0, 0, 0.4);
+}
+
+/* Pricing */
+#landingPage .pricing-grid--6 .price-card {
+  border-radius: 20px;
+  backdrop-filter: blur(8px);
+}
+
+#landingPage .pricing-grid--6 .price-card .price-btn,
+#landingPage .price-card .price-btn {
+  border-radius: 11px;
+  font-weight: 700;
+  min-height: 44px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+#landingPage .pricing-grid--6 .price-card .price-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+/* Footer */
+#landingPage .footer-enhanced {
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  background: linear-gradient(180deg, transparent, rgba(3, 12, 26, 0.6));
+}
+
+#landingPage .footer-enhanced a {
+  transition: color 0.15s ease, opacity 0.15s ease;
+}
+
+#landingPage .footer-enhanced a:hover {
+  color: var(--text);
+}
+
+#landingPage .footer-social-icon {
+  transition: transform 0.2s ease, background 0.2s ease, border-color 0.2s ease;
+}
+
+#landingPage .footer-social-icon:hover {
+  transform: translateY(-2px);
+}
+
+/* ═══════════════════════════════════════
+   DASHBOARD — Shell & navigation
+═══════════════════════════════════════ */
+#appPage {
+  background:
+    radial-gradient(ellipse 80% 50% at 50% -20%, rgba(8, 102, 255, 0.08), transparent 55%),
+    var(--bg, #030c1a);
+}
+
+.saas-topbar {
+  background: rgba(6, 10, 22, 0.88);
+  border-bottom-color: rgba(255, 255, 255, 0.05);
+}
+
+.nav-sidebar {
+  box-shadow: 1px 0 0 rgba(255, 255, 255, 0.03);
+}
+
+.nav-side-item {
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.nav-side-item.active {
+  box-shadow: 0 0 0 1px rgba(8, 102, 255, 0.12) inset;
+}
+
+/* Main content area */
+.app-main,
+.main-content,
+.pro-view {
+  animation: prod-view-in 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes prod-view-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Pro views — section headers */
+.pro-view__head h2,
+.pro-view__title {
+  letter-spacing: -0.03em;
+  font-weight: 800;
+}
+
+.pro-view__head p,
+.pro-view__subtitle {
+  color: var(--text2);
+  line-height: 1.55;
+  max-width: 62ch;
+}
+
+/* Cards */
+.pro-card,
+.stat-card,
+.hv-stat,
+.compose,
+.broadcast-compose,
+.settings-card {
+  border-radius: 16px;
+  border-color: rgba(255, 255, 255, 0.07);
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.03) inset,
+    0 4px 24px rgba(0, 0, 0, 0.28);
+  transition:
+    border-color 0.22s ease,
+    box-shadow 0.22s ease,
+    transform 0.22s ease;
+}
+
+.pro-card:hover,
+.stat-card:hover,
+.hv-stat:hover {
+  border-color: rgba(79, 159, 255, 0.18);
+  box-shadow:
+    0 0 0 1px rgba(79, 159, 255, 0.06) inset,
+    0 12px 36px rgba(0, 0, 0, 0.35);
+}
+
+/* Home dashboard hero */
+#view-home .hv-hero {
+  border-radius: 22px;
+}
+
+#view-home .hv-stat-value {
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ═══════════════════════════════════════
+   Forms & inputs
+═══════════════════════════════════════ */
+input[type='text'],
+input[type='email'],
+input[type='password'],
+input[type='number'],
+input[type='search'],
+input[type='tel'],
+input[type='url'],
+select,
+textarea {
+  border-radius: 11px;
+  border-color: rgba(255, 255, 255, 0.1);
+  background: rgba(0, 0, 0, 0.2);
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    background 0.2s ease;
+}
+
+input:hover:not(:disabled),
+select:hover:not(:disabled),
+textarea:hover:not(:disabled) {
+  border-color: rgba(255, 255, 255, 0.14);
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  border-color: rgba(79, 159, 255, 0.5);
+  background: rgba(8, 102, 255, 0.06);
+  box-shadow: var(--prod-focus-ring);
+}
+
+/* Primary actions */
+.ds-btn--primary,
+.act-btn.primary,
+.sv2-submit,
+.btn-primary,
+.compose-send,
+#sendBtn {
+  border-radius: 11px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.1) inset,
+    0 4px 18px rgba(8, 102, 255, 0.35);
+}
+
+.ds-btn--primary:hover:not(:disabled),
+.act-btn.primary:hover:not(:disabled),
+.sv2-submit:hover:not(:disabled),
+.compose-send:hover:not(:disabled),
+#sendBtn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.14) inset,
+    0 8px 28px rgba(8, 102, 255, 0.45);
+}
+
+.ds-btn--primary:active:not(:disabled),
+.act-btn.primary:active:not(:disabled),
+.compose-send:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+/* Secondary / ghost */
+.ds-btn--ghost,
+.act-btn.ghost,
+.btn-secondary {
+  border-radius: 11px;
+  font-weight: 600;
+}
+
+/* ═══════════════════════════════════════
+   Tables & data
+═══════════════════════════════════════ */
+table thead th {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text3);
+}
+
+table tbody tr {
+  transition: background 0.15s ease;
+}
+
+table tbody tr:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.badge,
+.tag,
+.pill,
+.status-pill {
+  border-radius: 100px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+/* ═══════════════════════════════════════
+   Modals & overlays
+═══════════════════════════════════════ */
+.sched-overlay,
+.modal-overlay,
+.upgrade-overlay,
+[class*='overlay'][role='dialog'] {
+  backdrop-filter: blur(10px) saturate(140%);
+  -webkit-backdrop-filter: blur(10px) saturate(140%);
+  background: rgba(2, 8, 20, 0.72) !important;
+}
+
+.sched-modal,
+.modal-panel,
+.upgrade-modal,
+#schedModal .sched-panel,
+#upgradeModal .upgrade-panel {
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.04) inset,
+    0 24px 80px rgba(0, 0, 0, 0.55),
+    0 0 60px rgba(8, 102, 255, 0.08);
+}
+
+/* ═══════════════════════════════════════
+   Toasts & alerts
+═══════════════════════════════════════ */
+.toast {
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(16px) saturate(160%);
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.04) inset,
+    0 16px 48px rgba(0, 0, 0, 0.45);
+  font-weight: 500;
+}
+
+.alert,
+.notice,
+.banner-notice {
+  border-radius: 12px;
+  line-height: 1.5;
+}
+
+/* ═══════════════════════════════════════
+   Inbox & messenger UI
+═══════════════════════════════════════ */
+.convo-item,
+.thread-item,
+.inbox-row {
+  border-radius: 12px;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.convo-item:hover,
+.thread-item:hover,
+.inbox-row:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.convo-item.active,
+.thread-item.active,
+.inbox-row.active {
+  background: rgba(8, 102, 255, 0.12);
+  border-color: rgba(8, 102, 255, 0.25);
+}
+
+.msg-bubble {
+  border-radius: 16px;
+  line-height: 1.5;
+}
+
+/* ═══════════════════════════════════════
+   Light theme parity
+═══════════════════════════════════════ */
+html[data-theme='light'] #landingPage .nav,
+body.light #landingPage .nav {
+  background: rgba(255, 255, 255, 0.88);
+  border-bottom-color: rgba(15, 23, 42, 0.08);
+  box-shadow: 0 1px 0 rgba(15, 23, 42, 0.04);
+}
+
+html[data-theme='light'] #landingPage .nav::after,
+body.light #landingPage .nav::after {
+  opacity: 0.35;
+}
+
+html[data-theme='light'] #landingPage .hero-sub,
+body.light #landingPage .hero-sub {
+  color: #475569;
+}
+
+html[data-theme='light'] .saas-topbar,
+body.light .saas-topbar {
+  background: rgba(255, 255, 255, 0.92);
+  border-bottom-color: rgba(15, 23, 42, 0.08);
+  box-shadow: 0 1px 0 rgba(15, 23, 42, 0.04);
+}
+
+html[data-theme='light'] #appPage,
+body.light #appPage {
+  background:
+    radial-gradient(ellipse 80% 50% at 50% -20%, rgba(8, 102, 255, 0.06), transparent 55%),
+    #f0f4ff;
+}
+
+html[data-theme='light'] input[type='text'],
+html[data-theme='light'] input[type='email'],
+html[data-theme='light'] input[type='password'],
+html[data-theme='light'] input[type='number'],
+html[data-theme='light'] input[type='search'],
+html[data-theme='light'] select,
+html[data-theme='light'] textarea,
+body.light input[type='text'],
+body.light input[type='email'],
+body.light input[type='password'],
+body.light input[type='number'],
+body.light input[type='search'],
+body.light select,
+body.light textarea {
+  background: #fff;
+  border-color: #e2e8f0;
+  color: #0f172a;
+}
+
+html[data-theme='light'] input:focus,
+html[data-theme='light'] select:focus,
+html[data-theme='light'] textarea:focus,
+body.light input:focus,
+body.light select:focus,
+body.light textarea:focus {
+  background: #fff;
+  border-color: #3b82f6;
+}
+
+html[data-theme='light'] .pro-card,
+html[data-theme='light'] .stat-card,
+html[data-theme='light'] .compose,
+body.light .pro-card,
+body.light .stat-card,
+body.light .compose {
+  background: #fff;
+  border-color: #e2e8f0;
+  box-shadow:
+    0 1px 2px rgba(15, 23, 42, 0.04),
+    0 8px 24px rgba(15, 23, 42, 0.06);
+}
+
+html[data-theme='light'] table tbody tr:hover,
+body.light table tbody tr:hover {
+  background: #f8fafc;
+}
+
+html[data-theme='light'] .sched-overlay,
+html[data-theme='light'] .modal-overlay,
+body.light .sched-overlay,
+body.light .modal-overlay {
+  background: rgba(15, 23, 42, 0.4) !important;
+}
+
+/* ═══════════════════════════════════════
+   Responsive & accessibility
+═══════════════════════════════════════ */
+@media (max-width: 900px) {
+  #landingPage .nav {
+    height: 60px;
+  }
+
+  #landingPage .hero {
+    padding-top: 88px;
+    padding-bottom: 72px;
+  }
+
+  #view-home.hv,
+  #view-home {
+    padding: 20px 16px 28px !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-main,
+  .main-content,
+  .pro-view,
+  #view-home {
+    animation: none !important;
+  }
+
+  #landingPage .feat:hover,
+  #landingPage .step:hover,
+  .pro-card:hover,
+  .stat-card:hover {
+    transform: none !important;
+  }
+}

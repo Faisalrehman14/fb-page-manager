@@ -1,0 +1,278 @@
+/**
+ * FBCast Pro — Design System
+ * Tokens, typography, and primitive components (senior UI foundation)
+ */
+
+:root {
+  /* Brand */
+  --ds-brand: #0866FF;
+  --ds-brand-hover: #1877F2;
+  --ds-brand-muted: rgba(8, 102, 255, 0.14);
+  --ds-accent: #7c3aed;
+  --ds-accent-muted: rgba(124, 58, 237, 0.14);
+
+  /* Semantic */
+  --ds-success: #10B981;
+  --ds-warning: #F59E0B;
+  --ds-danger: #EF4444;
+  --ds-info: #3B82F6;
+
+  /* Surfaces (alias existing vars) */
+  --ds-bg: var(--bg, #030C1A);
+  --ds-surface: var(--surface, #0D1B38);
+  --ds-surface-raised: var(--surface2, #112042);
+  --ds-border: var(--border, rgba(255, 255, 255, 0.065));
+  --ds-text: var(--text, #EDF3FF);
+  --ds-text-muted: var(--text2, #7B8FB5);
+  --ds-text-subtle: var(--text3, #485878);
+
+  /* Spacing scale (4px base) */
+  --ds-space-1: 4px;
+  --ds-space-2: 8px;
+  --ds-space-3: 12px;
+  --ds-space-4: 16px;
+  --ds-space-5: 20px;
+  --ds-space-6: 24px;
+  --ds-space-8: 32px;
+  --ds-space-10: 40px;
+
+  /* Radius */
+  --ds-radius-sm: 6px;
+  --ds-radius: 10px;
+  --ds-radius-lg: 14px;
+  --ds-radius-xl: 20px;
+  --ds-radius-full: 9999px;
+
+  /* Typography */
+  --ds-font: 'Plus Jakarta Sans', system-ui, sans-serif;
+  --ds-font-mono: 'JetBrains Mono', ui-monospace, monospace;
+  --ds-text-xs: 11px;
+  --ds-text-sm: 12px;
+  --ds-text-base: 14px;
+  --ds-text-lg: 16px;
+  --ds-text-xl: 20px;
+  --ds-text-2xl: 28px;
+  --ds-weight-medium: 500;
+  --ds-weight-semibold: 600;
+  --ds-weight-bold: 700;
+  --ds-weight-extrabold: 800;
+
+  /* Elevation */
+  --ds-shadow-sm: 0 1px 4px rgba(0, 0, 0, 0.45);
+  --ds-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+  --ds-shadow-lg: 0 12px 48px rgba(0, 0, 0, 0.55);
+  --ds-glow-brand: 0 4px 28px rgba(8, 102, 255, 0.35);
+
+  /* Motion */
+  --ds-ease: cubic-bezier(0.4, 0, 0.2, 1);
+  --ds-duration: 0.2s;
+  --ds-duration-slow: 0.35s;
+
+  /* Layout */
+  --ds-nav-width: 72px;
+  --ds-nav-width-expanded: 200px;
+  --ds-sidebar-width: 220px;
+  --ds-topbar-height: 56px;
+}
+
+/* ─── Primitives: Buttons ─── */
+.ds-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--ds-space-2);
+  font-family: var(--ds-font);
+  font-size: var(--ds-text-sm);
+  font-weight: var(--ds-weight-bold);
+  line-height: 1;
+  padding: 10px 18px;
+  border-radius: var(--ds-radius);
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: background var(--ds-duration) var(--ds-ease),
+    border-color var(--ds-duration) var(--ds-ease),
+    transform var(--ds-duration) var(--ds-ease),
+    box-shadow var(--ds-duration) var(--ds-ease);
+  white-space: nowrap;
+  text-decoration: none;
+  -webkit-appearance: none;
+  appearance: none;
+}
+.ds-btn:disabled { opacity: 0.55; cursor: not-allowed; transform: none !important; }
+.ds-btn--primary {
+  background: linear-gradient(135deg, var(--ds-brand), #0048CC);
+  color: #fff;
+  box-shadow: var(--ds-glow-brand);
+}
+.ds-btn--primary:hover:not(:disabled) { transform: translateY(-1px); filter: brightness(1.06); }
+.ds-btn--secondary {
+  background: var(--ds-surface-raised);
+  color: var(--ds-text);
+  border-color: var(--ds-border);
+}
+.ds-btn--secondary:hover:not(:disabled) { border-color: var(--border2, rgba(255,255,255,.11)); }
+.ds-btn--accent {
+  background: linear-gradient(135deg, var(--ds-accent), #5b21b6);
+  color: #fff;
+  box-shadow: 0 4px 16px rgba(124, 58, 237, 0.4);
+}
+.ds-btn--ghost {
+  background: transparent;
+  color: var(--ds-text-muted);
+  border-color: transparent;
+}
+.ds-btn--ghost:hover:not(:disabled) { background: rgba(255,255,255,.05); color: var(--ds-text); }
+.ds-btn--sm { padding: 6px 12px; font-size: var(--ds-text-xs); border-radius: var(--ds-radius-sm); }
+.ds-btn--lg { padding: 14px 24px; font-size: var(--ds-text-base); }
+
+/* ─── Primitives: Cards ─── */
+.ds-card {
+  background: var(--ds-surface);
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-lg);
+  padding: var(--ds-space-5);
+  box-shadow: var(--ds-shadow-sm);
+  transition: border-color var(--ds-duration), box-shadow var(--ds-duration);
+}
+.ds-card:hover { border-color: var(--border2, rgba(255,255,255,.11)); }
+.ds-card__title {
+  font-size: var(--ds-text-lg);
+  font-weight: var(--ds-weight-extrabold);
+  color: var(--ds-text);
+  margin-bottom: var(--ds-space-1);
+}
+.ds-card__subtitle {
+  font-size: var(--ds-text-sm);
+  color: var(--ds-text-muted);
+  margin-bottom: var(--ds-space-4);
+}
+.ds-card--interactive { cursor: pointer; }
+.ds-card--interactive:hover { box-shadow: var(--ds-shadow); transform: translateY(-1px); }
+
+/* ─── Primitives: Form fields ─── */
+.ds-field { display: flex; flex-direction: column; gap: var(--ds-space-2); }
+.ds-label {
+  font-size: var(--ds-text-xs);
+  font-weight: var(--ds-weight-bold);
+  color: var(--ds-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.ds-input,
+.ds-textarea,
+.ds-select {
+  width: 100%;
+  background: var(--bg2, #060F22);
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius);
+  padding: 10px 14px;
+  color: var(--ds-text);
+  font-family: var(--ds-font);
+  font-size: var(--ds-text-sm);
+  outline: none;
+  transition: border-color var(--ds-duration), box-shadow var(--ds-duration);
+  box-sizing: border-box;
+}
+.ds-input:focus,
+.ds-textarea:focus,
+.ds-select:focus {
+  border-color: rgba(8, 102, 255, 0.5);
+  box-shadow: 0 0 0 3px var(--ds-brand-muted);
+}
+.ds-textarea { resize: vertical; min-height: 100px; line-height: 1.6; }
+
+/* ─── Primitives: Badges ─── */
+.ds-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: var(--ds-text-xs);
+  font-weight: var(--ds-weight-bold);
+  padding: 3px 10px;
+  border-radius: var(--ds-radius-full);
+  border: 1px solid transparent;
+}
+.ds-badge--brand { background: var(--ds-brand-muted); color: var(--primary-light, #4F9FFF); border-color: rgba(8,102,255,.25); }
+.ds-badge--success { background: rgba(16,185,129,.12); color: var(--ds-success); border-color: rgba(16,185,129,.25); }
+.ds-badge--warning { background: rgba(245,158,11,.12); color: var(--ds-warning); border-color: rgba(245,158,11,.25); }
+.ds-badge--danger { background: rgba(239,68,68,.12); color: var(--ds-danger); border-color: rgba(239,68,68,.25); }
+.ds-badge--accent { background: var(--ds-accent-muted); color: #a78bfa; border-color: rgba(124,58,237,.3); }
+
+/* ─── Primitives: KPI stat ─── */
+.ds-stat {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ds-space-1);
+  padding: var(--ds-space-4);
+  background: var(--ds-surface);
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-lg);
+}
+.ds-stat__value {
+  font-size: var(--ds-text-2xl);
+  font-weight: var(--ds-weight-extrabold);
+  color: var(--ds-text);
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+}
+.ds-stat__label {
+  font-size: var(--ds-text-xs);
+  font-weight: var(--ds-weight-semibold);
+  color: var(--ds-text-subtle);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* ─── Primitives: Empty state ─── */
+.ds-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: var(--ds-space-10) var(--ds-space-6);
+  color: var(--ds-text-subtle);
+  gap: var(--ds-space-3);
+}
+.ds-empty__icon {
+  width: 56px;
+  height: 56px;
+  border-radius: var(--ds-radius-lg);
+  background: var(--ds-surface);
+  border: 1px solid var(--ds-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  opacity: 0.7;
+}
+.ds-empty__title { font-size: var(--ds-text-lg); font-weight: var(--ds-weight-bold); color: var(--ds-text-muted); }
+.ds-empty__text { font-size: var(--ds-text-sm); max-width: 280px; line-height: 1.5; }
+
+/* ─── Light theme (synced with fbc-theme.css) ─── */
+html[data-theme="light"] {
+  --bg: #eff4ff;
+  --bg2: #e5edff;
+  --bg3: #d8e6ff;
+  --surface: #ffffff;
+  --surface2: #f3f7ff;
+  --surface3: #eaf1ff;
+  --text: #061640;
+  --text2: #3a5080;
+  --text3: #475569;
+  --border: rgba(8, 102, 255, 0.1);
+  --border2: rgba(8, 102, 255, 0.15);
+  --ds-bg: var(--bg);
+  --ds-surface: var(--surface);
+  --ds-surface-raised: var(--surface2);
+  --ds-text: var(--text);
+  --ds-text-muted: var(--text2);
+  --ds-text-subtle: var(--text3);
+  --ds-border: var(--border);
+
+  /* Accessible Semantic Colors */
+  --ds-success: #166534;
+  --ds-warning: #9a3412;
+  --ds-danger: #b91c1c;
+  --ds-info: #1d4ed8;
+}

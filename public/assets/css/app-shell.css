@@ -1,0 +1,271 @@
+/**
+ * FBCast Pro — App Shell Layout
+ * Dashboard chrome: nav rail, topbar, view transitions, breadcrumbs
+ */
+
+/* ─── App page container ─── */
+#appPage {
+  --shell-nav: var(--ds-nav-width, 72px);
+  --shell-topbar: var(--ds-topbar-height, 56px);
+}
+
+/* OAuth return — show dashboard immediately (inline script sets auth-booting) */
+html.auth-booting #landingPage {
+  display: none !important;
+}
+html.auth-booting #appPage {
+  display: flex !important;
+}
+body.app-dashboard-active #landingPage {
+  display: none !important;
+}
+body.app-dashboard-active #appPage {
+  display: flex !important;
+}
+
+/* ─── Topbar polish ─── */
+.app-topbar {
+  height: var(--ds-topbar-height, 56px);
+  min-height: var(--ds-topbar-height, 56px);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 var(--ds-space-6, 24px);
+  border-bottom: 1px solid var(--ds-border);
+  background: rgba(3, 12, 26, 0.92);
+  backdrop-filter: blur(24px) saturate(180%);
+  flex-shrink: 0;
+  z-index: 50;
+}
+.app-topbar__left {
+  display: flex;
+  align-items: center;
+  gap: var(--ds-space-4, 16px);
+  min-width: 0;
+}
+.app-topbar__breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: var(--ds-space-2, 8px);
+  font-size: var(--ds-text-sm, 12px);
+  color: var(--ds-text-subtle);
+  min-width: 0;
+}
+.app-topbar__breadcrumb strong {
+  color: var(--ds-text);
+  font-weight: var(--ds-weight-bold, 700);
+  font-size: var(--ds-text-base, 14px);
+}
+.app-topbar__sep { opacity: 0.4; }
+.app-topbar__right {
+  display: flex;
+  align-items: center;
+  gap: var(--ds-space-3, 12px);
+  flex-shrink: 0;
+}
+
+/* ─── Nav rail (icon sidebar) ─── */
+.nav-sidebar {
+  width: var(--ds-nav-width, 72px) !important;
+  min-width: var(--ds-nav-width, 72px) !important;
+  background: linear-gradient(180deg, var(--bg2, #060F22) 0%, var(--bg, #030C1A) 100%) !important;
+  border-right: 1px solid var(--ds-border) !important;
+  transition: width var(--ds-duration-slow, 0.35s) var(--ds-ease, ease) !important;
+}
+.nav-sidebar:hover {
+  width: var(--ds-nav-width-expanded, 200px) !important;
+}
+.nav-side-item {
+  position: relative;
+  border-radius: var(--ds-radius, 10px) !important;
+  margin: 2px 6px;
+  transition: background var(--ds-duration), color var(--ds-duration), transform var(--ds-duration) !important;
+}
+.nav-side-item.active {
+  background: var(--ds-brand-muted, rgba(8,102,255,.14)) !important;
+  color: var(--primary-light, #4F9FFF) !important;
+}
+.nav-side-item.active::before {
+  content: '';
+  position: absolute;
+  left: -6px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 20px;
+  background: var(--ds-brand, #0866FF);
+  border-radius: 0 3px 3px 0;
+}
+.nav-side-item:hover:not(.active) {
+  background: rgba(255, 255, 255, 0.05) !important;
+  color: var(--ds-text) !important;
+}
+.nav-sidebar-divider {
+  height: 1px;
+  background: var(--ds-border);
+  margin: var(--ds-space-2, 8px) 12px;
+  opacity: 0.6;
+}
+
+/* ─── Main content views ─── */
+.app-view {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  display: none;
+  flex-direction: column;
+  animation: shellViewIn 0.22s var(--ds-ease, ease);
+}
+.app-view.is-active { display: flex; }
+@keyframes shellViewIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Sub-views inside broadcast container */
+.broadcast-subview {
+  display: none;
+  flex: 1;
+  min-height: 0;
+  flex-direction: column;
+  overflow: hidden;
+}
+.broadcast-subview.is-active { display: flex; }
+
+/* ─── Page header block (reusable in views) ─── */
+.ds-page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--ds-space-4, 16px);
+  padding: var(--ds-space-5, 20px) var(--ds-space-6, 24px);
+  border-bottom: 1px solid var(--ds-border);
+  flex-shrink: 0;
+  background: var(--ds-surface);
+}
+.ds-page-header__icon {
+  width: 42px;
+  height: 42px;
+  border-radius: var(--ds-radius-lg, 14px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 17px;
+  flex-shrink: 0;
+}
+.ds-page-header__icon--brand {
+  background: linear-gradient(135deg, var(--ds-brand), #0048CC);
+  color: #fff;
+  box-shadow: var(--ds-glow-brand);
+}
+.ds-page-header__icon--accent {
+  background: linear-gradient(135deg, var(--ds-accent), #5b21b6);
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(124, 58, 237, 0.4);
+}
+.ds-page-header__title {
+  font-size: var(--ds-text-lg, 16px);
+  font-weight: var(--ds-weight-extrabold, 800);
+  color: var(--ds-text);
+}
+.ds-page-header__sub {
+  font-size: var(--ds-text-sm, 12px);
+  color: var(--ds-text-muted);
+  margin-top: 2px;
+}
+
+/* ─── Scheduling — keep nav + pages sidebar visible ─── */
+body.shell-scheduling #view-scheduling {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  position: relative;
+  inset: auto;
+}
+
+body.shell-scheduling .sidebar-sched-actions {
+  display: inline-flex !important;
+  gap: 4px;
+  align-items: center;
+}
+
+body.shell-scheduling .sidebar-hdr-label-left span::after {
+  content: ' · Schedule';
+  font-weight: 600;
+  color: #a78bfa;
+  font-size: 10px;
+  letter-spacing: 0.02em;
+}
+
+.sidebar-sched-actions { display: none; }
+
+.sidebar-sched-chip {
+  padding: 3px 8px;
+  font-size: 10px;
+  font-weight: 700;
+  border-radius: 6px;
+  border: 1px solid rgba(139, 92, 246, 0.35);
+  background: rgba(139, 92, 246, 0.12);
+  color: #c4b5fd;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.sidebar-sched-chip:hover {
+  background: rgba(139, 92, 246, 0.22);
+  border-color: rgba(139, 92, 246, 0.5);
+}
+
+body.shell-scheduling .page-card.sched-selected {
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.14), rgba(99, 102, 241, 0.08));
+  border-color: rgba(139, 92, 246, 0.4);
+  box-shadow: inset 3px 0 0 #8b5cf6, 0 2px 12px rgba(139, 92, 246, 0.12);
+}
+
+body.shell-scheduling .page-card.sched-selected .page-name {
+  color: #c4b5fd;
+  font-weight: 700;
+}
+
+body.shell-scheduling .page-card.sched-selected .page-indicator {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #8b5cf6;
+  box-shadow: 0 0 8px rgba(139, 92, 246, 0.5);
+  position: relative;
+}
+
+body.shell-scheduling .page-card.sched-selected .page-indicator::after {
+  content: '✓';
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 800;
+  color: #fff;
+  line-height: 1;
+}
+
+body.shell-messenger .nav-sidebar { display: flex !important; }
+
+/* ─── Responsive ─── */
+@media (max-width: 900px) {
+  .nav-sidebar { display: none !important; }
+  .app-topbar { padding: 0 var(--ds-space-4, 16px); }
+  #appPage {
+    flex-direction: column;
+  }
+  #appPage > .app-body {
+    flex: 1;
+    min-height: 0;
+  }
+}
+
+html[data-theme='light'] .app-topbar,
+body.light .app-topbar {
+  background: rgba(255, 255, 255, 0.94);
+}

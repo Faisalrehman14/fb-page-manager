@@ -1,0 +1,1244 @@
+/**
+ * FBCast Pro — Professional Design System (final layer)
+ * Senior-grade light + dark palette. Single accent (brand blue), slate neutrals.
+ * Loads last — overrides legacy purple/neon from older theme files.
+ */
+
+/* ═══════════════════════════════════════════════════════════════
+   1. DESIGN TOKENS
+═══════════════════════════════════════════════════════════════ */
+
+:root,
+html[data-theme='dark'],
+html.theme-dark,
+body:not(.light) {
+  color-scheme: dark;
+
+  /* Brand */
+  --pro-accent: #0866ff;
+  --pro-accent-hover: #1877f2;
+  --pro-accent-muted: rgba(8, 102, 255, 0.14);
+  --pro-accent-subtle: rgba(8, 102, 255, 0.08);
+  --pro-accent-border: rgba(59, 130, 246, 0.35);
+
+  /* Neutrals — dark */
+  --pro-bg: #0b0f14;
+  --pro-bg-elevated: #111827;
+  --pro-bg-subtle: #0f1419;
+  --pro-surface: #151b26;
+  --pro-surface-raised: #1c2432;
+  --pro-surface-hover: #232d3d;
+  --pro-border: rgba(148, 163, 184, 0.14);
+  --pro-border-strong: rgba(148, 163, 184, 0.22);
+  --pro-divider: rgba(255, 255, 255, 0.06);
+
+  /* Text — dark */
+  --pro-text: #f8fafc;
+  --pro-text-secondary: #94a3b8;
+  --pro-text-muted: #64748b;
+  --pro-text-inverse: #0f172a;
+
+  /* Semantic */
+  --pro-success: #10b981;
+  --pro-warning: #f59e0b;
+  --pro-danger: #ef4444;
+  --pro-info: #3b82f6;
+
+  /* Effects */
+  --pro-radius: 10px;
+  --pro-radius-lg: 14px;
+  --pro-radius-xl: 18px;
+  --pro-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --pro-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
+  --pro-shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.45);
+  --pro-shadow-focus: 0 0 0 3px rgba(8, 102, 255, 0.35);
+  --pro-gradient-brand: linear-gradient(180deg, #1877f2 0%, #0866ff 100%);
+  --pro-gradient-surface: linear-gradient(180deg, var(--pro-surface-raised) 0%, var(--pro-surface) 100%);
+  --pro-canvas: linear-gradient(180deg, #0b0f14 0%, #111827 100%);
+}
+
+html[data-theme='light'],
+html.theme-light,
+body.light {
+  color-scheme: light;
+
+  --pro-accent: #0866ff;
+  --pro-accent-hover: #1d4ed8;
+  --pro-accent-muted: rgba(8, 102, 255, 0.1);
+  --pro-accent-subtle: rgba(8, 102, 255, 0.06);
+  --pro-accent-border: rgba(8, 102, 255, 0.28);
+
+  --pro-bg: #f8fafc;
+  --pro-bg-elevated: #ffffff;
+  --pro-bg-subtle: #f1f5f9;
+  --pro-surface: #ffffff;
+  --pro-surface-raised: #ffffff;
+  --pro-surface-hover: #f1f5f9;
+  --pro-border: #e2e8f0;
+  --pro-border-strong: #cbd5e1;
+  --pro-divider: #e2e8f0;
+
+  --pro-text: #0f172a;
+  --pro-text-secondary: #475569;
+  --pro-text-muted: #64748b;
+  --pro-text-inverse: #f8fafc;
+
+  --pro-success: #059669;
+  --pro-warning: #d97706;
+  --pro-danger: #dc2626;
+  --pro-info: #2563eb;
+
+  --pro-shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.05);
+  --pro-shadow: 0 1px 3px rgba(15, 23, 42, 0.08), 0 4px 16px rgba(15, 23, 42, 0.04);
+  --pro-shadow-lg: 0 8px 30px rgba(15, 23, 42, 0.08);
+  --pro-shadow-focus: 0 0 0 3px rgba(8, 102, 255, 0.25);
+  --pro-gradient-brand: linear-gradient(180deg, #1877f2 0%, #0866ff 100%);
+  --pro-gradient-surface: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+  --pro-canvas: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   2. LEGACY VARIABLE ALIASES (entire app reads these)
+═══════════════════════════════════════════════════════════════ */
+
+:root,
+html[data-theme='dark'],
+html.theme-dark,
+body:not(.light),
+html[data-theme='light'],
+html.theme-light,
+body.light {
+  --primary: var(--pro-accent);
+  --primary-light: #3b82f6;
+  --primary-dim: var(--pro-accent-muted);
+  --primary-glow: rgba(8, 102, 255, 0.25);
+  --bg: var(--pro-bg);
+  --bg2: var(--pro-bg-elevated);
+  --bg3: var(--pro-bg-subtle);
+  --surface: var(--pro-surface);
+  --surface2: var(--pro-surface-raised);
+  --surface3: var(--pro-surface-hover);
+  --border: var(--pro-border);
+  --border2: var(--pro-border-strong);
+  --border3: var(--pro-accent-border);
+  --text: var(--pro-text);
+  --text2: var(--pro-text-secondary);
+  --text3: var(--pro-text-muted);
+  --green: var(--pro-success);
+  --red: var(--pro-danger);
+  --amber: var(--pro-warning);
+  --blue: var(--pro-info);
+
+  --fbc-brand: var(--pro-accent);
+  --fbc-brand-hover: var(--pro-accent-hover);
+  --fbc-brand-dim: var(--pro-accent-muted);
+  --fbc-purple: #3b82f6;
+  --fbc-purple-deep: #1d4ed8;
+  --fbc-purple-dim: var(--pro-accent-muted);
+  --fbc-purple-glow: rgba(8, 102, 255, 0.2);
+  --fbc-accent: #60a5fa;
+  --fbc-accent-dim: var(--pro-accent-subtle);
+  --fbc-canvas: var(--pro-canvas);
+
+  --gradient-brand: var(--pro-gradient-brand);
+  --gradient-hero: var(--pro-gradient-brand);
+  --gradient-mesh: var(--pro-canvas);
+  --messenger: linear-gradient(135deg, #0866ff, #3b82f6);
+  --shadow-violet: var(--pro-shadow);
+  --cyan: #60a5fa;
+  --cyan-light: #93c5fd;
+  --cyan-dim: var(--pro-accent-muted);
+
+  --t-bg: var(--pro-bg);
+  --t-bg-2: var(--pro-bg-elevated);
+  --t-surface: var(--pro-surface);
+  --t-surface-2: var(--pro-surface-raised);
+  --t-surface-3: var(--pro-surface-hover);
+  --t-surface-flat: var(--pro-surface);
+  --t-text: var(--pro-text);
+  --t-text-1: var(--pro-text);
+  --t-text-2: var(--pro-text-secondary);
+  --t-text-3: var(--pro-text-muted);
+  --t-text-muted: var(--pro-text-muted);
+  --t-border: var(--pro-border);
+  --t-border-2: var(--pro-border-strong);
+  --t-border-soft: var(--pro-divider);
+  --t-divider: var(--pro-divider);
+  --t-accent: var(--pro-accent);
+  --t-accent-2: #3b82f6;
+  --t-accent-soft: var(--pro-accent-muted);
+  --t-accent-glow: rgba(8, 102, 255, 0.28);
+  --t-success: var(--pro-success);
+  --t-warning: var(--pro-warning);
+  --t-danger: var(--pro-danger);
+  --t-info: var(--pro-info);
+  --t-shadow: var(--pro-shadow);
+  --t-shadow-hover: var(--pro-shadow-lg);
+  --t-input-bg: rgba(0, 0, 0, 0.25);
+  --t-input-border: var(--pro-border-strong);
+  --t-input-focus: rgba(8, 102, 255, 0.45);
+  --t-canvas-grad: var(--pro-canvas);
+
+  --ds-brand: var(--pro-accent);
+  --ds-brand-hover: var(--pro-accent-hover);
+  --ds-brand-muted: var(--pro-accent-muted);
+  --ds-accent: var(--pro-accent);
+  --ds-accent-muted: var(--pro-accent-muted);
+  --ds-bg: var(--pro-bg);
+  --ds-surface: var(--pro-surface);
+  --ds-surface-raised: var(--pro-surface-raised);
+  --ds-border: var(--pro-border);
+  --ds-text: var(--pro-text);
+  --ds-text-muted: var(--pro-text-secondary);
+  --ds-text-subtle: var(--pro-text-muted);
+  --ds-glow-brand: 0 4px 20px rgba(8, 102, 255, 0.28);
+}
+
+html[data-theme='light'],
+html.theme-light,
+body.light {
+  --t-input-bg: #ffffff;
+  --t-input-border: var(--pro-border);
+  --t-input-focus: rgba(8, 102, 255, 0.4);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   3. CANVAS & TYPOGRAPHY
+═══════════════════════════════════════════════════════════════ */
+
+html,
+body {
+  background: var(--pro-canvas) !important;
+  background-attachment: fixed !important;
+  color: var(--pro-text);
+}
+
+#landingPage,
+#appPage {
+  background: var(--pro-canvas) !important;
+  background-attachment: fixed !important;
+  color: var(--pro-text);
+}
+
+#landingPage,
+#appPage,
+#landingPage *,
+#appPage * {
+  --text: var(--pro-text);
+  --text2: var(--pro-text-secondary);
+  --text3: var(--pro-text-muted);
+}
+
+::selection {
+  background: rgba(8, 102, 255, 0.35);
+  color: #fff;
+}
+
+html[data-theme='light'] ::selection,
+body.light ::selection {
+  background: rgba(8, 102, 255, 0.18);
+  color: var(--pro-text);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   4. NAVIGATION & CHROME
+═══════════════════════════════════════════════════════════════ */
+
+/* Landing nav */
+#landingPage .nav {
+  background: rgba(11, 15, 20, 0.88) !important;
+  border-bottom: 1px solid var(--pro-divider) !important;
+  backdrop-filter: blur(20px) saturate(150%);
+}
+
+#landingPage .nav.scrolled {
+  background: rgba(11, 15, 20, 0.96) !important;
+  box-shadow: var(--pro-shadow-sm) !important;
+}
+
+html[data-theme='light'] #landingPage .nav,
+html[data-theme='light'] #landingPage .nav.scrolled,
+body.light #landingPage .nav,
+body.light #landingPage .nav.scrolled {
+  background: rgba(255, 255, 255, 0.92) !important;
+  border-bottom-color: var(--pro-border) !important;
+  box-shadow: 0 1px 0 rgba(15, 23, 42, 0.04) !important;
+}
+
+#landingPage .nav-links a {
+  color: var(--pro-text-secondary);
+  font-weight: 600;
+}
+
+#landingPage .nav-links a:hover {
+  color: var(--pro-text);
+  background: var(--pro-accent-subtle);
+}
+
+#landingPage .nav-brand-name em {
+  background: linear-gradient(135deg, #3b82f6, var(--pro-accent)) !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+}
+
+html[data-theme='light'] #landingPage .nav-brand-name,
+body.light #landingPage .nav-brand-name {
+  color: var(--pro-text) !important;
+}
+
+/* App topbar */
+.saas-topbar,
+.app-topbar {
+  background: rgba(11, 15, 20, 0.94) !important;
+  border-bottom: 1px solid var(--pro-divider) !important;
+  box-shadow: none !important;
+}
+
+.saas-topbar::after {
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(8, 102, 255, 0.2) 45%,
+    rgba(59, 130, 246, 0.15) 55%,
+    transparent
+  ) !important;
+}
+
+html[data-theme='light'] .saas-topbar,
+html[data-theme='light'] .app-topbar,
+body.light .saas-topbar,
+body.light .app-topbar {
+  background: rgba(255, 255, 255, 0.96) !important;
+  border-bottom-color: var(--pro-border) !important;
+}
+
+.saas-topbar .topbar-title h1,
+.topbar-title h1 {
+  color: var(--pro-text) !important;
+  background: none !important;
+  -webkit-text-fill-color: var(--pro-text) !important;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+
+.saas-topbar .topbar-title p,
+.topbar-title p {
+  color: var(--pro-text-muted) !important;
+}
+
+.saas-topbar__breadcrumb,
+.topbar-title p {
+  color: var(--pro-text-secondary) !important;
+}
+
+/* Sidebar */
+.nav-sidebar {
+  background: var(--pro-gradient-surface) !important;
+  border-right: 1px solid var(--pro-divider) !important;
+  box-shadow: none !important;
+}
+
+html[data-theme='light'] .nav-sidebar,
+body.light .nav-sidebar {
+  background: var(--pro-bg-elevated) !important;
+  border-right-color: var(--pro-border) !important;
+}
+
+.nav-side-item {
+  color: var(--pro-text-secondary) !important;
+  font-weight: 600;
+}
+
+.nav-side-item:hover:not(.active) {
+  background: var(--pro-accent-subtle) !important;
+  color: var(--pro-text) !important;
+}
+
+.nav-side-item.active {
+  background: var(--pro-accent-muted) !important;
+  color: #60a5fa !important;
+  box-shadow: none !important;
+}
+
+.nav-side-item.active::before {
+  background: var(--pro-accent) !important;
+}
+
+html[data-theme='light'] .nav-side-item.active,
+body.light .nav-side-item.active {
+  color: var(--pro-accent) !important;
+  background: var(--pro-accent-muted) !important;
+}
+
+/* Pages panel / secondary sidebar */
+.sidebar,
+.pages-panel,
+.col-sidebar {
+  background: var(--pro-surface) !important;
+  border-color: var(--pro-divider) !important;
+}
+
+html[data-theme='light'] .sidebar,
+html[data-theme='light'] .pages-panel,
+body.light .sidebar,
+body.light .pages-panel {
+  background: var(--pro-bg-elevated) !important;
+  border-color: var(--pro-border) !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   5. BUTTONS & CTAs
+═══════════════════════════════════════════════════════════════ */
+
+.nav-cta,
+.mobile-menu-cta,
+.btn-upgrade,
+.btn-hero,
+.ds-btn--primary,
+.hv-hero-cta,
+.quota-upgrade-btn,
+.compose-send,
+#sendBtn,
+.act-btn.primary,
+.sv2-submit,
+.settings-btn:not(.settings-btn--danger) {
+  background: var(--pro-gradient-brand) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  color: #fff !important;
+  box-shadow: var(--pro-shadow-sm), 0 4px 14px rgba(8, 102, 255, 0.28) !important;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.nav-cta:hover:not(:disabled),
+.mobile-menu-cta:hover,
+.btn-upgrade:hover,
+.btn-hero:hover:not(:disabled),
+.ds-btn--primary:hover:not(:disabled),
+.hv-hero-cta:hover,
+.compose-send:hover:not(:disabled),
+#sendBtn:hover:not(:disabled),
+.sv2-submit:hover:not(:disabled) {
+  background: linear-gradient(180deg, #3b82f6 0%, var(--pro-accent-hover) 100%) !important;
+  box-shadow: var(--pro-shadow-sm), 0 6px 20px rgba(8, 102, 255, 0.35) !important;
+  transform: translateY(-1px);
+}
+
+.btn-hero-secondary,
+.ds-btn--ghost,
+.act-btn.ghost {
+  background: var(--pro-surface-raised) !important;
+  border: 1px solid var(--pro-border) !important;
+  color: var(--pro-text) !important;
+  box-shadow: none !important;
+}
+
+html[data-theme='light'] .btn-hero-secondary,
+html[data-theme='light'] .ds-btn--ghost,
+body.light .btn-hero-secondary,
+body.light .ds-btn--ghost {
+  background: var(--pro-bg-elevated) !important;
+  border-color: var(--pro-border) !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   6. CARDS, PANELS, SETTINGS
+═══════════════════════════════════════════════════════════════ */
+
+.pro-card,
+.stat-card,
+.sv2-card,
+.compose,
+.broadcast-compose,
+.settings-card,
+.settings-section,
+.hv-stat,
+.price-card,
+.feat,
+.step,
+.table-wrap,
+.modal-panel,
+.sched-modal,
+#upgradeModal .upgrade-panel {
+  background: var(--pro-surface) !important;
+  border: 1px solid var(--pro-border) !important;
+  border-radius: var(--pro-radius-lg) !important;
+  box-shadow: var(--pro-shadow-sm) !important;
+  color: var(--pro-text);
+}
+
+html[data-theme='light'] .pro-card,
+html[data-theme='light'] .stat-card,
+html[data-theme='light'] .settings-section,
+html[data-theme='light'] .compose,
+html[data-theme='light'] .hv-stat,
+body.light .pro-card,
+body.light .stat-card,
+body.light .settings-section,
+body.light .compose,
+body.light .hv-stat {
+  background: var(--pro-bg-elevated) !important;
+  border-color: var(--pro-border) !important;
+  box-shadow: var(--pro-shadow) !important;
+}
+
+.pro-view__head h2,
+.settings-section h3,
+.section-h2 {
+  color: var(--pro-text) !important;
+  letter-spacing: -0.03em;
+}
+
+.pro-view__subtitle,
+.settings-section p,
+.section-sub {
+  color: var(--pro-text-secondary) !important;
+}
+
+/* Settings appearance segmented control */
+.settings-segmented .seg-opt {
+  color: var(--pro-text-secondary) !important;
+  border: 1px solid transparent !important;
+  background: transparent !important;
+  font-weight: 600;
+}
+
+.settings-segmented .seg-opt:hover:not(.active) {
+  background: var(--pro-accent-subtle) !important;
+  color: var(--pro-text) !important;
+}
+
+.settings-segmented .seg-opt.active {
+  background: var(--pro-accent) !important;
+  color: #fff !important;
+  border-color: var(--pro-accent) !important;
+  box-shadow: var(--pro-shadow-sm) !important;
+}
+
+html[data-theme='light'] .settings-segmented .seg-opt.active,
+body.light .settings-segmented .seg-opt.active {
+  background: var(--pro-accent) !important;
+  color: #fff !important;
+}
+
+.settings-toggle {
+  border-color: var(--pro-divider) !important;
+  color: var(--pro-text-secondary) !important;
+}
+
+.settings-toggle:hover {
+  background: var(--pro-accent-subtle) !important;
+  color: var(--pro-text) !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   7. FORMS & INPUTS
+═══════════════════════════════════════════════════════════════ */
+
+input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='color']),
+select,
+textarea {
+  background: var(--t-input-bg) !important;
+  border: 1px solid var(--pro-border-strong) !important;
+  color: var(--pro-text) !important;
+  border-radius: var(--pro-radius) !important;
+}
+
+html[data-theme='light'] input:not([type='checkbox']):not([type='radio']),
+html[data-theme='light'] select,
+html[data-theme='light'] textarea,
+body.light input:not([type='checkbox']):not([type='radio']),
+body.light select,
+body.light textarea {
+  background: #fff !important;
+  border-color: var(--pro-border) !important;
+  color: var(--pro-text) !important;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  border-color: var(--pro-accent) !important;
+  box-shadow: var(--pro-shadow-focus) !important;
+  outline: none !important;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--pro-text-muted) !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   8. HOME DASHBOARD
+═══════════════════════════════════════════════════════════════ */
+
+#view-home .hv-hero {
+  border-color: var(--pro-border) !important;
+  box-shadow: var(--pro-shadow) !important;
+}
+
+body:not(.light) #view-home .hv-hero,
+html[data-theme='dark'] #view-home .hv-hero {
+  background:
+    linear-gradient(135deg, rgba(8, 102, 255, 0.1) 0%, rgba(30, 58, 95, 0.15) 50%, transparent 100%),
+    linear-gradient(180deg, var(--pro-surface-raised) 0%, var(--pro-surface) 100%) !important;
+}
+
+#view-home .hv-hero-orb1 {
+  background: rgba(8, 102, 255, 0.2) !important;
+}
+
+#view-home .hv-hero-orb2 {
+  background: rgba(59, 130, 246, 0.12) !important;
+}
+
+html[data-theme='light'] #view-home .hv-hero,
+body.light #view-home .hv-hero {
+  background: linear-gradient(135deg, #eff6ff 0%, #ffffff 70%, #f8fafc 100%) !important;
+  border-color: var(--pro-border) !important;
+}
+
+#view-home .hv-stat {
+  background: var(--pro-surface) !important;
+  border-color: var(--pro-border) !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   9. QUOTA & BADGES
+═══════════════════════════════════════════════════════════════ */
+
+.quota-widget,
+.saas-topbar__quota {
+  background: var(--pro-surface) !important;
+  border: 1px solid var(--pro-border) !important;
+  box-shadow: none !important;
+}
+
+html[data-theme='light'] .quota-widget,
+body.light .quota-widget {
+  background: var(--pro-bg-elevated) !important;
+}
+
+.saas-plan-badge,
+.plan-badge,
+.quota-plan-badge {
+  background: var(--pro-accent-muted) !important;
+  color: #60a5fa !important;
+  border: 1px solid var(--pro-accent-border) !important;
+}
+
+html[data-theme='light'] .saas-plan-badge,
+body.light .saas-plan-badge {
+  color: var(--pro-accent) !important;
+}
+
+.badge-gold,
+.price-card--gold {
+  border-color: rgba(217, 119, 6, 0.35) !important;
+}
+
+/* Connected status */
+.status-connected,
+.topbar-status--connected {
+  color: var(--pro-success) !important;
+  border-color: rgba(16, 185, 129, 0.3) !important;
+  background: rgba(16, 185, 129, 0.1) !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   10. TABLES & ANALYTICS — remove purple charts
+═══════════════════════════════════════════════════════════════ */
+
+table thead th {
+  color: var(--pro-text-muted) !important;
+  border-bottom-color: var(--pro-divider) !important;
+}
+
+table tbody td {
+  color: var(--pro-text-secondary) !important;
+  border-color: var(--pro-divider) !important;
+}
+
+table tbody tr:hover {
+  background: var(--pro-accent-subtle) !important;
+}
+
+html[data-theme='light'] table tbody tr:hover,
+body.light table tbody tr:hover {
+  background: #f1f5f9 !important;
+}
+
+/* Analytics heat / breakdown — blue scale only */
+#appPage .heat-5,
+#appPage .breakdown-fill,
+#appPage [class*='breakdown'] .breakdown-fill {
+  background: linear-gradient(90deg, #0866ff, #3b82f6) !important;
+}
+
+#appPage .dot-scheduled {
+  background: #3b82f6 !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   11. MODALS & OVERLAYS
+═══════════════════════════════════════════════════════════════ */
+
+.sched-overlay,
+.modal-overlay,
+.upgrade-overlay {
+  background: rgba(11, 15, 20, 0.75) !important;
+  backdrop-filter: blur(8px);
+}
+
+html[data-theme='light'] .sched-overlay,
+html[data-theme='light'] .modal-overlay,
+body.light .sched-overlay,
+body.light .modal-overlay {
+  background: rgba(15, 23, 42, 0.45) !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   12. PURPLE GRADIENT KILL-SWITCH (legacy saas-polish leaks)
+═══════════════════════════════════════════════════════════════ */
+
+#appPage [style*='6366f1'],
+#appPage [style*='a855f7'],
+#appPage [style*='7c3aed'],
+#landingPage [style*='6366f1'] {
+  /* inline styles rare — component rules below take precedence */
+}
+
+#appPage .saas-topbar__upgrade,
+#appPage .topbar-upgrade-btn {
+  background: var(--pro-gradient-brand) !important;
+}
+
+/* Common purple gradient classes in polish layer */
+#appPage :is(
+    .analytics-hero,
+    .an-hero,
+    .sv2-hero,
+    .pro-banner
+  ) {
+  background:
+    linear-gradient(135deg, rgba(8, 102, 255, 0.12) 0%, rgba(30, 58, 95, 0.08) 100%),
+    var(--pro-surface) !important;
+  border-color: var(--pro-border) !important;
+}
+
+html[data-theme='light'] #appPage :is(.analytics-hero, .an-hero, .sv2-hero),
+body.light #appPage :is(.analytics-hero, .an-hero, .sv2-hero) {
+  background: linear-gradient(135deg, #eff6ff 0%, #ffffff 100%) !important;
+}
+
+/* Messenger / inbox */
+.convo-item.active,
+.thread-item.active,
+.inbox-row.active {
+  background: var(--pro-accent-muted) !important;
+  border-color: var(--pro-accent-border) !important;
+}
+
+.msg-bubble.outgoing,
+.msg-out {
+  background: var(--pro-accent) !important;
+  color: #fff !important;
+}
+
+.msg-bubble.incoming,
+.msg-in {
+  background: var(--pro-surface-raised) !important;
+  border: 1px solid var(--pro-border) !important;
+  color: var(--pro-text) !important;
+}
+
+/* Landing hero — professional, minimal glow */
+#landingPage .hero {
+  background:
+    radial-gradient(ellipse 70% 45% at 50% -5%, rgba(8, 102, 255, 0.1), transparent 55%),
+    var(--pro-bg) !important;
+}
+
+html[data-theme='light'] #landingPage .hero,
+body.light #landingPage .hero {
+  background:
+    radial-gradient(ellipse 70% 45% at 50% -5%, rgba(8, 102, 255, 0.06), transparent 55%),
+    var(--pro-bg) !important;
+}
+
+#landingPage .hero-h1,
+#landingPage .hero-h1 .grad {
+  color: var(--pro-text) !important;
+}
+
+html[data-theme='light'] #landingPage .hero-h1,
+body.light #landingPage .hero-h1 {
+  color: var(--pro-text) !important;
+}
+
+#landingPage .hero-sub {
+  color: var(--pro-text-secondary) !important;
+}
+
+#landingPage .pricing-grid--6 .price-card::before {
+  background: linear-gradient(90deg, var(--pro-accent), #3b82f6) !important;
+}
+
+#landingPage .price-card--gold::before {
+  background: linear-gradient(90deg, #d97706, #f59e0b) !important;
+}
+
+/* Footer */
+#landingPage .footer-enhanced {
+  background: var(--pro-bg-subtle) !important;
+  border-top: 1px solid var(--pro-divider) !important;
+}
+
+html[data-theme='light'] #landingPage .footer-enhanced,
+body.light #landingPage .footer-enhanced {
+  background: var(--pro-bg) !important;
+  border-top-color: var(--pro-border) !important;
+}
+
+/* Toast */
+.toast {
+  background: var(--pro-surface-raised) !important;
+  border: 1px solid var(--pro-border) !important;
+  color: var(--pro-text) !important;
+}
+
+/* Theme toggle in topbar */
+.theme-toggle-wrap__hint {
+  color: var(--pro-text-muted) !important;
+}
+
+.nav-theme-btn,
+.saas-topbar__icon-btn {
+  border-color: var(--pro-border) !important;
+  color: var(--pro-text-secondary) !important;
+  background: var(--pro-surface) !important;
+}
+
+.nav-theme-btn:hover,
+.saas-topbar__icon-btn:hover {
+  background: var(--pro-accent-subtle) !important;
+  color: var(--pro-text) !important;
+  border-color: var(--pro-accent-border) !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   13. HIGH-SPECIFICITY OVERRIDES (purple leaks in polish layers)
+═══════════════════════════════════════════════════════════════ */
+
+.nav-side-item::before {
+  background: var(--pro-accent) !important;
+}
+
+.settings-segmented {
+  background: var(--pro-surface-raised) !important;
+  border: 1px solid var(--pro-border) !important;
+}
+
+html[data-theme='light'] .settings-segmented,
+body.light .settings-segmented {
+  background: var(--pro-bg-subtle) !important;
+  border-color: var(--pro-border) !important;
+}
+
+.settings-segmented .seg-opt.active {
+  background: var(--pro-accent) !important;
+  box-shadow: var(--pro-shadow-sm) !important;
+}
+
+.settings-segmented .seg-opt:hover:not(.active) {
+  background: var(--pro-accent-subtle) !important;
+}
+
+#view-home .hv-kpi-icon.hv-kpi-indigo {
+  background: linear-gradient(135deg, #3b82f6, #0866ff) !important;
+  box-shadow: 0 4px 14px rgba(8, 102, 255, 0.3) !important;
+}
+
+#view-home .hv-upgrade-btn {
+  background: var(--pro-gradient-brand) !important;
+  box-shadow: 0 2px 12px rgba(8, 102, 255, 0.35) !important;
+}
+
+#view-home .hv-plan-fill {
+  background: linear-gradient(90deg, #0866ff, #3b82f6) !important;
+}
+
+.chatw__hdr {
+  background: var(--pro-gradient-brand) !important;
+}
+
+.chatw__msg--out .chatw__bubble {
+  background: var(--pro-accent) !important;
+  box-shadow: 0 2px 8px rgba(8, 102, 255, 0.25) !important;
+}
+
+.chatw__msg--in .chatw__bubble {
+  background: var(--pro-surface-raised) !important;
+  border-color: var(--pro-border) !important;
+  color: var(--pro-text) !important;
+}
+
+html[data-theme='light'] .chatw__msg--in .chatw__bubble,
+body.light .chatw__msg--in .chatw__bubble {
+  background: var(--pro-bg-subtle) !important;
+  color: var(--pro-text) !important;
+}
+
+/* Topbar upgrade CTA */
+.saas-topbar .btn-upgrade,
+.topbar-upgrade,
+[class*='upgrade'][class*='btn'] {
+  background: var(--pro-gradient-brand) !important;
+  border: none !important;
+}
+
+/* Progress bars & meters */
+.quota-fill,
+.progress-fill,
+.hv-plan-fill,
+.meter-fill {
+  background: linear-gradient(90deg, var(--pro-accent), #3b82f6) !important;
+}
+
+/* Active view icons (settings purple glow) */
+.nav-side-item.active i,
+.nav-side-item.active .nav-side-icon {
+  color: #60a5fa !important;
+}
+
+html[data-theme='light'] .nav-side-item.active i,
+body.light .nav-side-item.active i {
+  color: var(--pro-accent) !important;
+}
+
+/* Profile avatar ring */
+.settings-avatar,
+.profile-avatar {
+  background: var(--pro-gradient-brand) !important;
+  border-color: var(--pro-accent-border) !important;
+}
+
+/* Pricing on landing — keep gold tier, neutral others */
+#landingPage .pricing-grid--6 .price-card:nth-child(3)::before,
+#landingPage .pricing-grid--6 .price-card:nth-child(6)::before {
+  background: linear-gradient(90deg, #0866ff, #3b82f6) !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   14. BROADCAST VIEW — DARK MODE (senior pro polish)
+   Overrides fbc-theme / saas-premium purple glass on broadcast screen
+═══════════════════════════════════════════════════════════════ */
+
+body:not(.light) #appPage,
+html[data-theme='dark'] #appPage {
+  --premium-glass: var(--pro-surface);
+  --premium-glass-border: var(--pro-border);
+  --premium-shadow-card: var(--pro-shadow-sm);
+}
+
+body:not(.light) #view-broadcast,
+html[data-theme='dark'] #view-broadcast {
+  background: transparent !important;
+}
+
+/* ── Sidebar nav: no purple gradient pill ── */
+body:not(.light) #appPage .nav-side-item.active,
+html[data-theme='dark'] #appPage .nav-side-item.active {
+  background: var(--pro-accent-muted) !important;
+  color: #93c5fd !important;
+  border-color: rgba(8, 102, 255, 0.22) !important;
+  box-shadow: inset 0 0 0 1px rgba(8, 102, 255, 0.12) !important;
+}
+
+body:not(.light) #appPage .nav-side-item.active::before,
+html[data-theme='dark'] #appPage .nav-side-item.active::before {
+  background: var(--pro-accent) !important;
+  height: 55% !important;
+}
+
+body:not(.light) #appPage .nav-side-item.active i,
+html[data-theme='dark'] #appPage .nav-side-item.active i {
+  color: #60a5fa !important;
+  filter: none !important;
+}
+
+/* AI Assistant — subtle blue, not purple */
+body:not(.light) #appPage .nav-ai-btn,
+html[data-theme='dark'] #appPage .nav-ai-btn {
+  background: var(--pro-accent-subtle) !important;
+  border: 1px solid var(--pro-accent-border) !important;
+  color: var(--pro-text) !important;
+  box-shadow: none !important;
+}
+
+body:not(.light) #appPage .nav-ai-btn:hover,
+html[data-theme='dark'] #appPage .nav-ai-btn:hover {
+  background: var(--pro-accent-muted) !important;
+  border-color: rgba(8, 102, 255, 0.4) !important;
+  box-shadow: var(--pro-shadow-sm) !important;
+}
+
+body:not(.light) #appPage .nav-ai-btn i,
+html[data-theme='dark'] #appPage .nav-ai-btn i {
+  color: #60a5fa !important;
+  filter: none !important;
+}
+
+body:not(.light) #appPage .nav-ai-tag,
+html[data-theme='dark'] #appPage .nav-ai-tag {
+  background: var(--pro-accent) !important;
+  color: #fff !important;
+}
+
+/* ── All broadcast columns: flat pro surfaces (no purple glass) ── */
+body:not(.light) #appPage .nav-sidebar,
+body:not(.light) #appPage .sidebar,
+body:not(.light) #appPage .compose-col,
+body:not(.light) #appPage .compose,
+body:not(.light) #appPage .broadcast-col,
+body:not(.light) #appPage .stats-panel,
+body:not(.light) #appPage .analytics-panel,
+html[data-theme='dark'] #appPage .nav-sidebar,
+html[data-theme='dark'] #appPage .sidebar,
+html[data-theme='dark'] #appPage .compose-col,
+html[data-theme='dark'] #appPage .compose,
+html[data-theme='dark'] #appPage .broadcast-col,
+html[data-theme='dark'] #appPage .stats-panel,
+html[data-theme='dark'] #appPage .analytics-panel {
+  background: var(--pro-surface) !important;
+  border: 1px solid var(--pro-border) !important;
+  border-radius: var(--pro-radius-lg) !important;
+  box-shadow: var(--pro-shadow-sm) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+body:not(.light) #appPage .sidebar-hdr,
+html[data-theme='dark'] #appPage .sidebar-hdr {
+  background: var(--pro-surface-raised) !important;
+  border-bottom-color: var(--pro-divider) !important;
+}
+
+body:not(.light) #appPage .sidebar-tips,
+html[data-theme='dark'] #appPage .sidebar-tips {
+  background: var(--pro-bg-subtle) !important;
+  border-top-color: var(--pro-divider) !important;
+}
+
+/* Pages list */
+body:not(.light) #appPage .page-card:hover,
+html[data-theme='dark'] #appPage .page-card:hover {
+  background: var(--pro-surface-hover) !important;
+  border-color: var(--pro-border) !important;
+}
+
+body:not(.light) #appPage .page-card.active,
+body:not(.light) #appPage .page-card.selected,
+html[data-theme='dark'] #appPage .page-card.active,
+html[data-theme='dark'] #appPage .page-card.selected {
+  background: var(--pro-accent-muted) !important;
+  border-color: rgba(8, 102, 255, 0.35) !important;
+  box-shadow: inset 3px 0 0 var(--pro-accent), var(--pro-shadow-sm) !important;
+}
+
+/* Compose message area */
+body:not(.light) #appPage #messageText,
+body:not(.light) #appPage .compose-textarea,
+html[data-theme='dark'] #appPage #messageText,
+html[data-theme='dark'] #appPage .compose-textarea {
+  background: var(--pro-bg-subtle) !important;
+  border-color: var(--pro-border-strong) !important;
+  color: var(--pro-text) !important;
+}
+
+body:not(.light) #appPage #messageText:focus,
+html[data-theme='dark'] #appPage #messageText:focus {
+  background: var(--pro-surface-raised) !important;
+  border-color: var(--pro-accent) !important;
+  box-shadow: var(--pro-shadow-focus) !important;
+}
+
+body:not(.light) #appPage .compose-hdr,
+html[data-theme='dark'] #appPage .compose-hdr {
+  background: var(--pro-surface-raised) !important;
+  border-bottom-color: var(--pro-divider) !important;
+}
+
+body:not(.light) #appPage .compose-section,
+html[data-theme='dark'] #appPage .compose-section {
+  border-bottom-color: var(--pro-divider) !important;
+  border-left-color: rgba(8, 102, 255, 0.2) !important;
+}
+
+body:not(.light) #appPage .img-attach-panel,
+body:not(.light) #appPage .img-drop-zone,
+html[data-theme='dark'] #appPage .img-attach-panel,
+html[data-theme='dark'] #appPage .img-drop-zone {
+  background: var(--pro-bg-subtle) !important;
+  border-color: var(--pro-border) !important;
+}
+
+body:not(.light) #appPage .char-count-fill,
+html[data-theme='dark'] #appPage .char-count-fill {
+  background: linear-gradient(90deg, var(--pro-accent), #3b82f6) !important;
+}
+
+/* Delay presets */
+body:not(.light) #appPage .delay-preset,
+html[data-theme='dark'] #appPage .delay-preset {
+  background: var(--pro-surface-raised) !important;
+  border-color: var(--pro-border) !important;
+  color: var(--pro-text-secondary) !important;
+}
+
+body:not(.light) #appPage .delay-preset.active,
+html[data-theme='dark'] #appPage .delay-preset.active {
+  background: var(--pro-accent-muted) !important;
+  border-color: rgba(8, 102, 255, 0.4) !important;
+  color: #93c5fd !important;
+  box-shadow: inset 0 0 0 1px rgba(8, 102, 255, 0.1) !important;
+}
+
+body:not(.light) #appPage .delay-preset.active::after,
+html[data-theme='dark'] #appPage .delay-preset.active::after {
+  background: var(--pro-accent) !important;
+}
+
+/* Broadcast stats strip */
+body:not(.light) #appPage .stat-box,
+html[data-theme='dark'] #appPage .stat-box {
+  background: var(--pro-surface-raised) !important;
+}
+
+body:not(.light) #appPage .stat-box.s-total::before,
+html[data-theme='dark'] #appPage .stat-box.s-total::before {
+  background: var(--pro-accent) !important;
+  box-shadow: none !important;
+}
+
+body:not(.light) #appPage .stat-val,
+html[data-theme='dark'] #appPage .stat-val {
+  color: var(--pro-text) !important;
+  text-shadow: none !important;
+}
+
+body:not(.light) #appPage .stat-box.s-total .stat-val,
+html[data-theme='dark'] #appPage .stat-box.s-total .stat-val {
+  color: #93c5fd !important;
+}
+
+body:not(.light) #appPage .stat-box.s-sent .stat-val,
+html[data-theme='dark'] #appPage .stat-box.s-sent .stat-val {
+  color: var(--pro-success) !important;
+}
+
+body:not(.light) #appPage .progress-bar-area,
+html[data-theme='dark'] #appPage .progress-bar-area {
+  background: var(--pro-bg-subtle) !important;
+}
+
+body:not(.light) #appPage .progress-track,
+html[data-theme='dark'] #appPage .progress-track {
+  background: var(--pro-surface-hover) !important;
+}
+
+body:not(.light) #appPage .progress-fill,
+html[data-theme='dark'] #appPage .progress-fill {
+  background: linear-gradient(90deg, var(--pro-accent), #3b82f6) !important;
+  box-shadow: none !important;
+}
+
+/* Quick stats — audience card: blue not purple */
+body:not(.light) #appPage .qs-audience i,
+html[data-theme='dark'] #appPage .qs-audience i {
+  background: rgba(8, 102, 255, 0.12) !important;
+  color: #60a5fa !important;
+}
+
+body:not(.light) #appPage .qs-audience,
+html[data-theme='dark'] #appPage .qs-audience {
+  border-left-color: rgba(8, 102, 255, 0.4) !important;
+}
+
+body:not(.light) #appPage .quick-stat-card,
+body:not(.light) #appPage .intel-card,
+body:not(.light) #appPage .bcast-mini-stat,
+body:not(.light) #appPage .tpl-item,
+html[data-theme='dark'] #appPage .quick-stat-card,
+html[data-theme='dark'] #appPage .intel-card,
+html[data-theme='dark'] #appPage .bcast-mini-stat,
+html[data-theme='dark'] #appPage .tpl-item {
+  background: var(--pro-surface-raised) !important;
+  border-color: var(--pro-border) !important;
+}
+
+body:not(.light) #appPage .panel-section,
+html[data-theme='dark'] #appPage .panel-section {
+  border-bottom-color: var(--pro-divider) !important;
+}
+
+body:not(.light) #appPage .tpl-icon--greet,
+html[data-theme='dark'] #appPage .tpl-icon--greet {
+  background: rgba(59, 130, 246, 0.12) !important;
+  color: #60a5fa !important;
+}
+
+/* Action buttons — professional, not neon */
+body:not(.light) #appPage #btnStart,
+body:not(.light) #appPage #btnAutoStart,
+html[data-theme='dark'] #appPage #btnStart,
+html[data-theme='dark'] #appPage #btnAutoStart {
+  background: linear-gradient(180deg, #0d9668 0%, #059669 100%) !important;
+  box-shadow: 0 2px 12px rgba(5, 150, 105, 0.35) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+body:not(.light) #appPage #btnStart:hover:not(:disabled),
+html[data-theme='dark'] #appPage #btnStart:hover:not(:disabled) {
+  box-shadow: 0 4px 18px rgba(5, 150, 105, 0.45) !important;
+}
+
+body:not(.light) #appPage #btnPause,
+body:not(.light) #appPage #btnAutoPause,
+html[data-theme='dark'] #appPage #btnPause,
+html[data-theme='dark'] #appPage #btnAutoPause {
+  background: linear-gradient(180deg, #b45309 0%, #d97706 100%) !important;
+  box-shadow: 0 2px 10px rgba(217, 119, 6, 0.3) !important;
+}
+
+body:not(.light) #appPage #btnStop,
+body:not(.light) #appPage #btnAutoStop,
+html[data-theme='dark'] #appPage #btnStop,
+html[data-theme='dark'] #appPage #btnAutoStop {
+  background: linear-gradient(180deg, #b91c1c 0%, #dc2626 100%) !important;
+  box-shadow: 0 2px 10px rgba(220, 38, 38, 0.3) !important;
+}
+
+body:not(.light) #appPage #btnResume,
+body:not(.light) #appPage #btnAutoResume,
+body:not(.light) #appPage .btn-extra,
+html[data-theme='dark'] #appPage #btnResume,
+html[data-theme='dark'] #appPage #btnAutoResume,
+html[data-theme='dark'] #appPage .btn-extra {
+  background: var(--pro-surface-raised) !important;
+  border-color: var(--pro-border) !important;
+  color: var(--pro-text-secondary) !important;
+  box-shadow: none !important;
+}
+
+body:not(.light) #appPage .akpi-purple .akpi-icon,
+html[data-theme='dark'] #appPage .akpi-purple .akpi-icon {
+  background: rgba(8, 102, 255, 0.12) !important;
+  color: #60a5fa !important;
+}
+
+body:not(.light) #appPage .akpi-purple,
+html[data-theme='dark'] #appPage .akpi-purple {
+  border-left-color: rgba(8, 102, 255, 0.45) !important;
+}

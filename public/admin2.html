@@ -1,0 +1,2483 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>FBCast Pro — Admin</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="/socket.io/socket.io.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" crossorigin="anonymous">
+<link rel="stylesheet" href="assets/css/admin-pro.css">
+</head>
+<body class="admin-pro">
+
+<!-- ══════════════════════════════════════
+     LOGIN SCREEN
+══════════════════════════════════════ -->
+<div id="loginScreen">
+  <div class="login-card">
+    <div class="login-brand">
+      <div class="login-logo-ring">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      </div>
+      <h1>FBCast Pro</h1>
+      <p>Enterprise admin · secure access</p>
+    </div>
+    <div class="login-field">
+      <label>Admin Password</label>
+      <div class="login-input-wrap">
+        <input type="password" id="loginPass" placeholder="Enter your password" autocomplete="current-password"/>
+        <button class="login-eye" onclick="togglePass()" title="Show/hide">
+          <svg id="eyeShow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          <svg id="eyeHide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16" style="display:none"><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+        </button>
+      </div>
+    </div>
+    <button class="login-btn" id="loginBtn" onclick="doLogin()">Sign In to Admin</button>
+    <div class="login-error" id="loginErr">Incorrect password. Please try again.</div>
+    <div class="login-footer">FBCast Pro &copy; 2025 — Restricted Area</div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     ADMIN APP
+══════════════════════════════════════ -->
+<div id="adminApp">
+  <div class="shell">
+    <div class="sb-sidebar-backdrop" id="sidebarBackdrop" onclick="App.closeSidebar()"></div>
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar" id="adminSidebar">
+      <div class="sb-brand">
+        <div class="sb-brand-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        </div>
+        <div class="sb-brand-text">
+          <div class="name">FBCast Pro</div>
+          <div class="sub">Admin Panel</div>
+        </div>
+      </div>
+
+      <nav class="sb-nav">
+        <div class="sb-section">Overview</div>
+        <div class="sb-item active" id="nav-dashboard" onclick="App.switchView('dashboard')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+          Dashboard
+          <span class="sb-badge" id="liveIndicator">LIVE</span>
+        </div>
+
+        <div class="sb-section">Management</div>
+        <div class="sb-item" id="nav-users" onclick="App.switchView('users')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+          Users
+          <span class="sb-badge" id="navUserCount" style="display:none">0</span>
+        </div>
+        <div class="sb-item" id="nav-activity" onclick="App.switchView('activity')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+          Activity Log
+        </div>
+        <div class="sb-item" id="nav-announcements" onclick="App.switchView('announcements')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l18-8v18l-18-8zM11 11v9"/></svg>
+          Announcements
+        </div>
+        <div class="sb-item" id="nav-support" onclick="App.switchView('support')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+          Support
+          <span class="sb-badge" id="navSupportBadge" style="display:none;background:#ef4444;color:#fff">0</span>
+        </div>
+        <div class="sb-section">System</div>
+        <div class="sb-item" id="nav-database" onclick="App.switchView('database')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
+          Database
+          <span class="sb-badge" id="dbHealthBadge" style="display:none">OK</span>
+        </div>
+      </nav>
+
+      <div class="sb-footer">
+        <div class="sb-user-card">
+          <div class="sb-user-av">A</div>
+          <div><div class="sb-user-name">Administrator</div><div class="sb-user-role">Super Admin</div></div>
+        </div>
+        <button class="sb-logout" onclick="doLogout()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+          Sign Out
+        </button>
+      </div>
+    </aside>
+
+    <!-- MAIN -->
+    <div class="main">
+      <div class="topbar">
+        <div class="topbar-left">
+          <button type="button" class="tb-menu-btn" id="menuBtn" onclick="App.toggleSidebar()" aria-label="Menu">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+          </button>
+          <div>
+            <div class="topbar-crumb" id="topbarCrumb">Overview</div>
+            <div class="topbar-title" id="topbarTitle">Dashboard</div>
+          </div>
+        </div>
+        <div class="topbar-right">
+          <span class="topbar-sync" id="lastSync" title="Last refresh"></span>
+          <div class="tb-search" id="globalSearch" style="display:none">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+            <input type="text" id="userSearchInput" placeholder="Search users…" oninput="App.users.debouncedSearch()"/>
+          </div>
+          <button class="tb-btn" onclick="App.refresh()" title="Refresh">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg>
+          </button>
+          <span class="admin-chip">ADMIN</span>
+        </div>
+      </div>
+
+      <div class="content">
+
+        <!-- ── DASHBOARD VIEW ── -->
+        <div class="view active" id="view-dashboard">
+          <div class="admin-page-hero">
+            <div>
+              <h2>Platform overview</h2>
+              <p>Real-time metrics for users, subscriptions, and broadcast activity across FBCast Pro.</p>
+            </div>
+            <div class="admin-hero-pills">
+              <span class="admin-pill ok"><i class="fa-solid fa-circle"></i> API online</span>
+              <span class="admin-pill"><i class="fa-solid fa-database"></i> MySQL</span>
+              <span class="admin-pill"><i class="fa-solid fa-shield-halved"></i> Admin only</span>
+            </div>
+          </div>
+          <div class="stats-grid">
+            <div class="stat-card c-purple">
+              <div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg></div>
+              <div class="stat-label">Total Users</div>
+              <div class="stat-value" id="sTotal">—</div>
+              <div class="stat-sub">Registered accounts</div>
+            </div>
+            <div class="stat-card c-green">
+              <div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg></div>
+              <div class="stat-label">Paid Users</div>
+              <div class="stat-value" id="sPaid">—</div>
+              <div class="stat-sub">Active subscriptions</div>
+            </div>
+            <div class="stat-card c-amber">
+              <div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div>
+              <div class="stat-label">Free Plan</div>
+              <div class="stat-value" id="sFree">—</div>
+              <div class="stat-sub">Free tier users</div>
+            </div>
+            <div class="stat-card c-blue">
+              <div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="23" y1="11" x2="17" y2="11"/></svg></div>
+              <div class="stat-label">Today Logins</div>
+              <div class="stat-value" id="sLogins">—</div>
+              <div class="stat-sub">Active today</div>
+            </div>
+            <div class="stat-card c-indigo">
+              <div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></div>
+              <div class="stat-label">Messages Sent</div>
+              <div class="stat-value" id="sMsgs">—</div>
+              <div class="stat-sub">All-time total</div>
+            </div>
+            <div class="stat-card c-emerald">
+              <div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg></div>
+              <div class="stat-label">Revenue Today</div>
+              <div class="stat-value" id="sRevToday">—</div>
+              <div class="stat-sub" id="sRevTodaySub">Payments today</div>
+            </div>
+            <div class="stat-card c-teal">
+              <div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/></svg></div>
+              <div class="stat-label">Revenue (30d)</div>
+              <div class="stat-value" id="sRevMonth">—</div>
+              <div class="stat-sub">MRR est. <span id="sMrr">—</span></div>
+            </div>
+            <div class="stat-card c-rose">
+              <div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
+              <div class="stat-label">Expiring Soon</div>
+              <div class="stat-value" id="sExpiring">—</div>
+              <div class="stat-sub">Next 7 days</div>
+            </div>
+            <div class="stat-card c-cyan">
+              <div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></div>
+              <div class="stat-label">Active (24h)</div>
+              <div class="stat-value" id="sOnline">—</div>
+              <div class="stat-sub">Recent logins</div>
+            </div>
+          </div>
+
+          <div class="panel rev-panel">
+            <div class="panel-head">
+              <div class="panel-head-left">
+                <div>
+                  <div class="panel-title">Revenue Analytics</div>
+                  <div class="panel-sub">Daily · weekly · monthly · yearly</div>
+                </div>
+              </div>
+              <div class="rev-tabs" id="revTabs">
+                <button type="button" class="rev-tab active" data-period="day" onclick="App.dashboard.setRevenuePeriod('day')">Daily</button>
+                <button type="button" class="rev-tab" data-period="week" onclick="App.dashboard.setRevenuePeriod('week')">Weekly</button>
+                <button type="button" class="rev-tab" data-period="month" onclick="App.dashboard.setRevenuePeriod('month')">Monthly</button>
+                <button type="button" class="rev-tab" data-period="year" onclick="App.dashboard.setRevenuePeriod('year')">Yearly</button>
+              </div>
+            </div>
+            <div class="rev-summary" id="revSummary"></div>
+            <div class="chart-wrap" style="padding:0 20px 20px">
+              <div class="chart-canvas-wrap" style="height:220px">
+                <canvas id="revenueChart"></canvas>
+              </div>
+            </div>
+          </div>
+
+          <!-- Charts -->
+          <div class="charts-row">
+            <div class="panel">
+              <div class="panel-head">
+                <div class="panel-head-left">
+                  <div>
+                    <div class="panel-title">User Growth</div>
+                    <div class="panel-sub">New registrations — last 30 days</div>
+                  </div>
+                </div>
+              </div>
+              <div class="chart-wrap">
+                <div class="chart-canvas-wrap">
+                  <canvas id="growthChart"></canvas>
+                </div>
+              </div>
+            </div>
+            <div class="panel">
+              <div class="panel-head">
+                <div class="panel-title">Plan Distribution</div>
+              </div>
+              <div style="padding:16px 20px 8px">
+                <div style="position:relative;height:160px;width:160px;margin:0 auto">
+                  <canvas id="planChart"></canvas>
+                  <div id="planChartCenter" style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none">
+                    <div id="planCenterVal" style="font-size:22px;font-weight:900;line-height:1"></div>
+                    <div style="font-size:11px;color:var(--muted);font-weight:600">total</div>
+                  </div>
+                </div>
+              </div>
+              <div class="plan-legend" id="planLegend"></div>
+            </div>
+          </div>
+
+          <div class="panel" id="expiringPanel" style="margin-bottom:14px">
+            <div class="panel-head">
+              <div class="panel-title">Subscriptions Expiring (7 days)</div>
+              <button class="btn btn-ghost btn-sm" onclick="App.dashboard.loadExpiring()">Refresh</button>
+            </div>
+            <div class="tbl-wrap">
+              <table>
+                <thead><tr><th>User</th><th>Plan</th><th>Expires</th><th>Quota</th><th></th></tr></thead>
+                <tbody id="expiringBody"><tr><td colspan="5"><div class="loading-center"><span class="spinner spinner-lg"></span></div></td></tr></tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Recent Users + Top Usage -->
+          <div style="display:grid;grid-template-columns:1.5fr 1fr;gap:14px">
+            <div class="panel">
+              <div class="panel-head">
+                <div class="panel-title">Recent Users</div>
+                <button class="btn btn-ghost btn-sm" onclick="App.switchView('users')">View all →</button>
+              </div>
+              <div class="tbl-wrap">
+                <table>
+                  <thead><tr><th>User</th><th>Plan</th><th>Messages</th><th>Joined</th></tr></thead>
+                  <tbody id="dashUserBody"><tr><td colspan="4"><div class="loading-center"><span class="spinner spinner-lg"></span></div></td></tr></tbody>
+                </table>
+              </div>
+            </div>
+            <div class="panel">
+              <div class="panel-head">
+                <div class="panel-title">Top Usage</div>
+                <div class="panel-sub" style="margin-top:1px">By messages sent</div>
+              </div>
+              <div id="topUsersBody" style="padding:8px 0">
+                <div class="loading-center"><span class="spinner spinner-lg"></span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── USERS VIEW ── -->
+        <div class="view" id="view-users">
+          <div class="admin-page-hero">
+            <div>
+              <h2>User management</h2>
+              <p>Per-user LTV, renewals, pages (name + URL), billing timeline — click Analyze on any user.</p>
+            </div>
+          </div>
+          <div class="panel">
+            <div class="tbl-controls">
+              <div class="tbl-search">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+                <input type="text" id="usersSearch" placeholder="Search by name or Facebook ID…" oninput="App.users.debouncedSearch()"/>
+              </div>
+              <div class="tbl-filter">
+                <select id="planFilter" onchange="App.users.filterChange()">
+                  <option value="">All Plans</option>
+                </select>
+              </div>
+              <div class="tbl-count" id="usersCount"></div>
+              <button class="btn btn-ghost btn-sm" onclick="App.users.exportCSV()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:13px;height:13px"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                Export
+              </button>
+            </div>
+            <div class="bulk-bar" id="bulkBar">
+              <span class="bulk-count" id="bulkCount">0 selected</span>
+              <div style="margin-left:4px;display:flex;gap:6px;flex-wrap:wrap">
+                <button class="btn btn-amber btn-sm" onclick="App.users.bulkPlanOpen()">Change Plan</button>
+                <button class="btn btn-success btn-sm" onclick="App.users.bulkResetQuota()">Reset Quota</button>
+                <button class="btn btn-danger btn-sm" onclick="App.users.bulkDeleteConfirm()">Delete Selected</button>
+              </div>
+              <button class="btn btn-ghost btn-sm" style="margin-left:auto" onclick="App.users.clearSelection()">Clear</button>
+            </div>
+            <div class="tbl-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th class="td-check"><input type="checkbox" id="selectAll" onchange="App.users.toggleSelectAll(this)"/></th>
+                    <th class="sortable" onclick="App.users.sort('fb_name')">User<span class="sort-indicator"><span class="up"></span><span class="dn"></span></span></th>
+                    <th>IP</th>
+                    <th>Pages</th>
+                    <th>LTV</th>
+                    <th>Renewals</th>
+                    <th class="sortable" onclick="App.users.sort('plan')">Plan<span class="sort-indicator"><span class="up"></span><span class="dn"></span></span></th>
+                    <th>Messages</th>
+                    <th>Expires</th>
+                    <th class="sortable" onclick="App.users.sort('last_login_at')">Last seen<span class="sort-indicator"><span class="up"></span><span class="dn"></span></span></th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="usersBody">
+                  <tr><td colspan="11"><div class="loading-center"><span class="spinner spinner-lg"></span></div></td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="pagination" id="usersPagination" style="display:none">
+              <div class="pg-info" id="pgInfo"></div>
+              <div class="pg-btns" id="pgBtns"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── ACTIVITY VIEW ── -->
+        <div class="view" id="view-activity">
+          <div class="admin-page-hero">
+            <div>
+              <h2>Activity log</h2>
+              <p>Audit trail of logins, sends, and admin actions across the platform.</p>
+            </div>
+          </div>
+          <div class="panel">
+            <div class="panel-head">
+              <div class="panel-head-left">
+                <div>
+                  <div class="panel-title">Activity Log</div>
+                  <div class="panel-sub">Last 50 events per page</div>
+                </div>
+              </div>
+              <div style="display:flex;gap:8px;align-items:center">
+                <select id="actFilter" onchange="App.activity.filterChange()" style="background:var(--s2);border:1px solid var(--border);border-radius:9px;color:var(--text);padding:7px 12px;font-size:12px;outline:none">
+                  <option value="">All Actions</option>
+                  <option value="login">Login</option>
+                  <option value="send">Send</option>
+                </select>
+                <button class="btn btn-ghost btn-sm" onclick="App.activity.load()">↻ Refresh</button>
+              </div>
+            </div>
+            <div class="activity-list" id="activityList">
+              <div class="loading-center"><span class="spinner spinner-lg"></span></div>
+            </div>
+            <div class="pagination" id="actPagination" style="display:none">
+              <div class="pg-info" id="actPgInfo"></div>
+              <div class="pg-btns" id="actPgBtns"></div>
+            </div>
+          </div>
+        </div>
+
+
+        <!-- ── ANNOUNCEMENTS VIEW ── -->
+        <div class="view" id="view-announcements">
+          <div class="admin-page-hero">
+            <div>
+              <h2>Announcements &amp; updates</h2>
+              <p>Send notifications to all users or to a specific user. Recipients see a bell in their dashboard.</p>
+            </div>
+            <button class="btn btn-ghost btn-sm" onclick="App.notifications.load(true)">Refresh</button>
+          </div>
+
+          <div class="support-config card-pad" style="margin-bottom:18px">
+            <div class="ann-section-title">
+              <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" style="vertical-align:-2px;margin-right:6px"><path d="M3.5 6.5a8.5 8.5 0 1117 0c0 4.7-3.8 9.4-8.5 12.5-4.7-3.1-8.5-7.8-8.5-12.5z"/><path d="M3 16l3-3 4 3 6-6 5 5"/></svg>Support Page</span>
+              <span class="ann-count" id="supportStatusChip">Not set</span>
+            </div>
+            <p class="support-help">Connect a Facebook Page so users who click <strong>Contact us</strong> are taken straight into a Messenger chat with you.</p>
+            <form id="supportCfgForm" onsubmit="event.preventDefault();App.supportPage.save()">
+              <div class="form-grid">
+                <div class="form-row full">
+                  <label class="form-label">Facebook page URL, m.me link, or page ID</label>
+                  <input type="text" id="supportInput" class="form-input" placeholder="e.g. https://m.me/yourpage  or  facebook.com/yourpage  or  1234567890" />
+                </div>
+                <div class="form-row">
+                  <label class="form-label">Display name (optional)</label>
+                  <input type="text" id="supportName" class="form-input" placeholder="e.g. FBCast Support" />
+                </div>
+                <div class="form-row">
+                  <label class="form-label">Fallback email (optional)</label>
+                  <input type="email" id="supportEmail" class="form-input" placeholder="support@yourcompany.com" />
+                </div>
+              </div>
+              <div class="ann-actions">
+                <a id="supportPreviewLink" class="btn btn-ghost" target="_blank" rel="noopener" href="#" style="display:none">Test link →</a>
+                <button type="submit" class="btn btn-primary" id="supportSaveBtn">Save support page</button>
+              </div>
+            </form>
+          </div>
+
+          <div class="ann-grid">
+            <div class="ann-compose card-pad">
+              <div class="ann-section-title">Compose new</div>
+              <form id="annForm" onsubmit="event.preventDefault();App.notifications.send()">
+                <div class="form-grid">
+                  <div class="form-row">
+                    <label class="form-label">Severity</label>
+                    <select id="annSeverity" class="form-input">
+                      <option value="info" selected>Info</option>
+                      <option value="success">Success</option>
+                      <option value="warning">Warning</option>
+                      <option value="critical">Critical</option>
+                    </select>
+                  </div>
+                  <div class="form-row">
+                    <label class="form-label">Target</label>
+                    <select id="annTarget" class="form-input" onchange="App.notifications.toggleTarget()">
+                      <option value="all" selected>All users</option>
+                      <option value="user">Specific user (by FB ID)</option>
+                    </select>
+                  </div>
+                  <div class="form-row full" id="annUserRow" style="display:none">
+                    <label class="form-label">Target user FB ID</label>
+                    <input type="text" id="annUserId" class="form-input" placeholder="e.g. 1234567890" />
+                  </div>
+                  <div class="form-row full">
+                    <label class="form-label">Title</label>
+                    <input type="text" id="annTitle" class="form-input" placeholder="What's the headline?" maxlength="180" required />
+                  </div>
+                  <div class="form-row full">
+                    <label class="form-label">Body</label>
+                    <textarea id="annBody" class="form-input form-textarea" placeholder="Write the full message your users will see…" maxlength="4000" rows="4" required></textarea>
+                  </div>
+                  <div class="form-row">
+                    <label class="form-label">Link (optional)</label>
+                    <input type="url" id="annLink" class="form-input" placeholder="https://…" />
+                  </div>
+                  <div class="form-row">
+                    <label class="form-label">Expires at (optional)</label>
+                    <input type="datetime-local" id="annExpires" class="form-input" />
+                  </div>
+                </div>
+                <div class="ann-actions">
+                  <button type="button" class="btn btn-ghost" onclick="App.notifications.resetForm()">Clear</button>
+                  <button type="submit" class="btn btn-primary" id="annSendBtn">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                    Send notification
+                  </button>
+                </div>
+              </form>
+            </div>
+
+            <div class="ann-list card-pad">
+              <div class="ann-section-title">
+                <span>Sent notifications</span>
+                <span class="ann-count" id="annTotal">0</span>
+              </div>
+              <div id="annList">
+                <div class="loading-center"><span class="spinner spinner-lg"></span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+
+        <!-- ── SUPPORT VIEW ── -->
+        <div class="view" id="view-support">
+          <div class="admin-page-hero">
+            <div>
+              <h2>Support inbox</h2>
+              <p>Live chat with users from the in-app Contact us widget. Replies appear instantly in their chat window.</p>
+            </div>
+            <div style="display:flex;gap:8px;align-items:center;">
+              <select id="supportFilter" class="ad-input" style="height:36px;padding:0 12px;">
+                <option value="all">All conversations</option>
+                <option value="unread">Unread</option>
+                <option value="open">Open</option>
+                <option value="closed">Closed</option>
+              </select>
+              <input type="text" id="supportSearch" class="ad-input" placeholder="Search…" style="height:36px;width:200px;">
+              <button class="btn btn-ghost btn-sm" onclick="App.support.load()">Refresh</button>
+            </div>
+          </div>
+
+          <div class="support-admin">
+            <aside class="support-admin__list" id="supportThreadList">
+              <div class="loading-center"><span class="spinner spinner-lg"></span></div>
+            </aside>
+            <section class="support-admin__chat" id="supportAdminChat">
+              <div class="support-admin__empty">
+                <div class="support-admin__empty-icon"><svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg></div>
+                <div class="support-admin__empty-title">Select a conversation</div>
+                <div class="support-admin__empty-sub">Pick a chat on the left to read and reply.</div>
+              </div>
+            </section>
+          </div>
+        </div>
+
+        <!-- ── DATABASE VIEW ── -->
+        <div class="view" id="view-database">
+          <div class="admin-page-hero">
+            <div>
+              <h2>Database health</h2>
+              <p>Storage volume, table sizes, MySQL status, and server disk (if available).</p>
+            </div>
+            <button class="btn btn-ghost btn-sm" onclick="App.database.load()">Refresh</button>
+          </div>
+          <div id="dbHealthRoot">
+            <div class="loading-center"><span class="spinner spinner-lg"></span></div>
+          </div>
+        </div>
+
+
+      </div><!-- /content -->
+    </div><!-- /main -->
+  </div><!-- /shell -->
+</div><!-- /adminApp -->
+
+<!-- ══ USER DETAIL DRAWER ══ -->
+<div class="drawer-backdrop" id="userDrawerBackdrop" onclick="App.users.closeDetail()"></div>
+<div class="user-drawer user-drawer-wide" id="userDrawer">
+  <div class="drawer-head">
+    <div>
+      <div class="drawer-title" id="detailTitle">User</div>
+      <div class="drawer-sub" id="detailSub">—</div>
+    </div>
+    <button class="modal-close" onclick="App.users.closeDetail()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+  </div>
+  <div class="drawer-body" id="detailBody">
+    <div class="loading-center"><span class="spinner spinner-lg"></span></div>
+  </div>
+</div>
+
+<!-- ══ EDIT USER MODAL ══ -->
+<!-- ══ NOTIFICATION READERS MODAL ══ -->
+<div class="overlay" id="readersOverlay">
+  <div class="modal modal-wide">
+    <div class="modal-head">
+      <div>
+        <div class="modal-title" id="readersTitle">Notification readers</div>
+        <div class="modal-sub" id="readersSub">—</div>
+      </div>
+      <button class="modal-close" onclick="App.modal.close('readersOverlay')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="modal-body" id="readersBody">
+      <div class="loading-center"><span class="spinner spinner-lg"></span></div>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="editOverlay">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-title" id="editModalTitle">Edit User</div>
+      <button class="modal-close" onclick="App.modal.close('editOverlay')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="editId"/>
+      <div class="form-grid">
+        <div class="form-row full">
+          <label class="form-label">User ID</label>
+          <input class="form-input" id="editUserIdShow" readonly/>
+        </div>
+        <div class="form-row full">
+          <label class="form-label">Facebook Name</label>
+          <input class="form-input" id="editFbName" readonly/>
+        </div>
+        <div class="form-row">
+          <label class="form-label">Plan</label>
+          <select class="form-input" id="editPlan" onchange="App.users.onPlanPick()"></select>
+        </div>
+        <div class="form-row">
+          <label class="form-label">Message Limit</label>
+          <input class="form-input" id="editLimit" type="number" min="0"/>
+        </div>
+        <div class="form-row full">
+          <label class="form-label">Messages Used</label>
+          <input class="form-input" id="editUsed" type="number" min="0"/>
+        </div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost btn-md" onclick="App.modal.close('editOverlay')">Cancel</button>
+      <button class="btn btn-primary btn-md" onclick="App.users.save()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:13px;height:13px"><polyline points="20 6 9 17 4 12"/></svg>
+        Save Changes
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ CONFIRM MODAL ══ -->
+<div class="overlay" id="confirmOverlay">
+  <div class="modal confirm-modal">
+    <div class="modal-body" style="padding:28px 28px 20px">
+      <div class="confirm-icon danger">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+      </div>
+      <h3 id="confirmTitle">Confirm Action</h3>
+      <p id="confirmMsg">Are you sure?</p>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost btn-md" onclick="App.modal.close('confirmOverlay')">Cancel</button>
+      <button class="btn btn-danger btn-md" id="confirmBtn">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ BULK PLAN MODAL ══ -->
+<div class="overlay" id="bulkPlanOverlay">
+  <div class="modal" style="max-width:360px">
+    <div class="modal-head">
+      <div class="modal-title">Change Plan (Bulk)</div>
+      <button class="modal-close" onclick="App.modal.close('bulkPlanOverlay')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row">
+        <label class="form-label">New Plan for selected users</label>
+        <select class="form-input" id="bulkPlanSelect"></select>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost btn-md" onclick="App.modal.close('bulkPlanOverlay')">Cancel</button>
+      <button class="btn btn-primary btn-md" onclick="App.users.bulkPlanApply()">Apply to Selected</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ TOAST ══ -->
+<div class="toast" id="toast">
+  <div class="toast-icon" id="toastIcon"></div>
+  <div id="toastMsg"></div>
+  <button class="toast-close" onclick="App.toast.hide()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+</div>
+
+<script>
+'use strict';
+
+// ══════════════════════════════════════════════════════════════
+//  UTILITY
+// ══════════════════════════════════════════════════════════════
+const $ = id => document.getElementById(id);
+const esc = s => s == null ? '' : String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const fmt = n => n != null ? Number(n).toLocaleString() : '0';
+const fmtMoney = c => '$' + (Number(c || 0) / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const fmtBytes = (bytes, digits = 2) => {
+  const n = Number(bytes) || 0;
+  if (n < 1) return '0 B';
+  const u = ['B', 'KB', 'MB', 'GB', 'TB'];
+  let i = 0, v = n;
+  while (v >= 1024 && i < u.length - 1) { v /= 1024; i++; }
+  return v.toFixed(i > 0 ? digits : 0) + ' ' + u[i];
+};
+const fmtUptime = sec => {
+  const s = Number(sec) || 0;
+  if (s < 60) return s + 's';
+  if (s < 3600) return Math.floor(s / 60) + 'm';
+  if (s < 86400) return Math.floor(s / 3600) + 'h ' + Math.floor((s % 3600) / 60) + 'm';
+  return Math.floor(s / 86400) + 'd ' + Math.floor((s % 86400) / 3600) + 'h';
+};
+const fmtDate = d => {
+  if(!d) return '—';
+  try{ return new Date(d).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}); }catch(e){ return d; }
+};
+const fmtTime = d => {
+  if(!d) return '—';
+  try{
+    const dt = new Date(d), now = new Date(), diff = Math.floor((now-dt)/1000);
+    if(diff < 60) return `${diff}s ago`;
+    if(diff < 3600) return `${Math.floor(diff/60)}m ago`;
+    if(diff < 86400) return `${Math.floor(diff/3600)}h ago`;
+    return fmtDate(d);
+  }catch(e){ return d; }
+};
+const debounce = (fn, ms) => { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; };
+const planColors = { free:'#64748b', basic:'#60a5fa', pro:'#0866ff', gold:'#fbbf24', sapphire:'#38bdf8', platinum:'#c084fc', unknown:'#475569' };
+const planBg = { free:'rgba(100,116,139,.15)', basic:'rgba(59,130,246,.15)', pro:'rgba(8,102,255,.18)', gold:'rgba(245,158,11,.15)', sapphire:'rgba(14,165,233,.15)', platinum:'rgba(168,85,247,.18)', unknown:'rgba(71,85,105,.12)' };
+const BRAND = '#0866ff';
+
+const ADMIN_PLANS = [
+  { key: 'free', name: 'Free', limit: 2000, dbPlan: 'free' },
+  { key: 'starter', name: 'Starter', limit: 30000, dbPlan: 'basic' },
+  { key: 'basic', name: 'Bronze', limit: 300000, dbPlan: 'basic' },
+  { key: 'pro', name: 'Silver', limit: 650000, dbPlan: 'pro' },
+  { key: 'gold', name: 'Gold', limit: 1750000, dbPlan: 'gold' },
+  { key: 'sapphire', name: 'Sapphire', limit: 4000000, dbPlan: 'sapphire' },
+  { key: 'pro_unlimited', name: 'Platinum', limit: 7000000, dbPlan: 'platinum' }
+];
+
+function detectPlanKey(u) {
+  const p = String(u?.plan || 'free').toLowerCase();
+  const limit = Number(u?.messenger_messages_limit) || 0;
+  if (p === 'free') return 'free';
+  if (p === 'platinum') return 'pro_unlimited';
+  // Starter & Bronze share dbPlan "basic" — use limit to tell them apart
+  if (p === 'basic') {
+    if (limit > 0 && limit <= 50000) return 'starter';
+    return 'basic';
+  }
+  const byKey = ADMIN_PLANS.find(x => x.key === p);
+  if (byKey) return byKey.key;
+  const byDb = ADMIN_PLANS.find(x => x.dbPlan === p);
+  return byDb ? byDb.key : p;
+}
+
+function planAdminLabel(u) {
+  const key = detectPlanKey(u);
+  return ADMIN_PLANS.find(x => x.key === key)?.name || u.plan || '?';
+}
+
+function planBadgeClass(u) {
+  const key = detectPlanKey(u);
+  const db = ADMIN_PLANS.find(x => x.key === key)?.dbPlan || u.plan || 'unknown';
+  return 'badge badge-' + db;
+}
+
+function userDisplayName(u) {
+  const n = String(u?.fb_name || '').trim();
+  if (n) return n;
+  return 'Facebook User';
+}
+function userInitial(u) {
+  return (userDisplayName(u).replace(/^@/, '')[0] || '?').toUpperCase();
+}
+
+function animateNumber(el, target, duration = 800) {
+  const start = Date.now(), from = 0;
+  const tick = () => {
+    const p = Math.min(1, (Date.now()-start)/duration);
+    const ease = 1 - Math.pow(1-p, 3);
+    el.textContent = fmt(Math.round(from + (target - from) * ease));
+    if(p < 1) requestAnimationFrame(tick);
+  };
+  requestAnimationFrame(tick);
+}
+
+function fillDates(data, days) {
+  const counts = {};
+  for(const d of data) counts[String(d.date).split('T')[0]] = d.count;
+  const result = [];
+  for(let i = days-1; i >= 0; i--) {
+    const dt = new Date(); dt.setDate(dt.getDate()-i);
+    const key = dt.toISOString().split('T')[0];
+    result.push({ date: key, count: counts[key] || 0 });
+  }
+  return result;
+}
+
+// ══════════════════════════════════════════════════════════════
+//  MAIN APP
+// ══════════════════════════════════════════════════════════════
+const App = {
+  state: {
+    view: 'dashboard',
+    users: { page:1, total:0, pages:1, search:'', plan:'', sortCol:'created_at', sortDir:'desc', selected: new Set(), allData:[] },
+    activity: { page:1, action:'' },
+    revenuePeriod: 'day'
+  },
+  charts: {},
+  refreshTimer: null,
+
+  // ── Init ──────────────────────────────────────────────────
+  init() {
+    App.users.initPlanSelects();
+    fetch('/api/admin/users/sync-names', { method: 'POST' }).catch(() => {});
+    this.dashboard.load();
+    this.database.load(true);
+    this.support.initOnce();
+    this.startAutoRefresh();
+    document.addEventListener('keydown', e => { if(e.key==='Escape') { document.querySelectorAll('.overlay.open').forEach(o=>o.classList.remove('open')); } });
+  },
+
+  refresh() {
+    const v = this.state.view;
+    if(v==='dashboard') this.dashboard.load();
+    else if(v==='users') this.users.load();
+    else if(v==='activity') this.activity.load();
+    else if(v==='database') this.database.load();
+    this.markSynced();
+  },
+
+  markSynced() {
+    const el = $('lastSync');
+    if(!el) return;
+    const t = new Date();
+    el.textContent = 'Updated ' + t.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  },
+
+  toggleSidebar() {
+    $('adminSidebar')?.classList.toggle('mobile-open');
+    $('sidebarBackdrop')?.classList.toggle('open');
+  },
+
+  closeSidebar() {
+    $('adminSidebar')?.classList.remove('mobile-open');
+    $('sidebarBackdrop')?.classList.remove('open');
+  },
+
+  startAutoRefresh() {
+    clearInterval(this.refreshTimer);
+    this.refreshTimer = setInterval(() => {
+      if (this.state.view === 'dashboard') {
+        this.dashboard.loadStats();
+        this.dashboard.loadRevenue(this.state.revenuePeriod, true);
+        this.dashboard.loadExpiring(true);
+      } else if (this.state.view === 'users') {
+        this.users.load(null, true);
+      } else if (this.state.view === 'database') {
+        this.database.load(true);
+      }
+    }, 15000);
+  },
+
+  switchView(v) {
+    this.state.view = v;
+    this.closeSidebar();
+    document.querySelectorAll('.view').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.sb-item').forEach(el => el.classList.remove('active'));
+    $('view-'+v).classList.add('active');
+    $('nav-'+v)?.classList.add('active');
+    const titles = { dashboard:'Dashboard', users:'User Management', activity:'Activity Log', announcements:'Announcements & Updates', support:'Support Inbox', database:'Database Health' };
+    const crumbs = { dashboard:'Overview', users:'Management', activity:'Audit', announcements:'Engagement', support:'Conversations', database:'System' };
+    $('topbarTitle').textContent = titles[v] || v;
+    if($('topbarCrumb')) $('topbarCrumb').textContent = crumbs[v] || 'Admin';
+    $('globalSearch').style.display = v==='users' ? 'flex' : 'none';
+    if(v==='dashboard') this.dashboard.load();
+    else if(v==='users') { this.state.users.page=1; this.users.load(); }
+    else if(v==='activity') { this.state.activity.page=1; this.activity.load(); }
+    else if(v==='announcements') { this.notifications.load(); this.supportPage.load(); }
+    else if(v==='support') this.support.load();
+    else if(v==='database') this.database.load();
+  },
+
+  // ── Modal ─────────────────────────────────────────────────
+  modal: {
+    open(id) { $(id).classList.add('open'); },
+    close(id) { $(id).classList.remove('open'); }
+  },
+
+  // ── Toast ─────────────────────────────────────────────────
+  toast: {
+    _timer: null,
+    show(msg, type='success') {
+      const t = $('toast'), icon = $('toastIcon'), msgEl = $('toastMsg');
+      t.className = `toast t-${type}`;
+      msgEl.textContent = msg;
+      const icons = {
+        success: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>',
+        error:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>',
+        info:    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>',
+      };
+      icon.innerHTML = icons[type] || icons.info;
+      requestAnimationFrame(() => t.classList.add('show'));
+      clearTimeout(this._timer);
+      this._timer = setTimeout(() => this.hide(), 3500);
+    },
+    hide() { $('toast').classList.remove('show'); }
+  },
+
+  // ══════════════════════════════════════════════════════════
+  //  DASHBOARD
+  // ══════════════════════════════════════════════════════════
+  dashboard: {
+    async load() {
+      await Promise.all([
+        this.loadStats(),
+        this.loadCharts(),
+        this.loadRecentUsers(),
+        this.loadRevenue(App.state.revenuePeriod),
+        this.loadExpiring()
+      ]);
+      App.markSynced();
+    },
+
+    async loadStats() {
+      try {
+        const r = await fetch('/api/admin/stats');
+        if(!r.ok) throw new Error();
+        const d = await r.json();
+        animateNumber($('sTotal'),  d.users || 0);
+        animateNumber($('sPaid'),   d.paidPlan || 0);
+        animateNumber($('sFree'),   d.freePlan || 0);
+        animateNumber($('sLogins'), d.todayLogins || 0);
+        animateNumber($('sMsgs'),   d.totalMessages || 0);
+        $('navUserCount').textContent = fmt(d.users || 0);
+        $('navUserCount').style.display = d.users ? '' : 'none';
+        if (d.revenue) {
+          $('sRevToday').textContent = fmtMoney(d.revenue.today);
+          $('sRevMonth').textContent = fmtMoney(d.revenue.month);
+          $('sMrr').textContent = fmtMoney(d.revenue.mrrEstimate);
+          $('sRevTodaySub').textContent = (d.revenue.paymentsToday || 0) + ' payment(s) today';
+        }
+        if ($('sExpiring')) $('sExpiring').textContent = fmt(d.expiringSoon || 0);
+        if ($('sOnline')) $('sOnline').textContent = fmt(d.online24h || 0);
+      } catch(e) {}
+    },
+
+
+    async loadRevenue(period, silent) {
+      try {
+        const r = await fetch('/api/admin/revenue?period=' + encodeURIComponent(period || 'month'));
+        if (!r.ok) throw new Error();
+        const d = await r.json();
+        this.renderRevenueChart(d.series || [], period || 'month');
+        this.renderRevenueSummary(d.totals || {}, d.series || []);
+      } catch (e) {
+        if (!silent && $('revSummary')) $('revSummary').innerHTML = '<div style="padding:12px 20px;color:var(--muted);font-size:12px">Revenue data unavailable</div>';
+      }
+    },
+
+    setRevenuePeriod(period) {
+      App.state.revenuePeriod = period;
+      document.querySelectorAll('.rev-tab').forEach(b => b.classList.toggle('active', b.dataset.period === period));
+      this.loadRevenue(period);
+    },
+
+    renderRevenueSummary(totals, series) {
+      const sum = (series || []).reduce((s, x) => s + (x.total || 0), 0);
+      const el = $('revSummary');
+      if (!el) return;
+      el.innerHTML = [
+        ['Period total', fmtMoney(sum)],
+        ['All time', fmtMoney(totals.allTime)],
+        ['This year', fmtMoney(totals.year)],
+        ['This week', fmtMoney(totals.week)]
+      ].map(([l, v]) => `<div class="rev-kpi"><span class="rev-kpi-label">${l}</span><span class="rev-kpi-val">${v}</span></div>`).join('');
+    },
+
+    renderRevenueChart(series) {
+      const labels = (series || []).map(s => String(s.bucket));
+      const values = (series || []).map(s => (s.total || 0) / 100);
+      if (App.charts.revenue) App.charts.revenue.destroy();
+      const canvas = $('revenueChart');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      const grad = ctx.createLinearGradient(0, 0, 0, 220);
+      grad.addColorStop(0, 'rgba(34,197,94,.35)');
+      grad.addColorStop(1, 'rgba(34,197,94,0)');
+      App.charts.revenue = new Chart(ctx, {
+        type: 'bar',
+        data: { labels, datasets: [{ data: values, label: 'Revenue', backgroundColor: grad, borderColor: '#22c55e', borderWidth: 1.5, borderRadius: 6 }] },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { display: false }, tooltip: { callbacks: { label: item => ' $' + Number(item.raw).toFixed(2) } } },
+          scales: {
+            x: { ticks: { color: '#64748b', maxRotation: 45, font: { size: 10 } }, grid: { display: false } },
+            y: { ticks: { color: '#64748b', callback: v => '$' + v }, grid: { color: 'rgba(37,40,64,.6)' }, beginAtZero: true }
+          }
+        }
+      });
+    },
+
+    async loadExpiring(silent) {
+      const body = $('expiringBody');
+      if (!body) return;
+      try {
+        const r = await fetch('/api/admin/expiring');
+        const d = await r.json();
+        const users = d.users || [];
+        if (!users.length) {
+          body.innerHTML = '<tr><td colspan="5"><div class="empty" style="padding:20px"><p>No subscriptions expiring in 7 days</p></div></td></tr>';
+          return;
+        }
+        body.innerHTML = users.map(u => `<tr>
+          <td><div class="user-cell"><div class="u-av">${userInitial(u)}</div><div><div class="u-name">${esc(userDisplayName(u))}</div><div class="u-id">${esc(u.fb_user_id)}</div></div></div></td>
+          <td><span class="${planBadgeClass(u)}">${esc(planAdminLabel(u))}</span></td>
+          <td style="font-size:12px;color:var(--amber)">${fmtDate(u.subscription_expires)}</td>
+          <td style="font-size:12px">${fmt(u.messenger_messages_used||0)} / ${fmt(u.messenger_messages_limit||0)}</td>
+          <td><button class="btn btn-ghost btn-sm" onclick="App.users.openDetail('${esc(u.fb_user_id)}')">View</button></td>
+        </tr>`).join('');
+      } catch (e) {
+        if (!silent) body.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:16px;color:var(--muted)">Could not load</td></tr>';
+      }
+    },
+
+    async loadCharts() {
+      try {
+        const r = await fetch('/api/admin/charts');
+        if(!r.ok) throw new Error();
+        const d = await r.json();
+        this.renderGrowthChart(d.userGrowth || []);
+        this.renderPlanChart(d.planDistribution || {});
+        this.renderTopUsers(d.topUsers || []);
+      } catch(e) {}
+    },
+
+    renderGrowthChart(rawData) {
+      const data = fillDates(rawData, 30);
+      const labels = data.map(d => {
+        const dt = new Date(d.date + 'T00:00:00');
+        return dt.toLocaleDateString('en-US',{month:'short',day:'numeric'});
+      });
+      const values = data.map(d => d.count);
+      if(App.charts.growth) App.charts.growth.destroy();
+      const ctx = $('growthChart').getContext('2d');
+      const grad = ctx.createLinearGradient(0,0,0,200);
+      grad.addColorStop(0, 'rgba(8,102,255,.35)');
+      grad.addColorStop(1, 'rgba(8,102,255,0)');
+      App.charts.growth = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [{
+            data: values, label: 'New Users',
+            borderColor: BRAND, backgroundColor: grad,
+            borderWidth: 2.5, fill: true,
+            tension: 0.4, pointRadius: 0, pointHoverRadius: 5,
+            pointHoverBackgroundColor: BRAND, pointHoverBorderColor: '#fff', pointHoverBorderWidth: 2
+          }]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false, animation: { duration: 600 },
+          interaction: { intersect: false, mode: 'index' },
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              backgroundColor: 'rgba(15,17,23,.95)', borderColor: '#252840', borderWidth: 1,
+              titleColor: '#94a3b8', bodyColor: '#e2e8f0', padding: 10, cornerRadius: 9,
+              callbacks: { title: items => items[0].label, label: item => ` ${item.raw} new user${item.raw!==1?'s':''}` }
+            }
+          },
+          scales: {
+            x: { grid: { color: 'rgba(37,40,64,.6)', drawBorder: false }, ticks: { color: '#64748b', font:{size:10}, maxRotation:0, maxTicksLimit:8 } },
+            y: { grid: { color: 'rgba(37,40,64,.6)', drawBorder: false }, ticks: { color: '#64748b', font:{size:10}, precision:0 }, beginAtZero: true }
+          }
+        }
+      });
+    },
+
+    renderPlanChart(dist) {
+      const order = ['free','basic','pro','gold','sapphire','platinum','unknown'];
+      const keys = order.filter(k => (dist[k]||0) > 0);
+      const total = keys.reduce((s,k) => s + (dist[k]||0), 0);
+      $('planCenterVal').textContent = fmt(total);
+      if(App.charts.plan) App.charts.plan.destroy();
+      if(!total) { $('planLegend').innerHTML = '<div style="text-align:center;padding:16px;color:var(--muted);font-size:12px">No users yet</div>'; return; }
+      App.charts.plan = new Chart($('planChart').getContext('2d'), {
+        type: 'doughnut',
+        data: {
+          labels: keys.map(k => k.charAt(0).toUpperCase()+k.slice(1)),
+          datasets: [{ data: keys.map(k=>dist[k]||0), backgroundColor: keys.map(k=>planColors[k]||BRAND), borderWidth: 0, hoverOffset: 6 }]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false, cutout: '72%',
+          animation: { duration: 700 },
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              backgroundColor:'rgba(15,17,23,.95)',borderColor:'#252840',borderWidth:1,
+              titleColor:'#94a3b8',bodyColor:'#e2e8f0',padding:10,cornerRadius:9,
+              callbacks: { label: item => ` ${item.raw} users (${Math.round(item.raw/total*100)}%)` }
+            }
+          }
+        }
+      });
+      $('planLegend').innerHTML = keys.map(k => {
+        const pct = total ? Math.round((dist[k]||0)/total*100) : 0;
+        return `<div class="plan-legend-item">
+          <div class="plan-dot" style="background:${planColors[k]||BRAND}"></div>
+          <div style="flex:1">
+            <div style="display:flex;justify-content:space-between">
+              <span class="plan-legend-name">${k}</span>
+              <span class="plan-legend-count">${fmt(dist[k]||0)}</span>
+            </div>
+            <div class="plan-legend-bar" style="background:${planBg[k]||'rgba(99,102,241,.18)'}">
+              <div style="height:4px;border-radius:2px;background:${planColors[k]};width:${pct}%;transition:width .5s ease"></div>
+            </div>
+          </div>
+        </div>`;
+      }).join('');
+    },
+
+    async loadRecentUsers() {
+      try {
+        const r = await fetch('/api/admin/users?p=1');
+        if(!r.ok) throw new Error();
+        const d = await r.json();
+        const body = $('dashUserBody');
+        if(!d.users?.length){ body.innerHTML='<tr><td colspan="4"><div class="empty"><p>No users yet</p></div></td></tr>'; return; }
+        body.innerHTML = d.users.slice(0,6).map(u => `
+          <tr>
+            <td><div class="user-cell">
+              <div class="u-av">${userInitial(u)}</div>
+              <div><div class="u-name">${esc(userDisplayName(u))}</div><div class="u-id">${esc(u.fb_user_id)}</div></div>
+            </div></td>
+            <td><span class="${planBadgeClass(u)}">${esc(planAdminLabel(u))}</span></td>
+            <td style="font-size:12px">${fmt(u.messenger_messages_used||0)} / ${fmt(u.messenger_messages_limit||0)}</td>
+            <td style="font-size:12px;color:var(--muted)">${fmtDate(u.created_at)}</td>
+          </tr>`).join('');
+      } catch(e) { $('dashUserBody').innerHTML='<tr><td colspan="4" style="text-align:center;padding:24px;color:var(--muted);font-size:13px">Could not load users</td></tr>'; }
+    },
+
+    renderTopUsers(users) {
+      const el = $('topUsersBody');
+      if(!users?.length){ el.innerHTML='<div class="empty"><div class="empty-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:22px;height:22px"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></div><p>No data yet</p></div>'; return; }
+      el.innerHTML = users.map((u,i) => {
+        const pct = u.messenger_messages_limit ? Math.min(100, Math.round(u.messenger_messages_used/u.messenger_messages_limit*100)) : 0;
+        const cls = pct>=90?'qf-hot':pct>=70?'qf-warn':'qf-ok';
+        return `<div style="padding:10px 20px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--border)${i===users.length-1?';border:none':''}">
+          <div style="font-size:18px;font-weight:900;color:var(--muted);min-width:22px;text-align:right">${i+1}</div>
+          <div class="u-av" style="width:28px;height:28px;border-radius:7px;font-size:11px">${userInitial(u)}</div>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(userDisplayName(u))}</div>
+            <div class="quota-bar" style="margin-top:4px;margin-bottom:0"><div class="quota-fill ${cls}" style="width:${pct}%"></div></div>
+          </div>
+          <div style="font-size:12px;font-weight:700;color:var(--muted2);white-space:nowrap">${fmt(u.messenger_messages_used||0)}</div>
+        </div>`;
+      }).join('');
+    }
+  },
+
+  // ══════════════════════════════════════════════════════════
+  //  USERS
+  // ══════════════════════════════════════════════════════════
+  users: {
+    initPlanSelects() {
+      const opts = ADMIN_PLANS.map(p =>
+        `<option value="${esc(p.key)}">${esc(p.name)} — ${fmt(p.limit)} msgs/mo</option>`
+      ).join('');
+      const filterDb = [...new Set(ADMIN_PLANS.map(p => p.dbPlan))];
+      const filterOpts = '<option value="">All Plans</option>' + filterDb.map(db => {
+        const names = ADMIN_PLANS.filter(p => p.dbPlan === db).map(p => p.name).join(' / ');
+        return `<option value="${esc(db)}">${esc(names)}</option>`;
+      }).join('');
+      $('editPlan').innerHTML = opts;
+      $('bulkPlanSelect').innerHTML = opts;
+      if ($('planFilter')) $('planFilter').innerHTML = filterOpts;
+    },
+
+    onPlanPick() {
+      const p = ADMIN_PLANS.find(x => x.key === $('editPlan').value);
+      if (p) $('editLimit').value = p.limit;
+    },
+
+    debouncedSearch: debounce(function() {
+      const s = App.state.users;
+      s.search = ($('usersSearch')?.value || $('userSearchInput')?.value || '').trim();
+      s.page = 1;
+      App.users.load();
+    }, 350),
+
+    filterChange() {
+      App.state.users.plan = $('planFilter').value;
+      App.state.users.page = 1;
+      this.load();
+    },
+
+    sort(col) {
+      const s = App.state.users;
+      if(s.sortCol === col) s.sortDir = s.sortDir==='asc'?'desc':'asc';
+      else { s.sortCol = col; s.sortDir = 'desc'; }
+      s.page = 1;
+      this.load();
+      document.querySelectorAll('thead th').forEach(th => {
+        th.classList.remove('sort-asc','sort-desc');
+        if(th.getAttribute('onclick')?.includes(col)) th.classList.add(s.sortDir==='asc'?'sort-asc':'sort-desc');
+      });
+    },
+
+    async load(page, silent) {
+      if(page) App.state.users.page = page;
+      const s = App.state.users;
+      const body = $('usersBody');
+      if (!silent) body.innerHTML = '<tr><td colspan="11"><div class="loading-center"><span class="spinner spinner-lg"></span></div></td></tr>';
+      try {
+        const p = new URLSearchParams({ p: s.page });
+        if(s.search) p.set('q', s.search);
+        if(s.plan)   p.set('plan', s.plan);
+        const r = await fetch('/api/admin/users?'+p);
+        const d = await r.json();
+        s.total = d.total || 0; s.pages = d.pages || 1;
+        s.allData = d.users || [];
+        const missing = (d.users || []).some(u => !String(u.fb_name || '').trim());
+        if (missing && s.page === 1) {
+          await fetch('/api/admin/users/sync-names', { method: 'POST' }).catch(() => {});
+          const r2 = await fetch('/api/admin/users?'+p);
+          const d2 = await r2.json();
+          s.total = d2.total ?? s.total;
+          s.pages = d2.pages ?? s.pages;
+          s.allData = d2.users || [];
+          this.render(d2);
+        } else {
+          this.render(d);
+        }
+        this.updateBulkBar();
+      } catch(e) {
+        body.innerHTML = '<tr><td colspan="11" style="text-align:center;padding:32px;color:var(--red);font-size:13px">Failed to load users</td></tr>';
+      }
+    },
+
+    render(d) {
+      const s = App.state.users;
+      const body = $('usersBody');
+      $('usersCount').textContent = s.total ? `${fmt(s.total)} users` : '';
+      if(!d.users?.length){
+        body.innerHTML = `<tr><td colspan="11"><div class="empty">
+          <div class="empty-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></div>
+          <h3>No users found</h3><p>Try a different search or filter</p>
+        </div></td></tr>`;
+        $('usersPagination').style.display = 'none';
+        return;
+      }
+      body.innerHTML = d.users.map(u => {
+        const used=u.messenger_messages_used||0, limit=u.messenger_messages_limit||2000;
+        const pct = limit ? Math.min(100,Math.round(used/limit*100)) : 0;
+        const cls = pct>=90?'qf-hot':pct>=70?'qf-warn':'qf-ok';
+        const sel = s.selected.has(u.fb_user_id);
+        const hasSub = u.stripe_subscription_id;
+        const ud = JSON.stringify(u).replace(/"/g,'&quot;');
+        const exp = u.subscription_expires || u.free_trial_expires_at;
+        const expLabel = exp ? fmtDate(exp) : '—';
+        const ip = u.last_login_ip || '—';
+        const pages = Number(u.page_count) || 0;
+        const remain = u.messages_remaining != null ? u.messages_remaining : Math.max(0, (limit||0) - used);
+        const ltv = Number(u.total_revenue_cents) || 0;
+        const renewals = Number(u.renewal_count) || 0;
+        return `<tr class="${sel?'selected':''}" id="row-${esc(u.fb_user_id)}">
+          <td class="td-check"><input type="checkbox" ${sel?'checked':''} onchange="App.users.toggleRow('${esc(u.fb_user_id)}',this)"/></td>
+          <td><div class="user-cell" style="cursor:pointer" onclick="App.users.openDetail('${esc(u.fb_user_id)}')">
+            <div class="u-av">${userInitial(u)}</div>
+            <div><div class="u-name">${esc(userDisplayName(u))}</div><div class="u-id">${esc(u.fb_user_id)}</div></div>
+          </div></td>
+          <td class="mono-cell" title="${esc(ip)}">${esc(ip)}</td>
+          <td><span class="page-pill">${pages} page${pages!==1?'s':''}</span></td>
+          <td style="font-size:12px;font-weight:700;color:var(--green)">${ltv ? fmtMoney(ltv) : '—'}</td>
+          <td style="font-size:12px;font-weight:600">${renewals || '—'}</td>
+          <td><span class="${planBadgeClass(u)}">${esc(planAdminLabel(u))}</span></td>
+          <td class="quota-cell">
+            <div class="quota-bar"><div class="quota-fill ${cls}" style="width:${pct}%"></div></div>
+            <div class="quota-txt">${fmt(remain)} left · ${fmt(used)}/${fmt(limit)}</div>
+          </td>
+          <td style="font-size:12px;white-space:nowrap">${expLabel}</td>
+          <td style="font-size:12px;color:var(--muted);white-space:nowrap">${u.last_login_at ? fmtTime(u.last_login_at) : '—'}</td>
+          <td>
+            <div class="actions">
+              <button class="btn btn-primary btn-sm" onclick="event.stopPropagation();App.users.openDetail('${esc(u.fb_user_id)}')" title="Analyze user">Analyze</button>
+              <button class="btn btn-ghost btn-sm" onclick='event.stopPropagation();App.users.openEdit(${ud})' title="Edit">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+              </button>
+              <button class="btn btn-success btn-sm" onclick="event.stopPropagation();App.users.resetQuota('${esc(u.fb_user_id)}')" title="Reset Quota">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg>
+              </button>
+              <button class="btn btn-danger btn-sm" onclick="event.stopPropagation();App.users.deleteConfirm('${esc(u.fb_user_id)}')" title="Delete">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg>
+              </button>
+            </div>
+          </td>
+        </tr>`;
+      }).join('');
+      this.renderPagination();
+    },
+
+    renderPagination() {
+      const s = App.state.users;
+      const pg = $('usersPagination');
+      if(s.pages <= 1){ pg.style.display='none'; return; }
+      pg.style.display = 'flex';
+      const start = (s.page-1)*20+1, end = Math.min(s.page*20, s.total);
+      $('pgInfo').textContent = `Showing ${fmt(start)}–${fmt(end)} of ${fmt(s.total)}`;
+      let html = `<button class="pg-btn" onclick="App.users.load(${s.page-1})" ${s.page===1?'disabled':''}>‹</button>`;
+      for(let i=1;i<=s.pages;i++){
+        if(i===1||i===s.pages||Math.abs(i-s.page)<=1) html+=`<button class="pg-btn ${i===s.page?'active':''}" onclick="App.users.load(${i})">${i}</button>`;
+        else if(Math.abs(i-s.page)===2) html+=`<span class="pg-sep">…</span>`;
+      }
+      html += `<button class="pg-btn" onclick="App.users.load(${s.page+1})" ${s.page===s.pages?'disabled':''}>›</button>`;
+      $('pgBtns').innerHTML = html;
+    },
+
+    // ── Selection ─────────────────────────────────────────
+    toggleRow(id, cb) {
+      const s = App.state.users.selected;
+      if(cb.checked) s.add(id); else s.delete(id);
+      const row = document.getElementById('row-'+id);
+      if(row) row.classList.toggle('selected', cb.checked);
+      this.updateBulkBar();
+    },
+
+    toggleSelectAll(cb) {
+      const s = App.state.users;
+      s.allData.forEach(u => {
+        if(cb.checked) s.selected.add(u.fb_user_id); else s.selected.delete(u.fb_user_id);
+      });
+      document.querySelectorAll('#usersBody input[type=checkbox]').forEach(c => c.checked = cb.checked);
+      document.querySelectorAll('#usersBody tr').forEach(r => r.classList.toggle('selected', cb.checked));
+      this.updateBulkBar();
+    },
+
+    clearSelection() {
+      App.state.users.selected.clear();
+      document.querySelectorAll('#usersBody input[type=checkbox]').forEach(c => c.checked=false);
+      document.querySelectorAll('#usersBody tr').forEach(r => r.classList.remove('selected'));
+      $('selectAll').checked = false;
+      this.updateBulkBar();
+    },
+
+    updateBulkBar() {
+      const n = App.state.users.selected.size;
+      const bar = $('bulkBar');
+      bar.classList.toggle('show', n > 0);
+      $('bulkCount').textContent = `${n} user${n!==1?'s':''} selected`;
+    },
+
+    // ── Edit ──────────────────────────────────────────────
+    openEdit(u) {
+      $('editId').value        = u.fb_user_id;
+      $('editUserIdShow').value = u.fb_user_id;
+      $('editFbName').value    = u.fb_name || userDisplayName(u);
+      $('editPlan').value      = detectPlanKey(u);
+      $('editLimit').value     = u.messenger_messages_limit || (ADMIN_PLANS.find(p => p.key === detectPlanKey(u))?.limit ?? 2000);
+      $('editUsed').value      = u.messenger_messages_used  || 0;
+      $('editModalTitle').textContent = 'Edit — '+esc(userDisplayName(u));
+      App.modal.open('editOverlay');
+    },
+
+    async save() {
+      const id = $('editId').value;
+      const planKey = $('editPlan').value;
+      const body = { plan: planKey, messages_limit: $('editLimit').value };
+      try {
+        const r = await fetch(`/api/admin/users/${encodeURIComponent(id)}/update`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+        const d = await r.json().catch(() => ({}));
+        if(r.ok){
+          App.modal.close('editOverlay');
+          const name = d.planName || planAdminLabel({ plan: d.plan, messenger_messages_limit: d.messageLimit });
+          App.toast.show(`Plan activated: ${name}`,'success');
+          this.load();
+        }
+        else App.toast.show(d.error || 'Failed to update','error');
+      } catch(e){ App.toast.show('Request failed','error'); }
+    },
+
+    resetQuota(id) {
+      this._confirm(`Reset quota for "${id}"?`,'This will set their messages used back to 0.', async () => {
+        try {
+          const r = await fetch(`/api/admin/users/${encodeURIComponent(id)}/reset-quota`,{method:'POST'});
+          if(r.ok){ App.toast.show('Quota reset','success'); this.load(); }
+          else App.toast.show('Reset failed','error');
+        } catch(e){ App.toast.show('Request failed','error'); }
+      });
+    },
+
+    deleteConfirm(id) {
+      this._confirm(`Delete user "${id}"?`,'This is permanent and cannot be undone.', async () => {
+        try {
+          const r = await fetch(`/api/admin/users/${encodeURIComponent(id)}`,{method:'DELETE'});
+          if(r.ok){ App.toast.show('User deleted','success'); App.state.users.selected.delete(id); this.load(); }
+          else App.toast.show('Delete failed','error');
+        } catch(e){ App.toast.show('Request failed','error'); }
+      });
+    },
+
+    // ── Bulk actions ──────────────────────────────────────
+    bulkPlanOpen() { App.modal.open('bulkPlanOverlay'); },
+
+    async bulkPlanApply() {
+      const plan = $('bulkPlanSelect').value;
+      const ids = [...App.state.users.selected];
+      App.modal.close('bulkPlanOverlay');
+      let ok = 0;
+      await Promise.all(ids.map(async id => {
+        try {
+          const r = await fetch(`/api/admin/users/${encodeURIComponent(id)}/update`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({ plan })});
+          if(r.ok) ok++;
+        } catch(e){}
+      }));
+      App.toast.show(`Plan updated for ${ok} user${ok!==1?'s':''}`, ok>0?'success':'error');
+      this.clearSelection();
+      this.load();
+    },
+
+    async bulkResetQuota() {
+      const ids = [...App.state.users.selected];
+      this._confirm(`Reset quota for ${ids.length} user${ids.length!==1?'s':''}?`,'All selected users will have their message count reset to 0.', async () => {
+        let ok = 0;
+        await Promise.all(ids.map(async id => {
+          try{
+            const r = await fetch(`/api/admin/users/${encodeURIComponent(id)}/reset-quota`,{method:'POST'});
+            if(r.ok) ok++;
+          }catch(e){}
+        }));
+        App.toast.show(`Quota reset for ${ok} user${ok!==1?'s':''}`, ok>0?'success':'error');
+        this.clearSelection();
+        this.load();
+      });
+    },
+
+    bulkDeleteConfirm() {
+      const ids = [...App.state.users.selected];
+      this._confirm(`Delete ${ids.length} user${ids.length!==1?'s':''}?`,'This is permanent and cannot be undone for any selected user.', async () => {
+        let ok = 0;
+        await Promise.all(ids.map(async id => {
+          try{
+            const r = await fetch(`/api/admin/users/${encodeURIComponent(id)}`,{method:'DELETE'});
+            if(r.ok) ok++;
+          }catch(e){}
+        }));
+        App.toast.show(`${ok} user${ok!==1?'s':''} deleted`, ok>0?'success':'error');
+        App.state.users.selected.clear();
+        this.load();
+      });
+    },
+
+    exportCSV() {
+      const s = App.state.users;
+      if(!s.allData.length){ App.toast.show('No data to export','info'); return; }
+      const rows = [['ID','Facebook Name','Plan','Messages Used','Limit','Subscription','Joined']];
+      s.allData.forEach(u => rows.push([u.fb_user_id,userDisplayName(u),u.plan||'',u.messenger_messages_used||0,u.messenger_messages_limit||0,u.stripe_subscription_id||'',u.created_at||'']));
+      const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
+      const a = document.createElement('a');
+      a.href = 'data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
+      a.download = `fbcast-users-${new Date().toISOString().split('T')[0]}.csv`;
+      a.click();
+      App.toast.show('CSV exported','success');
+    },
+
+
+    async openDetail(id) {
+      $('userDrawer').classList.add('open');
+      $('userDrawerBackdrop').classList.add('open');
+      $('detailBody').innerHTML = '<div class="loading-center"><span class="spinner spinner-lg"></span></div>';
+      try {
+        const r = await fetch('/api/admin/users/' + encodeURIComponent(id));
+        const d = await r.json();
+        if (!r.ok) throw new Error(d.error || 'Failed');
+        this.renderDetail(d);
+      } catch (e) {
+        $('detailBody').innerHTML = '<p style="color:var(--red);padding:20px">Could not load user</p>';
+      }
+    },
+
+    closeDetail() {
+      $('userDrawer').classList.remove('open');
+      $('userDrawerBackdrop').classList.remove('open');
+    },
+
+    billingLabel(reason) {
+      const r = String(reason || '').toLowerCase();
+      const map = {
+        subscription_cycle: 'Renewal',
+        subscription_create: 'New subscription',
+        checkout_session_completed: 'Checkout',
+        admin_activation: 'Admin grant',
+        manual_sync: 'Stripe sync',
+        subscription_sync: 'Subscription sync'
+      };
+      if (map[r]) return map[r];
+      if (r.includes('renew') || r.includes('cycle')) return 'Renewal';
+      if (r.includes('create')) return 'New subscription';
+      return reason || '—';
+    },
+
+    copyText(txt) {
+      navigator.clipboard?.writeText(txt).then(() => App.toast.show('Copied', 'success')).catch(() => App.toast.show('Copy failed', 'error'));
+    },
+
+    async syncPages(id) {
+      App.toast.show('Fetching pages from Facebook…', 'info');
+      try {
+        const r = await fetch('/api/admin/users/' + encodeURIComponent(id) + '/sync-pages', { method: 'POST' });
+        const d = await r.json();
+        if (r.ok) {
+          App.toast.show('Synced ' + (d.count || 0) + ' page(s)', 'success');
+          this.openDetail(id);
+        } else App.toast.show(d.error || 'Sync failed', 'error');
+      } catch (e) { App.toast.show('Sync failed', 'error'); }
+    },
+
+
+    renderDetail(d) {
+      const u = d.user || {};
+      const a = d.analytics || {};
+      const pages = d.pages || [];
+      const uid = u.fb_user_id || '';
+      const self = this;
+      const remain = u.messages_remaining != null ? u.messages_remaining : Math.max(0, (u.messenger_messages_limit||0) - (u.messenger_messages_used||0));
+      $('detailTitle').textContent = userDisplayName(u);
+      $('detailSub').innerHTML = '<span class="mono">' + esc(uid) + '</span>' + (u.email ? ' · ' + esc(u.email) : '');
+
+      const exp = u.subscription_expires || u.free_trial_expires_at;
+      const activated = u.plan_activated_at || u.created_at;
+
+      let pageTable = '<p class="detail-empty">No pages on file. Use <strong>Sync pages from Facebook</strong> below.</p>';
+      if (pages.length) {
+        pageTable = '<table class="pages-table"><thead><tr><th>Page name</th><th>Page ID</th><th>Facebook URL</th><th></th></tr></thead><tbody>';
+        for (const pg of pages) {
+          const url = pg.url || ('https://www.facebook.com/' + pg.id);
+          pageTable += '<tr><td><strong>' + esc(pg.name) + '</strong></td><td class="mono">' + esc(pg.id) + '</td>';
+          pageTable += '<td class="page-url-cell"><a href="' + esc(url) + '" target="_blank" rel="noopener" class="page-url-link">' + esc(url) + '</a></td>';
+          pageTable += '<td><button type="button" class="btn btn-ghost btn-sm" onclick="App.users.copyText(\'' + esc(url).replace(/'/g, "\\'") + '\')">Copy</button></td></tr>';
+        }
+        pageTable += '</tbody></table>';
+      }
+
+      let payRows = '';
+      for (const pay of (d.payments || [])) {
+        payRows += '<tr><td>' + fmtDate(pay.created_at) + '</td><td>' + esc(pay.plan) + '</td><td>' + esc(self.billingLabel(pay.billing_reason)) + '</td>';
+        payRows += '<td style="font-weight:700;color:var(--green)">' + fmtMoney(pay.amount_cents) + '</td>';
+        payRows += '<td><span class="pay-status pay-' + esc(pay.status) + '">' + esc(pay.status) + '</span></td></tr>';
+      }
+
+      let timelineHtml = '<p class="detail-empty">No timeline events</p>';
+      if ((d.timeline || []).length) {
+        timelineHtml = '<div class="tl-list">';
+        for (const ev of (d.timeline || []).slice(0, 30)) {
+          const isPay = ev.type === 'payment';
+          const icon = isPay ? '💳' : (ev.plan === 'login' ? '🔐' : '📋');
+          const amt = isPay && ev.amountCents ? ' · ' + fmtMoney(ev.amountCents) : '';
+          const sub = isPay ? self.billingLabel(ev.detail) + ' · ' + (ev.plan || '') : (ev.detail || ev.plan || '');
+          timelineHtml += '<div class="tl-item"><div class="tl-dot">' + icon + '</div><div class="tl-body"><div class="tl-title">' + esc(sub) + amt + '</div><div class="tl-time">' + fmtTime(ev.at) + '</div></div></div>';
+        }
+        timelineHtml += '</div>';
+      }
+
+      let actHtml = '<p class="detail-empty">No activity</p>';
+      if ((d.activity || []).length) {
+        actHtml = '';
+        for (const act of (d.activity || []).slice(0, 20)) {
+          actHtml += '<div class="detail-act-row"><span class="act-badge ab-default">' + esc(act.action) + '</span><span>' + esc(act.detail || '') + '</span><span class="detail-act-time">' + fmtTime(act.created_at) + '</span></div>';
+        }
+      }
+
+      const html = [
+        '<div class="ua-hero">',
+        '<div class="ua-av">' + userInitial(u) + '</div>',
+        '<div class="ua-meta"><div class="ua-name">' + esc(userDisplayName(u)) + '</div>',
+        '<div class="ua-badges"><span class="' + planBadgeClass(u) + '">' + esc(planAdminLabel(u)) + '</span>',
+        u.stripe_subscription_id ? '<span class="ua-pill ok">Stripe active</span>' : '<span class="ua-pill">No Stripe</span>',
+        u.has_fb_token ? '<span class="ua-pill ok">FB token</span>' : '<span class="ua-pill warn">No token</span>',
+        '</div></div></div>',
+
+        '<div class="ua-kpi-grid">',
+        '<div class="ua-kpi highlight"><span class="ua-kpi-l">Lifetime revenue</span><span class="ua-kpi-v">' + fmtMoney(a.lifetimeValueCents || 0) + '</span></div>',
+        '<div class="ua-kpi"><span class="ua-kpi-l">Renewals</span><span class="ua-kpi-v">' + fmt(a.renewalCount || 0) + '</span></div>',
+        '<div class="ua-kpi"><span class="ua-kpi-l">New subs</span><span class="ua-kpi-v">' + fmt(a.newSubscriptionCount || 0) + '</span></div>',
+        '<div class="ua-kpi"><span class="ua-kpi-l">Payments</span><span class="ua-kpi-v">' + fmt(a.succeededCount || 0) + '</span></div>',
+        '<div class="ua-kpi"><span class="ua-kpi-l">Avg order</span><span class="ua-kpi-v">' + fmtMoney(a.avgOrderCents || 0) + '</span></div>',
+        '<div class="ua-kpi"><span class="ua-kpi-l">Logins</span><span class="ua-kpi-v">' + fmt(a.loginCount || 0) + '</span></div>',
+        '<div class="ua-kpi"><span class="ua-kpi-l">Msgs sent</span><span class="ua-kpi-v">' + fmt(a.sendCount || 0) + '</span></div>',
+        '<div class="ua-kpi"><span class="ua-kpi-l">Customer</span><span class="ua-kpi-v">' + fmt(a.daysAsCustomer || 0) + 'd</span></div>',
+        '</div>',
+
+        '<div class="detail-tabs">',
+        '<button type="button" class="dtab active" onclick="App.users.switchDetailTab(event,\'overview\')">Overview</button>',
+        '<button type="button" class="dtab" onclick="App.users.switchDetailTab(event,\'pages\')">Pages (' + pages.length + ')</button>',
+        '<button type="button" class="dtab" onclick="App.users.switchDetailTab(event,\'billing\')">Billing</button>',
+        '<button type="button" class="dtab" onclick="App.users.switchDetailTab(event,\'timeline\')">Timeline</button>',
+        '</div>',
+
+        '<div class="dtab-panel active" id="dtab-overview">',
+        '<div class="detail-grid">',
+        '<div class="detail-card"><div class="detail-label">Last IP</div><div class="detail-val mono">' + esc(u.last_login_ip || '—') + '</div></div>',
+        '<div class="detail-card"><div class="detail-label">Activated</div><div class="detail-val">' + fmtDate(activated) + '</div></div>',
+        '<div class="detail-card"><div class="detail-label">Expires</div><div class="detail-val">' + (exp ? fmtDate(exp) : '—') + '</div></div>',
+        '<div class="detail-card"><div class="detail-label">Messages left</div><div class="detail-val" style="color:var(--green);font-weight:800">' + fmt(remain) + '</div></div>',
+        '<div class="detail-card"><div class="detail-label">Usage</div><div class="detail-val">' + fmt(u.messenger_messages_used||0) + ' / ' + fmt(u.messenger_messages_limit||0) + '</div></div>',
+        '<div class="detail-card"><div class="detail-label">First payment</div><div class="detail-val">' + (a.firstPaymentAt ? fmtDate(a.firstPaymentAt) : '—') + '</div></div>',
+        '<div class="detail-card"><div class="detail-label">Last payment</div><div class="detail-val">' + (a.lastPaymentAt ? fmtDate(a.lastPaymentAt) : '—') + '</div></div>',
+        '<div class="detail-card"><div class="detail-label">Plan changes</div><div class="detail-val">' + fmt(a.planChangeCount || 0) + '</div></div>',
+        '</div>',
+        '<h4 class="detail-section-title">Recent activity</h4><div class="detail-activity">' + actHtml + '</div>',
+        '</div>',
+
+        '<div class="dtab-panel" id="dtab-pages">',
+        '<div class="dtab-toolbar"><button type="button" class="btn btn-primary btn-sm" onclick="App.users.syncPages(\'' + esc(uid) + '\')">Sync pages from Facebook</button></div>',
+        '<div class="detail-table-wrap pages-table-wrap">' + pageTable + '</div>',
+        '</div>',
+
+        '<div class="dtab-panel" id="dtab-billing">',
+        '<div class="ua-billing-summary">Renewals: <strong>' + fmt(a.renewalCount||0) + '</strong> · Failed: <strong>' + fmt(a.failedPayments||0) + '</strong> · LTV: <strong>' + fmtMoney(a.lifetimeValueCents||0) + '</strong></div>',
+        '<div class="detail-table-wrap">' + (payRows ? '<table><thead><tr><th>Date</th><th>Plan</th><th>Type</th><th>Amount</th><th>Status</th></tr></thead><tbody>' + payRows + '</tbody></table>' : '<p class="detail-empty">No payment records</p>') + '</div>',
+        '</div>',
+
+        '<div class="dtab-panel" id="dtab-timeline">' + timelineHtml + '</div>',
+
+        '<div class="detail-actions">',
+        '<button type="button" class="btn btn-primary btn-md" id="detailEditBtn">Edit plan</button>',
+        '<button type="button" class="btn btn-ghost btn-md" onclick="App.users.resetQuota(\'' + esc(uid) + '\')">Reset quota</button>',
+        '<button type="button" class="btn btn-ghost btn-md" onclick="App.users.exportUserReport(\'' + esc(uid) + '\')">Export JSON report</button>',
+        '</div>'
+      ].join('');
+
+      $('detailBody').innerHTML = html.replace(/<\/?motion[^>]*>/g, '');
+      const editBtn = $('detailEditBtn');
+      if (editBtn) editBtn.onclick = () => { App.users.closeDetail(); App.users.openEdit(u); };
+    },
+
+    switchDetailTab(ev, name) {
+      document.querySelectorAll('.dtab').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.dtab-panel').forEach(p => p.classList.remove('active'));
+      ev.target.classList.add('active');
+      const panel = document.getElementById('dtab-' + name);
+      if (panel) panel.classList.add('active');
+    },
+
+    exportUserReport(id) {
+      fetch('/api/admin/users/' + encodeURIComponent(id))
+        .then(r => r.json())
+        .then(d => {
+          const blob = new Blob([JSON.stringify(d, null, 2)], { type: 'application/json' });
+          const a = document.createElement('a');
+          a.href = URL.createObjectURL(blob);
+          a.download = 'user-' + id + '-report.json';
+          a.click();
+          App.toast.show('Report exported', 'success');
+        })
+        .catch(() => App.toast.show('Export failed', 'error'));
+    },
+
+    _confirm(title, msg, onConfirm) {
+      $('confirmTitle').textContent = title;
+      $('confirmMsg').textContent = msg;
+      $('confirmBtn').onclick = () => { App.modal.close('confirmOverlay'); onConfirm(); };
+      App.modal.open('confirmOverlay');
+    }
+  },
+
+  // ══════════════════════════════════════════════════════════
+  //  ACTIVITY
+  // ══════════════════════════════════════════════════════════
+  activity: {
+    filterChange() { App.state.activity.page=1; App.state.activity.action=$('actFilter').value; this.load(); },
+
+    async load(page, silent) {
+      if(page) App.state.activity.page = page;
+      const s = App.state.activity;
+      $('activityList').innerHTML = '<div class="loading-center"><span class="spinner spinner-lg"></span></div>';
+      try {
+        const p = new URLSearchParams({ p: s.page });
+        if(s.action) p.set('action', s.action);
+        const r = await fetch('/api/admin/activity?'+p);
+        const d = await r.json();
+        this.render(d);
+      } catch(e) {
+        $('activityList').innerHTML = '<div class="empty"><p style="color:var(--red)">Failed to load activity</p></div>';
+      }
+    },
+
+    render(d) {
+      const el = $('activityList');
+      if(!d.logs?.length){ el.innerHTML='<div class="empty"><div class="empty-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div><h3>No activity yet</h3><p>Events will appear here once users start using the app</p></div>'; $('actPagination').style.display='none'; return; }
+      const iconMap = {
+        login: { icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>', cls:'ai-login', bcls:'ab-login' },
+        send:  { icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>', cls:'ai-send', bcls:'ab-send' },
+      };
+      el.innerHTML = '<div class="activity-list">'+d.logs.map(l => {
+        const ic = iconMap[l.action] || { icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/></svg>', cls:'ai-default', bcls:'ab-default' };
+        return `<div class="act-item">
+          <div class="act-icon ${ic.cls}">${ic.icon}</div>
+          <div class="act-body">
+            <div class="act-action">
+              <span class="act-badge ${ic.bcls}">${esc(l.action||'event')}</span>
+              ${l.fb_user_id?`<span class="act-user">${esc(l.fb_user_id)}</span>`:''}
+            </div>
+            ${l.detail?`<div class="act-detail">${esc(l.detail)}</div>`:''}
+          </div>
+          <div class="act-time">${fmtTime(l.created_at)}</div>
+        </div>`;
+      }).join('')+'</div>';
+
+      // Pagination
+      const pg = $('actPagination');
+      if((d.pages||1) <= 1){ pg.style.display='none'; return; }
+      pg.style.display='flex';
+      const s = App.state.activity, tot=d.total||0, p=s.page, pages=d.pages||1;
+      const start=(p-1)*50+1, end=Math.min(p*50,tot);
+      $('actPgInfo').textContent=`Showing ${fmt(start)}–${fmt(end)} of ${fmt(tot)}`;
+      let html=`<button class="pg-btn" onclick="App.activity.load(${p-1})" ${p===1?'disabled':''}>‹</button>`;
+      for(let i=1;i<=pages;i++){
+        if(i===1||i===pages||Math.abs(i-p)<=1) html+=`<button class="pg-btn ${i===p?'active':''}" onclick="App.activity.load(${i})">${i}</button>`;
+        else if(Math.abs(i-p)===2) html+=`<span class="pg-sep">…</span>`;
+      }
+      html+=`<button class="pg-btn" onclick="App.activity.load(${p+1})" ${p===pages?'disabled':''}>›</button>`;
+      $('actPgBtns').innerHTML=html;
+    }
+  },
+
+  // ══════════════════════════════════════════════════════════
+  //  SUPPORT PAGE CONFIG
+  // ══════════════════════════════════════════════════════════
+  supportPage: {
+    _cfg: null,
+    async load() {
+      try {
+        const r = await fetch('/api/admin/support');
+        const d = await r.json();
+        this._cfg = d;
+        this.populate(d);
+      } catch (_) {}
+    },
+    populate(d) {
+      const inp = $('supportInput');
+      const nm  = $('supportName');
+      const em  = $('supportEmail');
+      const chip = $('supportStatusChip');
+      const prev = $('supportPreviewLink');
+      if (inp) inp.value = d.page_handle || '';
+      if (nm)  nm.value = d.page_name || '';
+      if (em)  em.value = d.email || '';
+      if (chip) {
+        if (d.enabled && d.page_handle) {
+          chip.textContent = 'Connected · @' + d.page_handle;
+          chip.style.background = 'rgba(16,185,129,.18)';
+          chip.style.color = '#34d399';
+        } else if (d.email) {
+          chip.textContent = 'Email only · ' + d.email;
+        } else {
+          chip.textContent = 'Not set';
+          chip.style.background = '';
+          chip.style.color = '';
+        }
+      }
+      if (prev) {
+        if (d.m_me_url) {
+          prev.href = d.m_me_url;
+          prev.style.display = '';
+        } else {
+          prev.style.display = 'none';
+        }
+      }
+    },
+    async save() {
+      const btn = $('supportSaveBtn');
+      const payload = {
+        page_input: $('supportInput').value.trim(),
+        page_name:  $('supportName').value.trim(),
+        email:      $('supportEmail').value.trim()
+      };
+      btn.disabled = true;
+      const old = btn.innerHTML;
+      btn.innerHTML = '<span class="spinner spinner-sm"></span> Saving…';
+      try {
+        const r = await fetch('/api/admin/support', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const d = await r.json();
+        if (!r.ok) throw new Error(d.error || 'Save failed');
+        this.populate(d);
+        App.toast.show('Support page saved', 'success');
+      } catch (e) {
+        App.toast.show(e.message || 'Save failed', 'error');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = old;
+      }
+    }
+  },
+
+  // ══════════════════════════════════════════════════════════
+  //  SUPPORT INBOX (live user chat)
+  // ══════════════════════════════════════════════════════════
+  support: {
+    threads: [],
+    selectedId: null,
+    pollHandle: null,
+    pollHandleThread: null,
+    _searchTimer: null,
+
+    escapeHtml(s) {
+      return String(s == null ? '' : s)
+        .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+        .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+    },
+    linkify(text) {
+      const h = this.escapeHtml(text);
+      return h.replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>');
+    },
+    formatTime(iso) {
+      if (!iso) return '';
+      const d = new Date(iso);
+      if (isNaN(d.getTime())) return '';
+      const today = new Date();
+      const sameDay = d.toDateString() === today.toDateString();
+      const opts = sameDay ? { hour:'numeric', minute:'2-digit' } : { month:'short', day:'numeric', hour:'numeric', minute:'2-digit' };
+      try { return d.toLocaleString([], opts); } catch (_) { return ''; }
+    },
+    timeAgo(iso) {
+      if (!iso) return '';
+      const d = new Date(iso);
+      if (isNaN(d.getTime())) return '';
+      const s = Math.max(0, (Date.now() - d.getTime()) / 1000);
+      if (s < 60) return 'just now';
+      if (s < 3600) return Math.floor(s/60) + 'm';
+      if (s < 86400) return Math.floor(s/3600) + 'h';
+      if (s < 604800) return Math.floor(s/86400) + 'd';
+      return d.toLocaleDateString([], { month:'short', day:'numeric' });
+    },
+    initials(name) {
+      const n = String(name || '').trim();
+      if (!n) return '?';
+      const parts = n.split(/\s+/).slice(0, 2);
+      return parts.map(p => p[0]).join('').toUpperCase();
+    },
+
+    async load(silent) {
+      const list = $('supportThreadList');
+      if (!list) return;
+      const status = $('supportFilter') ? $('supportFilter').value : 'all';
+      const search = $('supportSearch') ? $('supportSearch').value.trim() : '';
+      if (!silent) list.innerHTML = '<div class="loading-center"><span class="spinner spinner-lg"></span></div>';
+      try {
+        const q = new URLSearchParams();
+        if (status && status !== 'all') q.set('status', status);
+        if (search) q.set('search', search);
+        const r = await fetch('/api/admin/support/threads?' + q.toString());
+        const d = await r.json();
+        this.threads = d.threads || [];
+        this.renderList();
+        this.updateBadge(d.unread_total || 0);
+      } catch (e) {
+        list.innerHTML = '<div class="support-admin__empty" style="padding:24px;"><div class="support-admin__empty-title">Failed to load</div><div class="support-admin__empty-sub">Try refreshing.</div></div>';
+      }
+    },
+
+    updateBadge(n) {
+      const b = $('navSupportBadge');
+      if (!b) return;
+      if (n > 0) { b.textContent = String(n); b.style.display = ''; }
+      else b.style.display = 'none';
+    },
+
+    renderList() {
+      const list = $('supportThreadList');
+      if (!list) return;
+      if (!this.threads.length) {
+        list.innerHTML = '<div class="support-admin__empty" style="padding:24px;"><div class="support-admin__empty-title">No conversations yet</div><div class="support-admin__empty-sub">Once users open the Contact us chat, threads appear here.</div></div>';
+        return;
+      }
+      let html = '';
+      for (const t of this.threads) {
+        const unread = Number(t.admin_unread || 0);
+        const active = String(t.id) === String(this.selectedId);
+        const name = this.escapeHtml(t.fb_name || t.fb_user_id);
+        const preview = this.escapeHtml(t.last_message_preview || 'No messages yet');
+        const prefix = t.last_message_from === 'admin' ? '<span style="color:#94a3b8">You: </span>' : '';
+        html += `
+          <div class="support-thread${active ? ' support-thread--active' : ''}${unread ? ' support-thread--unread' : ''}" onclick="App.support.openThread(${t.id})">
+            <div class="support-thread__avatar" ${t.fb_picture ? `style="background-image:url('${this.escapeHtml(t.fb_picture)}')"` : ''}>
+              ${t.fb_picture ? '' : this.initials(t.fb_name)}
+            </div>
+            <div class="support-thread__meta">
+              <div class="support-thread__top">
+                <span class="support-thread__name">${name}</span>
+                <span class="support-thread__time">${this.timeAgo(t.last_message_at || t.created_at)}</span>
+              </div>
+              <div class="support-thread__preview">${prefix}${preview}</div>
+            </div>
+            ${unread ? `<span class="support-thread__badge">${unread}</span>` : ''}
+          </div>`;
+      }
+      list.innerHTML = html;
+    },
+
+    async openThread(id) {
+      this.selectedId = id;
+      const chat = $('supportAdminChat');
+      chat.innerHTML = '<div class="loading-center" style="padding:40px;"><span class="spinner spinner-lg"></span></div>';
+      try {
+        const r = await fetch('/api/admin/support/threads/' + id);
+        const d = await r.json();
+        await fetch('/api/admin/support/threads/' + id + '/read', { method: 'POST' });
+        this.renderChat(d.thread, d.messages || []);
+        this.renderList();
+        this.load(true);
+        this.startThreadPoll(id);
+      } catch (e) {
+        chat.innerHTML = '<div class="support-admin__empty"><div class="support-admin__empty-title">Failed to load</div></div>';
+      }
+    },
+
+    renderChat(thread, messages) {
+      const chat = $('supportAdminChat');
+      const name = this.escapeHtml(thread.fb_name || thread.fb_user_id);
+      const avatar = thread.fb_picture
+        ? `style="background-image:url('${this.escapeHtml(thread.fb_picture)}')"`
+        : '';
+      const initials = thread.fb_picture ? '' : this.initials(thread.fb_name);
+      const statusBtn = thread.status === 'open'
+        ? `<button class="btn btn-primary btn-sm" onclick="App.support.markResolved(${thread.id})" title="Closes this ticket and clears the chat from the user's widget">
+             <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" style="margin-right:4px;"><polyline points="20 6 9 17 4 12"/></svg>
+             Mark as done
+           </button>`
+        : `<button class="btn btn-ghost btn-sm" onclick="App.support.toggleStatus(${thread.id}, 'open')">Reopen</button>`;
+
+      let msgHtml = '';
+      let lastDate = '';
+      for (const m of messages) {
+        const d = new Date(m.created_at);
+        const day = isNaN(d.getTime()) ? '' : d.toDateString();
+        if (day && day !== lastDate) {
+          lastDate = day;
+          const today = new Date().toDateString();
+          const label = day === today ? 'Today' : d.toLocaleDateString([], { month:'short', day:'numeric' });
+          msgHtml += `<div class="sc-date">${label}</div>`;
+        }
+        const me = m.sender_type === 'admin';
+        msgHtml += `
+          <div class="sc-msg sc-msg--${me ? 'out' : 'in'}">
+            <div class="sc-bubble">${this.linkify(m.body)}</div>
+            <div class="sc-time">${this.formatTime(m.created_at)}</div>
+          </div>`;
+      }
+      if (!messages.length) {
+        msgHtml = '<div class="support-admin__empty" style="padding:40px 20px;"><div class="support-admin__empty-title">No messages yet</div></div>';
+      }
+
+      let resolvedNote = '';
+      if (thread.cleared_at) {
+        const dt = new Date(thread.cleared_at);
+        resolvedNote = ` · <span style="color:#94a3b8">Last resolved ${isNaN(dt.getTime()) ? '' : dt.toLocaleString([], {month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})}</span>`;
+      }
+      chat.innerHTML = `
+        <header class="sc-hdr">
+          <div class="sc-hdr-avatar" ${avatar}>${initials}</div>
+          <div class="sc-hdr-meta">
+            <div class="sc-hdr-name">${name}</div>
+            <div class="sc-hdr-sub">FB ID: ${this.escapeHtml(thread.fb_user_id)} · ${thread.status === 'open' ? '<span style="color:#34d399">Open</span>' : '<span style="color:#fbbf24">Closed</span>'}${resolvedNote}</div>
+          </div>
+          <div class="sc-hdr-actions">${statusBtn}</div>
+        </header>
+        <div class="sc-body" id="scBody">${msgHtml}</div>
+        <footer class="sc-ftr">
+          <form id="scForm" onsubmit="event.preventDefault();App.support.sendReply()">
+            <textarea id="scInput" rows="2" placeholder="Type your reply…" maxlength="4000"></textarea>
+            <button type="submit" class="btn btn-primary btn-sm" id="scSend">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+              Send
+            </button>
+          </form>
+        </footer>`;
+
+      const body = $('scBody');
+      if (body) body.scrollTop = body.scrollHeight;
+
+      const input = $('scInput');
+      if (input) {
+        input.focus();
+        input.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            this.sendReply();
+          }
+        });
+      }
+    },
+
+    async sendReply() {
+      const input = $('scInput');
+      const sendBtn = $('scSend');
+      if (!input || !this.selectedId) return;
+      const body = input.value.trim();
+      if (!body) return;
+      sendBtn.disabled = true;
+      try {
+        const r = await fetch('/api/admin/support/threads/' + this.selectedId + '/reply', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ body })
+        });
+        const d = await r.json();
+        if (!r.ok) throw new Error(d.error || 'Send failed');
+        input.value = '';
+        const scBody = $('scBody');
+        const m = d.message;
+        if (scBody && m) {
+          const html = `<div class="sc-msg sc-msg--out"><div class="sc-bubble">${this.linkify(m.body)}</div><div class="sc-time">${this.formatTime(m.created_at)}</div></div>`;
+          // Remove empty-state if present
+          const empty = scBody.querySelector('.support-admin__empty');
+          if (empty) empty.remove();
+          scBody.insertAdjacentHTML('beforeend', html);
+          scBody.scrollTop = scBody.scrollHeight;
+        }
+        App.toast.show('Reply sent', 'success');
+        this.load(true);
+      } catch (e) {
+        App.toast.show(e.message || 'Send failed', 'error');
+      } finally {
+        sendBtn.disabled = false;
+        input.focus();
+      }
+    },
+
+    async toggleStatus(id, status) {
+      try {
+        await fetch('/api/admin/support/threads/' + id + '/status', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status })
+        });
+        this.openThread(id);
+      } catch (e) { App.toast.show('Failed', 'error'); }
+    },
+
+    async markResolved(id) {
+      if (!confirm('Mark this conversation as done?\n\nThe user\'s chat window will be cleared. You will still see the full history here.')) return;
+      try {
+        const r = await fetch('/api/admin/support/threads/' + id + '/resolve', { method: 'POST' });
+        if (!r.ok) throw new Error('Failed');
+        App.toast.show('Conversation resolved · User chat cleared', 'success');
+        this.openThread(id);
+        this.load(true);
+      } catch (e) {
+        App.toast.show(e.message || 'Failed', 'error');
+      }
+    },
+
+    startThreadPoll(id) {
+      if (this.pollHandleThread) clearInterval(this.pollHandleThread);
+      this.pollHandleThread = setInterval(async () => {
+        if (this.selectedId !== id || App.state.view !== 'support') return;
+        try {
+          const r = await fetch('/api/admin/support/threads/' + id);
+          const d = await r.json();
+          // Re-render only if message count differs
+          const cur = document.querySelectorAll('#scBody .sc-msg').length;
+          if ((d.messages || []).length !== cur) {
+            this.renderChat(d.thread, d.messages || []);
+          }
+        } catch (_) {}
+      }, 4000);
+    },
+
+    startListPoll() {
+      if (this.pollHandle) clearInterval(this.pollHandle);
+      this.pollHandle = setInterval(() => {
+        if (App.state.view !== 'support') return;
+        this.load(true);
+      }, 8000);
+    },
+
+    bindFilters() {
+      const f = $('supportFilter');
+      const s = $('supportSearch');
+      if (f && !f._bound) {
+        f._bound = true;
+        f.addEventListener('change', () => this.load());
+      }
+      if (s && !s._bound) {
+        s._bound = true;
+        s.addEventListener('input', () => {
+          clearTimeout(this._searchTimer);
+          this._searchTimer = setTimeout(() => this.load(), 300);
+        });
+      }
+    },
+
+    initOnce() {
+      if (this._inited) return;
+      this._inited = true;
+      this.bindFilters();
+      this.startListPoll();
+      this.bindSocket();
+      // Background polling for badge even when not on the support view
+      setInterval(async () => {
+        if (App.state.view === 'support') return;
+        try {
+          const r = await fetch('/api/admin/support/threads?status=unread&limit=1');
+          const d = await r.json();
+          this.updateBadge(d.unread_total || 0);
+        } catch (_) {}
+      }, 10000);
+    },
+
+    bindSocket() {
+      if (this._socket || typeof io !== 'function') return;
+      try {
+        this._socket = io({ path: '/socket.io', transports: ['websocket', 'polling'] });
+        this._socket.on('connect', () => {
+          try { this._socket.emit('join_admin_support'); } catch (_) {}
+        });
+        this._socket.on('support:new_message', (payload) => {
+          if (!payload) return;
+          // If the affected thread is open, append the message immediately
+          if (this.selectedId && Number(this.selectedId) === Number(payload.thread_id) && payload.message) {
+            const scBody = document.getElementById('scBody');
+            if (scBody) {
+              const me = payload.message.sender_type === 'admin';
+              const empty = scBody.querySelector('.support-admin__empty');
+              if (empty) empty.remove();
+              const html = `<div class="sc-msg sc-msg--${me ? 'out' : 'in'}"><div class="sc-bubble">${this.linkify(payload.message.body)}</div><div class="sc-time">${this.formatTime(payload.message.created_at)}</div></div>`;
+              scBody.insertAdjacentHTML('beforeend', html);
+              scBody.scrollTop = scBody.scrollHeight;
+            }
+            // Mark thread read since admin is viewing it
+            if (payload.message.sender_type === 'user') {
+              fetch('/api/admin/support/threads/' + this.selectedId + '/read', { method: 'POST' }).catch(() => {});
+            }
+          }
+          // Refresh list to reflect new ordering/unread counts
+          this.load(true);
+          // Visual ping in sidebar
+          const nav = document.getElementById('nav-support');
+          if (nav && App.state.view !== 'support') {
+            nav.classList.add('nav-support--pulse');
+            setTimeout(() => nav.classList.remove('nav-support--pulse'), 2400);
+          }
+        });
+      } catch (e) {
+        console.warn('[admin support] socket bind failed', e);
+      }
+    }
+  },
+
+  // ══════════════════════════════════════════════════════════
+  //  ANNOUNCEMENTS / NOTIFICATIONS
+  // ══════════════════════════════════════════════════════════
+  notifications: {
+    _cache: [],
+    async load(silent) {
+      const list = $('annList');
+      if (!list) return;
+      if (!silent) list.innerHTML = '<div class="loading-center"><span class="spinner spinner-lg"></span></div>';
+      try {
+        const r = await fetch('/api/admin/notifications?limit=100');
+        const d = await r.json();
+        this._cache = d.notifications || [];
+        this.render(this._cache);
+        $('annTotal').textContent = this._cache.length;
+      } catch (e) {
+        list.innerHTML = '<div class="empty-card"><p>Failed to load notifications.</p></div>';
+      }
+    },
+
+    toggleTarget() {
+      const t = $('annTarget').value;
+      $('annUserRow').style.display = t === 'user' ? '' : 'none';
+    },
+
+    resetForm() {
+      ['annTitle','annBody','annLink','annUserId','annExpires'].forEach(id => { const e = $(id); if (e) e.value = ''; });
+      $('annSeverity').value = 'info';
+      $('annTarget').value = 'all';
+      this.toggleTarget();
+    },
+
+    async send() {
+      const btn = $('annSendBtn');
+      const payload = {
+        title:    $('annTitle').value.trim(),
+        body:     $('annBody').value.trim(),
+        link_url: $('annLink').value.trim(),
+        severity: $('annSeverity').value,
+        target_type: $('annTarget').value,
+        target_user_id: $('annTarget').value === 'user' ? $('annUserId').value.trim() : null,
+        expires_at: $('annExpires').value || null
+      };
+      if (!payload.title || !payload.body) {
+        App.toast.show('Title and body are required', 'error');
+        return;
+      }
+      if (payload.target_type === 'user' && !payload.target_user_id) {
+        App.toast.show('Specify a target user FB ID', 'error');
+        return;
+      }
+      btn.disabled = true;
+      const oldHtml = btn.innerHTML;
+      btn.innerHTML = '<span class="spinner spinner-sm"></span> Sending…';
+      try {
+        const r = await fetch('/api/admin/notifications', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const d = await r.json();
+        if (!r.ok) throw new Error(d.error || 'Send failed');
+        App.toast.show('Notification sent', 'success');
+        this.resetForm();
+        this.load(true);
+      } catch (e) {
+        App.toast.show(e.message || 'Send failed', 'error');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = oldHtml;
+      }
+    },
+
+    async delete(id) {
+      if (!confirm('Delete this notification? Users who already received it will keep their read state but the entry is removed.')) return;
+      try {
+        const r = await fetch('/api/admin/notifications/' + id, { method: 'DELETE' });
+        if (!r.ok) throw new Error('Failed');
+        App.toast.show('Notification deleted', 'success');
+        this.load(true);
+      } catch (e) {
+        App.toast.show('Failed to delete', 'error');
+      }
+    },
+
+    render(items) {
+      const list = $('annList');
+      if (!list) return;
+      if (!items.length) {
+        list.innerHTML = '<div class="empty-card"><p>No notifications sent yet. Compose one on the left.</p></div>';
+        return;
+      }
+      list.innerHTML = items.map(n => {
+        const when = new Date(n.created_at).toLocaleString();
+        const sevCls = 'ann-sev ann-sev--' + (n.severity || 'info');
+        const target = n.target_type === 'user'
+          ? `<span class="ann-target ann-target--user" title="Sent to user ${esc(n.target_user_id)}">User · ${esc(n.target_user_id || '')}</span>`
+          : '<span class="ann-target ann-target--all">All users</span>';
+        const expired = n.expires_at && new Date(n.expires_at) < new Date();
+        const link = n.link_url ? `<a class="ann-link" href="${esc(n.link_url)}" target="_blank" rel="noopener">Open link →</a>` : '';
+        const pct = Math.min(100, Math.max(0, Number(n.read_percent) || 0));
+        const readCount = Number(n.read_count) || 0;
+        const eligible = Number(n.total_eligible) || 0;
+        const pctClass = pct >= 75 ? 'ann-pct--hi' : pct >= 40 ? 'ann-pct--mid' : 'ann-pct--lo';
+        return `<div class="ann-item ${expired ? 'is-expired' : ''}">
+          <div class="ann-item-head">
+            <span class="${sevCls}">${(n.severity || 'info').toUpperCase()}</span>
+            ${target}
+            ${expired ? '<span class="ann-target ann-target--expired">EXPIRED</span>' : ''}
+            <span class="ann-meta">${when}</span>
+            <button class="ann-del" onclick="App.notifications.delete(${n.id})" title="Delete">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/></svg>
+            </button>
+          </div>
+          <div class="ann-item-title">${esc(n.title || '')}</div>
+          <div class="ann-item-body">${esc(n.body || '')}</div>
+          ${link}
+          <div class="ann-stats">
+            <div class="ann-stats-bar"><div class="ann-stats-fill ${pctClass}" style="width:${pct}%"></div></div>
+            <div class="ann-stats-meta">
+              <span class="ann-stats-pct ${pctClass}">${pct.toFixed(1)}%</span>
+              <span>${readCount.toLocaleString()} / ${eligible.toLocaleString()} read</span>
+              <button class="ann-readers-btn" onclick="App.notifications.openReaders(${n.id})">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+                View readers
+              </button>
+            </div>
+          </div>
+        </div>`;
+      }).join('');
+    },
+
+    async openReaders(id) {
+      const overlay = $('readersOverlay');
+      const body = $('readersBody');
+      const title = $('readersTitle');
+      const sub = $('readersSub');
+      App.modal.open('readersOverlay');
+      body.innerHTML = '<div class="loading-center"><span class="spinner spinner-lg"></span></div>';
+      title.textContent = 'Notification readers';
+      sub.textContent = '';
+      try {
+        const r = await fetch('/api/admin/notifications/' + id + '/stats');
+        if (!r.ok) throw new Error('Failed');
+        const d = await r.json();
+        title.textContent = d.title || 'Notification';
+        const targetLbl = d.target_type === 'user' ? `Sent to user ${esc(d.target_user_id || '')}` : 'Sent to all users';
+        sub.innerHTML = `${targetLbl} · <strong>${d.read_count.toLocaleString()}</strong> of <strong>${d.total_eligible.toLocaleString()}</strong> read (<strong>${d.read_percent.toFixed(1)}%</strong>) · sent ${new Date(d.created_at).toLocaleString()}`;
+        if (!d.readers.length) {
+          body.innerHTML = '<div class="empty-card"><p>No one has read this notification yet.</p></div>';
+          return;
+        }
+        body.innerHTML = `
+          <div class="readers-list">
+            ${d.readers.map(u => {
+              const name = u.fb_name || ('User ' + (u.fb_user_id || '').slice(-5));
+              const initial = name.trim().charAt(0).toUpperCase();
+              const when = new Date(u.read_at).toLocaleString();
+              const plan = u.plan ? `<span class="reader-plan reader-plan--${esc(u.plan)}">${esc(u.plan)}</span>` : '';
+              return `<div class="reader-row">
+                <div class="reader-avatar">${esc(initial)}</div>
+                <div class="reader-body">
+                  <div class="reader-name">${esc(name)} ${plan}</div>
+                  <div class="reader-meta">${esc(u.fb_user_id || '')} · read ${when}</div>
+                </div>
+              </div>`;
+            }).join('')}
+          </div>`;
+      } catch (e) {
+        body.innerHTML = '<div class="empty-card"><p style="color:var(--red)">Failed to load readers.</p></div>';
+      }
+    }
+  },
+
+  // ══════════════════════════════════════════════════════════
+  //  DATABASE HEALTH
+  // ══════════════════════════════════════════════════════════
+  database: {
+    async load(silent) {
+      const root = $('dbHealthRoot');
+      if (!root) return;
+      if (!silent) root.innerHTML = '<div class="loading-center"><span class="spinner spinner-lg"></span></div>';
+      try {
+        const r = await fetch('/api/admin/database');
+        const d = await r.json();
+        this.render(d);
+        this.updateBadge(d);
+      } catch (e) {
+        root.innerHTML = '<div class="panel"><p style="padding:24px;color:var(--red)">Failed to load database health</p></div>';
+      }
+    },
+
+    updateBadge(d) {
+      const b = $('dbHealthBadge');
+      if (!b) return;
+      if (!d.connected) { b.textContent = 'ERR'; b.style.display = ''; b.style.background = 'rgba(239,68,68,.2)'; b.style.color = 'var(--red)'; return; }
+      const map = { healthy: ['OK', 'rgba(34,197,94,.2)', 'var(--green)'], warning: ['!', 'rgba(245,158,11,.2)', 'var(--amber)'], critical: ['!!', 'rgba(239,68,68,.2)', 'var(--red)'] };
+      const [txt, bg, col] = map[d.health] || map.healthy;
+      b.textContent = txt; b.style.display = ''; b.style.background = bg; b.style.color = col;
+    },
+
+    healthClass(h) {
+      return h === 'healthy' ? 'db-h-ok' : (h === 'warning' ? 'db-h-warn' : 'db-h-crit');
+    },
+
+    render(d) {
+      const root = $('dbHealthRoot');
+      if (!d.connected) {
+        root.innerHTML = '<div class="panel"><div class="db-alert crit"><strong>Database disconnected</strong><p>' + esc(d.error || 'Unknown error') + '</p></div></div>';
+        return;
+      }
+
+      const totalRows = (d.tables || []).reduce((s, t) => s + (t.rows || 0), 0);
+      const hc = this.healthClass(d.health);
+      const quotaBar = d.quotaBytes ? (
+        '<div class="db-storage-bar"><div class="db-storage-fill ' + hc + '" style="width:' + Math.min(100, d.usedPercent || 0) + '%"></div></div>' +
+        '<div class="db-storage-labels"><span>Used: ' + fmtBytes(d.totalBytes) + ' (' + (d.usedPercent || 0) + '%)</span><span>Free: ' + fmtBytes(d.remainingBytes) + ' / ' + fmtBytes(d.quotaBytes) + '</span></div>'
+      ) : (
+        '<div class="db-storage-bar db-storage-unknown"><div class="db-storage-fill ' + hc + '" style="width:100%"></div></div>' +
+        '<div class="db-storage-labels"><span>Current size: <strong>' + fmtBytes(d.totalBytes) + '</strong></span></div>' +
+        '<p class="db-hint">Remaining quota bar: set <code>DB_QUOTA_MB</code> or <code>MYSQL_QUOTA_MB</code> on server (e.g. Railway MySQL plan limit).</p>'
+      );
+
+      let hostDiskHtml = '';
+      if (d.hostDisk) {
+        const hd = d.hostDisk;
+        hostDiskHtml = '<div class="panel db-host-disk"><div class="panel-title">Server disk (' + esc(hd.path) + ')</div>' +
+          '<div class="db-storage-bar" style="margin-top:12px"><div class="db-storage-fill ' + (hd.usedPercent >= 90 ? 'db-h-crit' : hd.usedPercent >= 75 ? 'db-h-warn' : 'db-h-ok') + '" style="width:' + hd.usedPercent + '%"></div></div>' +
+          '<div class="db-storage-labels"><span>Used: ' + fmtBytes(hd.usedBytes) + '</span><span>Free: ' + fmtBytes(hd.freeBytes) + ' / ' + fmtBytes(hd.totalBytes) + '</span></div></div>';
+      }
+
+      const maxTable = Math.max(...(d.tables || []).map(t => t.totalBytes), 1);
+      const tableRows = (d.tables || []).map(t => {
+        const pct = Math.round((t.totalBytes / maxTable) * 100);
+        return '<tr><td><strong>' + esc(t.name) + '</strong></td><td style="text-align:right">' + fmt(t.rows) + '</td>' +
+          '<td style="text-align:right">' + fmtBytes(t.dataBytes) + '</td><td style="text-align:right">' + fmtBytes(t.indexBytes) + '</td>' +
+          '<td style="text-align:right;font-weight:700">' + fmtBytes(t.totalBytes) + '</td>' +
+          '<td class="db-bar-cell"><div class="db-mini-bar"><div style="width:' + pct + '%"></div></div></td></tr>';
+      }).join('');
+
+      const st = d.status || {};
+      const vr = d.variables || {};
+
+      root.innerHTML =
+        '<div class="db-status-row">' +
+        '<span class="db-health-pill ' + hc + '">' + esc(d.health).toUpperCase() + '</span>' +
+        '<span class="db-meta">MySQL ' + esc(vr.version || '') + ' · DB <strong>' + esc(d.database) + '</strong> · Ping <strong>' + d.pingMs + 'ms</strong></span>' +
+        '</div>' +
+
+        '<div class="ua-kpi-grid db-kpi-grid">' +
+        '<div class="ua-kpi highlight"><span class="ua-kpi-l">Database size</span><span class="ua-kpi-v">' + fmtBytes(d.totalBytes) + '</span></div>' +
+        '<div class="ua-kpi"><span class="ua-kpi-l">Data</span><span class="ua-kpi-v">' + fmtBytes(d.dataBytes) + '</span></div>' +
+        '<div class="ua-kpi"><span class="ua-kpi-l">Indexes</span><span class="ua-kpi-v">' + fmtBytes(d.indexBytes) + '</span></div>' +
+        '<div class="ua-kpi"><span class="ua-kpi-l">Tables</span><span class="ua-kpi-v">' + fmt(d.tableCount) + '</span></div>' +
+        '<div class="ua-kpi"><span class="ua-kpi-l">Est. rows</span><span class="ua-kpi-v">' + fmt(totalRows) + '</span></div>' +
+        '<div class="ua-kpi"><span class="ua-kpi-l">Fragmented</span><span class="ua-kpi-v">' + fmtBytes(d.freeBytes) + '</span></div>' +
+        '<div class="ua-kpi"><span class="ua-kpi-l">Uptime</span><span class="ua-kpi-v">' + fmtUptime(st.uptimeSeconds) + '</span></div>' +
+        '<div class="ua-kpi"><span class="ua-kpi-l">Connections</span><span class="ua-kpi-v">' + fmt(st.threadsConnected) + '/' + fmt(vr.maxConnections) + '</span></div>' +
+        '</div>' +
+
+        '<div class="panel db-storage-panel"><div class="panel-title">Storage usage</div>' + quotaBar + '</div>' +
+        hostDiskHtml +
+
+        '<div class="panel"><div class="panel-head"><div class="panel-title">Tables by size</div></div>' +
+        '<div class="detail-table-wrap"><table class="pages-table"><thead><tr><th>Table</th><th style="text-align:right">Rows</th><th style="text-align:right">Data</th><th style="text-align:right">Index</th><th style="text-align:right">Total</th><th>Share</th></tr></thead><tbody>' +
+        (tableRows || '<tr><td colspan="6" class="detail-empty">No tables</td></tr>') + '</tbody></table></div></div>' +
+
+        '<div class="db-two-col">' +
+        '<div class="panel"><div class="panel-title">Performance</div><ul class="db-info-list">' +
+        '<li>Buffer pool hit: <strong>' + (st.bufferHitRate != null ? st.bufferHitRate + '%' : '—') + '</strong></li>' +
+        '<li>Slow queries: <strong>' + fmt(st.slowQueries) + '</strong></li>' +
+        '<li>Total queries: <strong>' + fmt(st.queries) + '</strong></li>' +
+        '<li>Threads running: <strong>' + fmt(st.threadsRunning) + '</strong></li>' +
+        '<li>Aborted connects: <strong>' + fmt(st.abortedConnects) + '</strong></li>' +
+        '<li>Network in/out: <strong>' + fmtBytes(st.bytesReceived) + ' / ' + fmtBytes(st.bytesSent) + '</strong></li>' +
+        '</ul></div>' +
+        '<div class="panel"><div class="panel-title">Configuration</div><ul class="db-info-list">' +
+        '<li>InnoDB buffer: <strong>' + fmtBytes(vr.bufferPoolBytes) + '</strong></li>' +
+        '<li>App pool limit: <strong>' + fmt((d.pool || {}).connectionLimit) + '</strong></li>' +
+        '<li>Charset: <strong>' + esc(vr.charset) + '</strong></li>' +
+        '<li>Collation: <strong>' + esc(vr.collation) + '</strong></li>' +
+        '<li>Data directory: <span class="mono" style="font-size:11px">' + esc(vr.datadir) + '</span></li>' +
+        '<li>Comment: <span class="mono" style="font-size:11px">' + esc(vr.comment) + '</span></li>' +
+        '</ul></div></div>';
+
+    }
+  }
+};
+
+// ══════════════════════════════════════════════════════════════
+//  LOGIN
+// ══════════════════════════════════════════════════════════════
+function togglePass() {
+  const inp = $('loginPass');
+  const isPass = inp.type === 'password';
+  inp.type = isPass ? 'text' : 'password';
+  $('eyeShow').style.display = isPass ? 'none' : '';
+  $('eyeHide').style.display = isPass ? '' : 'none';
+}
+
+$('loginPass').addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); });
+
+async function doLogin() {
+  const pass = $('loginPass').value.trim();
+  if(!pass) return;
+  const btn = $('loginBtn');
+  btn.innerHTML = '<span class="spinner"></span> Signing in…';
+  btn.disabled = true;
+  $('loginErr').style.display = 'none';
+  try {
+    const r = await fetch('/api/admin/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:pass})});
+    if(r.ok){
+      $('loginScreen').style.display = 'none';
+      $('adminApp').style.display = 'block';
+      App.init();
+    } else {
+      $('loginErr').style.display = 'block';
+    }
+  } catch(e){ App.toast.show('Connection error','error'); }
+  btn.innerHTML = 'Sign In to Admin';
+  btn.disabled = false;
+}
+
+async function doLogout() {
+  await fetch('/api/admin/logout',{method:'POST'});
+  location.reload();
+}
+
+// Auto-check session
+fetch('/api/admin/stats').then(r => {
+  if(r.ok){
+    $('loginScreen').style.display = 'none';
+    $('adminApp').style.display = 'block';
+    App.init();
+  }
+}).catch(()=>{});
+</script>
+</body>
+</html>

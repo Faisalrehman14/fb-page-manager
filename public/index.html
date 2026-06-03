@@ -1,0 +1,3051 @@
+
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="color-scheme" content="dark light">
+<script>
+(function () {
+  try {
+    var isLight = false;
+    var raw = localStorage.getItem('fbcast.settings.v1');
+    if (raw) {
+      var s = JSON.parse(raw);
+      var t = s.appearance && s.appearance.theme;
+      if (t === 'light') isLight = true;
+      else if (t === 'dark') isLight = false;
+      else if (t === 'system' && window.matchMedia) {
+        isLight = window.matchMedia('(prefers-color-scheme: light)').matches;
+      }
+    }
+    if (!raw) {
+      var saved = localStorage.getItem('promo_theme');
+      isLight = saved === 'light';
+    }
+    document.documentElement.setAttribute('data-theme', isLight ? 'light' : 'dark');
+    document.documentElement.style.colorScheme = isLight ? 'light' : 'dark';
+    document.documentElement.classList.toggle('theme-dark', !isLight);
+    document.documentElement.classList.toggle('theme-light', isLight);
+  } catch (e) {
+    document.documentElement.setAttribute('data-theme', 'dark');
+    document.documentElement.style.colorScheme = 'dark';
+  }
+})();
+</script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FBCast Pro — Facebook Broadcast Platform</title>
+<meta name="description" content="Broadcast messages to all your Facebook Page followers instantly. Real-time tracking, ISP bypass, built for businesses worldwide.">
+<meta name="robots" content="index, follow">
+<meta property="og:title" content="FBCast Pro — Facebook Broadcast Platform">
+<meta property="og:description" content="Send personalized messages to thousands of Facebook followers in minutes.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="FBCast Pro">
+<meta property="og:url" content="{{SITE_URL}}">
+<meta property="og:image" content="{{SITE_URL_NO_SLASH}}/images/cp.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="theme-color" content="#060a16" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#eef2ff" media="(prefers-color-scheme: light)">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="FBCast Pro — Facebook Broadcast Platform">
+<meta name="twitter:description" content="Broadcast messages to all your Facebook Page followers instantly.">
+<meta name="twitter:image" content="{{SITE_URL_NO_SLASH}}/images/cp.png">
+<link rel="canonical" href="{{SITE_URL}}">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+<link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/webfonts/fa-solid-900.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/webfonts/fa-brands-400.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="/images/logo-32.webp" as="image" type="image/webp" fetchpriority="high">
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
+<link rel="apple-touch-icon" href="/images/logo-180.png">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+<link rel="stylesheet" href="assets/css/index.css?v={{VER}}">
+<link rel="stylesheet" href="assets/css/fbc-theme.css?v={{VER}}">
+<link rel="stylesheet" href="assets/css/ui-components.css?v={{VER}}">
+
+<!-- UI Assets -->
+<link rel="stylesheet" href="assets/css/messenger.css?v={{VER}}">
+<link rel="stylesheet" href="assets/css/messenger-inbox-pro.css?v={{VER}}">
+<link rel="stylesheet" href="assets/css/design-system.css?v={{VER}}">
+<link rel="stylesheet" href="assets/css/app-shell.css?v={{VER}}">
+<link rel="stylesheet" href="assets/css/saas.css?v={{VER}}">
+<link rel="stylesheet" href="assets/css/saas-topbar.css?v={{VER}}">
+<link rel="stylesheet" href="assets/css/saas-premium.css?v={{VER}}">
+<link rel="stylesheet" href="assets/css/home-dashboard.css?v={{VER}}">
+<link rel="stylesheet" href="assets/css/saas-pro.css?v={{VER}}">
+<link rel="stylesheet" href="assets/css/dashboard-premium.css?v={{VER}}">
+<link rel="stylesheet" href="assets/css/theme-light.bundle.css?v={{VER}}">
+<link rel="stylesheet" href="assets/css/scheduling.css?v={{VER}}">
+<link rel="stylesheet" href="assets/css/theme-saas.css?v={{VER}}">
+<link rel="stylesheet" href="assets/css/theme-final.css?v={{VER}}">
+<link rel="stylesheet" href="assets/css/saas-polish.css?v={{VER}}">
+<link rel="stylesheet" href="assets/css/app-mobile-nav.css?v={{VER}}">
+<link rel="stylesheet" href="assets/css/ui-overhaul.css?v={{VER}}">
+<link rel="stylesheet" href="assets/css/production-ui.css?v={{VER}}">
+<link rel="stylesheet" href="assets/css/brand-logo.css?v={{VER}}">
+<link rel="stylesheet" href="assets/css/professional-theme.css?v={{VER}}">
+</head>
+<body>
+<script>
+(function () {
+  try {
+    if (document.documentElement.getAttribute('data-theme') === 'light') {
+      document.body.classList.add('light');
+    }
+    var p = new URLSearchParams(window.location.search);
+    if (p.get('fb_connected') === '1' || sessionStorage.getItem('fbcast_oauth_pending') === '1') {
+      document.documentElement.classList.add('auth-booting');
+    }
+  } catch (_) {}
+})();
+</script>
+<ul class="skip-links" aria-label="Skip links">
+  <li><a class="skip-link" href="#landingMain">Skip to main content</a></li>
+  <li><a class="skip-link" href="#appMain">Skip to dashboard</a></li>
+</ul>
+<script id="app-config-loader">
+// __APP_CONFIG_INJECT__
+window.APP_CONFIG = window.APP_CONFIG || { fbAppId: '', csrfToken: '', appEnv: 'production' };
+</script>
+<script>
+window.FB_CONFIG={appId:window.APP_CONFIG.fbAppId,csrfToken:window.APP_CONFIG.csrfToken};
+window.getCsrfToken = async (forceRefresh = false) => {
+  if (!forceRefresh && window.APP_CONFIG.csrfToken) return window.APP_CONFIG.csrfToken;
+  const cookieMatch = document.cookie.match(/(?:^|; )CSRF_TOKEN=([^;]+)/);
+  if (cookieMatch && cookieMatch[1]) {
+    window.APP_CONFIG.csrfToken = cookieMatch[1];
+    return cookieMatch[1];
+  }
+  try {
+    const res = await fetch('/api/csrf-token');
+    const data = await res.json();
+    if (data.csrfToken) {
+      window.APP_CONFIG.csrfToken = data.csrfToken;
+      return data.csrfToken;
+    }
+  } catch(e) {}
+  return window.APP_CONFIG.csrfToken || '';
+};
+</script>
+
+<!-- ═══ LANDING PAGE ═══ -->
+<div id="landingPage">
+
+  <!-- NAV -->
+  <nav class="nav">
+    <a class="nav-brand" href="#">
+      <div class="nav-brand-mark fbc-logo fbc-logo--md"><img data-fbc-logo src="/images/logo-32.webp" alt="FBCast Pro" width="38" height="38" decoding="async" fetchpriority="high"></div>
+      <span class="nav-brand-name">FBCast <em>Pro</em></span>
+    </a>
+    <div class="nav-links">
+      <a href="#features">Features</a>
+      <a href="#how-it-works">How It Works</a>
+      <a href="#compare">Why Us</a>
+      <a href="#pricing">Pricing</a>
+    </div>
+    <button type="button" class="nav-theme-btn" id="landingThemeToggle" aria-label="Toggle light or dark mode" title="Toggle theme">
+      <i class="fa-solid fa-sun" id="landingThemeIcon" aria-hidden="true"></i>
+    </button>
+    <button type="button" class="nav-cta" id="navConnectBtn" onclick="triggerConnect()">
+      <i class="fab fa-facebook"></i> Get Started Free
+    </button>
+    <button class="nav-hamburger" id="navHamburger" aria-label="Open menu">
+      <i class="fa-solid fa-bars"></i>
+    </button>
+  </nav>
+
+  <!-- MOBILE MENU OVERLAY -->
+  <div class="mobile-menu" id="mobileMenu" role="dialog" aria-modal="true">
+    <button class="mobile-menu-close" id="mobileMenuClose" aria-label="Close menu">
+      <i class="fa-solid fa-xmark"></i>
+    </button>
+    <a class="mobile-menu-link" href="#features" onclick="closeMobileMenu()">Features</a>
+    <a class="mobile-menu-link" href="#how-it-works" onclick="closeMobileMenu()">How It Works</a>
+    <a class="mobile-menu-link" href="#compare" onclick="closeMobileMenu()">Why Us</a>
+    <a class="mobile-menu-link" href="#pricing" onclick="closeMobileMenu()">Pricing</a>
+    <button class="mobile-menu-cta" onclick="closeMobileMenu();triggerConnect()">
+      <i class="fab fa-facebook"></i> Get Started Free
+    </button>
+  </div>
+  <!-- HERO -->
+  <main id="landingMain">
+  <section class="hero" tabindex="-1">
+    <div class="hero-noise"></div>
+    <div class="hero-grid"></div>
+    <div class="hero-glow"></div>
+    <div class="hero-glow-2"></div>
+    <!-- Aurora orbs for cinematic depth -->
+    <div class="hero-aurora">
+      <div class="aurora-orb aurora-orb-1"></div>
+      <div class="aurora-orb aurora-orb-2"></div>
+      <div class="aurora-orb aurora-orb-3"></div>
+    </div>
+
+    <!-- Live activity ticker -->
+    <div class="activity-ticker">
+      <span class="ticker-pulse"></span>
+      <span class="ticker-text" id="activityTickerText">12 businesses sent broadcasts in the last hour</span>
+    </div>
+
+    <div class="hero-badge">
+      <i class="fab fa-facebook-messenger" style="font-size:12px;color:#4F9FFF;"></i>
+      2,000 Free Messages — No Credit Card
+    </div>
+
+    <h1 class="hero-h1">
+      Reach Every Follower<br>on <span class="grad">Facebook</span> Instantly
+    </h1>
+    <p class="hero-sub">
+      Broadcast personalized messages to all users who've messaged your Facebook Pages.
+      Fast, reliable, built for businesses worldwide.
+    </p>
+
+    <div class="hero-actions">
+      <button class="btn-hero" id="heroConnectBtn" onclick="triggerConnect()">
+        <i class="fab fa-facebook"></i>
+        Connect with Facebook — It's Free
+      </button>
+      <div class="hero-social-proof">
+        <div class="avatars">
+          <img class="avatar hero-avatar avatar-1" data-hero-avatar="0" src="pics/p1.jpg" alt="Customer profile" loading="lazy" decoding="async">
+          <img class="avatar hero-avatar avatar-2" data-hero-avatar="1" src="pics/p2.webp" alt="Customer profile" loading="lazy" decoding="async">
+          <img class="avatar hero-avatar avatar-3" data-hero-avatar="2" src="pics/p3.jpeg" alt="Customer profile" loading="lazy" decoding="async">
+          <img class="avatar hero-avatar avatar-4" data-hero-avatar="3" src="pics/p4.webp" alt="Customer profile" loading="lazy" decoding="async">
+        </div>
+        Trusted by 500+ businesses worldwide
+      </div>
+    </div>
+
+    <div class="hero-metrics">
+      <div class="metric">
+        <div class="metric-val"><span class="counter-num" data-target="2000" data-suffix="">2,000</span></div>
+        <div class="metric-lbl">Free Messages</div>
+      </div>
+      <div class="metric">
+        <div class="metric-val">&lt;60s</div>
+        <div class="metric-lbl">Setup Time</div>
+      </div>
+      <div class="metric">
+        <div class="metric-val">98%</div>
+        <div class="metric-lbl">Delivery Rate</div>
+      </div>
+      <div class="metric">
+        <div class="metric-val" style="font-size:16px;padding-top:2px;"><i class="fas fa-lock" style="color:var(--blue);"></i> SSL</div>
+        <div class="metric-lbl">Stripe Secured</div>
+      </div>
+    </div>
+
+    <!-- Hero product preview -->
+    <div class="hero-preview">
+      <img src="images/nono.png" alt="FBCast Pro Dashboard" class="hero-preview-img">
+    </div>
+  </section>
+
+  <!-- BRAND MARQUEE -->
+  <div class="marquee-strip">
+    <div class="marquee-track">
+      <div class="marquee-item"><i class="fas fa-store"></i> Khan Electronics · Lahore</div>
+      <div class="marquee-item"><i class="fas fa-tshirt"></i> Sara Boutique · Karachi</div>
+      <div class="marquee-item"><i class="fas fa-laptop"></i> TechZone · Dubai</div>
+      <div class="marquee-item"><i class="fas fa-building"></i> Digital Agency · Riyadh</div>
+      <div class="marquee-item"><i class="fas fa-car"></i> Auto Deals · Karachi</div>
+      <div class="marquee-item"><i class="fas fa-utensils"></i> FoodChain · Islamabad</div>
+      <div class="marquee-item"><i class="fas fa-graduation-cap"></i> EduPro Academy · UAE</div>
+      <div class="marquee-item"><i class="fas fa-heart-pulse"></i> HealthCare Plus · Lahore</div>
+      <div class="marquee-item"><i class="fas fa-gem"></i> Jewel House · Karachi</div>
+      <div class="marquee-item"><i class="fas fa-mobile-screen"></i> PhoneZone · Islamabad</div>
+      <!-- duplicate for seamless loop -->
+      <div class="marquee-item"><i class="fas fa-store"></i> Khan Electronics · Lahore</div>
+      <div class="marquee-item"><i class="fas fa-tshirt"></i> Sara Boutique · Karachi</div>
+      <div class="marquee-item"><i class="fas fa-laptop"></i> TechZone · Dubai</div>
+      <div class="marquee-item"><i class="fas fa-building"></i> Digital Agency · Riyadh</div>
+      <div class="marquee-item"><i class="fas fa-car"></i> Auto Deals · Karachi</div>
+      <div class="marquee-item"><i class="fas fa-utensils"></i> FoodChain · Islamabad</div>
+      <div class="marquee-item"><i class="fas fa-graduation-cap"></i> EduPro Academy · UAE</div>
+      <div class="marquee-item"><i class="fas fa-heart-pulse"></i> HealthCare Plus · Lahore</div>
+      <div class="marquee-item"><i class="fas fa-gem"></i> Jewel House · Karachi</div>
+      <div class="marquee-item"><i class="fas fa-mobile-screen"></i> PhoneZone · Islamabad</div>
+    </div>
+  </div>
+
+
+  <!-- TRUSTED BY -->
+  <section class="pro-logo-cloud" aria-label="Trusted by businesses">
+    <div class="pro-logo-cloud__label">Trusted by growing businesses worldwide</div>
+    <div class="pro-logo-cloud__grid">
+      <span class="pro-logo-pill"><i class="fa-solid fa-store"></i> E-commerce</span>
+      <span class="pro-logo-pill"><i class="fa-solid fa-building"></i> Agencies</span>
+      <span class="pro-logo-pill"><i class="fa-solid fa-utensils"></i> Restaurants</span>
+      <span class="pro-logo-pill"><i class="fa-solid fa-graduation-cap"></i> Education</span>
+      <span class="pro-logo-pill"><i class="fa-solid fa-heart-pulse"></i> Healthcare</span>
+      <span class="pro-logo-pill"><i class="fa-solid fa-car"></i> Automotive</span>
+    </div>
+  </section>
+
+  <!-- STATS SOCIAL PROOF -->
+  <div class="stats-proof-section">
+    <div class="stats-proof-inner">
+      <div class="stats-proof-grid">
+        <div class="stats-proof-item">
+          <div class="proof-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 7V3H2v18h20V7H12zM6 19H4v-2h2v2zm0-4H4v-2h2v2zm0-4H4V9h2v2zm0-4H4V5h2v2zm4 12H8v-2h2v2zm0-4H8v-2h2v2zm0-4H8V9h2v2zm0-4H8V5h2v2zm10 12h-8v-2h2v-2h-2v-2h2v-2h-2V9h8v10zm-2-8h-2v2h2v-2zm0 4h-2v2h2v-2z"/></svg>
+          </div>
+          <span class="proof-num counter-num" data-target="500" data-suffix="+">500+</span>
+          <div class="proof-label">Businesses Worldwide</div>
+          <div class="proof-sub">across 30+ countries</div>
+        </div>
+        <div class="stats-proof-item">
+          <div class="proof-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+          </div>
+          <span class="proof-num counter-num" data-target="50" data-suffix="M+">50M+</span>
+          <div class="proof-label">Messages Delivered</div>
+          <div class="proof-sub">and counting</div>
+        </div>
+        <div class="stats-proof-item">
+          <div class="proof-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+          </div>
+          <span class="proof-num counter-num" data-target="98" data-suffix="%">98%</span>
+          <div class="proof-label">Average Delivery Rate</div>
+          <div class="proof-sub">even behind ISP blocks</div>
+        </div>
+        <div class="stats-proof-item">
+          <div class="proof-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 2v11h3v9l7-12h-4l4-8z"/></svg>
+          </div>
+          <span class="proof-num counter-num" data-target="60" data-suffix="s">&lt;60s</span>
+          <div class="proof-label">Average Setup Time</div>
+          <div class="proof-sub">from login to first broadcast</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- BIG FEATURE SECTION -->
+  <section class="bigfeat-section">
+    <div class="bigfeat-inner">
+      <div class="bigfeat-text">
+        <span class="section-label"><i class="fab fa-facebook-messenger" style="font-size:11px"></i> The FBCast Advantage</span>
+        <h2 class="bigfeat-h2">98% open rate.<br><em>Zero spam folders.</em></h2>
+        <p class="bigfeat-sub">Your customers check Facebook Messenger every day. FBCast Pro delivers your message directly there — not buried in email, not killed by algorithms.</p>
+        <div class="bigfeat-list">
+          <div class="bigfeat-item">
+            <div class="bigfeat-check"><i class="fas fa-check"></i></div>
+            <div>
+              <strong>Direct inbox delivery</strong>
+              <p>Messages go straight to Messenger — customers see them the moment they open Facebook.</p>
+            </div>
+          </div>
+          <div class="bigfeat-item">
+            <div class="bigfeat-check"><i class="fas fa-check"></i></div>
+            <div>
+              <strong>ISP block bypass built-in</strong>
+              <p>Our server-side proxy routes through AWS — delivers reliably even when local ISPs restrict the Facebook API.</p>
+            </div>
+          </div>
+          <div class="bigfeat-item">
+            <div class="bigfeat-check"><i class="fas fa-check"></i></div>
+            <div>
+              <strong>Real-time delivery tracking</strong>
+              <p>Watch every message send live — sent, failed, and pending counts update as they happen.</p>
+            </div>
+          </div>
+        </div>
+        <button class="btn-bigfeat" onclick="triggerConnect()">
+          <i class="fab fa-facebook"></i> Start Broadcasting — It's Free
+        </button>
+      </div>
+      <div class="bigfeat-visual">
+        <div class="bfsc bfsc--blue">
+          <div class="bfsc-icon"><i class="fas fa-envelope-open-text"></i></div>
+          <div class="bfsc-val">98%</div>
+          <div class="bfsc-label">Open Rate</div>
+          <div class="bfsc-cmp">vs ~20% for email</div>
+        </div>
+        <div class="bfsc bfsc--green">
+          <div class="bfsc-icon"><i class="fas fa-paper-plane"></i></div>
+          <div class="bfsc-val">50M+</div>
+          <div class="bfsc-label">Messages Delivered</div>
+          <div class="bfsc-cmp">and counting</div>
+        </div>
+        <div class="bfsc bfsc-wide">
+          <div class="bfsc-top-row">
+            <span class="bfsc-label">Live Broadcast</span>
+            <span class="bfsc-live-pill"><span class="bfsc-live-dot"></span>LIVE</span>
+          </div>
+          <div class="bfsc-progress-wrap">
+            <div class="bfsc-progress-bar" style="width:94%"></div>
+          </div>
+          <div class="bfsc-progress-nums">
+            <span class="bfsc-sent">3,847 sent</span>
+            <span class="bfsc-pct">94% delivery</span>
+          </div>
+        </div>
+        <div class="bfsc bfsc--purple">
+          <div class="bfsc-icon"><i class="fas fa-users"></i></div>
+          <div class="bfsc-val">500+</div>
+          <div class="bfsc-label">Businesses</div>
+          <div class="bfsc-cmp">across 30+ countries</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FEATURES -->
+  <div class="features-wrap" id="features">
+    <div class="section">
+      <span class="section-label">Features</span>
+      <h2 class="section-h2">Everything you need to broadcast at scale</h2>
+      <p class="section-sub">A complete toolkit to reach your entire Facebook audience in minutes.</p>
+      <div class="features-grid">
+        <div class="feat">
+          <div class="feat-icon" style="background:rgba(8,102,255,.12);border-color:rgba(8,102,255,.25);color:#4F9FFF"><i class="fas fa-bolt"></i></div>
+          <h3>Bulk Messaging at Scale</h3>
+          <p>Reach hundreds of thousands of page followers in minutes — intelligent rate control stays within Facebook API limits automatically.</p>
+        </div>
+        <div class="feat">
+          <div class="feat-icon" style="background:rgba(16,185,129,.1);border-color:rgba(16,185,129,.2);color:var(--green-light)"><i class="fas fa-shield-halved"></i></div>
+          <h3>ISP Block Bypass</h3>
+          <p>Server-side AWS proxy routes all API calls so delivery works even when local ISPs restrict the Facebook Graph API — 98% delivery guaranteed.</p>
+        </div>
+        <div class="feat">
+          <div class="feat-icon" style="background:rgba(245,158,11,.1);border-color:rgba(245,158,11,.2);color:#FCD34D"><i class="fas fa-chart-line"></i></div>
+          <h3>Live Delivery Tracking</h3>
+          <p>Watch every message send in real-time — per-recipient status, error counts, delivery rate, and ETA all visible as the broadcast runs.</p>
+        </div>
+        <div class="feat">
+          <div class="feat-icon" style="background:rgba(179,127,235,.12);border-color:rgba(179,127,235,.25);color:var(--cyan-light)"><i class="fas fa-tags"></i></div>
+          <h3>Label Audience Targeting</h3>
+          <p>Segment your audience using Facebook labels — target VIPs, leads, or custom groups. Send the right message to the right people.</p>
+        </div>
+        <div class="feat">
+          <div class="feat-icon" style="background:rgba(239,68,68,.1);border-color:rgba(239,68,68,.2);color:#F87171"><i class="fas fa-clock-rotate-left"></i></div>
+          <h3>60-Day Token Refresh</h3>
+          <p>Long-lived page tokens mean zero reconnection headaches. Stay connected for 60 days without having to re-login to Facebook.</p>
+        </div>
+        <div class="feat">
+          <div class="feat-icon" style="background:rgba(8,102,255,.12);border-color:rgba(8,102,255,.25);color:#4F9FFF"><i class="fas fa-layer-group"></i></div>
+          <h3>Auto All Pages Mode</h3>
+          <p>One click broadcasts sequentially across every Facebook Page you manage — no manual switching, no missed audiences, fully automated.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- HOW IT WORKS -->
+  <section id="how-it-works">
+    <div class="section">
+      <span class="section-label">How It Works</span>
+      <h2 class="section-h2">Up and running in 3 steps</h2>
+      <p class="section-sub" style="margin-bottom:0">Get started in under a minute.</p>
+      <div class="steps-grid">
+        <div class="step">
+          <div class="step-num">1</div>
+          <h3>Connect Facebook</h3>
+          <p>Log in with your Facebook account. We request only the minimum permissions needed to access your pages.</p>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <h3>Select a Page</h3>
+          <p>Choose the Facebook Page you want to broadcast from. Audience loads automatically when you start.</p>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <h3>Write &amp; Send</h3>
+          <p>Type your message and hit Start. Watch messages deliver in real-time with live analytics.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+
+  <!-- WHY FBCAST -->
+  <section class="pro-compare" id="compare">
+    <div class="pro-compare__inner">
+      <span class="section-label">Why FBCast Pro</span>
+      <h2 class="section-h2" style="margin-bottom:12px">Built for Messenger, not email</h2>
+      <p class="section-sub" style="margin-bottom:32px">See how broadcast messaging compares to traditional channels.</p>
+      <table class="pro-compare__table">
+        <thead>
+          <tr class="pro-compare__highlight">
+            <th>Capability</th>
+            <th>FBCast Pro</th>
+            <th>Email</th>
+            <th>Organic posts</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>Open rate</td><td><span class="pro-compare__check"><i class="fa-solid fa-check"></i> ~98%</span></td><td class="pro-compare__cross">~20%</td><td class="pro-compare__cross">~5%</td></tr>
+          <tr><td>Direct inbox delivery</td><td><span class="pro-compare__check"><i class="fa-solid fa-check"></i> Yes</span></td><td class="pro-compare__cross">Spam risk</td><td class="pro-compare__cross">Algorithm</td></tr>
+          <tr><td>Multi-page broadcast</td><td><span class="pro-compare__check"><i class="fa-solid fa-check"></i> Auto mode</span></td><td class="pro-compare__cross">Manual</td><td class="pro-compare__cross">Per page</td></tr>
+          <tr><td>Live send tracking</td><td><span class="pro-compare__check"><i class="fa-solid fa-check"></i> Real-time</span></td><td class="pro-compare__cross">Limited</td><td class="pro-compare__cross">No</td></tr>
+          <tr><td>ISP / API proxy</td><td><span class="pro-compare__check"><i class="fa-solid fa-check"></i> Built-in</span></td><td class="pro-compare__cross">—</td><td class="pro-compare__cross">—</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- PRICING -->
+  <div class="pricing-wrap" id="pricing">
+    <div class="section">
+      <span class="section-label"><i class="fas fa-tag" style="font-size:10px"></i> Pricing</span>
+      <h2 class="section-h2">Simple, transparent pricing</h2>
+      <p class="section-sub">Start free. Upgrade when you need more reach.</p>
+
+      <div class="promo-banner">
+        <span class="promo-fire">🔥</span>
+        <span class="promo-banner-text"><strong>Sign-Up Special:</strong> 50% OFF all plans — This month only!</span>
+        <span class="promo-countdown">Limited time offer</span>
+      </div>
+
+      <div class="pricing-grid pricing-grid--6">
+
+        <!-- Starter -->
+        <div class="price-card">
+          <div class="price-name">Starter</div>
+          <div class="price-discount-badge">50% OFF</div>
+          <div class="price-original"><s>$10</s>/mo</div>
+          <div class="price-amount">$5<sub>/mo</sub></div>
+          <div class="price-billing">Perfect for trying out the platform</div>
+          <div class="price-sep"></div>
+          <ul class="price-feats">
+            <li><i class="fas fa-check"></i> 30,000 messages/month</li>
+            <li><i class="fas fa-check"></i> 30-day validity</li>
+            <li><i class="fas fa-check"></i> All Facebook Pages</li>
+            <li><i class="fas fa-check"></i> Dedicated support</li>
+          </ul>
+          <button class="price-btn price-btn--basic" onclick="triggerConnect('starter')">Get Started</button>
+        </div>
+
+        <!-- Bronze -->
+        <div class="price-card">
+          <div class="price-name">Bronze</div>
+          <div class="price-discount-badge">50% OFF</div>
+          <div class="price-original"><s>$30</s>/mo</div>
+          <div class="price-amount">$15<sub>/mo</sub></div>
+          <div class="price-billing">Perfect for small businesses</div>
+          <div class="price-sep"></div>
+          <ul class="price-feats">
+            <li><i class="fas fa-check"></i> 300,000 messages/month</li>
+            <li><i class="fas fa-check"></i> 30-day validity</li>
+            <li><i class="fas fa-check"></i> Label targeting</li>
+            <li><i class="fas fa-check"></i> Dedicated support</li>
+          </ul>
+          <button class="price-btn price-btn--basic" onclick="triggerConnect('basic')">Get Started</button>
+        </div>
+
+        <!-- Silver -->
+        <div class="price-card">
+          <div class="price-name">Silver</div>
+          <div class="price-discount-badge">50% OFF</div>
+          <div class="price-original"><s>$60</s>/mo</div>
+          <div class="price-amount">$30<sub>/mo</sub></div>
+          <div class="price-billing">For growing businesses</div>
+          <div class="price-sep"></div>
+          <ul class="price-feats">
+            <li><i class="fas fa-check"></i> 650,000 messages/month</li>
+            <li><i class="fas fa-check"></i> 30-day validity</li>
+            <li><i class="fas fa-check"></i> Auto All Pages mode</li>
+            <li><i class="fas fa-check"></i> Dedicated support</li>
+          </ul>
+          <button class="price-btn price-btn--pro" onclick="triggerConnect('pro')">Get Started</button>
+        </div>
+
+        <!-- Gold — POPULAR -->
+        <div class="price-card price-card--featured price-card--gold">
+          <div class="price-popular">POPULAR</div>
+          <div class="price-name">Gold</div>
+          <div class="price-discount-badge price-discount-badge--gold">50% OFF</div>
+          <div class="price-original price-original--gold"><s>$120</s>/mo</div>
+          <div class="price-amount">$60<sub>/mo</sub></div>
+          <div class="price-billing">For high-volume needs</div>
+          <div class="price-sep"></div>
+          <ul class="price-feats">
+            <li><i class="fas fa-check"></i> 1,750,000 messages/month</li>
+            <li><i class="fas fa-check"></i> 30-day validity</li>
+            <li><i class="fas fa-check"></i> Priority support</li>
+            <li><i class="fas fa-check"></i> All Silver features</li>
+          </ul>
+          <button class="price-btn price-btn--gold" onclick="triggerConnect('gold')">Get Started</button>
+        </div>
+
+        <!-- Sapphire -->
+        <div class="price-card">
+          <div class="price-name">Sapphire</div>
+          <div class="price-discount-badge">50% OFF</div>
+          <div class="price-original"><s>$200</s>/mo</div>
+          <div class="price-amount">$100<sub>/mo</sub></div>
+          <div class="price-billing">For large scale operations</div>
+          <div class="price-sep"></div>
+          <ul class="price-feats">
+            <li><i class="fas fa-check"></i> 4,000,000 messages/month</li>
+            <li><i class="fas fa-check"></i> 30-day validity</li>
+            <li><i class="fas fa-check"></i> Priority support</li>
+            <li><i class="fas fa-check"></i> All Gold features</li>
+          </ul>
+          <button class="price-btn price-btn--pro" onclick="triggerConnect('sapphire')">Get Started</button>
+        </div>
+
+        <!-- Platinum -->
+        <div class="price-card">
+          <div class="price-name">Platinum</div>
+          <div class="price-discount-badge">50% OFF</div>
+          <div class="price-original"><s>$300</s>/mo</div>
+          <div class="price-amount">$150<sub>/mo</sub></div>
+          <div class="price-billing">For enterprises with massive scale</div>
+          <div class="price-sep"></div>
+          <ul class="price-feats">
+            <li><i class="fas fa-check"></i> 7,000,000 messages/month</li>
+            <li><i class="fas fa-check"></i> 30-day validity</li>
+            <li><i class="fas fa-check"></i> Priority support</li>
+            <li><i class="fas fa-check"></i> All Sapphire features</li>
+          </ul>
+          <button class="price-btn price-btn--pro" onclick="triggerConnect('pro_unlimited')">Get Started</button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- TESTIMONIALS -->
+  <section id="testimonials">
+    <div class="testimonials-wrap">
+      <div class="section-center">
+        <span class="section-label">Testimonials</span>
+        <h2 class="section-h2">Trusted by businesses worldwide</h2>
+        <p class="section-sub section-center" style="margin:0 auto">See what our users are saying about FBCast Pro.</p>
+      </div>
+      <div class="testimonial-meta">
+        <div class="tm-score-group">
+          <div class="tm-stars"><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i></div>
+          <div class="tm-score">4.9</div>
+          <div class="tm-score-lbl">out of 5</div>
+        </div>
+        <div class="tm-divider"></div>
+        <div class="tm-stat"><strong>500+</strong><span>businesses worldwide</span></div>
+        <div class="tm-divider"></div>
+        <div class="tm-stat"><strong>98%</strong><span>satisfaction rate</span></div>
+        <div class="tm-divider"></div>
+        <div class="tm-stat"><strong>30+</strong><span>countries served</span></div>
+      </div>
+      <div class="testimonials-grid">
+        <div class="testimonial">
+          <div class="testimonial-stars">
+            <i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i>
+          </div>
+          <p class="testimonial-text">"FBCast Pro transformed our business completely. We now message 50,000 followers in under 2 hours. The ROI is extraordinary — sales up 40% the first month."</p>
+          <div class="testimonial-author">
+            <div class="testimonial-avatar avatar-1">AK</div>
+            <div>
+              <div class="testimonial-name">Ahmad Khan</div>
+              <div class="testimonial-role">Owner · Khan Electronics, Lahore</div>
+              <div class="testimonial-verified"><i class="fas fa-circle-check"></i> Verified Pro User</div>
+            </div>
+          </div>
+        </div>
+        <div class="testimonial">
+          <div class="testimonial-stars">
+            <i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i>
+          </div>
+          <p class="testimonial-text">"The ISP bypass is a game changer. Before, half our messages were blocked. Now we're hitting 98% delivery consistently. Customer engagement tripled in one month."</p>
+          <div class="testimonial-author">
+            <div class="testimonial-avatar avatar-2">SR</div>
+            <div>
+              <div class="testimonial-name">Sara Rehman</div>
+              <div class="testimonial-role">Marketing Manager · Karachi</div>
+              <div class="testimonial-verified"><i class="fas fa-circle-check"></i> Verified Basic User</div>
+            </div>
+          </div>
+        </div>
+        <div class="testimonial">
+          <div class="testimonial-stars">
+            <i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i>
+          </div>
+          <p class="testimonial-text">"We manage 12 Facebook pages. Auto All Pages broadcasts to all of them in one click. What used to take a full day now runs automatically while we sleep."</p>
+          <div class="testimonial-author">
+            <div class="testimonial-avatar avatar-3">UB</div>
+            <div>
+              <div class="testimonial-name">Umar Butt</div>
+              <div class="testimonial-role">Agency Owner · Islamabad</div>
+              <div class="testimonial-verified"><i class="fas fa-circle-check"></i> Verified Pro User</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FAQ -->
+  <div class="faq-outer" id="faq">
+    <div class="faq-inner">
+      <div class="section-center">
+        <span class="section-label">FAQ</span>
+        <h2 class="section-h2">Frequently asked questions</h2>
+      </div>
+      <div class="faq-grid">
+        <div class="faq-item">
+          <div class="faq-q">
+            Is it really free to start?
+            <div class="faq-q-icon"><i class="fa-solid fa-plus"></i></div>
+          </div>
+          <div class="faq-a">Yes — you get 2,000 messages for free with no credit card required. Just log in with Facebook and start broadcasting immediately.</div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-q">
+            Does it work with regional Facebook access restrictions?
+            <div class="faq-q-icon"><i class="fa-solid fa-plus"></i></div>
+          </div>
+          <div class="faq-a">Yes. All API calls are routed through our server-side proxy, bypassing ISP-level blocks on the Facebook Graph API. This ensures near-100% delivery regardless of your connection.</div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-q">
+            How many Facebook Pages can I use?
+            <div class="faq-q-icon"><i class="fa-solid fa-plus"></i></div>
+          </div>
+          <div class="faq-a">All plans support unlimited Facebook Pages. Your message quota is shared across all pages. The Pro plan's Auto All Pages mode can broadcast to all your pages sequentially with one click.</div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-q">
+            Is my Facebook account safe?
+            <div class="faq-q-icon"><i class="fa-solid fa-plus"></i></div>
+          </div>
+          <div class="faq-a">We use official Facebook OAuth — we never ask for or store your password. We only request the minimum permissions needed to access your page conversations. Your access token is stored encrypted and never shared.</div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-q">
+            Can I cancel my subscription anytime?
+            <div class="faq-q-icon"><i class="fa-solid fa-plus"></i></div>
+          </div>
+          <div class="faq-a">Absolutely. Cancel any time from your billing portal — no questions asked. Your account reverts to free status at the end of your billing period.</div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-q">
+            What payment methods are accepted?
+            <div class="faq-q-icon"><i class="fa-solid fa-plus"></i></div>
+          </div>
+          <div class="faq-a">We accept credit and debit cards via Stripe (Visa, Mastercard, American Express) and crypto payments via Binance Pay (USDT and other supported coins). All payments use secure checkout.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CTA SECTION -->
+  <section class="cta-section">
+    <div class="cta-box">
+      <div class="cta-urgency"><i class="fas fa-fire"></i> 50+ businesses signed up this week</div>
+      <div class="cta-eyebrow"><i class="fab fa-facebook-messenger"></i> Get Started Today</div>
+      <h2 class="cta-h2">Start reaching your<br><span>Facebook audience</span> now</h2>
+      <p class="cta-sub">Join 500+ businesses broadcasting directly to their Facebook followers with 98% delivery rate — starting completely free.</p>
+      <div class="cta-actions">
+        <button class="btn-cta-primary" onclick="triggerConnect()">
+          <i class="fab fa-facebook" style="font-size:17px"></i>
+          Connect Facebook — It's Free
+        </button>
+      </div>
+      <div class="cta-note">
+        <span class="cta-note-item"><i class="fas fa-check"></i> No credit card required</span>
+        <span style="color:var(--border2)">·</span>
+        <span class="cta-note-item"><i class="fas fa-check"></i> 2,000 free messages</span>
+        <span style="color:var(--border2)">·</span>
+        <span class="cta-note-item"><i class="fas fa-check"></i> Cancel anytime</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- TRUST STRIP -->
+  <div class="trust-strip">
+    <div class="trust-item"><i class="fa-solid fa-lock"></i> 256-bit SSL Encrypted</div>
+    <div class="trust-item"><i class="fa-brands fa-stripe"></i> Stripe</div>
+    <div class="trust-item"><i class="fa-solid fa-wallet"></i> Binance Pay</div>
+    <div class="trust-item"><i class="fa-brands fa-facebook"></i> Official Facebook OAuth</div>
+    <div class="trust-item"><i class="fa-solid fa-shield-halved"></i> No Password Stored</div>
+    <div class="trust-item"><i class="fa-solid fa-server"></i> 99.9% Uptime SLA</div>
+    <div class="trust-item"><i class="fa-solid fa-ban"></i> Cancel Anytime</div>
+  </div>
+
+  <!-- ENHANCED FOOTER -->
+  </main>
+
+  <footer class="footer-enhanced">
+    <div class="footer-grid">
+      <!-- Brand column -->
+      <div class="footer-brand-col">
+        <a class="footer-brand" href="#">
+          <div class="nav-brand-mark fbc-logo fbc-logo--sm"><img data-fbc-logo src="/images/logo-32.webp" alt="FBCast Pro" width="34" height="34" decoding="async" loading="lazy"></div>
+          <span style="font-weight:800;font-size:15px;letter-spacing:-.3px;color:#fff">FBCast <em style="font-style:normal;color:var(--blue-light)">Pro</em></span>
+        </a>
+        <p class="footer-brand-tagline">The fastest way to broadcast messages to all your Facebook Page followers. Built for businesses worldwide.</p>
+        <div style="display:flex;gap:10px;margin-top:4px">
+          <div class="footer-social-icon"><i class="fab fa-facebook-f"></i></div>
+          <div class="footer-social-icon"><i class="fab fa-twitter"></i></div>
+        </div>
+      </div>
+      <!-- Product column -->
+      <div>
+        <div class="footer-col-title">Product</div>
+        <div class="footer-col-links">
+          <a href="#features">Features</a>
+          <a href="#how-it-works">How It Works</a>
+          <a href="#pricing">Pricing</a>
+          <a href="#" onclick="triggerConnect();return false">Get Started Free</a>
+        </div>
+      </div>
+      <!-- Company column -->
+      <div>
+        <div class="footer-col-title">Company</div>
+        <div class="footer-col-links">
+          <a href="#testimonials">Testimonials</a>
+          <a href="#faq">FAQ</a>
+          <a href="mailto:{{CONTACT_EMAIL}}" id="footerContactLink">Contact Us</a>
+        </div>
+      </div>
+      <!-- Legal column -->
+      <div>
+        <div class="footer-col-title">Legal</div>
+        <div class="footer-col-links">
+          <a href="#" id="footerPrivacyBtn">Privacy Policy</a>
+          <a href="#" id="footerTermsBtn">Terms of Service</a>
+          <a href="#">Cookie Policy</a>
+        </div>
+      </div>
+    </div>
+    <!-- Footer bottom bar -->
+    <div class="footer-bottom">
+      <div class="footer-bottom-copy">© {{YEAR}} FBCast Pro · Built for businesses worldwide</div>
+      <div class="footer-bottom-status">
+        <span class="footer-status-dot"></span>
+        All systems operational
+      </div>
+      <div class="footer-bottom-links">
+        <a href="#" id="footerPrivacyBtn2">Privacy</a>
+        <a href="#" id="footerTermsBtn2">Terms</a>
+      </div>
+    </div>
+  </footer>
+
+  <!-- ── Drive Video Player ── -->
+  <div id="demoVideoWidget" class="dvw">
+    <button class="dvw-close-btn" id="dvwClose" title="Close">
+      <i class="fa-solid fa-xmark"></i>
+    </button>
+    <div class="dvw-iframe-wrap">
+      <div class="dvw-play-btn"><i class="fa-solid fa-play" style="margin-left:3px"></i></div>
+      <iframe
+        id="dvwIframe"
+        class="dvw-iframe"
+        data-src="https://drive.google.com/file/d/1c3EwdXunmR1u7HMTU0n2FYCoDOJiGAfi/preview"
+        allow="autoplay"
+        allowfullscreen
+        frameborder="0"
+      ></iframe>
+    </div>
+  </div>
+
+</div>
+
+
+<!-- ═══ APP DASHBOARD ═══ -->
+<div id="appPage" style="display:none">
+
+  <!-- TOPBAR — SaaS dashboard chrome -->
+  <header class="topbar saas-topbar" role="banner">
+    <div class="saas-topbar__left topbar-brand">
+      <a href="#" class="saas-topbar__brand-link" onclick="if(typeof switchDashboardView==='function')switchDashboardView('home');return false;" aria-label="FBCast Pro home">
+        <div class="topbar-mark fbc-logo fbc-logo--sm"><img data-fbc-logo src="/images/logo-32.webp" alt="" width="34" height="34" decoding="async" fetchpriority="high"></div>
+        <div class="topbar-title">
+          <h1>FBCast Pro</h1>
+          <p>Broadcast Suite</p>
+        </div>
+      </a>
+      <span class="saas-topbar__sep-v" aria-hidden="true"></span>
+      <nav class="app-topbar__breadcrumb saas-topbar__breadcrumb" aria-label="Current section">
+        <span>Workspace</span>
+        <span class="app-topbar__sep" aria-hidden="true">/</span>
+        <strong id="shellBreadcrumbLabel">Home</strong>
+      </nav>
+    </div>
+
+    <div id="statusBar" role="status" aria-live="polite"></div>
+
+    <div id="announcementBar" class="topbar-announcement" role="status" aria-live="polite" hidden>
+      <span class="announcement-pill"><i class="fa-solid fa-bullhorn" aria-hidden="true"></i> Update</span>
+      <div class="announcement-body">
+        <div class="announcement-media-wrap" id="announcementMediaWrap" hidden></div>
+        <div class="announcement-text-wrap">
+          <div class="announcement-text-track" id="announcementTextTrack"></div>
+        </div>
+      </div>
+      <a id="announcementCta" class="announcement-cta" href="#" target="_blank" rel="noopener noreferrer" hidden>View</a>
+    </div>
+
+    <div class="saas-topbar__right topbar-main">
+      <div class="quota-widget saas-topbar__quota" title="Messages remaining this month">
+        <span id="planBadge" class="saas-topbar__plan-btn" data-plan="free" role="status">Free Trial</span>
+        <div class="saas-topbar__quota-stack">
+          <div class="saas-topbar__quota-values" aria-label="Messages remaining">
+            <span class="quota-num" id="quotaVal">2,000</span>
+            <span class="saas-topbar__quota-sep">/</span>
+            <span class="quota-total-num" id="quotaTotal">2,000</span>
+          </div>
+          <span id="quotaTrialDays" class="saas-topbar__trial-days" hidden></span>
+        </div>
+        <button type="button" class="btn-upgrade saas-topbar__upgrade" onclick="if(typeof openUpgradeModal==='function')openUpgradeModal(this);else document.getElementById('upgradeModal').style.display='flex'">
+          <i class="fa-solid fa-crown" aria-hidden="true"></i>
+          <span>Upgrade</span>
+        </button>
+        <div id="quotaEmptyOverlay" class="quota-empty-overlay">
+          <i class="fa-solid fa-circle-exclamation"></i>
+          <span>Quota exhausted</span>
+          <button type="button" onclick="if(typeof openUpgradeModal==='function')openUpgradeModal(this);else document.getElementById('upgradeModal').style.display='flex'">Upgrade</button>
+        </div>
+      </div>
+      <div class="saas-topbar__actions">
+        <div class="notif-wrap" id="notifWrap">
+          <button type="button" class="saas-topbar__icon-btn notif-bell" id="notifBellBtn" title="Notifications" aria-haspopup="true" aria-expanded="false">
+            <i class="fa-solid fa-bell" aria-hidden="true"></i>
+            <span class="notif-badge" id="notifBadge" hidden>0</span>
+          </button>
+          <div class="notif-panel" id="notifPanel" hidden role="menu" aria-label="Notifications">
+            <div class="notif-panel__hdr">
+              <span><i class="fa-solid fa-bell"></i> Notifications</span>
+              <button type="button" class="notif-mark-all" id="notifMarkAll">Mark all read</button>
+            </div>
+            <div class="notif-panel__body" id="notifList">
+              <div class="notif-empty"><i class="fa-solid fa-bell-slash"></i><p>You're all caught up.</p></div>
+            </div>
+            <div class="notif-panel__ftr"><span id="notifFooterMeta">No new updates</span></div>
+          </div>
+        </div>
+        <button type="button" class="saas-topbar__icon-btn" title="Help" onclick="if(typeof switchDashboardView==='function')switchDashboardView('help')">
+          <i class="fa-solid fa-circle-question" aria-hidden="true"></i>
+        </button>
+        <button type="button" class="saas-topbar__icon-btn" title="Settings" onclick="if(typeof switchDashboardView==='function')switchDashboardView('settings')">
+          <i class="fa-solid fa-gear" aria-hidden="true"></i>
+        </button>
+        <label class="theme-toggle theme-toggle-wrap" title="Toggle light or dark mode" id="themeToggleWrap">
+          <span class="sr-only" id="themeToggleLabel">Dark mode on</span>
+          <input type="checkbox" id="themeToggle" checked aria-labelledby="themeToggleLabel" aria-label="Dark mode on when checked, light mode when unchecked">
+          <span class="tt-track">
+            <i class="fa-solid fa-moon tt-icon tt-icon--dark"></i>
+            <i class="fa-solid fa-sun tt-icon tt-icon--light"></i>
+            <span class="tt-thumb"></span>
+          </span>
+        </label>
+      </div>
+
+      <div class="saas-topbar__user-cluster" id="topbarUserCluster">
+        <div id="loginStatus" title="Facebook connection">
+          <span class="ls-dot"></span>
+          <span id="loginStatusText">Not connected</span>
+        </div>
+        <button type="button" class="topbar-user-btn" id="topbarUserBtn" aria-expanded="false" aria-haspopup="true" aria-controls="topbarUserMenu">
+          <div class="topbar-avatar" id="topbarAvatar">?</div>
+          <span class="topbar-user-name" id="topbarUserName">Not connected</span>
+          <i class="fa-solid fa-chevron-down saas-topbar__chevron" aria-hidden="true"></i>
+        </button>
+        <div class="saas-topbar__menu" id="topbarUserMenu" role="menu" hidden>
+          <button type="button" class="saas-topbar__menu-item" role="menuitem" onclick="if(typeof switchDashboardView==='function')switchDashboardView('settings')">
+            <i class="fa-solid fa-gear"></i> Settings
+          </button>
+          <button type="button" class="saas-topbar__menu-item" role="menuitem" onclick="if(typeof switchDashboardView==='function')switchDashboardView('settings');setTimeout(function(){document.getElementById('saasUpgradeBtn')?.click()},300)">
+            <i class="fa-solid fa-credit-card"></i> Billing
+          </button>
+          <button type="button" class="saas-topbar__menu-item" role="menuitem" onclick="if(typeof switchDashboardView==='function')switchDashboardView('analytics')">
+            <i class="fa-solid fa-chart-line"></i> Analytics
+          </button>
+          <div class="saas-topbar__menu-hr" role="separator"></div>
+          <button type="button" class="saas-topbar__menu-item saas-topbar__menu-item--danger" role="menuitem" onclick="if(typeof triggerLogout==='function')triggerLogout()">
+            <i class="fa-solid fa-right-from-bracket"></i> Log out
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <button id="btnLogin" type="button" style="display:none" aria-hidden="true"></button>
+  </header>
+
+  <!-- STATUS BAR -->
+  <div id="networkBanner" class="network-banner" role="status" aria-live="polite" hidden></div>
+
+  <!-- BODY -->
+  <div class="app-body" id="appMain" tabindex="-1">
+
+    <!-- COL 0: HOME/NAV SIDEBAR -->
+    <div class="nav-sidebar">
+      <div class="nav-sidebar-hdr">
+        <span class="fbc-logo fbc-logo--xs"><img data-fbc-logo src="/images/logo-32.webp" alt="FBCast" width="28" height="28" decoding="async"></span>
+        <span>Menu</span>
+      </div>
+      <div class="nav-sidebar-items">
+        <a class="nav-side-item active" href="#" data-view="home" id="navItemHome" title="Home" aria-current="page">
+          <i class="fa-solid fa-house"></i>
+          <span>Home</span>
+        </a>
+        <a class="nav-side-item" href="#" data-view="broadcast" id="navItemBroadcast" title="Broadcast">
+          <i class="fa-solid fa-bullhorn"></i>
+          <span>Broadcast</span>
+        </a>
+        <a class="nav-side-item" href="#" data-view="messenger" id="navItemMessenger" title="Messenger">
+          <i class="fa-brands fa-facebook-messenger"></i>
+          <span>Messenger</span>
+        </a>
+        <a class="nav-side-item" href="#" data-view="scheduling" id="navItemScheduling" title="Scheduling">
+          <i class="fa-solid fa-clock"></i>
+          <span>Scheduling</span>
+        </a>
+        <div class="nav-sidebar-divider" role="separator"></div>
+        <a class="nav-side-item" href="#" data-view="analytics" id="navItemAnalytics" title="Analytics">
+          <i class="fa-solid fa-chart-line"></i>
+          <span>Analytics</span>
+        </a>
+        <a class="nav-side-item" href="#" data-view="settings" id="navItemSettings" title="Settings">
+          <i class="fa-solid fa-gear"></i>
+          <span>Settings</span>
+        </a>
+      </div>
+      <div class="nav-sidebar-contact">
+        <button type="button" class="nav-ai-btn" id="navAiBtn" title="AI Broadcast Assistant" onclick="if(window.fbcastAI)window.fbcastAI.toggle()">
+          <i class="fa-solid fa-wand-magic-sparkles"></i>
+          <span class="nav-ai-label">AI Assistant</span>
+          <span class="nav-ai-tag">New</span>
+        </button>
+        <button type="button" class="nav-contact-btn" id="navContactBtn" title="Contact support" onclick="if(window.fbcastSupport)window.fbcastSupport.open()">
+          <i class="fa-brands fa-facebook-messenger"></i>
+          <span class="nav-contact-label">Contact us</span>
+          <span class="nav-contact-tag">Live</span>
+        </button>
+      </div>
+      <div class="nav-sidebar-footer">
+        <div class="nav-user-info">
+          <div class="nav-user-avatar" id="navUserAvatar">?</div>
+          <div class="nav-user-details">
+            <div class="nav-user-name" id="navUserName">User</div>
+            <div class="nav-user-plan" id="navUserPlan">Free Plan</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Floating support chat widget (Intercom-style) -->
+    <div class="chatw" id="supportWidget" hidden aria-hidden="true">
+      <header class="chatw__hdr">
+        <div class="chatw__hdr-avatar" id="chatwPageAvatar">
+          <img data-fbc-logo src="/images/logo-32.webp" alt="FBCast Pro" id="chatwBrandLogo" width="32" height="32" decoding="async" loading="lazy" />
+        </div>
+        <div class="chatw__hdr-meta">
+          <div class="chatw__hdr-name" id="chatwPageName">FBCast Pro Support</div>
+          <a href="#" class="chatw__hdr-sub" id="chatwPageSub">support@fbcastpro.com</a>
+        </div>
+        <div class="chatw__hdr-actions">
+          <button type="button" class="chatw__icon-btn" title="Minimize" id="chatwClose" aria-label="Minimize chat">
+            <i class="fa-solid fa-minus"></i>
+          </button>
+        </div>
+      </header>
+      <div class="chatw__body" id="chatwBody">
+        <div class="chatw__welcome" id="chatwWelcome">
+          <div class="chatw__welcome-icon"><i class="fa-regular fa-comments"></i></div>
+          <div class="chatw__welcome-title">Hi there 👋</div>
+          <div class="chatw__welcome-sub">Send us a message — our team will reply here as soon as we can.</div>
+          <div class="chatw__chips" id="chatwChips">
+            <button type="button" class="chatw__chip" data-msg="I have a question about pricing.">💳 Pricing</button>
+            <button type="button" class="chatw__chip" data-msg="I'm having a technical issue.">🛠 Technical issue</button>
+            <button type="button" class="chatw__chip" data-msg="I need help with my account.">👤 Account help</button>
+            <button type="button" class="chatw__chip" data-msg="How do broadcasts work?">📢 Broadcasts</button>
+          </div>
+        </div>
+        <div class="chatw__messages" id="chatwMessages"></div>
+        <div class="chatw__typing" id="chatwTyping" hidden>
+          <span></span><span></span><span></span>
+        </div>
+      </div>
+      <footer class="chatw__ftr">
+        <form id="chatwForm" class="chatw__form" autocomplete="off">
+          <textarea
+            id="chatwInput"
+            class="chatw__input"
+            placeholder="Type your message…"
+            rows="1"
+            maxlength="4000"
+            aria-label="Type your message"></textarea>
+          <button type="submit" class="chatw__send" id="chatwSend" disabled aria-label="Send">
+            <i class="fa-solid fa-paper-plane"></i>
+          </button>
+        </form>
+        <div class="chatw__brand">
+          <i class="fa-solid fa-shield-halved"></i> Private chat · Powered by FBCast Pro
+        </div>
+      </footer>
+    </div>
+
+    <!-- AI Broadcast Assistant widget (right-anchored) -->
+    <div class="aiw" id="aiWidget" hidden aria-hidden="true">
+      <header class="aiw__hdr">
+        <div class="aiw__hdr-avatar">
+          <i class="fa-solid fa-wand-magic-sparkles"></i>
+        </div>
+        <div class="aiw__hdr-meta">
+          <div class="aiw__hdr-name">AI Broadcast Assistant</div>
+          <div class="aiw__hdr-sub">
+            <span class="aiw__online-dot"></span>
+            <span>Ready to write your next broadcast</span>
+          </div>
+        </div>
+        <div class="aiw__hdr-actions">
+          <button type="button" class="aiw__icon-btn" id="aiwClear" title="New conversation">
+            <i class="fa-solid fa-rotate-right"></i>
+          </button>
+          <button type="button" class="aiw__icon-btn" id="aiwClose" title="Minimize" aria-label="Minimize">
+            <i class="fa-solid fa-minus"></i>
+          </button>
+        </div>
+      </header>
+
+      <div class="aiw__body" id="aiwBody">
+        <div class="aiw__welcome" id="aiwWelcome">
+          <div class="aiw__welcome-icon"><i class="fa-solid fa-sparkles"></i></div>
+          <div class="aiw__welcome-title">Hi! What should we write today?</div>
+          <div class="aiw__welcome-sub">Pick a starter or describe your goal in your own words. Free AI plans have daily limits — if you see a rate limit message, wait a few minutes.</div>
+          <div class="aiw__chips" id="aiwChips">
+            <button type="button" class="aiw__chip" data-prompt="Write a promotional broadcast announcing a new feature for my customers.">🎉 Promo</button>
+            <button type="button" class="aiw__chip" data-prompt="Write a broadcast announcing a limited-time 20% off sale this weekend.">🛍️ Sale / Discount</button>
+            <button type="button" class="aiw__chip" data-prompt="Write a friendly welcome broadcast for new subscribers.">👋 Welcome</button>
+            <button type="button" class="aiw__chip" data-prompt="Write a broadcast for a new product launch and invite subscribers to check it out.">🚀 Product launch</button>
+            <button type="button" class="aiw__chip" data-prompt="Write a re-engagement broadcast for subscribers who haven't interacted in a while.">💌 Re-engage</button>
+            <button type="button" class="aiw__chip" data-prompt="Write a broadcast inviting subscribers to an upcoming online event or webinar.">📅 Event invite</button>
+            <button type="button" class="aiw__chip" data-prompt="Give me 3 short variations of a Black Friday broadcast message.">✨ 3 variations</button>
+          </div>
+        </div>
+        <div class="aiw__messages" id="aiwMessages"></div>
+      </div>
+
+      <footer class="aiw__ftr">
+        <form id="aiwForm" class="aiw__form" autocomplete="off">
+          <textarea
+            id="aiwInput"
+            class="aiw__input"
+            placeholder="Describe the broadcast you want…"
+            rows="1"
+            maxlength="2000"
+            aria-label="Describe the broadcast you want"></textarea>
+          <button type="submit" class="aiw__send" id="aiwSend" disabled aria-label="Send">
+            <i class="fa-solid fa-arrow-up"></i>
+          </button>
+        </form>
+        <div class="aiw__brand">
+          <i class="fa-solid fa-bolt"></i> AI may produce inaccurate info — review before sending
+        </div>
+      </footer>
+    </div>
+
+    <!-- COL 1: SIDEBAR / PAGES -->
+    <div class="sidebar">
+      <div class="sidebar-hdr">
+        <div class="sidebar-hdr-label">
+          <div class="sidebar-hdr-label-left">
+            <i class="fa-solid fa-flag"></i>
+            <span>Pages</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px;">
+            <span class="sidebar-page-count" id="sidebarPageCount" style="display:none">0</span>
+            <div class="sidebar-sched-actions" id="sidebarSchedActions" aria-hidden="true">
+              <button type="button" class="sidebar-sched-chip" onclick="svSelectAllPages()" title="Select all pages">All</button>
+              <button type="button" class="sidebar-sched-chip" onclick="svSelectNonePages()" title="Clear selection">None</button>
+            </div>
+            <button id="btnFetchPages" class="sidebar-sync-btn" title="Sync pages from Facebook">
+              <i class="fa-solid fa-rotate"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+      <div class="sidebar-pages">
+        <div id="pageCards">
+          <div class="pages-empty">
+            <i class="fa-brands fa-facebook"></i>
+            <p>Your pages will load automatically after login</p>
+          </div>
+        </div>
+        <select id="pageSelect" style="display:none"></select>
+        <img id="pageLogo" style="display:none" src="" alt="Facebook Page Logo">
+      </div>
+      <!-- Quick Tips Panel -->
+      <div class="sidebar-tips">
+        <div class="sidebar-tips-hdr"><i class="fa-solid fa-lightbulb"></i> Quick Tips</div>
+        <div class="sidebar-tips-list">
+          <div class="stip-item"><i class="fa-solid fa-check-circle stip-green"></i><span>Use <strong>Normal</strong> delay for best results</span></div>
+          <div class="stip-item"><i class="fa-solid fa-check-circle stip-green"></i><span>Keep messages under 200 characters</span></div>
+          <div class="stip-item"><i class="fa-solid fa-check-circle stip-green"></i><span>Add images to boost engagement</span></div>
+          <div class="stip-item"><i class="fa-solid fa-check-circle stip-green"></i><span>Test with a small group first</span></div>
+        </div>
+      </div>
+
+      <div class="sidebar-footer">
+        <button onclick="triggerLogout()" class="btn-logout">
+          <i class="fa-solid fa-right-from-bracket" style="font-size:10px;"></i> Logout
+        </button>
+      </div>
+    </div>
+
+    <!-- HOME VIEW -->
+    <div id="view-home" class="hv hv-pro">
+
+      <!-- ── Hero Banner ── -->
+      <div class="hv-hero">
+        <div class="hv-hero-glows">
+          <div class="hv-hero-orb hv-hero-orb1"></div>
+          <div class="hv-hero-orb hv-hero-orb2"></div>
+          <div class="hv-hero-orb hv-hero-orb3"></div>
+        </div>
+        <div class="hv-hero-dots"></div>
+        <div class="hv-hero-content">
+          <div class="hv-hero-left">
+            <div class="hv-hero-badges">
+              <div class="hv-hero-status" id="homeLiveBar">
+                <span class="hv-hero-dot" id="homeLiveDot"></span>
+                <span id="homeLiveLabel">Live</span>
+              </div>
+              <div class="hv-hero-badge-fb"><i class="fa-brands fa-facebook"></i> Facebook Connected</div>
+            </div>
+            <h1 class="hv-hero-title">Welcome back, <span class="hv-hero-name" id="homeUserName">User</span></h1>
+            <p class="hv-hero-sub">Manage your Facebook pages, broadcasts, and customer conversations from one powerful dashboard.</p>
+            <div class="hv-hero-btns">
+              <button class="hv-hero-cta" onclick="switchDashboardView('broadcast')">
+                <i class="fa-solid fa-bullhorn"></i> New Broadcast
+              </button>
+              <button class="hv-hero-cta2" onclick="switchDashboardView('messenger')">
+                <i class="fa-brands fa-facebook-messenger"></i> Open Inbox
+              </button>
+              <button class="hv-hero-cta2" onclick="switchDashboardView('analytics')">
+                <i class="fa-solid fa-chart-line"></i> Analytics
+              </button>
+            </div>
+          </div>
+          <div class="hv-hero-right">
+            <!-- Mini Schedule Card -->
+            <div class="hv-hero-sched-card">
+              <div class="hv-hero-sched-hdr">
+                <div class="hv-hero-sched-title">
+                  <i class="fa-solid fa-calendar-check"></i>
+                  Upcoming Schedules
+                </div>
+                <span class="hv-hero-sched-badge" id="heroSchedBadge" style="display:none">0</span>
+              </div>
+              <div id="heroSchedList" class="hv-hero-sched-list">
+                <div class="hv-hero-sched-empty">
+                  <i class="fa-solid fa-calendar-xmark"></i>
+                  <span>No upcoming broadcasts scheduled</span>
+                </div>
+              </div>
+              <button class="hv-hero-sched-btn" onclick="switchDashboardView('scheduling')">
+                <i class="fa-solid fa-calendar-plus"></i> Schedule a Broadcast
+              </button>
+            </div>
+            <!-- hidden compat IDs -->
+            <span id="homeTotalBroadcasts" style="display:none">0</span>
+            <span id="homeTotalMessages"   style="display:none">0</span>
+            <span id="homeSentCount"       style="display:none">0</span>
+            <span id="heroDeliveryFill"    style="display:none"></span>
+            <span id="heroDeliveryPct"     style="display:none">0%</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- hidden compat KPI IDs (data still updated by JS) -->
+      <span id="homeTotalBroadcasts2" style="display:none"></span>
+      <span id="homeTotalMessages2"   style="display:none"></span>
+      <span id="homeSentCount2"       style="display:none"></span>
+      <span id="homeFailedCount"      style="display:none"></span>
+      <span id="homePendingCount"     style="display:none"></span>
+      <span id="homePagesCount" style="display:none">0</span>
+      <span id="homeSuccessRate" style="display:none">0%</span>
+      <span id="homeUpdatedIso" style="display:none"></span>
+
+      <!-- Live sync toolbar -->
+      <div class="hv-sync-bar">
+        <div class="hv-sync-left">
+          <i class="fa-solid fa-satellite-dish"></i>
+          <span>Dashboard syncs automatically every few seconds</span>
+        </div>
+        <div class="hv-sync-right">
+          <span class="hv-sync-time" id="homeLastUpdated">Loading…</span>
+          <button type="button" class="hv-sync-refresh" id="homeRefreshBtn" title="Refresh now">
+            <i class="fa-solid fa-rotate"></i>
+          </button>
+        </div>
+      </div>
+
+      <header class="hv-metrics-head">
+        <div>
+          <p class="hv-metrics-eyebrow">Overview</p>
+          <h2 class="hv-metrics-title">Key metrics</h2>
+        </div>
+      </header>
+
+      <!-- KPI metrics -->
+      <div class="hv-kpi-row">
+        <article class="hv-kpi hv-kpi-accent-blue">
+          <div class="hv-kpi-glow hv-kpi-glow-blue"></div>
+          <div class="hv-kpi-icon hv-kpi-blue"><i class="fa-brands fa-facebook"></i></div>
+          <div class="hv-kpi-body">
+            <div class="hv-kpi-val" id="kpiPages">0</div>
+            <div class="hv-kpi-lbl">Connected pages</div>
+          </div>
+        </article>
+        <article class="hv-kpi hv-kpi-accent-green">
+          <div class="hv-kpi-glow hv-kpi-glow-green"></div>
+          <div class="hv-kpi-icon hv-kpi-green"><i class="fa-solid fa-paper-plane"></i></div>
+          <div class="hv-kpi-body">
+            <div class="hv-kpi-val hv-green" id="kpiSent">0</div>
+            <div class="hv-kpi-lbl">Messages sent</div>
+          </div>
+        </article>
+        <article class="hv-kpi hv-kpi-accent-indigo">
+          <div class="hv-kpi-glow hv-kpi-glow-indigo"></div>
+          <div class="hv-kpi-icon hv-kpi-indigo"><i class="fa-solid fa-chart-pie"></i></div>
+          <div class="hv-kpi-body">
+            <div class="hv-kpi-val" id="kpiDelivery">0%</div>
+            <div class="hv-kpi-lbl">Delivery rate</div>
+          </div>
+        </article>
+        <article class="hv-kpi hv-kpi-accent-amber">
+          <div class="hv-kpi-glow hv-kpi-glow-amber"></div>
+          <div class="hv-kpi-icon hv-kpi-amber"><i class="fa-solid fa-hourglass-half"></i></div>
+          <div class="hv-kpi-body">
+            <div class="hv-kpi-val hv-amber" id="kpiPending">0</div>
+            <div class="hv-kpi-lbl">In queue</div>
+          </div>
+        </article>
+        <article class="hv-kpi hv-kpi-accent-red hv-kpi-clickable" onclick="switchDashboardView('messenger')" role="button" tabindex="0">
+          <div class="hv-kpi-glow hv-kpi-glow-red"></div>
+          <div class="hv-kpi-icon hv-kpi-red"><i class="fa-brands fa-facebook-messenger"></i></div>
+          <div class="hv-kpi-body">
+            <div class="hv-kpi-val hv-red" id="kpiUnread">0</div>
+            <div class="hv-kpi-lbl">Unread chats</div>
+          </div>
+        </article>
+      </div>
+
+      <!-- ── Main 2-col grid ── -->
+      <div class="hv-main-grid">
+
+        <!-- LEFT col -->
+        <div class="hv-left-col">
+
+          <!-- Box 1: Split row — Scheduler + Performance Hub -->
+          <div class="hv-dual-row">
+
+            <!-- LEFT HALF: Broadcast Scheduler -->
+            <div class="hv-panel hv-sched-main-panel hv-half-panel">
+              <div class="hv-panel-hdr">
+                <div class="hv-panel-hdr-left">
+                  <div class="hv-panel-icon-wrap hv-panel-icon-purple"><i class="fa-solid fa-calendar-check"></i></div>
+                  <div>
+                    <div class="hv-panel-title">Scheduler</div>
+                    <div class="hv-panel-sub">Scheduled campaigns</div>
+                  </div>
+                </div>
+                <button class="hv-add-btn hv-add-btn-purple" onclick="switchDashboardView('scheduling')">
+                  <i class="fa-solid fa-plus"></i>
+                </button>
+              </div>
+
+              <!-- 2-stat strip -->
+              <div class="hv-half-stats">
+                <div class="hv-half-stat">
+                  <div class="hv-half-stat-val" id="schedTotalCount">0</div>
+                  <div class="hv-half-stat-lbl"><i class="fa-solid fa-calendar-check" style="color:#A78BFA"></i> Total</div>
+                </div>
+                <div class="hv-half-stat-sep"></div>
+                <div class="hv-half-stat">
+                  <div class="hv-half-stat-val hv-sched-amber" id="schedPendingCount">0</div>
+                  <div class="hv-half-stat-lbl"><i class="fa-solid fa-hourglass-half" style="color:#FCD34D"></i> Pending</div>
+                </div>
+                <div class="hv-half-stat-sep"></div>
+                <div class="hv-half-stat">
+                  <div class="hv-half-stat-val hv-sched-green" id="schedSentCount">0</div>
+                  <div class="hv-half-stat-lbl"><i class="fa-solid fa-circle-check" style="color:#34D399"></i> Sent</div>
+                </div>
+              </div>
+
+              <!-- List -->
+              <div class="hv-half-list-hdr"><i class="fa-solid fa-list-ul"></i> Upcoming</div>
+              <div id="schedMainList" class="hv-half-list">
+                <div class="hv-sched-empty-state">
+                  <div class="hv-sched-empty-icon" style="width:38px;height:38px;font-size:16px"><i class="fa-solid fa-calendar-xmark"></i></div>
+                  <div class="hv-sched-empty-title" style="font-size:12px">No scheduled broadcasts</div>
+                  <div class="hv-sched-empty-sub" style="font-size:10px">Schedule a broadcast to auto-send at a future time.</div>
+                  <button class="hv-sched-empty-btn" onclick="switchDashboardView('scheduling')">
+                    <i class="fa-solid fa-calendar-plus"></i> Schedule Now
+                  </button>
+                </div>
+              </div>
+
+              <!-- hidden compat -->
+              <div id="homeActivityList" style="display:none"></div>
+              <div id="hrsResultsGrid"   style="display:none"></div>
+              
+              <span id="hrsBadge"        style="display:none"></span>
+              <span id="perfDeliveryRate" style="display:none"></span>
+              <span id="perfTotalReach"   style="display:none"></span>
+              <span id="perfFailRate"     style="display:none"></span>
+              <span id="perfPending"      style="display:none"></span>
+              <span id="schedTotalReach"  style="display:none"></span>
+              <span id="schedMainBadge"   style="display:none"></span>
+              <span id="anTotalSent"      style="display:none"></span>
+              <span id="anDelivered"      style="display:none"></span>
+              <span id="anFailed"         style="display:none"></span>
+              <span id="anRate"           style="display:none"></span>
+            </div>
+
+            <!-- RIGHT HALF: Performance Hub -->
+            <div class="hv-panel hv-ph-panel hv-half-panel">
+              <div class="hv-panel-hdr">
+                <div class="hv-panel-hdr-left">
+                  <div class="hv-panel-icon-wrap hv-panel-icon-indigo"><i class="fa-solid fa-gauge"></i></div>
+                  <div>
+                    <div class="hv-panel-title">Performance</div>
+                    <div class="hv-panel-sub">All-time analytics</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Donut -->
+              <div class="hv-ph-donut-center">
+                <svg class="hv-ph-donut" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+                  <circle cx="60" cy="60" r="48" fill="none" stroke="rgba(255,255,255,.06)" stroke-width="10"/>
+                  <circle cx="60" cy="60" r="48" fill="none" stroke="#34D399" stroke-width="10"
+                    stroke-dasharray="0 301.6" stroke-linecap="round"
+                    transform="rotate(-90 60 60)" id="phDonutFill"
+                    style="transition:stroke-dasharray 1.2s cubic-bezier(.16,1,.3,1)"/>
+                  <text x="60" y="57" text-anchor="middle" font-size="22" font-weight="900" fill="white" id="phDonutPct">0%</text>
+                  <text x="60" y="72" text-anchor="middle" font-size="9" fill="rgba(255,255,255,.45)" font-weight="700" letter-spacing="1">DELIVERY</text>
+                </svg>
+              </div>
+
+              <!-- 4 stats below donut -->
+              <div class="hv-ph-half-stats">
+                <div class="hv-ph-half-stat">
+                  <div class="hv-ph-half-stat-val" id="phTotalSent">0</div>
+                  <div class="hv-ph-half-stat-lbl">Total Sent</div>
+                </div>
+                <div class="hv-ph-half-stat">
+                  <div class="hv-ph-half-stat-val hv-ph-green" id="phDelivered">0</div>
+                  <div class="hv-ph-half-stat-lbl">Delivered</div>
+                </div>
+                <div class="hv-ph-half-stat">
+                  <div class="hv-ph-half-stat-val hv-ph-red" id="phFailed">0</div>
+                  <div class="hv-ph-half-stat-lbl">Failed</div>
+                </div>
+                <div class="hv-ph-half-stat">
+                  <div class="hv-ph-half-stat-val hv-ph-amber" id="phPending">0</div>
+                  <div class="hv-ph-half-stat-lbl">Pending</div>
+                </div>
+              </div>
+            </div>
+
+          </div><!-- /hv-dual-row -->
+
+          <!-- Box 2: Quick Actions -->
+          <div class="hv-panel hv-qa-panel">
+            <div class="hv-panel-hdr">
+              <div class="hv-panel-hdr-left">
+                <div class="hv-panel-icon-wrap hv-panel-icon-amber"><i class="fa-solid fa-bolt"></i></div>
+                <div>
+                  <div class="hv-panel-title">Quick Actions</div>
+                  <div class="hv-panel-sub">Jump to any feature instantly</div>
+                </div>
+              </div>
+            </div>
+            <div class="hv-qa-grid">
+              <button class="hv-qa-card hv-qa-card-blue" onclick="switchDashboardView('broadcast')">
+                <div class="hv-qa-card-icon"><i class="fa-solid fa-bullhorn"></i></div>
+                <div class="hv-qa-card-label">Broadcast</div>
+                <div class="hv-qa-card-desc">Send to followers</div>
+              </button>
+              <button class="hv-qa-card hv-qa-card-cyan" onclick="switchDashboardView('messenger')">
+                <div class="hv-qa-card-icon"><i class="fa-brands fa-facebook-messenger"></i></div>
+                <div class="hv-qa-card-label">Messenger</div>
+                <div class="hv-qa-card-desc">Customer chats</div>
+              </button>
+              <button class="hv-qa-card hv-qa-card-green" onclick="switchDashboardView('analytics')">
+                <div class="hv-qa-card-icon"><i class="fa-solid fa-chart-line"></i></div>
+                <div class="hv-qa-card-label">Analytics</div>
+                <div class="hv-qa-card-desc">Track campaigns</div>
+              </button>
+              <button class="hv-qa-card hv-qa-card-purple" onclick="switchDashboardView('settings')">
+                <div class="hv-qa-card-icon"><i class="fa-solid fa-gear"></i></div>
+                <div class="hv-qa-card-label">Settings</div>
+                <div class="hv-qa-card-desc">Configure account</div>
+              </button>
+            </div>
+          </div>
+
+        </div><!-- /hv-left-col -->
+
+        <!-- RIGHT: Plan card only (bigger) -->
+        <div class="hv-right-col">
+          <div class="hv-plan-card">
+            <div class="hv-plan-card-bg"></div>
+            <div class="hv-plan-inner">
+              <div class="hv-plan-top">
+                <div class="hv-plan-badge">
+                  <i class="fa-solid fa-crown"></i>
+                  <span id="homePlanName">Free Plan</span>
+                </div>
+                <button class="hv-upgrade-btn" onclick="if(typeof openUpgradeModal==='function')openUpgradeModal(this);else document.getElementById('upgradeModal').style.display='flex'">
+                  <i class="fa-solid fa-rocket"></i> Upgrade
+                </button>
+              </div>
+              <div class="hv-plan-label">Messages Used This Month</div>
+              <div class="hv-plan-nums">
+                <span class="hv-plan-used" id="homeMsgUsed">0</span>
+                <span class="hv-plan-sep">/</span>
+                <span class="hv-plan-total" id="homeMsgTotal">2,000</span>
+                <span class="hv-plan-unit">msgs</span>
+              </div>
+              <div class="hv-plan-bar">
+                <div class="hv-plan-fill" id="homePlanProgress"></div>
+              </div>
+              <div class="hv-plan-pct-row">
+                <span class="hv-plan-pct" id="homePlanPct">0%</span>
+                <span class="hv-plan-pct-lbl">used this month</span>
+              </div>
+              <div class="hv-plan-features">
+                <div class="hv-plan-feat"><i class="fa-solid fa-check"></i> Unlimited pages</div>
+                <div class="hv-plan-feat"><i class="fa-solid fa-check"></i> Real-time inbox</div>
+                <div class="hv-plan-feat"><i class="fa-solid fa-check"></i> Broadcast engine</div>
+                <div class="hv-plan-feat"><i class="fa-solid fa-check"></i> Facebook Messenger</div>
+                <div class="hv-plan-feat hv-plan-feat-locked"><i class="fa-solid fa-lock"></i> Priority delivery</div>
+                <div class="hv-plan-feat hv-plan-feat-locked"><i class="fa-solid fa-lock"></i> Advanced analytics</div>
+                <div class="hv-plan-feat hv-plan-feat-locked"><i class="fa-solid fa-lock"></i> Bulk scheduling</div>
+                <div class="hv-plan-feat hv-plan-feat-locked"><i class="fa-solid fa-lock"></i> Custom templates</div>
+              </div>
+              <button class="hv-plan-upgrade-full" onclick="if(typeof openUpgradeModal==='function')openUpgradeModal(this);else document.getElementById('upgradeModal').style.display='flex'">
+                <i class="fa-solid fa-rocket"></i> Upgrade to Pro — Unlock All Features
+              </button>
+
+              <!-- Platform Status -->
+              <div class="hv-pstatus">
+                <div class="hv-pstatus-hdr">
+                  <span class="hv-pstatus-title"><i class="fa-solid fa-shield-halved"></i> Platform Status</span>
+                  <span class="hv-pstatus-badge"><i class="fa-solid fa-circle-check"></i> All Operational</span>
+                </div>
+                <div class="hv-pstatus-list">
+                  <div class="hv-pstatus-item">
+                    <div class="hv-pstatus-name"><i class="fa-brands fa-facebook"></i> Facebook API</div>
+                    <div class="hv-pstatus-dot hv-sdot-green"></div>
+                  </div>
+                  <div class="hv-pstatus-item">
+                    <div class="hv-pstatus-name"><i class="fa-solid fa-server"></i> Broadcast Engine</div>
+                    <div class="hv-pstatus-dot hv-sdot-green"></div>
+                  </div>
+                  <div class="hv-pstatus-item">
+                    <div class="hv-pstatus-name"><i class="fa-brands fa-facebook-messenger"></i> Messenger Webhooks</div>
+                    <div class="hv-pstatus-dot hv-sdot-green"></div>
+                  </div>
+                  <div class="hv-pstatus-item">
+                    <div class="hv-pstatus-name"><i class="fa-solid fa-bolt"></i> Real-time Socket</div>
+                    <div class="hv-pstatus-dot hv-sdot-green"></div>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+          <!-- Lifetime Deal Card -->
+          <div class="hv-lifetime-card">
+            <div class="hv-lifetime-bg"></div>
+            <div class="hv-lifetime-inner">
+              <div class="hv-lifetime-icon"><i class="fa-solid fa-infinity"></i></div>
+              <div class="hv-lifetime-text">
+                <div class="hv-lifetime-title">Lifetime Unlimited Plan</div>
+                <div class="hv-lifetime-desc">Pay once, use forever. Get unlimited messages, priority delivery & all Pro features for life.</div>
+              </div>
+              <a href="mailto:contact@castmepro.com" class="hv-lifetime-btn">
+                <i class="fa-solid fa-envelope"></i>
+                contact@castmepro.com
+              </a>
+            </div>
+          </div>
+
+        </div><!-- /hv-right-col -->
+      </div><!-- /hv-main-grid -->
+
+
+      <!-- hidden compat IDs -->
+      <span id="homePagesCountBadge2" style="display:none"></span>
+      <div  id="homePagesGrid"        style="display:none"></div>
+      <div  id="homeResultsSection"   style="display:none"></div>
+      <div  id="homeResultsSection2"  style="display:none"></div>
+
+    </div><!-- /view-home -->
+
+    <!-- MESSENGER VIEW — Premium Inbox -->
+    <div id="view-messenger" style="display:none;height:100%;overflow:hidden;flex-direction:column">
+      <div class="msng-root msng-layout-pro">
+        <header class="msng-toolbar">
+          <div class="msng-toolbar-brand">
+            <span class="msng-toolbar-icon"><i class="fa-brands fa-facebook-messenger"></i></span>
+            <div class="msng-toolbar-text">
+              <span class="msng-toolbar-title">Messenger Inbox</span>
+              <span class="msng-toolbar-sub" id="msngActivePageLabel">Select a page</span>
+            </div>
+          </div>
+          <div id="msngConnBanner" class="msng-conn-banner" style="display:none" role="status"></div>
+          <div class="msng-toolbar-meta">
+            <span class="msng-stat-pill" id="msngConvCountPill"><i class="fa-solid fa-comments"></i> <span id="msngConvCount">0</span> chats</span>
+            <span class="msng-stat-pill msng-stat-pill--unread" id="msngUnreadPill" style="display:none"><i class="fa-solid fa-envelope"></i> <span id="msngUnreadTotal">0</span> unread</span>
+            <span class="msng-live-pill" id="msngLivePill"><span class="msng-live-dot"></span><span class="msng-live-label">Live</span></span>
+          </div>
+        </header>
+
+        <div class="msng-body">
+          <aside class="msng-pages" id="msngPagesCol">
+            <div class="msng-pages-hdr">
+              <i class="fa-brands fa-facebook"></i>
+              <span>Your Pages</span>
+            </div>
+            <div class="msng-pages-list" id="msngPagesList"></div>
+          </aside>
+
+          <section class="msng-convs" id="msngConvsCol">
+            <div class="msng-convs-hdr">
+              <div class="msng-inbox-top">
+                <h2 class="msng-convs-title"><i class="fa-solid fa-inbox" aria-hidden="true"></i> Inbox</h2>
+                <button type="button" class="msng-icon-btn spinning" onclick="msngRefresh()" title="Refresh conversations" id="msngRefreshBtn"><i class="fa-solid fa-rotate"></i></button>
+              </div>
+              <p class="msng-convs-sub" id="msngConvsSub" hidden>All customer chats</p>
+              <div class="msng-page-select-wrap" id="msngPageSelectWrap" hidden>
+                <select id="msngPageSelect" class="msng-page-select" aria-label="Facebook Page" onchange="if(this.value)window.msngSelectPage(this.value)"></select>
+              </div>
+              <label class="msng-search-wrap">
+                <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+                <input type="search" id="msngSearchInput" class="msng-search-input" placeholder="Search conversations…" autocomplete="off">
+              </label>
+              <div class="msng-filter-row" role="tablist" aria-label="Filter conversations">
+                <button type="button" class="msng-filter-chip active" data-filter="all" id="msngFilterAll" onclick="msngSetFilter('all')">All</button>
+                <button type="button" class="msng-filter-chip" data-filter="unread" id="msngFilterUnread" onclick="msngSetFilter('unread')">Unread</button>
+              </div>
+            </div>
+            <div id="msngSyncBanner" class="msng-sync-banner"></div>
+            <div id="msngConvList" class="msng-conv-list"></div>
+          </section>
+
+          <main class="msng-chat">
+            <div id="msngChatEmpty" class="msng-chat-empty">
+              <div class="msng-chat-empty-visual">
+                <div class="msng-chat-empty-icon"><i class="fa-brands fa-facebook-messenger"></i></div>
+                <div class="msng-chat-empty-rings"></div>
+              </div>
+              <h4>Unified Messenger Inbox</h4>
+              <p>Pick a page, then choose a conversation to reply in real time — messages sync automatically.</p>
+              <ul class="msng-shortcuts">
+                <li><kbd>J</kbd> / <kbd>K</kbd> navigate chats</li>
+                <li><kbd>Ctrl</kbd>+<kbd>Enter</kbd> send message</li>
+                <li><kbd>Esc</kbd> close conversation</li>
+              </ul>
+            </div>
+
+            <div id="msngChatWindow" class="msng-chat-window" style="display:none">
+              <header class="msng-chat-hdr">
+                <div class="msng-chat-hdr-info-wrap">
+                  <button type="button" class="msng-icon-btn msng-back-btn" style="display:none" id="msngBackBtn" onclick="msngBack()" aria-label="Back"><i class="fa-solid fa-arrow-left"></i></button>
+                  <div class="msng-chat-hdr-avatar" id="msngChatHdrAvatar"></div>
+                  <div class="msng-chat-hdr-info">
+                    <div class="msng-chat-hdr-name" id="msngChatHdrName">…</div>
+                    <div id="msngChatHdrSub" class="msng-chat-hdr-sub"><span class="msng-online-dot"></span> Facebook Messenger</div>
+                  </div>
+                </div>
+                <div class="msng-chat-hdr-btns">
+                  <button type="button" class="msng-icon-btn" title="Page / group" aria-label="Page"><i class="fa-solid fa-layer-group"></i></button>
+                  <button type="button" class="msng-icon-btn" title="Labels" aria-label="Labels"><i class="fa-solid fa-tag"></i></button>
+                  <button type="button" class="msng-icon-btn" id="msngSoundBtn" onclick="msngToggleSound()" title="Sound notifications"><i class="fa-solid fa-bell-slash"></i></button>
+                  <button type="button" class="msng-icon-btn" id="msngContactToggleBtn" onclick="msngToggleContact()" title="Contact info" aria-expanded="false" aria-controls="msngContactPanel"><i class="fa-solid fa-circle-info"></i></button>
+                </div>
+              </header>
+
+              <div id="msngMsgs" class="msng-msgs msng-msgs-wallpaper"></div>
+
+              <!-- Agent-to-agent typing indicator -->
+              <div class="msng-typing" id="msngTyping">
+                <div class="msng-typing-bubble">
+                  <div class="msng-typing-dots"><span></span><span></span><span></span></div>
+                </div>
+                <span class="msng-typing-label" id="msngTypingLabel">typing…</span>
+              </div>
+
+              <!-- Customer typing indicator (from Facebook webhook) -->
+              <div class="msng-customer-typing" id="msngCustomerTyping">
+                <div class="msng-typing-bubble">
+                  <div class="msng-typing-dots"><span></span><span></span><span></span></div>
+                </div>
+                <span class="msng-customer-typing-label">Customer is typing…</span>
+              </div>
+
+              <div id="msngCannedPanel" class="msng-canned-panel" style="display:none">
+                <div class="msng-canned-hdr">
+                  <span class="msng-canned-hdr-title"><i class="fa-solid fa-bookmark"></i> Saved replies</span>
+                  <button type="button" class="msng-canned-add" onclick="msngOpenCannedModal()"><i class="fa-solid fa-plus"></i> New</button>
+                  <button type="button" class="msng-canned-close" onclick="msngHideCannedPanel()" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+                <div class="msng-canned-search-wrap">
+                  <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+                  <input type="text" id="msngCannedSearch" class="msng-canned-search" placeholder="Search saved replies…" autocomplete="off"
+                    oninput="msngCannedSearch(this.value)">
+                </div>
+                <div id="msngCannedList" class="msng-canned-list"></div>
+              </div>
+              <div id="msngSavedReplyPreview" class="msng-srp" style="display:none" role="button" tabindex="0"
+                   onclick="msngUseSavedPreview()" onkeydown="if(event.key==='Enter')msngUseSavedPreview()">
+                <i class="fa-solid fa-bookmark msng-srp-icon" aria-hidden="true"></i>
+                <div class="msng-srp-text">
+                  <span class="msng-srp-label">Saved reply</span>
+                  <span id="msngSrpBody" class="msng-srp-body"></span>
+                </div>
+                <button type="button" class="msng-srp-close" onclick="event.stopPropagation();msngHideSavedPreview()" aria-label="Dismiss"><i class="fa-solid fa-xmark"></i></button>
+              </div>
+
+              <!-- Emoji panel — injected by JS, anchor point -->
+              <div id="msngEmojiAnchor" style="position:relative"></div>
+              <div id="msngImagePreview" class="msng-image-preview" style="display:none" aria-hidden="true">
+                <img id="msngImagePreviewImg" alt="Image ready to send">
+                <div class="msng-image-preview-meta">
+                  <span class="msng-image-preview-hint">Press <kbd>Enter</kbd> or Send to deliver</span>
+                  <button type="button" class="msng-image-preview-remove" onclick="msngClearPendingImage()" aria-label="Remove image"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+              </div>
+              <footer class="msng-input-bar">
+                <button type="button" class="msng-input-btn" title="Attach image" onclick="document.getElementById('msngFileInput').click()"><i class="fa-solid fa-paperclip"></i></button>
+                <div class="msng-input-wrap">
+                  <textarea id="msngMsgTextarea" class="msng-textarea" placeholder="Type a message…" rows="1"
+                    oninput="msngTextareaInput(this);msngUpdateCharCount(this)"
+                    onkeydown="msngKeydown(event)"
+                    onpaste="msngOnPaste(event)"></textarea>
+                </div>
+                <span id="msngCharCount" class="msng-char-count"></span>
+                <button type="button" class="msng-input-btn" title="Saved replies" onclick="msngToggleCanned()" id="msngCannedBtn"><i class="fa-solid fa-wand-magic-sparkles"></i></button>
+                <button type="button" class="msng-input-btn" title="Emoji" onclick="msngToggleEmoji()" id="msngEmojiBtn"><i class="fa-regular fa-face-smile"></i></button>
+                <button type="button" id="msngLikeBtn" class="msng-input-btn msng-like-btn" title="Send thumbs up" onclick="msngSendLike()" aria-label="Send thumbs up">👍</button>
+                <button type="button" id="msngSendBtn" class="msng-send-btn" onclick="msngSend()" aria-label="Send"><i class="fa-solid fa-paper-plane"></i></button>
+              </footer>
+              <input type="file" id="msngFileInput" accept="image/*" style="display:none" onchange="msngOnFileSelect(this)">
+            </div>
+
+            <button type="button" id="msngScrollBtn" class="msng-scroll-btn" onclick="msngScrollToBottom()" aria-label="Scroll to bottom"><i class="fa-solid fa-arrow-down"></i></button>
+          </main>
+
+          <aside class="msng-contact" id="msngContactPanel" aria-hidden="true">
+            <header class="msng-contact-hdr">
+              <button type="button" class="msng-contact-close" onclick="msngToggleContact(false)" aria-label="Close contact panel"><i class="fa-solid fa-xmark"></i></button>
+              <div class="msng-contact-avatar" id="msngContactAvatar"></div>
+              <h3 id="msngContactName">Contact</h3>
+              <p class="msng-contact-sub">Contact Info</p>
+            </header>
+            <div class="msng-contact-body">
+              <details class="msng-contact-section" open>
+                <summary><i class="fa-solid fa-layer-group"></i> Groups</summary>
+                <div class="msng-contact-section-body" id="msngContactGroups">—</div>
+              </details>
+              <details class="msng-contact-section" open>
+                <summary><i class="fa-solid fa-note-sticky"></i> Notes</summary>
+                <div class="msng-contact-section-body">
+                  <textarea id="msngContactNote" class="msng-contact-note" placeholder="Add a note…" rows="3" maxlength="2000"></textarea>
+                  <button type="button" class="msng-contact-note-btn" onclick="msngSaveContactNote()"><i class="fa-solid fa-plus"></i> Add Note</button>
+                </div>
+              </details>
+              <details class="msng-contact-section" open>
+                <summary><i class="fa-solid fa-images"></i> Shared Media</summary>
+                <div class="msng-contact-section-body">
+                  <div class="msng-media-grid" id="msngContactMedia"></div>
+                </div>
+              </details>
+            </div>
+          </aside>
+        </div>
+      </div>
+      
+      <div id="msngCannedModal" class="msng-modal" style="display:none" aria-hidden="true">
+        <div class="msng-modal-backdrop" onclick="msngCloseCannedModal()"></div>
+        <div class="msng-modal-card" role="dialog" aria-labelledby="msngCannedModalTitle">
+          <div class="msng-modal-hdr">
+            <h3 id="msngCannedModalTitle">Save reply</h3>
+            <button type="button" class="msng-modal-x" onclick="msngCloseCannedModal()" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
+          </div>
+          <label class="msng-modal-label" for="msngCrTitle">Shortcut name</label>
+          <input type="text" id="msngCrTitle" class="msng-modal-input" placeholder="e.g. welcome" maxlength="80">
+          <label class="msng-modal-label" for="msngCrBody">Message</label>
+          <textarea id="msngCrBody" class="msng-modal-textarea" rows="5" placeholder="Reply text to insert in the composer…" maxlength="2000"></textarea>
+          <div class="msng-modal-actions">
+            <button type="button" class="msng-modal-btn msng-modal-btn--ghost" onclick="msngCloseCannedModal()">Cancel</button>
+            <button type="button" class="msng-modal-btn msng-modal-btn--primary" id="msngCrSaveBtn" onclick="msngSaveCanned()">Save reply</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="msngToast" class="msng-toast" role="status" aria-live="polite"></div>
+    </div>
+
+    <!-- BROADCAST VIEW -->
+    <div id="view-broadcast" class="broadcast-view" style="display:none">
+
+    <!-- COL 2: MESSAGE COMPOSE -->
+    <div class="compose">
+
+      <div class="compose-section">
+        <div class="compose-hdr">
+          <h3><i class="fa-brands fa-facebook-messenger compose-hdr-icon"></i> Message</h3>
+          <button class="recipients-toggle-btn" id="recipientsToggleBtn" title="Show Recipients">
+            <i class="fa-solid fa-users"></i> Recipients
+          </button>
+        </div>
+        <label class="field-label sr-only" for="messageText">Broadcast message</label>
+        <textarea id="messageText" rows="7" placeholder="Write your broadcast message here…" aria-label="Broadcast message"></textarea>
+        <div class="msg-personalize-row">
+          <span class="msg-personalize-label">Personalize:</span>
+          <button type="button" class="msg-personalize-btn" onclick="insertPersonalizationTag('{{name}}')" title="Insert recipient's name">
+            <i class="fa-solid fa-user-tag"></i> &#123;&#123;name&#125;&#125;
+          </button>
+        </div>
+        <div id="charCount">0 / 2000</div>
+        <div class="char-count-bar"><div class="char-count-fill" id="charCountFill"></div></div>
+
+        <!-- IMAGE ATTACHMENT -->
+        <div class="img-attach-wrap">
+          <button class="img-attach-toggle" id="imgAttachToggle" type="button" aria-expanded="true" aria-controls="imgAttachPanel">
+            <i class="fa-solid fa-image"></i>
+            <span>Attach Image</span>
+            <span class="img-attach-badge" id="imgAttachBadge" style="display:none">1</span>
+          </button>
+        </div>
+        <div class="img-attach-panel" id="imgAttachPanel">
+          <div class="img-tab-row" role="tablist">
+            <button class="img-tab-btn" id="imgTabUrl" data-tab="url" type="button" role="tab" aria-selected="false">
+              <i class="fa-solid fa-link"></i> URL
+            </button>
+            <button class="img-tab-btn active" id="imgTabUpload" data-tab="upload" type="button" role="tab" aria-selected="true">
+              <i class="fa-solid fa-cloud-arrow-up"></i> Upload
+            </button>
+          </div>
+          <div class="img-url-area" id="imgUrlArea" style="display:none">
+            <input type="url" id="imgUrlInput" placeholder="https://example.com/image.jpg" class="img-url-input" autocomplete="off">
+            <button type="button" id="imgUrlLoad" class="img-url-load-btn" title="Load image from URL">
+              <i class="fa-solid fa-check"></i>
+            </button>
+          </div>
+          <div class="img-upload-area" id="imgUploadArea">
+            <div class="img-drop-zone" id="imgDropZone" role="button" tabindex="0" aria-label="Upload image">
+              <i class="fa-solid fa-cloud-arrow-up"></i>
+              <span>Click or drag image here</span>
+              <small>JPEG · PNG · WebP · GIF &nbsp;·&nbsp; max 5 MB</small>
+            </div>
+            <input type="file" id="imgFileInput" accept="image/jpeg,image/png,image/gif,image/webp" style="display:none" aria-hidden="true">
+            <div class="img-upload-progress" id="imgUploadProgress" style="display:none">
+              <i class="fa-solid fa-circle-notch fa-spin"></i>
+              <span id="imgUploadProgressText">Uploading…</span>
+            </div>
+          </div>
+          <div class="img-preview-wrap" id="imgPreviewWrap" style="display:none">
+            <div class="img-preview-box">
+              <img id="imgPreviewThumb" src="" alt="Image preview">
+              <div class="img-preview-info">
+                <span id="imgPreviewLabel" class="img-preview-label">Image ready to send</span>
+                <button type="button" id="imgClearBtn" class="img-clear-btn" title="Remove image">
+                  <i class="fa-solid fa-xmark"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="compose-notice compose-notice--tip">
+          <i class="fa-solid fa-bolt"></i>
+          <div>Keep messages <strong>short & personal</strong> for higher open rates and better reach.</div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- COL 3: SETTINGS + BROADCAST -->
+    <div class="broadcast-col">
+
+      <!-- Settings -->
+      <div class="compose-section">
+        <div class="compose-hdr">
+          <h3><i class="fa-solid fa-sliders compose-hdr-icon"></i> Settings</h3>
+        </div>
+        <label class="field-label"><i class="fa-solid fa-clock"></i> Delay Between Messages</label>
+        <div class="delay-presets" id="delayPresets" role="group" aria-label="Delay between messages">
+          <button type="button" class="delay-preset" data-delay="3000">
+            <i class="fa-solid fa-shield-halved"></i>
+            <span class="delay-name">Slow</span>
+            <span class="delay-value">3000 ms</span>
+          </button>
+          <button type="button" class="delay-preset active" data-delay="1200">
+            <i class="fa-solid fa-gauge"></i>
+            <span class="delay-name">Normal</span>
+            <span class="delay-value">1200 ms</span>
+          </button>
+          <button type="button" class="delay-preset" data-delay="500">
+            <i class="fa-solid fa-bolt"></i>
+            <span class="delay-name">Fast</span>
+            <span class="delay-value">500 ms</span>
+          </button>
+        </div>
+        <input id="delayMs" type="hidden" value="1200">
+        <div class="field-hint"><i class="fa-solid fa-circle-info" style="color:var(--primary-light);margin-right:4px"></i>Slow: safer · Normal: recommended · Fast: aggressive</div>
+      </div>
+
+      <!-- Broadcast -->
+      <div class="compose-section">
+        <div class="compose-hdr">
+          <h3><i class="fa-solid fa-bullhorn compose-hdr-icon"></i> Broadcast</h3>
+          <div class="mode-pills">
+            <button class="mode-pill active" id="modeManualBtn">Manual</button>
+            <button class="mode-pill" id="modeAutoBtn">Auto All</button>
+          </div>
+        </div>
+
+        <!-- Manual Mode -->
+        <div id="manualControls">
+          <!-- Mini session stats -->
+          <div class="bcast-mini-stats">
+            <div class="bcast-mini-stat bms-total">
+              <div class="bcast-mini-stat-val" id="miniStatTotal">0</div>
+              <div class="bcast-mini-stat-lbl">Total</div>
+            </div>
+            <div class="bcast-mini-stat bms-sent">
+              <div class="bcast-mini-stat-val" id="miniStatSent">0</div>
+              <div class="bcast-mini-stat-lbl">Sent</div>
+            </div>
+            <div class="bcast-mini-stat bms-failed">
+              <div class="bcast-mini-stat-val" id="miniStatFailed">0</div>
+              <div class="bcast-mini-stat-lbl">Failed</div>
+            </div>
+          </div>
+          <div id="sendHint">Select a page, write message, then start broadcast</div>
+          <div class="action-btns">
+            <button id="btnStart"    class="act-btn"><i class="fa-solid fa-play"></i> Start Broadcast</button>
+<button id="btnPause"    class="act-btn"><i class="fa-solid fa-pause"></i> Pause</button>
+            <button id="btnResume"   class="act-btn"><i class="fa-solid fa-rotate-right"></i> Resume</button>
+            <button id="btnStop"     class="act-btn"><i class="fa-solid fa-stop"></i> Stop</button>
+          </div>
+          <div class="extra-actions">
+            <button type="button" class="btn-extra btn-retry" id="btnRetryFailed" disabled title="Retry all failed messages">
+              <i class="fa-solid fa-rotate-right"></i> Retry Failed
+            </button>
+          </div>
+        </div>
+
+        <!-- Auto Mode -->
+        <div id="autoControls" style="display:none">
+          <div class="auto-info" id="autoStatusCard">
+            <i class="fa-solid fa-circle-info"></i>
+            <span>All pages will be broadcast sequentially — fully automated.</span>
+          </div>
+          <div id="autoPageBadge" style="display:none" class="page-badge">
+            <i class="fa-solid fa-flag"></i>
+            <span id="autoPageBadgeText">Page 1 / 1</span>
+          </div>
+          <div class="action-btns">
+            <button id="btnAutoStart"  class="act-btn"><i class="fa-solid fa-play"></i> Auto Start All Pages</button>
+            <button id="btnAutoPause"  class="act-btn" disabled><i class="fa-solid fa-pause"></i> Pause</button>
+            <button id="btnAutoResume" class="act-btn" disabled><i class="fa-solid fa-rotate-right"></i> Resume</button>
+            <button id="btnAutoStop"   class="act-btn" disabled><i class="fa-solid fa-stop"></i> Stop</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick Templates -->
+      <div class="compose-section">
+        <div class="compose-hdr">
+          <h3><i class="fa-solid fa-wand-magic-sparkles compose-hdr-icon"></i> Quick Templates</h3>
+        </div>
+        <div class="quick-tpls">
+          <div class="tpl-item" data-tpl="Hi! Your order has been shipped and will arrive in 2-3 days. Thank you for shopping with us! 🚚">
+            <div class="tpl-icon tpl-icon--order"><i class="fa-solid fa-box"></i></div>
+            <div class="tpl-body">
+              <div class="tpl-name">Order Update</div>
+              <div class="tpl-preview">Your order has been shipped and will arrive…</div>
+            </div>
+            <i class="fa-solid fa-chevron-right tpl-arrow"></i>
+          </div>
+          <div class="tpl-item" data-tpl="🎉 Flash Sale! Get 30% OFF everything today only. Limited time offer — shop now before it ends!">
+            <div class="tpl-icon tpl-icon--sale"><i class="fa-solid fa-tags"></i></div>
+            <div class="tpl-body">
+              <div class="tpl-name">Flash Sale</div>
+              <div class="tpl-preview">🎉 Get 30% OFF everything today only…</div>
+            </div>
+            <i class="fa-solid fa-chevron-right tpl-arrow"></i>
+          </div>
+          <div class="tpl-item" data-tpl="Reminder: Your appointment is confirmed for tomorrow. Please reply YES to confirm or NO to reschedule. 📅">
+            <div class="tpl-icon tpl-icon--reminder"><i class="fa-solid fa-calendar-check"></i></div>
+            <div class="tpl-body">
+              <div class="tpl-name">Appointment Reminder</div>
+              <div class="tpl-preview">Your appointment is confirmed for tomorrow…</div>
+            </div>
+            <i class="fa-solid fa-chevron-right tpl-arrow"></i>
+          </div>
+          <div class="tpl-item" data-tpl="Hi! Thank you for being a valued customer. We appreciate your support and look forward to serving you again! 🙏">
+            <div class="tpl-icon tpl-icon--greet"><i class="fa-solid fa-heart"></i></div>
+            <div class="tpl-body">
+              <div class="tpl-name">Thank You</div>
+              <div class="tpl-preview">Thank you for being a valued customer…</div>
+            </div>
+            <i class="fa-solid fa-chevron-right tpl-arrow"></i>
+          </div>
+        </div>
+      </div>
+
+      <!-- Best Practices -->
+      <div class="compose-section">
+        <div class="compose-hdr">
+          <h3><i class="fa-solid fa-lightbulb compose-hdr-icon"></i> Best Practices</h3>
+        </div>
+        <div class="tips-list">
+          <div class="tip-item"><i class="fa-solid fa-circle-check"></i><span>Keep messages under 200 chars for better readability</span></div>
+          <div class="tip-item"><i class="fa-solid fa-circle-check"></i><span>Use <strong>Normal</strong> delay to avoid Facebook rate limits</span></div>
+          <div class="tip-item"><i class="fa-solid fa-circle-check"></i><span>Test with a small page before broadcasting to all</span></div>
+          <div class="tip-item"><i class="fa-solid fa-circle-check"></i><span>Avoid promotional keywords to reduce policy risk</span></div>
+          <div class="tip-item"><i class="fa-solid fa-circle-check"></i><span>Add an image to increase message engagement rates</span></div>
+        </div>
+      </div>
+
+    </div><!-- /view-broadcast -->
+
+    <!-- ══ SCHEDULING VIEW ══ -->
+    <div id="view-scheduling">
+
+      <!-- TOP BAR -->
+      <div class="sv2-topbar">
+        <div class="sv2-topbar-left">
+          <div class="sv2-topbar-icon"><i class="fa-solid fa-clock"></i></div>
+          <div>
+            <div class="sv2-topbar-title">Broadcast Scheduling</div>
+            <div class="sv2-topbar-sub">Schedule messages to multiple pages — runs automatically on the server</div>
+          </div>
+        </div>
+        <div class="sv2-topbar-right">
+          <span class="sv2-badge" id="svBadge" style="display:none"><i class="fa-solid fa-circle-dot"></i> <span id="svBadgeCount">0</span> Active</span>
+          <button class="sv2-refresh-btn" onclick="svLoadSchedules()" title="Refresh list"><i class="fa-solid fa-rotate"></i> Refresh</button>
+        </div>
+      </div>
+
+      <!-- BODY -->
+      <div class="sv2-body">
+
+        <!-- LEFT: COMPOSE PANEL -->
+        <div class="sv2-compose">
+
+          <div class="sv2-sidebar-hint" id="svSidebarHint">
+            <i class="fa-solid fa-flag"></i>
+            <div>
+              <strong>Select pages in the sidebar</strong> — click each page to include or exclude it from this broadcast.
+              <span class="sv2-sidebar-hint-count" id="svSidebarPageCount">0 selected</span>
+            </div>
+          </div>
+
+          <!-- Message -->
+          <div class="sv2-section">
+            <label class="sv2-section-label field-label" for="svMessage"><i class="fa-solid fa-pen-to-square"></i> Message <span class="sv2-req">*</span></label>
+            <textarea class="sv2-textarea" id="svMessage" placeholder="Write your broadcast message… Use {{name}} for personalization." rows="5" oninput="svUpdateCharCount()" aria-required="true"></textarea>
+            <div class="sv2-textarea-footer">
+              <span class="sv2-hint"><i class="fa-solid fa-user-tag"></i> {{name}} will be replaced with recipient's name</span>
+              <span class="sv2-charcount" id="svCharCount">0 / 2000</span>
+            </div>
+          </div>
+
+          <!-- Image Upload -->
+          <div class="sv2-section">
+            <div class="sv2-section-label"><i class="fa-solid fa-image"></i> Image <span class="sv2-opt">optional</span></div>
+            <div class="sv2-img-zone" id="svImgZone" role="button" tabindex="0" title="Click to upload image" aria-label="Upload schedule image">
+              <div id="svImgPlaceholder" class="sv2-img-placeholder">
+                <i class="fa-solid fa-cloud-arrow-up"></i>
+                <span>Click to upload image</span>
+              </div>
+              <img id="svImgPreview" class="sv2-img-preview" style="display:none" alt="preview">
+              <div id="svImgUploading" class="sv2-img-uploading-overlay" style="display:none">
+                <i class="fa-solid fa-spinner fa-spin" style="font-size:20px"></i>
+                <span>Uploading…</span>
+              </div>
+            </div>
+            <input type="file" id="svImgFile" accept="image/*" style="display:none" onchange="svHandleImageFile(this)" aria-hidden="true">
+            <div class="sv2-img-actions" id="svImgActions" style="display:none">
+              <span class="sv2-img-ok" id="svImgOk"><i class="fa-solid fa-circle-check"></i> Image ready</span>
+              <button class="sv2-chip sv2-chip--danger" onclick="svClearImage(event)"><i class="fa-solid fa-xmark"></i> Remove</button>
+            </div>
+            <div class="sv2-input-wrap" style="margin-top:4px">
+              <i class="fa-solid fa-link sv2-input-icon"></i>
+              <input class="sv2-input" id="svImageUrl" type="url" placeholder="Or paste image URL directly…" oninput="svHandleUrlInput(this)">
+            </div>
+          </div>
+
+          <!-- Schedule time + Delay -->
+          <div class="sv2-row sv2-row--timing">
+            <div class="sv2-section sv2-section--grow">
+              <label class="sv2-section-label field-label" for="svDateTime"><i class="fa-regular fa-calendar"></i> Date &amp; Time <span class="sv2-req">*</span></label>
+              <input class="sv2-input" id="svDateTime" type="datetime-local" aria-label="Schedule date and time">
+            </div>
+            <div class="sv2-section sv2-section--delay">
+              <label class="sv2-section-label field-label" for="svDelay"><i class="fa-solid fa-gauge"></i> Send Delay</label>
+              <select class="sv2-input sv2-delay-select" id="svDelay" title="Delay between each message send" aria-label="Send delay between messages">
+                <option value="800">Fast · 0.8s</option>
+                <option value="1200" selected>Balanced · 1.2s</option>
+                <option value="2000">Safe · 2s</option>
+                <option value="3000">Careful · 3s</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Submit -->
+          <button class="sv2-submit" id="svSubmitBtn" onclick="svSaveSchedule()">
+            <i class="fa-solid fa-calendar-check"></i> Schedule Broadcast
+          </button>
+
+          <!-- Note -->
+          <div class="sv2-note">
+            <i class="fa-solid fa-server"></i>
+            Server checks every 60 seconds — runs automatically even when you're offline. All selected pages send simultaneously.
+          </div>
+
+        </div>
+
+        <!-- RIGHT: SCHEDULES LIST -->
+        <div class="sv2-list-panel">
+          <div class="sv2-list-inner" id="svList">
+            <div class="sv2-empty" id="svListEmpty">
+              <div class="sv2-empty-icon"><i class="fa-regular fa-calendar-xmark"></i></div>
+              <div class="sv2-empty-title">No Schedules Yet</div>
+              <div class="sv2-empty-sub">Create your first scheduled broadcast using the form on the left.</div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div><!-- /view-scheduling -->
+
+    <!-- COL 4: PERFORMANCE PANEL — shown only alongside broadcast view -->
+    <div class="stats-panel" style="display:none">
+
+      <!-- Quick Stats Cards -->
+      <div class="panel-section">
+        <div class="panel-hdr">
+          <span><i class="fa-solid fa-chart-simple"></i> Quick Stats</span>
+        </div>
+        <div class="quick-stats-grid">
+          <div class="quick-stat-card qs-success">
+            <i class="fa-solid fa-circle-check"></i>
+            <div class="qs-info">
+              <div class="qs-val" id="qsSuccessRate">0%</div>
+              <div class="qs-lbl">Success Rate</div>
+            </div>
+          </div>
+          <div class="quick-stat-card qs-speed">
+            <i class="fa-solid fa-rocket"></i>
+            <div class="qs-info">
+              <div class="qs-val" id="qsSpeed">0/min</div>
+              <div class="qs-lbl">Speed</div>
+            </div>
+          </div>
+          <div class="quick-stat-card qs-pending">
+            <i class="fa-solid fa-clock"></i>
+            <div class="qs-info">
+              <div class="qs-val" id="qsPending">0</div>
+              <div class="qs-lbl">Pending</div>
+            </div>
+          </div>
+          <div class="quick-stat-card qs-audience">
+            <i class="fa-solid fa-users"></i>
+            <div class="qs-info">
+              <div class="qs-val" id="qsAudience">0</div>
+              <div class="qs-lbl">Audience</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Stat Strip -->
+      <div class="stat-strip">
+        <div class="stat-box s-total">
+          <div class="stat-row"><i class="fa-solid fa-users stat-icon"></i><span class="stat-lbl">Total</span></div>
+          <span class="stat-val" id="statTotal">0</span>
+        </div>
+        <div class="stat-box s-sent">
+          <div class="stat-row"><i class="fa-solid fa-circle-check stat-icon"></i><span class="stat-lbl">Sent</span></div>
+          <span class="stat-val" id="statSent">0</span>
+        </div>
+        <div class="stat-box s-failed">
+          <div class="stat-row"><i class="fa-solid fa-circle-xmark stat-icon"></i><span class="stat-lbl">Failed</span></div>
+          <span class="stat-val" id="statFailed">0</span>
+        </div>
+      </div>
+
+      <!-- Progress -->
+      <div class="progress-bar-area">
+        <div class="progress-row">
+          <div class="progress-left"><i class="fa-solid fa-bolt"></i><span>Progress</span></div>
+          <div class="progress-meta"><span id="etaText" class="eta-text"></span><span id="progressPct" class="progress-pct">0%</span></div>
+        </div>
+        <div class="progress-track"><div id="progressBar" class="progress-fill"></div></div>
+      </div>
+
+      <!-- Campaign Intelligence -->
+      <div class="panel-section">
+        <div class="panel-hdr">
+          <span><i class="fa-solid fa-brain"></i> Campaign Intelligence</span>
+        </div>
+        <div class="intel-grid">
+          <div class="intel-card ic-violet">
+            <span class="intel-label"><i class="fa-solid fa-users"></i> Audience</span>
+            <strong id="intelAudience" class="intel-val">Auto-load on start</strong>
+          </div>
+          <div class="intel-card ic-cyan">
+            <span class="intel-label"><i class="fa-solid fa-gauge"></i> Delivery Pace</span>
+            <strong id="intelPace" class="intel-val intel-neutral">Balanced</strong>
+          </div>
+          <div class="intel-card ic-green">
+            <span class="intel-label"><i class="fa-solid fa-shield-halved"></i> Policy Risk</span>
+            <strong id="intelRisk" class="intel-val intel-good">Low</strong>
+          </div>
+          <div class="intel-card ic-amber">
+            <span class="intel-label"><i class="fa-solid fa-clock"></i> Est. Duration</span>
+            <strong id="intelEta" class="intel-val">After load</strong>
+          </div>
+        </div>
+        <div id="intelAdvice" class="intel-advice">
+          <i class="fa-solid fa-lightbulb"></i>
+          <span>Select a page and write your message to see live quality checks.</span>
+        </div>
+      </div>
+
+      <!-- Delivery Operations -->
+      <div class="panel-section">
+        <div class="panel-hdr">
+          <span><i class="fa-solid fa-shield-heart"></i> Delivery Operations</span>
+          <span class="live-badge"><i class="fa-solid fa-circle fa-beat"></i> Live</span>
+        </div>
+        <div class="ops-grid">
+          <div class="ops-row">
+            <div class="ops-row-left"><span class="ops-dot ops-dot-green"></span><span class="ops-row-label">System</span></div>
+            <span class="ops-badge ops-badge-green">Stable</span>
+          </div>
+          <div class="ops-row">
+            <div class="ops-row-left"><span class="ops-dot ops-dot-violet"></span><span class="ops-row-label">Retry Engine</span></div>
+            <span class="ops-badge ops-badge-violet">Active</span>
+          </div>
+          <div class="ops-row">
+            <div class="ops-row-left"><span class="ops-dot ops-dot-cyan"></span><span class="ops-row-label">Network Guard</span></div>
+            <span class="ops-badge ops-badge-cyan">Monitoring</span>
+          </div>
+          <div class="ops-row">
+            <div class="ops-row-left"><span class="ops-dot ops-dot-amber"></span><span class="ops-row-label">Execution Mode</span></div>
+            <span class="ops-badge ops-badge-amber">Queue</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick Actions -->
+      <div class="panel-section">
+        <div class="panel-hdr">
+          <span><i class="fa-solid fa-bolt"></i> Quick Actions</span>
+        </div>
+        <div class="quick-actions-grid">
+          <button class="qa-btn" id="qaRetryAll" disabled onclick="retryAllFailed()">
+            <i class="fa-solid fa-rotate-right"></i> Retry All
+          </button>
+          <button class="qa-btn qa-btn--danger" id="qaClear" onclick="clearResults()">
+            <i class="fa-solid fa-trash"></i> Clear
+          </button>
+        </div>
+      </div>
+
+    </div><!-- /stats-panel -->
+
+    <!-- ANALYTICS VIEW -->
+    <div id="view-analytics" class="broadcast-view pro-view" style="display:none">
+      <div class="pro-view__scroll">
+        <header class="pro-view__head">
+          <div>
+            <div class="pro-view__eyebrow"><i class="fa-solid fa-chart-line"></i> Insights</div>
+            <h2 class="pro-view__title">Broadcast Analytics</h2>
+            <p class="pro-view__sub">Track delivery performance across manual, auto, and scheduled campaigns.</p>
+          </div>
+          <div class="analytics-actions">
+            <div class="analytics-period">
+              <button type="button" class="period-btn active" data-period="7">7 Days</button>
+              <button type="button" class="period-btn" data-period="30">30 Days</button>
+              <button type="button" class="period-btn" data-period="90">90 Days</button>
+            </div>
+            <div class="analytics-toolbar">
+              <button type="button" class="ds-btn ds-btn--ghost" id="analyticsRefreshBtn" title="Refresh"><i class="fa-solid fa-rotate"></i></button>
+              <button type="button" class="ds-btn ds-btn--secondary" id="analyticsExportBtn" title="Export as CSV"><i class="fa-solid fa-file-csv"></i> Export CSV</button>
+            </div>
+          </div>
+        </header>
+        <div class="analytics-panel">
+          <div class="analytics-kpi-grid">
+            <div class="analytics-kpi akpi-blue pro-card">
+              <div class="akpi-icon"><i class="fa-solid fa-paper-plane"></i></div>
+              <div class="akpi-val" id="analyticsTotalSent">0</div>
+              <div class="akpi-lbl">Messages Sent</div>
+              <div class="akpi-delta" id="analyticsTotalSentDelta"></div>
+            </div>
+            <div class="analytics-kpi akpi-green pro-card">
+              <div class="akpi-icon"><i class="fa-solid fa-circle-check"></i></div>
+              <div class="akpi-val" id="analyticsDelivered">0</div>
+              <div class="akpi-lbl">Delivered</div>
+              <div class="akpi-delta" id="analyticsDeliveredDelta"></div>
+            </div>
+            <div class="analytics-kpi akpi-red pro-card">
+              <div class="akpi-icon"><i class="fa-solid fa-circle-xmark"></i></div>
+              <div class="akpi-val" id="analyticsFailed">0</div>
+              <div class="akpi-lbl">Failed</div>
+              <div class="akpi-delta" id="analyticsFailedDelta"></div>
+            </div>
+            <div class="analytics-kpi akpi-purple pro-card">
+              <div class="akpi-icon"><i class="fa-solid fa-percent"></i></div>
+              <div class="akpi-val" id="analyticsRate">0%</div>
+              <div class="akpi-lbl">Success Rate</div>
+              <div class="akpi-delta" id="analyticsRateDelta"></div>
+            </div>
+          </div>
+          <div class="analytics-chart-wrap pro-card pro-chart-card" style="margin-top:16px">
+            <div class="analytics-chart-hdr">
+              <span><i class="fa-solid fa-chart-area"></i> Delivery trend</span>
+              <span class="analytics-chart-meta" id="analyticsChartMeta"></span>
+            </div>
+            <div class="analytics-chart-box" id="analyticsChartBox">
+              <div class="analytics-empty"><i class="fa-solid fa-chart-line"></i><p>No data yet. Start a broadcast to see analytics.</p></div>
+            </div>
+          </div>
+
+          <div class="analytics-row-2">
+            <div class="pro-card analytics-leaderboard">
+              <div class="analytics-card-hdr">
+                <span><i class="fa-solid fa-trophy"></i> Top performing pages</span>
+                <span class="analytics-card-sub" id="analyticsTopPagesSub">—</span>
+              </div>
+              <div id="analyticsTopPagesList">
+                <div class="analytics-empty"><p>No page data yet.</p></div>
+              </div>
+            </div>
+
+            <div class="pro-card analytics-heatmap-card">
+              <div class="analytics-card-hdr">
+                <span><i class="fa-solid fa-clock"></i> Best send times</span>
+                <span class="analytics-card-sub" id="analyticsHeatPeak">—</span>
+              </div>
+              <div class="analytics-heatmap" id="analyticsHeatmap">
+                <div class="analytics-empty"><p>No timing data yet.</p></div>
+              </div>
+              <div class="analytics-heatmap-legend">
+                <span>Less</span>
+                <span class="heat-cell heat-1"></span>
+                <span class="heat-cell heat-2"></span>
+                <span class="heat-cell heat-3"></span>
+                <span class="heat-cell heat-4"></span>
+                <span class="heat-cell heat-5"></span>
+                <span>More</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="pro-card analytics-failure-card" style="margin-top:16px">
+            <div class="analytics-card-hdr">
+              <span><i class="fa-solid fa-triangle-exclamation"></i> Delivery breakdown</span>
+              <span class="analytics-card-sub" id="analyticsBreakdownSub">—</span>
+            </div>
+            <div class="analytics-breakdown" id="analyticsBreakdown">
+              <div class="breakdown-row">
+                <div class="breakdown-label"><span class="breakdown-dot dot-manual"></span> Manual</div>
+                <div class="breakdown-bar"><div class="breakdown-fill" id="brManualFill" style="width:0%"></div></div>
+                <div class="breakdown-val" id="brManualVal">0</div>
+              </div>
+              <div class="breakdown-row">
+                <div class="breakdown-label"><span class="breakdown-dot dot-auto"></span> Auto</div>
+                <div class="breakdown-bar"><div class="breakdown-fill" id="brAutoFill" style="width:0%"></div></div>
+                <div class="breakdown-val" id="brAutoVal">0</div>
+              </div>
+              <div class="breakdown-row">
+                <div class="breakdown-label"><span class="breakdown-dot dot-scheduled"></span> Scheduled</div>
+                <div class="breakdown-bar"><div class="breakdown-fill" id="brSchedFill" style="width:0%"></div></div>
+                <div class="breakdown-val" id="brSchedVal">0</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="analytics-history pro-card pro-history-card" style="margin-top:16px">
+            <div class="analytics-history-hdr"><i class="fa-solid fa-clock-rotate-left"></i> Recent broadcasts</div>
+            <div id="analyticsHistoryList">
+              <div class="analytics-empty"><p>No broadcast history yet.</p></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SETTINGS VIEW -->
+    <div id="view-settings" class="broadcast-view pro-view" style="display:none">
+      <div class="pro-view__scroll">
+        <header class="pro-view__head">
+          <div>
+            <div class="pro-view__eyebrow"><i class="fa-solid fa-gear"></i> Workspace</div>
+            <h2 class="pro-view__title">Settings</h2>
+            <p class="pro-view__sub">Billing, delivery preferences, and account security.</p>
+          </div>
+        </header>
+      <div class="settings-panel">
+        <div class="settings-header">
+          <h3><i class="fa-solid fa-gear"></i> Settings</h3>
+        </div>
+        <div class="settings-section">
+          <div class="settings-card settings-profile-card">
+            <h4><i class="fa-solid fa-id-badge"></i> Profile</h4>
+            <p>Connected Facebook account.</p>
+            <div class="settings-profile-row">
+              <div class="settings-profile-avatar" id="settingsProfileAvatar"><i class="fa-solid fa-user"></i></div>
+              <div class="settings-profile-info">
+                <div class="settings-profile-name" id="settingsProfileName">Loading…</div>
+                <div class="settings-profile-meta" id="settingsProfileMeta">—</div>
+              </div>
+              <span class="saas-plan-badge" id="settingsProfilePlan">Free</span>
+            </div>
+          </div>
+
+          <div class="saas-billing-card" id="saasBillingCard">
+            <div class="saas-billing-card__hdr">
+              <div>
+                <div class="saas-billing-card__title"><i class="fa-solid fa-credit-card"></i> Subscription & Billing</div>
+                <div class="saas-billing-card__sub">Manage your plan, usage, and payment method</div>
+              </div>
+              <span class="saas-plan-badge" id="saasPlanBadge">Free</span>
+            </div>
+            <div>
+              <div style="font-size:13px;font-weight:700;color:var(--text2)">Plan: <span id="saasPlanName" style="color:var(--text)">Free</span></div>
+              <div class="saas-usage-bar"><div class="saas-usage-bar__fill" id="saasUsageFill" style="width:0%"></div></div>
+              <div class="saas-usage-meta">
+                <span><span id="saasMsgUsed">0</span> / <span id="saasMsgLimit">2,000</span> messages</span>
+                <span><span id="saasMsgRemaining">2,000</span> remaining</span>
+              </div>
+              <div class="saas-billing-card__sub" id="saasExpires" style="margin-top:8px"></div>
+            </div>
+            <div class="saas-billing-actions">
+              <button type="button" class="ds-btn ds-btn--primary" id="saasUpgradeBtn"><i class="fa-solid fa-arrow-up"></i> Upgrade plan</button>
+              <button type="button" class="ds-btn ds-btn--secondary" id="saasManageBilling" style="display:none"><i class="fa-solid fa-external-link"></i> Manage billing</button>
+              <button type="button" class="ds-btn ds-btn--ghost" id="saasRefreshBilling"><i class="fa-solid fa-rotate"></i> Refresh</button>
+            </div>
+          </div>
+          <div class="settings-card">
+            <h4><i class="fa-solid fa-palette"></i> Appearance</h4>
+            <p>Customize how the dashboard looks for you.</p>
+            <div class="settings-row-label">Theme</div>
+            <div class="settings-segmented" id="settingsThemeSeg">
+              <button type="button" class="seg-opt" data-theme="light"><i class="fa-solid fa-sun"></i> Light</button>
+              <button type="button" class="seg-opt" data-theme="dark"><i class="fa-solid fa-moon"></i> Dark</button>
+              <button type="button" class="seg-opt" data-theme="system"><i class="fa-solid fa-desktop"></i> System</button>
+            </div>
+            <div class="settings-row-label" style="margin-top:14px">Density</div>
+            <div class="settings-segmented" id="settingsDensitySeg">
+              <button type="button" class="seg-opt" data-density="comfortable">Comfortable</button>
+              <button type="button" class="seg-opt" data-density="compact">Compact</button>
+            </div>
+          </div>
+
+          <div class="settings-card" id="metaReviewSettingsCard">
+            <h4><i class="fa-brands fa-meta"></i> Meta App Review</h4>
+            <p>High API call counts on Meta Testing do <strong>not</strong> mean Completed. Green tick needs successful tests from an <strong>App Admin, Developer, or Tester</strong> account (can take up to 24 hours).</p>
+            <button type="button" class="ds-btn ds-btn--primary" id="metaReviewRunBtn">
+              <i class="fa-solid fa-vial"></i> Run review test calls
+            </button>
+            <pre class="meta-review-status" id="metaReviewStatus" hidden aria-live="polite"></pre>
+          </div>
+
+          <div class="settings-card">
+            <h4><i class="fa-solid fa-bullhorn"></i> Default Delay</h4>
+            <p>Set the default delay between messages for new broadcasts.</p>
+            <div class="settings-delay-opts">
+              <button class="delay-opt" data-delay="3000"><i class="fa-solid fa-shield-halved"></i> Slow</button>
+              <button class="delay-opt active" data-delay="1200"><i class="fa-solid fa-gauge"></i> Normal</button>
+              <button class="delay-opt" data-delay="500"><i class="fa-solid fa-bolt"></i> Fast</button>
+            </div>
+          </div>
+
+          <div class="settings-card">
+            <h4><i class="fa-solid fa-shield"></i> Sending Safety</h4>
+            <p>Guardrails to prevent runaway broadcasts and respect Facebook policy.</p>
+
+            <label class="settings-toggle"><input type="checkbox" id="settingAutoRetry" checked><span>Auto-retry transient failures (up to 3 times)</span></label>
+            <label class="settings-toggle"><input type="checkbox" id="settingSafeStop"><span>Stop broadcast when failure rate &gt; 25%</span></label>
+
+            <div class="settings-inline-row">
+              <label class="settings-inline-label" for="settingDailyCap">Daily safety cap</label>
+              <input type="number" id="settingDailyCap" class="settings-num" min="0" max="100000" step="100" value="2000" />
+              <span class="settings-inline-hint">messages / day (0 = no cap)</span>
+            </div>
+
+            <div class="settings-row-label" style="margin-top:14px">Quiet hours <span class="settings-row-hint">(no auto-broadcasts during this window)</span></div>
+            <label class="settings-toggle"><input type="checkbox" id="settingQuietEnabled"><span>Enable quiet hours</span></label>
+            <div class="settings-inline-row">
+              <label class="settings-inline-label" for="settingQuietStart">From</label>
+              <input type="time" id="settingQuietStart" class="settings-time" value="22:00" disabled />
+              <label class="settings-inline-label" for="settingQuietEnd">To</label>
+              <input type="time" id="settingQuietEnd" class="settings-time" value="08:00" disabled />
+            </div>
+          </div>
+
+          <div class="settings-card">
+            <h4><i class="fa-solid fa-bell"></i> Notifications</h4>
+            <p>Get notified when your broadcast completes or has failures.</p>
+            <label class="settings-toggle"><input type="checkbox" id="notifBroadcast" checked><span>Broadcast Complete</span></label>
+            <label class="settings-toggle"><input type="checkbox" id="notifFailed" checked><span>Failed Messages Alert</span></label>
+            <label class="settings-toggle"><input type="checkbox" id="notifDesktop"><span>Desktop notifications (browser)</span></label>
+            <label class="settings-toggle"><input type="checkbox" id="notifSound"><span>Play sound on completion</span></label>
+          </div>
+
+          <div class="settings-card">
+            <h4><i class="fa-solid fa-keyboard"></i> Keyboard Shortcuts</h4>
+            <p>Speed up your workflow with these shortcuts.</p>
+            <div class="settings-kbd-grid">
+              <div class="kbd-row"><div class="kbd-keys"><kbd>G</kbd> <kbd>H</kbd></div><div class="kbd-desc">Go to Home</div></div>
+              <div class="kbd-row"><div class="kbd-keys"><kbd>G</kbd> <kbd>B</kbd></div><div class="kbd-desc">Go to Broadcast</div></div>
+              <div class="kbd-row"><div class="kbd-keys"><kbd>G</kbd> <kbd>M</kbd></div><div class="kbd-desc">Go to Messenger</div></div>
+              <div class="kbd-row"><div class="kbd-keys"><kbd>G</kbd> <kbd>S</kbd></div><div class="kbd-desc">Go to Scheduling</div></div>
+              <div class="kbd-row"><div class="kbd-keys"><kbd>G</kbd> <kbd>A</kbd></div><div class="kbd-desc">Go to Analytics</div></div>
+              <div class="kbd-row"><div class="kbd-keys"><kbd>Ctrl</kbd> <kbd>Enter</kbd></div><div class="kbd-desc">Send broadcast</div></div>
+              <div class="kbd-row"><div class="kbd-keys"><kbd>Ctrl</kbd> <kbd>K</kbd></div><div class="kbd-desc">Search / quick switch</div></div>
+              <div class="kbd-row"><div class="kbd-keys"><kbd>Ctrl</kbd> <kbd>/</kbd></div><div class="kbd-desc">Toggle theme</div></div>
+              <div class="kbd-row"><div class="kbd-keys"><kbd>?</kbd></div><div class="kbd-desc">Show this help</div></div>
+            </div>
+          </div>
+
+          <div class="settings-card">
+            <h4><i class="fa-solid fa-database"></i> Data &amp; Privacy</h4>
+            <p>Clear your local cache or manage account access.</p>
+            <div class="settings-action-row">
+              <button class="settings-btn" id="settingsClearCache"><i class="fa-solid fa-broom"></i> Clear local cache</button>
+              <button class="settings-btn" onclick="openBillingPortal()"><i class="fa-solid fa-credit-card"></i> Manage Subscription</button>
+              <button class="settings-btn settings-btn--danger" onclick="triggerLogout()"><i class="fa-solid fa-right-from-bracket"></i> Logout</button>
+            </div>
+          </div>
+
+          <div class="settings-card settings-about-card">
+            <h4><i class="fa-solid fa-circle-info"></i> About</h4>
+            <div class="settings-about-grid">
+              <div><span class="settings-about-k">Product</span><span class="settings-about-v">FBCast Pro</span></div>
+              <div><span class="settings-about-k">Version</span><span class="settings-about-v" id="settingsAppVersion">1.4.0</span></div>
+              <div><span class="settings-about-k">Build</span><span class="settings-about-v" id="settingsBuild">stable</span></div>
+              <div><span class="settings-about-k">Status</span><span class="settings-about-v"><span class="settings-status-dot"></span> Operational</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      </div>
+    </div>
+
+    <!-- HELP VIEW -->
+    <div id="view-help" class="broadcast-view pro-view" style="display:none">
+      <div class="pro-view__scroll">
+        <header class="pro-view__head">
+          <div>
+            <div class="pro-view__eyebrow"><i class="fa-solid fa-circle-question"></i> Support</div>
+            <h2 class="pro-view__title">Help Center</h2>
+            <p class="pro-view__sub">Quick answers for broadcasts, billing, and Messenger inbox.</p>
+          </div>
+        </header>
+      <div class="help-panel">
+        <div class="help-header">
+          <h3><i class="fa-solid fa-circle-question"></i> Help & Support</h3>
+        </div>
+        <div class="help-section">
+          <div class="help-faq">
+            <div class="faq-item">
+              <div class="faq-q"><i class="fa-solid fa-question-circle"></i> How do I get my Facebook Page token?</div>
+              <div class="faq-a">Click "Connect with Facebook", grant permissions, and your page tokens will be automatically fetched and stored.</div>
+            </div>
+            <div class="faq-item">
+              <div class="faq-q"><i class="fa-solid fa-question-circle"></i> Why are some messages failing?</div>
+              <div class="faq-a">Failed messages usually mean the user hasn't messaged your page or their settings block messages. Try retrying or skip these users.</div>
+            </div>
+            <div class="faq-item">
+              <div class="faq-q"><i class="fa-solid fa-question-circle"></i> What delay should I use?</div>
+              <div class="faq-a">We recommend "Normal" (1200ms) for most users. Use "Slow" if you experience failures. "Fast" increases speed but risks rate limits.</div>
+            </div>
+            <div class="faq-item">
+              <div class="faq-q"><i class="fa-solid fa-question-circle"></i> How do I upgrade my plan?</div>
+              <div class="faq-a">Click the "Upgrade" button in the top bar. Choose a plan that fits your messaging needs. All plans include unlimited token refresh.</div>
+            </div>
+          </div>
+          <div class="help-contact help-contact-card">
+            <h4><i class="fa-solid fa-envelope"></i> Contact Support</h4>
+            <p>Need more help? Email us at <a href="mailto:support@castmepro.com">support@castmepro.com</a></p>
+          </div>
+        </div>
+      </div>
+      </div>
+    </div>
+
+    <!-- Backdrop for recipients drawer on small screens -->
+    <div class="recipients-backdrop" id="recipientsBackdrop"></div>
+
+    <!-- COL 4: RECIPIENTS PANEL -->
+    <div class="recipients-panel" id="recipientsPanel">
+      <div class="recipients-wrap">
+        <div class="rec-hdr">
+          <div class="rec-hdr-l"><i class="fa-solid fa-users"></i> Recipients</div>
+          <div class="rec-hdr-r">
+            <button class="recipients-panel-close" id="recipientsPanelClose" title="Close" style="background:none;border:none;color:var(--text3);font-size:16px;cursor:pointer;padding:2px 6px;border-radius:6px;line-height:1">&#x2715;</button>
+            <select id="recipientFilter">
+              <option value="all">All</option>
+              <option value="status:pending">Pending</option>
+              <option value="status:sent">Sent</option>
+              <option value="status:failed">Failed</option>
+            </select>
+            <span id="recipientCount">0</span>
+          </div>
+        </div>
+        <div class="rec-table">
+          <div class="rec-thead">
+            <div>PSID</div><div>Status</div><div>Error</div>
+          </div>
+          <div id="recipients">
+            <div class="table-empty">
+              <div class="table-empty-icon">💬</div>
+              <div>No recipients yet.<br>Press Start Broadcast to load and send.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /app-body -->
+
+  <nav class="app-mobile-nav" id="appMobileNav" aria-label="App navigation">
+    <button type="button" class="app-mobile-nav__item active" data-view="home" aria-current="page">
+      <i class="fa-solid fa-house" aria-hidden="true"></i>
+      <span>Home</span>
+    </button>
+    <button type="button" class="app-mobile-nav__item" data-view="broadcast">
+      <i class="fa-solid fa-bullhorn" aria-hidden="true"></i>
+      <span>Send</span>
+    </button>
+    <button type="button" class="app-mobile-nav__item" data-view="messenger">
+      <i class="fa-brands fa-facebook-messenger" aria-hidden="true"></i>
+      <span>Inbox</span>
+    </button>
+    <button type="button" class="app-mobile-nav__item" data-view="scheduling">
+      <i class="fa-solid fa-clock" aria-hidden="true"></i>
+      <span>Schedule</span>
+    </button>
+    <button type="button" class="app-mobile-nav__item" data-view="more" id="appMobileNavMore" aria-haspopup="dialog" aria-expanded="false" aria-controls="appMobileMore">
+      <i class="fa-solid fa-ellipsis" aria-hidden="true"></i>
+      <span>More</span>
+    </button>
+  </nav>
+
+  <div class="app-mobile-more" id="appMobileMore" role="dialog" aria-modal="true" aria-label="More options" aria-hidden="true">
+    <div class="app-mobile-more__panel" id="appMobileMorePanel">
+      <div class="app-mobile-more__hdr">
+        <span>More</span>
+        <button type="button" class="app-mobile-more__close" id="appMobileMoreClose" aria-label="Close menu">
+          <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+        </button>
+      </div>
+      <div class="app-mobile-more__grid">
+        <button type="button" class="app-mobile-more__action" data-view="analytics">
+          <i class="fa-solid fa-chart-line" aria-hidden="true"></i> Analytics
+        </button>
+        <button type="button" class="app-mobile-more__action" data-view="settings">
+          <i class="fa-solid fa-gear" aria-hidden="true"></i> Settings
+        </button>
+        <button type="button" class="app-mobile-more__action" data-view="help">
+          <i class="fa-solid fa-circle-question" aria-hidden="true"></i> Help
+        </button>
+        <button type="button" class="app-mobile-more__action" id="appMobileMoreAi">
+          <i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i> AI Assistant
+        </button>
+        <button type="button" class="app-mobile-more__action" id="appMobileMoreSupport">
+          <i class="fa-brands fa-facebook-messenger" aria-hidden="true"></i> Contact Support
+        </button>
+      </div>
+    </div>
+  </div>
+</div><!-- /appPage -->
+
+
+<!-- ═══ SCHEDULE BROADCAST MODAL ═══ -->
+<div class="sched-overlay" id="schedModal" role="dialog" aria-modal="true" aria-labelledby="schedModalTitle" aria-hidden="true" style="display:none" onclick="if(event.target===this)closeScheduleModal()">
+  <div class="sched-modal">
+    <div class="sched-modal-hdr">
+      <div class="sched-modal-title" id="schedModalTitle"><i class="fa-solid fa-clock" aria-hidden="true"></i> Schedule Broadcast</div>
+      <button type="button" class="sched-modal-close" onclick="closeScheduleModal()" aria-label="Close schedule dialog"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
+    </div>
+    <div class="sched-modal-body">
+      <div class="sched-field">
+        <label class="sched-label">Page</label>
+        <div class="sched-page-display" id="schedPageDisplay">— select a page first —</div>
+      </div>
+      <div class="sched-field">
+        <label class="sched-label">Message Preview</label>
+        <div class="sched-msg-preview" id="schedMsgPreview">—</div>
+      </div>
+      <div class="sched-field">
+        <label class="sched-label">Send At <span class="sched-label-hint">(your local time)</span></label>
+        <input type="datetime-local" class="sched-input" id="schedDateTime" min="">
+      </div>
+      <div class="sched-info-row">
+        <i class="fa-solid fa-circle-info"></i>
+        Recipients are fetched automatically at send time from your page's conversations.
+      </div>
+    </div>
+    <div class="sched-modal-footer">
+      <button class="sched-cancel-btn" onclick="closeScheduleModal()">Cancel</button>
+      <button class="sched-confirm-btn" id="schedConfirmBtn" onclick="saveSchedule()">
+        <i class="fa-solid fa-calendar-check"></i> Schedule Broadcast
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ PAYMENT METHOD ═══ -->
+<div class="overlay" id="paymentMethodModal" style="display:none" role="dialog" aria-modal="true" aria-labelledby="paymentMethodTitle" aria-hidden="true">
+  <div class="modal" style="max-width:440px;padding:28px 24px;">
+    <h2 id="paymentMethodTitle" style="margin:0 0 8px;font-size:1.25rem;">Choose payment method</h2>
+    <p id="paymentMethodSub" style="margin:0 0 20px;color:var(--text-muted,#64748b);font-size:0.9rem;">Pay with card or Binance Pay (crypto).</p>
+    <div class="payment-method-grid" style="display:flex;flex-direction:column;gap:12px;">
+      <button type="button" class="ds-btn ds-btn--primary payment-method-btn" id="payMethodStripe" style="justify-content:center;gap:10px;">
+        <i class="fa-brands fa-stripe"></i> Card (Stripe)
+      </button>
+      <button type="button" class="ds-btn payment-method-btn payment-method-btn--binance" id="payMethodBinance" style="justify-content:center;gap:10px;background:#F0B90B;color:#1E2329;border:none;font-weight:600;">
+        <i class="fa-solid fa-wallet"></i> Binance Pay
+      </button>
+    </div>
+    <button type="button" class="ds-btn ds-btn--ghost" id="paymentMethodCancel" style="margin-top:16px;width:100%;">Cancel</button>
+  </div>
+</div>
+
+<!-- ═══ UPGRADE MODAL ═══ -->
+<div class="overlay" id="upgradeModal" style="display:none" role="dialog" aria-modal="true" aria-labelledby="upgradeModalTitle" aria-hidden="true">
+  <div class="modal modal--upgrade">
+    <div class="modal-head">
+      <div class="modal-head-icon">🚀</div>
+      <h2 id="upgradeModalTitle">Upgrade to Keep Broadcasting</h2>
+      <p id="upgradeModalSub">Your free trial has ended. Choose a plan to continue.</p>
+      <div class="modal-promo-strip">🔥 <strong>Sign-Up Special:</strong> 50% OFF all plans — This month only!</div>
+    </div>
+    <div class="modal-security">
+      <i class="fas fa-lock"></i>
+      <span>256-bit SSL · Card or Binance Pay</span>
+      <div style="display:flex;gap:4px;margin-left:6px;align-items:center;flex-wrap:wrap;">
+        <span class="card-tag">VISA</span>
+        <span class="card-tag">MC</span>
+        <span class="card-tag">AMEX</span>
+        <span class="card-tag" style="background:#F0B90B;color:#1E2329;">BINANCE</span>
+      </div>
+    </div>
+    <div class="modal-plans">
+
+      <!-- Starter -->
+      <div class="modal-plan modal-plan--starter">
+        <div class="modal-plan-label modal-plan-label--starter">Starter</div>
+        <div class="modal-off-badge">50% OFF</div>
+        <div class="modal-original-price"><s>$10</s>/mo</div>
+        <div class="modal-plan-price">$5<sub>/mo</sub></div>
+        <div class="modal-plan-period">30,000 messages/month</div>
+        <ul class="modal-plan-feats">
+          <li><i class="fas fa-check"></i> All Facebook Pages</li>
+          <li><i class="fas fa-check"></i> Real-time tracking</li>
+          <li><i class="fas fa-check"></i> Dedicated support</li>
+          <li><i class="fas fa-check"></i> Cancel anytime</li>
+        </ul>
+        <button class="modal-cta modal-cta--starter" onclick="if(typeof showPaymentPopup==='function')showPaymentPopup('starter');else alert('Loading...')">
+          <i class="fas fa-bolt"></i> Start Starter
+        </button>
+        <div class="modal-plan-note">Monthly billing · cancel anytime</div>
+      </div>
+
+      <!-- Bronze -->
+      <div class="modal-plan modal-plan--bronze">
+        <div class="modal-plan-label modal-plan-label--bronze">Bronze</div>
+        <div class="modal-off-badge">50% OFF</div>
+        <div class="modal-original-price"><s>$30</s>/mo</div>
+        <div class="modal-plan-price">$15<sub>/mo</sub></div>
+        <div class="modal-plan-period">300,000 messages/month</div>
+        <ul class="modal-plan-feats">
+          <li><i class="fas fa-check"></i> All Facebook Pages</li>
+          <li><i class="fas fa-check"></i> Label targeting</li>
+          <li><i class="fas fa-check"></i> Dedicated support</li>
+          <li><i class="fas fa-check"></i> Cancel anytime</li>
+        </ul>
+        <button class="modal-cta modal-cta--bronze" onclick="if(typeof showPaymentPopup==='function')showPaymentPopup('basic');else alert('Loading...')">
+          <i class="fas fa-bolt"></i> Start Bronze
+        </button>
+        <div class="modal-plan-note">Monthly billing · cancel anytime</div>
+      </div>
+
+      <!-- Silver -->
+      <div class="modal-plan modal-plan--silver">
+        <div class="modal-plan-label modal-plan-label--silver">Silver</div>
+        <div class="modal-off-badge">50% OFF</div>
+        <div class="modal-original-price"><s>$60</s>/mo</div>
+        <div class="modal-plan-price">$30<sub>/mo</sub></div>
+        <div class="modal-plan-period">650,000 messages/month</div>
+        <ul class="modal-plan-feats">
+          <li><i class="fas fa-check"></i> Auto All Pages mode</li>
+          <li><i class="fas fa-check"></i> Label targeting</li>
+          <li><i class="fas fa-check"></i> Dedicated support</li>
+          <li><i class="fas fa-check"></i> Cancel anytime</li>
+        </ul>
+        <button class="modal-cta modal-cta--silver" onclick="if(typeof showPaymentPopup==='function')showPaymentPopup('pro');else alert('Loading...')">
+          <i class="fas fa-rocket"></i> Start Silver
+        </button>
+        <div class="modal-plan-note">Monthly billing · cancel anytime</div>
+      </div>
+
+      <!-- Gold — POPULAR -->
+      <div class="modal-plan modal-plan--gold modal-plan--featured">
+        <div class="price-popular"><i class="fas fa-star" style="font-size:8px;margin-right:3px;"></i> MOST POPULAR</div>
+        <div class="modal-plan-label modal-plan-label--gold">Gold</div>
+        <div class="modal-off-badge modal-off-badge--gold">50% OFF</div>
+        <div class="modal-original-price modal-original-price--gold"><s>$120</s>/mo</div>
+        <div class="modal-plan-price modal-plan-price--gold">$60<sub>/mo</sub></div>
+        <div class="modal-plan-period">1,750,000 messages/month</div>
+        <ul class="modal-plan-feats">
+          <li><i class="fas fa-check"></i> All Silver features</li>
+          <li><i class="fas fa-check"></i> Priority support</li>
+          <li><i class="fas fa-check"></i> 60-day token refresh</li>
+          <li><i class="fas fa-check"></i> Cancel anytime</li>
+        </ul>
+        <button class="modal-cta modal-cta--gold" onclick="if(typeof showPaymentPopup==='function')showPaymentPopup('gold');else alert('Loading...')">
+          <i class="fas fa-crown"></i> Start Gold
+        </button>
+        <div class="modal-plan-note">Monthly billing · cancel anytime</div>
+      </div>
+
+      <!-- Sapphire -->
+      <div class="modal-plan modal-plan--sapphire">
+        <div class="modal-plan-label modal-plan-label--sapphire">Sapphire</div>
+        <div class="modal-off-badge">50% OFF</div>
+        <div class="modal-original-price"><s>$200</s>/mo</div>
+        <div class="modal-plan-price">$100<sub>/mo</sub></div>
+        <div class="modal-plan-period">4,000,000 messages/month</div>
+        <ul class="modal-plan-feats">
+          <li><i class="fas fa-check"></i> All Gold features</li>
+          <li><i class="fas fa-check"></i> Priority support</li>
+          <li><i class="fas fa-check"></i> Custom integrations</li>
+          <li><i class="fas fa-check"></i> Cancel anytime</li>
+        </ul>
+        <button class="modal-cta modal-cta--sapphire" onclick="if(typeof showPaymentPopup==='function')showPaymentPopup('sapphire');else alert('Loading...')">
+          <i class="fas fa-gem"></i> Start Sapphire
+        </button>
+        <div class="modal-plan-note">Monthly billing · cancel anytime</div>
+      </div>
+
+      <!-- Platinum -->
+      <div class="modal-plan modal-plan--platinum">
+        <div class="modal-plan-label modal-plan-label--platinum">Platinum</div>
+        <div class="modal-off-badge">50% OFF</div>
+        <div class="modal-original-price"><s>$300</s>/mo</div>
+        <div class="modal-plan-price">$150<sub>/mo</sub></div>
+        <div class="modal-plan-period">7,000,000 messages/month</div>
+        <ul class="modal-plan-feats">
+          <li><i class="fas fa-check"></i> All Sapphire features</li>
+          <li><i class="fas fa-check"></i> Dedicated account manager</li>
+          <li><i class="fas fa-check"></i> White-label option</li>
+          <li><i class="fas fa-check"></i> Cancel anytime</li>
+        </ul>
+        <button class="modal-cta modal-cta--platinum" onclick="if(typeof showPaymentPopup==='function')showPaymentPopup('pro_unlimited');else alert('Loading...')">
+          <i class="fas fa-infinity"></i> Start Platinum
+        </button>
+        <div class="modal-plan-note">Monthly billing · cancel anytime</div>
+      </div>
+
+    </div>
+    <div class="modal-dismiss">
+      <button type="button" id="modalDismiss">Continue with limited access</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- ═══ PRIVACY POLICY ═══ -->
+<div class="overlay" id="privacyModal" style="display:none" role="dialog" aria-modal="true" aria-labelledby="privacyTitle" aria-hidden="true">
+  <div class="modal legal-modal">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+      <h2 id="privacyTitle" class="legal-modal modal-title">Privacy Policy</h2>
+      <button id="privacyClose" class="legal-close" aria-label="Close">&#x2715;</button>
+    </div>
+    <div class="legal-body">
+      <p><strong>Data we collect:</strong> When you connect your Facebook account, we receive your Facebook User ID and name to manage your usage quota.</p>
+      <p><strong>Facebook tokens:</strong> Page access tokens are exchanged for long-lived tokens (~60 days). Stored securely, used only to send messages on your behalf.</p>
+      <p><strong>Payment data:</strong> We don't store card or wallet credentials. Payments are processed through Stripe (cards) or Binance Pay (crypto). We store only your subscription status.</p>
+      <p><strong>Usage data:</strong> We log message counts and login events to enforce plan quotas and prevent abuse.</p>
+      <p><strong>Your rights:</strong> You can request deletion at any time by contacting us. Disconnecting Facebook immediately invalidates your tokens.</p>
+      <p class="legal-date">Last updated: January 2025</p>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ TERMS OF SERVICE ═══ -->
+<div class="overlay" id="termsModal" style="display:none" role="dialog" aria-modal="true" aria-labelledby="termsTitle" aria-hidden="true">
+  <div class="modal legal-modal">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+      <h2 id="termsTitle" class="legal-modal modal-title">Terms of Service</h2>
+      <button id="termsClose" class="legal-close" aria-label="Close">&#x2715;</button>
+    </div>
+    <div class="legal-body">
+      <p><strong>Acceptable use:</strong> FBCast Pro is for businesses to reach users who have previously messaged their Facebook Page. You must comply with Facebook's Messenger Platform policies.</p>
+      <p><strong>Prohibited:</strong> Spam, unsolicited commercial messages, illegal content, or anything violating Facebook's Community Standards. Abuse results in immediate account suspension.</p>
+      <p><strong>Subscriptions:</strong> Basic and Pro are billed monthly. Unlimited plan is billed yearly.</p>
+      <p><strong>Disclaimer:</strong> We are not affiliated with Meta/Facebook. Use of the Graph API is subject to Meta's terms. We are not liable for consequences of policy violations on your account.</p>
+      <p class="legal-date">Last updated: January 2025</p>
+    </div>
+  </div>
+</div>
+
+
+<script src="https://js.stripe.com/v3/" defer></script>
+<script src="assets/js/user-data.js?v={{VER}}" defer></script>
+<script src="assets/js/brand-logo.js?v={{VER}}" defer></script>
+<script src="assets/js/index-page.js?v={{VER}}" defer></script>
+<script src="assets/js/ui-components.js?v={{VER}}" defer></script>
+<script src="assets/js/app-shell.js?v={{VER}}" defer></script>
+<script src="assets/js/billing-status.js?v={{VER}}" defer></script>
+<script src="assets/js/billing.js?v={{VER}}" defer></script>
+<script src="assets/js/core/fb_api.js?v={{VER}}" defer></script>
+<script src="assets/js/core/web_ui.js?v={{VER}}" defer></script>
+<script src="assets/js/home-dashboard.js?v={{VER}}" defer></script>
+<script src="assets/js/analytics-dashboard.js?v={{VER}}" defer></script>
+<script src="assets/js/settings-extras.js?v={{VER}}" defer></script>
+<script src="assets/js/notifications.js?v={{VER}}" defer></script>
+<script src="assets/js/support.js?v={{VER}}" defer></script>
+<script src="assets/js/ai-assistant.js?v={{VER}}" defer></script>
+<script src="assets/js/app-pro.js?v={{VER}}" defer></script>
+
+<script src="/socket.io/socket.io.js" defer></script>
+
+<script>
+(function(){
+  var panel    = document.getElementById('recipientsPanel');
+  var toggleBtn= document.getElementById('recipientsToggleBtn');
+  var closeBtn = document.getElementById('recipientsPanelClose');
+  var backdrop = document.getElementById('recipientsBackdrop');
+  if(!panel||!toggleBtn||!backdrop) return;
+
+  function openPanel(){
+    panel.classList.add('panel-open');
+    backdrop.classList.add('active');
+    document.body.style.overflow='hidden';
+  }
+  function closePanel(){
+    panel.classList.remove('panel-open');
+    backdrop.classList.remove('active');
+    document.body.style.overflow='';
+  }
+  toggleBtn.addEventListener('click', openPanel);
+  if(closeBtn) closeBtn.addEventListener('click', closePanel);
+  backdrop.addEventListener('click', closePanel);
+  document.addEventListener('keydown', function(e){ if(e.key==='Escape') closePanel(); });
+})();
+</script>
+
+<style>
+.dvw{
+  position:fixed;bottom:24px;left:24px;
+  width:460px;
+  border-radius:12px;overflow:visible;
+  box-shadow:0 8px 40px rgba(0,0,0,.7);
+  z-index:9000;
+  animation:dvw-in .4s cubic-bezier(.16,1,.3,1) .8s both;
+}
+@keyframes dvw-in{
+  from{opacity:0;transform:translateY(20px) scale(.95)}
+  to  {opacity:1;transform:translateY(0)    scale(1)}
+}
+.dvw-iframe-wrap{
+  position:relative;width:100%;padding-top:calc(56.25% + 40px);
+  background:#000;
+  border-radius:12px;overflow:hidden;
+}
+.dvw-play-btn{
+  position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  width:52px;height:52px;border-radius:50%;
+  background:rgba(255,0,0,.85);border:none;
+  display:flex;align-items:center;justify-content:center;
+  color:#fff;font-size:18px;cursor:pointer;
+  pointer-events:none;z-index:5;
+  transition:opacity .3s;
+}
+.dvw-loaded .dvw-play-btn{opacity:0;}
+.dvw-iframe{
+  position:absolute;top:0;left:0;
+  width:calc(100% + 52px);height:100%;
+  border:none;display:block;
+}
+.dvw-close-btn{
+  position:absolute;top:-10px;right:-10px;z-index:10;
+  width:26px;height:26px;border-radius:50%;
+  background:#111;border:1px solid rgba(255,255,255,.15);
+  color:rgba(255,255,255,.8);font-size:12px;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;
+  transition:all .15s;line-height:1;
+}
+.dvw-close-btn:hover{background:#ef4444;border-color:#ef4444;color:#fff}
+@media(max-width:400px){
+  .dvw{width:calc(100vw - 32px);left:16px;bottom:16px}
+}
+</style>
+
+<script>
+(function(){
+  var widget = document.getElementById('demoVideoWidget');
+  var iframe = document.getElementById('dvwIframe');
+  var loaded = false;
+
+  // Load YouTube only when widget enters viewport
+  function loadVideo(){
+    if(loaded) return;
+    iframe.src = iframe.dataset.src;
+    loaded = true;
+    setTimeout(function(){ widget.classList.add('dvw-loaded'); }, 1000);
+  }
+
+  if('IntersectionObserver' in window){
+    new IntersectionObserver(function(entries, obs){
+      if(entries[0].isIntersecting){ loadVideo(); obs.disconnect(); }
+    },{threshold:0.1}).observe(widget);
+  } else {
+    setTimeout(loadVideo, 2000);
+  }
+
+  document.getElementById('dvwClose').addEventListener('click',function(){
+    iframe.src='';
+    loaded=false;
+    widget.style.display='none';
+  });
+})();
+</script>
+
+<!-- SaaS onboarding -->
+<div class="saas-onboarding" id="saasOnboarding" role="dialog" aria-modal="true" aria-labelledby="saasOnboardTitle">
+  <div class="saas-onboarding__card">
+    <div class="saas-onboarding__steps">
+      <span class="saas-onboarding__dot is-active"></span>
+      <span class="saas-onboarding__dot"></span>
+      <span class="saas-onboarding__dot"></span>
+      <span class="saas-onboarding__dot"></span>
+    </div>
+    <div class="saas-onboarding__icon" id="saasOnboardIcon"><i class="fa-brands fa-facebook"></i></div>
+    <h2 id="saasOnboardTitle">Welcome</h2>
+    <p id="saasOnboardText">Getting started...</p>
+    <div class="saas-onboarding__btns">
+      <button type="button" class="ds-btn ds-btn--ghost" id="saasOnboardSkip">Skip</button>
+      <button type="button" class="ds-btn ds-btn--primary" id="saasOnboardNext">Next</button>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

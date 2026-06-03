@@ -1,0 +1,444 @@
+/**
+ * FBCast Pro — Dashboard Premium Sharp layer
+ * Loads last. Crisp typography, solid surfaces, inset highlights, depth.
+ */
+
+/* ─── Global rendering (app shell) ─── */
+#appPage,
+#appPage .app-body {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+#appPage {
+  --prem-edge: rgba(255, 255, 255, 0.1);
+  --prem-edge-soft: rgba(255, 255, 255, 0.05);
+  --prem-surface: #0a1020;
+  --prem-surface-2: #0e1530;
+  --prem-surface-3: #121c3c;
+  --prem-inset: inset 0 1px 0 rgba(255, 255, 255, 0.09);
+  --prem-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.06),
+    var(--prem-inset),
+    0 16px 40px -12px rgba(0, 0, 0, 0.65);
+  --prem-shadow-hover:
+    0 0 0 1px rgba(168, 85, 247, 0.35),
+    var(--prem-inset),
+    0 24px 48px -12px rgba(88, 28, 135, 0.35);
+}
+
+/* Topbar — glass but crisp */
+#appPage .saas-topbar {
+  background: rgba(8, 12, 26, 0.94) !important;
+  backdrop-filter: blur(28px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(28px) saturate(180%) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+  box-shadow:
+    var(--prem-inset),
+    0 4px 24px rgba(0, 0, 0, 0.4) !important;
+}
+
+#appPage .saas-topbar .topbar-title h1 {
+  font-weight: 800 !important;
+  letter-spacing: -0.04em !important;
+  background: linear-gradient(180deg, #ffffff 0%, #c4b5fd 100%) !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+}
+
+#appPage .saas-topbar .topbar-mark {
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.15),
+    0 4px 16px rgba(99, 102, 241, 0.45) !important;
+}
+
+#appPage .saas-topbar .quota-widget {
+  background: var(--prem-surface-2) !important;
+  border: 1px solid var(--prem-edge) !important;
+  box-shadow: var(--prem-inset) !important;
+}
+
+#appPage .saas-topbar .btn-upgrade,
+#appPage .saas-topbar .saas-topbar__upgrade {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.25),
+    0 4px 16px rgba(99, 102, 241, 0.45) !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.05em !important;
+}
+
+/* Sidebar */
+#appPage .nav-sidebar {
+  background: linear-gradient(180deg, #121a32 0%, #0c1020 100%) !important;
+  box-shadow:
+    1px 0 0 rgba(255, 255, 255, 0.06),
+    4px 0 32px rgba(0, 0, 0, 0.45) !important;
+}
+
+#appPage .nav-side-item {
+  font-weight: 600 !important;
+  letter-spacing: -0.01em;
+}
+
+#appPage .nav-side-item.active {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.22), rgba(124, 58, 237, 0.16)) !important;
+  box-shadow:
+    var(--prem-inset),
+    inset 0 0 0 1px rgba(168, 85, 247, 0.35) !important;
+}
+
+/* ═══════════════════════════════════════
+   HOME DASHBOARD — sharp premium
+═══════════════════════════════════════ */
+html[data-theme='dark'] #landingPage,
+html[data-theme='dark'] #appPage {
+  background: var(--fbc-canvas, #030508) !important;
+  color-scheme: dark;
+}
+
+html[data-theme='dark'] body {
+  background: var(--bg, #030508);
+  color: var(--text, #fff);
+}
+
+#view-home {
+  position: relative;
+  isolation: isolate;
+  --hd-glass: #0a1020;
+  --hd-border: rgba(255, 255, 255, 0.1);
+  --hd-shadow: var(--prem-shadow);
+  --hd-shadow-hover: var(--prem-shadow-hover);
+}
+
+/* Subtle grid texture on dashboard (scoped to home, not full viewport) */
+#view-home::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.35;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+  background-size: 48px 48px;
+  mask-image: radial-gradient(ellipse 70% 60% at 50% 30%, black, transparent 75%);
+}
+
+#view-home > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* Hero — dark theme only (light: home-dashboard-light.css) */
+html[data-theme='dark'] #view-home .hv-hero,
+html.theme-dark #view-home .hv-hero {
+  border-radius: 16px !important;
+  padding: 36px 40px !important;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.06) 0%, transparent 28%),
+    linear-gradient(118deg, rgba(37, 99, 235, 0.28) 0%, rgba(109, 40, 217, 0.22) 48%, transparent 72%),
+    linear-gradient(180deg, #1a2550 0%, #121a38 48%, #0d1228 100%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  box-shadow: var(--prem-shadow) !important;
+  backdrop-filter: none !important;
+}
+
+#view-home .hv-hero::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background:
+    linear-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+  background-size: 32px 32px;
+  opacity: 0.5;
+  mask-image: linear-gradient(180deg, black 0%, transparent 85%);
+}
+
+#view-home .hv-hero-orb1,
+#view-home .hv-hero-orb2 {
+  filter: blur(48px);
+  opacity: 0.85;
+}
+
+html[data-theme='dark'] #view-home .hv-hero-title,
+html.theme-dark #view-home .hv-hero-title {
+  font-size: clamp(30px, 3.6vw, 44px) !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.045em !important;
+  line-height: 1.12 !important;
+  color: #ffffff !important;
+  text-shadow: 0 2px 24px rgba(0, 0, 0, 0.35);
+}
+
+html[data-theme='dark'] #view-home .hv-hero-name,
+html.theme-dark #view-home .hv-hero-name {
+  background: linear-gradient(135deg, #ffffff 0%, #a5b4fc 45%, #e9d5ff 100%) !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  filter: drop-shadow(0 0 20px rgba(168, 85, 247, 0.35));
+}
+
+html[data-theme='dark'] #view-home .hv-hero-sub,
+html.theme-dark #view-home .hv-hero-sub {
+  font-size: 15px !important;
+  font-weight: 500 !important;
+  color: #b8c4e8 !important;
+  line-height: 1.6 !important;
+}
+
+#view-home .hv-hero-status,
+#view-home .hv-hero-badge-fb {
+  font-size: 11px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.06em !important;
+  text-transform: uppercase;
+  box-shadow: var(--prem-inset);
+}
+
+#view-home .hv-hero-cta {
+  border-radius: 11px !important;
+  padding: 13px 24px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.02em !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.28),
+    0 6px 20px rgba(59, 130, 246, 0.45),
+    0 2px 4px rgba(0, 0, 0, 0.2) !important;
+}
+
+html[data-theme='dark'] #view-home .hv-hero-cta2,
+html.theme-dark #view-home .hv-hero-cta2 {
+  border-radius: 11px !important;
+  font-weight: 700 !important;
+  background: rgba(255, 255, 255, 0.06) !important;
+  border: 1px solid rgba(255, 255, 255, 0.14) !important;
+  box-shadow: var(--prem-inset) !important;
+  color: #e8edff !important;
+}
+
+html[data-theme='dark'] #view-home .hv-hero-sched-card,
+html.theme-dark #view-home .hv-hero-sched-card {
+  background: rgba(0, 0, 0, 0.35) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  border-radius: 12px !important;
+  box-shadow:
+    var(--prem-inset),
+    0 8px 24px rgba(0, 0, 0, 0.35) !important;
+  backdrop-filter: blur(16px) saturate(160%) !important;
+}
+
+#view-home .hv-metrics-eyebrow {
+  font-size: 11px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.14em !important;
+  color: #a5b4fc !important;
+}
+
+#view-home .hv-metrics-title {
+  font-size: 24px !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.04em !important;
+  color: #ffffff !important;
+}
+
+/* KPI cards */
+#view-home .hv-kpi {
+  background: linear-gradient(165deg, var(--prem-surface-3) 0%, var(--prem-surface) 100%) !important;
+  border: 1px solid var(--prem-edge) !important;
+  border-radius: 12px !important;
+  box-shadow: var(--prem-shadow) !important;
+  backdrop-filter: none !important;
+  padding: 20px 22px !important;
+}
+
+#view-home .hv-kpi:hover {
+  transform: translateY(-4px) !important;
+  border-color: rgba(168, 85, 247, 0.4) !important;
+  box-shadow: var(--prem-shadow-hover) !important;
+}
+
+#view-home .hv-kpi::after {
+  height: 3px !important;
+  opacity: 0 !important;
+  border-radius: 0 0 12px 12px !important;
+}
+
+#view-home .hv-kpi:hover::after {
+  opacity: 1 !important;
+}
+
+html[data-theme='dark'] #view-home .hv-kpi-icon,
+html.theme-dark #view-home .hv-kpi-icon {
+  width: 48px !important;
+  height: 48px !important;
+  border-radius: 12px !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.25),
+    0 4px 12px rgba(0, 0, 0, 0.35) !important;
+}
+
+#view-home .hv-kpi-val {
+  font-size: 2.125rem !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.05em !important;
+  color: #ffffff !important;
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+#view-home .hv-kpi-lbl {
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.04em !important;
+  text-transform: uppercase !important;
+  color: #8b9cc9 !important;
+}
+
+/* Panels */
+#view-home .hv-panel {
+  background: linear-gradient(180deg, var(--prem-surface-2) 0%, var(--prem-surface) 100%) !important;
+  border: 1px solid var(--prem-edge) !important;
+  border-radius: 14px !important;
+  box-shadow: var(--prem-shadow) !important;
+  backdrop-filter: none !important;
+}
+
+#view-home .hv-panel-hdr {
+  background: rgba(0, 0, 0, 0.2) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+#view-home .hv-panel-title {
+  font-size: 16px !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.03em !important;
+  color: #ffffff !important;
+}
+
+#view-home .hv-panel-sub {
+  color: #94a3c8 !important;
+  font-weight: 500 !important;
+}
+
+#view-home .hv-panel-icon-wrap,
+#view-home .hv-panel-icon-purple,
+#view-home .hv-panel-icon-indigo,
+#view-home .hv-panel-icon-amber {
+  box-shadow: var(--prem-inset) !important;
+}
+
+/* Quick actions */
+#view-home .hv-qa-card {
+  background: var(--prem-surface) !important;
+  border: 1px solid var(--prem-edge) !important;
+  border-radius: 12px !important;
+  box-shadow: var(--prem-inset) !important;
+  backdrop-filter: none !important;
+}
+
+#view-home .hv-qa-card:hover {
+  background: var(--prem-surface-2) !important;
+  border-color: rgba(168, 85, 247, 0.35) !important;
+  transform: translateY(-3px) !important;
+}
+
+#view-home .hv-qa-card-icon {
+  width: 40px !important;
+  height: 40px !important;
+  border-radius: 10px !important;
+  box-shadow: var(--prem-inset) !important;
+}
+
+#view-home .hv-qa-card-label {
+  font-weight: 800 !important;
+  letter-spacing: -0.02em !important;
+  color: #f4f6ff !important;
+}
+
+#view-home .hv-qa-card-desc {
+  color: #8b9cc9 !important;
+}
+
+/* Plan card */
+#view-home .hv-plan-card {
+  border-radius: 16px !important;
+  border: 1px solid rgba(168, 85, 247, 0.45) !important;
+  box-shadow:
+    var(--prem-inset),
+    0 0 0 1px rgba(168, 85, 247, 0.15),
+    0 20px 50px rgba(88, 28, 135, 0.25) !important;
+}
+
+#view-home .hv-plan-card-bg {
+  background: linear-gradient(165deg, #221452 0%, #161f45 40%, #0f1630 100%) !important;
+}
+
+#view-home .hv-plan-used {
+  color: #ffffff !important;
+  text-shadow: 0 2px 16px rgba(168, 85, 247, 0.3);
+}
+
+#view-home .hv-plan-upgrade-full {
+  border-radius: 11px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.03em !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.25),
+    0 8px 24px rgba(124, 58, 237, 0.45) !important;
+}
+
+#view-home .hv-sync-bar {
+  background: var(--prem-surface) !important;
+  border: 1px solid var(--prem-edge) !important;
+  box-shadow: var(--prem-inset) !important;
+  backdrop-filter: none !important;
+}
+
+/* Scheduler items */
+#view-home .hv-sched-main-item {
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  background: rgba(0, 0, 0, 0.25) !important;
+}
+
+#view-home .hv-sched-main-item:hover {
+  border-color: rgba(168, 85, 247, 0.35) !important;
+  background: rgba(124, 58, 237, 0.08) !important;
+}
+
+/* Light theme sharpness */
+body.light #view-home::before {
+  opacity: 0.2;
+  background-image:
+    linear-gradient(rgba(99, 102, 241, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(99, 102, 241, 0.06) 1px, transparent 1px);
+}
+
+body.light #view-home {
+  --hd-glass: #ffffff;
+  --prem-surface: #ffffff;
+  --prem-surface-2: #f8faff;
+  --prem-surface-3: #f1f5ff;
+  --prem-edge: rgba(99, 102, 241, 0.14);
+  --prem-shadow:
+    0 0 0 1px rgba(99, 102, 241, 0.08),
+    0 8px 32px rgba(99, 102, 241, 0.1);
+}
+
+body.light #view-home .hv-hero-title,
+body.light #view-home .hv-kpi-val,
+body.light #view-home .hv-panel-title {
+  color: #0f172a !important;
+  text-shadow: none !important;
+}
+
+body.light #view-home .hv-hero-name {
+  background: linear-gradient(135deg, #1e3a8a, #6d28d9) !important;
+  -webkit-background-clip: text !important;
+  filter: none;
+}

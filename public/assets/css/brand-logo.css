@@ -1,0 +1,111 @@
+/**
+ * FBCast Pro — Brand logo (fast load + CSS fallback)
+ * Shows gradient mark instantly; swaps to optimized WebP when loaded.
+ */
+
+.fbc-logo {
+  position: relative;
+  display: inline-flex;
+  flex-shrink: 0;
+  overflow: hidden;
+  border-radius: 10px;
+  background: linear-gradient(145deg, #0866ff 0%, #1d4ed8 55%, #0f172a 100%);
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.1),
+    0 4px 12px rgba(8, 102, 255, 0.25);
+}
+
+.fbc-logo::after {
+  content: 'F';
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--ds-font, 'Plus Jakarta Sans', system-ui, sans-serif);
+  font-weight: 800;
+  font-size: 55%;
+  color: #fff;
+  letter-spacing: -0.04em;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.95;
+}
+
+.fbc-logo img {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  border-radius: inherit;
+  background: transparent;
+}
+
+.fbc-logo img.is-loaded + .fbc-logo__ph,
+.fbc-logo:has(img.is-loaded)::after {
+  opacity: 0;
+}
+
+.fbc-logo--xs {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+}
+
+.fbc-logo--sm {
+  width: 34px;
+  height: 34px;
+}
+
+.fbc-logo--md {
+  width: 38px;
+  height: 38px;
+  border-radius: 11px;
+}
+
+.fbc-logo--lg {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+}
+
+/* Legacy wrappers — same instant fallback */
+.nav-brand-mark,
+.topbar-mark,
+.saas-topbar .topbar-mark {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(145deg, #0866ff 0%, #1d4ed8 55%, #0f172a 100%) !important;
+}
+
+.nav-brand-mark:not(:has(img.is-loaded))::after,
+.topbar-mark:not(:has(img.is-loaded))::after,
+.saas-topbar .topbar-mark:not(:has(img.is-loaded))::after {
+  content: 'F';
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--ds-font, 'Plus Jakarta Sans', system-ui, sans-serif);
+  font-weight: 800;
+  font-size: 14px;
+  color: #fff;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.nav-brand-mark img,
+.topbar-mark img,
+.saas-topbar .topbar-mark img {
+  position: relative;
+  z-index: 1;
+}
+
+.nav-brand-mark:has(img.is-loaded)::after,
+.topbar-mark:has(img.is-loaded)::after,
+.saas-topbar .topbar-mark:has(img.is-loaded)::after {
+  display: none;
+}

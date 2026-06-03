@@ -1,0 +1,624 @@
+/**
+ * FBCast Pro — Premium SaaS visual layer
+ * Loads last. Elevates landing + dashboard to enterprise-grade polish.
+ */
+
+/* ─── Refined tokens ─── */
+:root {
+  --premium-glass: #0a1020;
+  --premium-glass-border: rgba(255, 255, 255, 0.1);
+  --premium-glass-highlight: rgba(255, 255, 255, 0.06);
+  --premium-shadow-card:
+    inset 0 1px 0 rgba(255, 255, 255, 0.09),
+    0 0 0 1px rgba(255, 255, 255, 0.05),
+    0 16px 40px -10px rgba(0, 0, 0, 0.55);
+  --premium-shadow-hover:
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    0 0 0 1px rgba(168, 85, 247, 0.35),
+    0 24px 48px -10px rgba(88, 28, 135, 0.35);
+  --premium-section-pad: clamp(80px, 10vw, 128px);
+}
+
+body {
+  font-feature-settings: 'kern' 1, 'liga' 1;
+  text-rendering: optimizeLegibility;
+}
+
+/* ═══════════════════════════════════════
+   LANDING — Navigation
+═══════════════════════════════════════ */
+.nav {
+  height: 72px;
+  padding: 0 clamp(20px, 5vw, 56px);
+  transition: background 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+}
+
+html[data-theme='dark'] .nav,
+body:not(.light) .nav {
+  background: rgba(3, 12, 26, 0.65) !important;
+  border-bottom: 1px solid var(--premium-glass-border) !important;
+}
+
+html[data-theme='dark'] .nav.nav--scrolled,
+body:not(.light) .nav.nav--scrolled {
+  background: rgba(3, 12, 26, 0.92) !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
+  border-bottom-color: rgba(8, 102, 255, 0.15) !important;
+}
+
+.nav-brand-mark {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.1),
+    0 8px 24px rgba(8, 102, 255, 0.25);
+}
+
+.nav-brand-name {
+  font-size: 17px;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+}
+
+.nav-links a {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text2);
+  padding: 8px 14px;
+  border-radius: 8px;
+}
+
+.nav-cta {
+  padding: 11px 22px !important;
+  border-radius: 10px !important;
+  font-size: 13px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.01em;
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.12) inset,
+    0 4px 20px rgba(8, 102, 255, 0.4) !important;
+}
+
+/* ═══════════════════════════════════════
+   LANDING — Hero
+═══════════════════════════════════════ */
+.hero {
+  padding: clamp(100px, 14vw, 148px) clamp(24px, 5vw, 56px) clamp(88px, 10vw, 120px) !important;
+}
+
+.hero-noise {
+  opacity: 0.25;
+}
+
+.hero-grid {
+  opacity: 0.45;
+  mask-image: radial-gradient(ellipse 70% 55% at 50% 0%, black 0%, transparent 75%);
+}
+
+.hero-h1 {
+  font-size: clamp(44px, 6.5vw, 80px) !important;
+  letter-spacing: -0.045em !important;
+  line-height: 1.02 !important;
+  max-width: 900px;
+  margin-bottom: 24px !important;
+}
+
+.hero-sub {
+  font-size: clamp(17px, 2vw, 20px) !important;
+  line-height: 1.65 !important;
+  color: var(--text2) !important;
+  max-width: 520px;
+  margin-bottom: 40px !important;
+}
+
+.hero-badge,
+.activity-ticker {
+  backdrop-filter: blur(12px);
+  border-radius: 100px;
+}
+
+.activity-ticker {
+  background: rgba(16, 185, 129, 0.08) !important;
+  border-color: rgba(16, 185, 129, 0.2) !important;
+  margin-bottom: 24px !important;
+}
+
+.btn-hero {
+  min-width: min(100%, 320px) !important;
+  width: auto !important;
+  max-width: 100%;
+  padding: 16px 36px !important;
+  font-size: 15px !important;
+  font-weight: 700 !important;
+  border-radius: 12px !important;
+  letter-spacing: -0.02em;
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.14) inset,
+    0 8px 32px rgba(8, 102, 255, 0.45) !important;
+}
+
+.btn-hero:hover:not(:disabled):not(.loading) {
+  transform: translateY(-2px) !important;
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.18) inset,
+    0 14px 40px rgba(8, 102, 255, 0.55) !important;
+}
+
+.hero-social-proof {
+  font-size: 13px;
+  color: var(--text2);
+  font-weight: 500;
+}
+
+/* ═══════════════════════════════════════
+   LANDING — Sections
+═══════════════════════════════════════ */
+.features-wrap,
+#how-it-works,
+#pricing,
+.testimonials-wrap,
+#faq,
+.cta-section {
+  padding-top: var(--premium-section-pad) !important;
+  padding-bottom: var(--premium-section-pad) !important;
+  padding-left: clamp(20px, 5vw, 56px) !important;
+  padding-right: clamp(20px, 5vw, 56px) !important;
+}
+
+.section-h2 {
+  font-size: clamp(28px, 4vw, 44px) !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.035em !important;
+  line-height: 1.1 !important;
+}
+
+.section-sub {
+  font-size: 16px !important;
+  line-height: 1.7 !important;
+  margin-bottom: 48px !important;
+}
+
+.section-label {
+  font-size: 11px !important;
+  letter-spacing: 0.12em !important;
+  padding: 6px 14px !important;
+}
+
+/* Features — card grid (not cheap 1px gap table) */
+.features-grid {
+  display: grid !important;
+  grid-template-columns: repeat(3, 1fr) !important;
+  gap: 16px !important;
+  background: transparent !important;
+  border: none !important;
+  border-radius: 0 !important;
+  overflow: visible !important;
+}
+
+.feat {
+  background: var(--premium-glass) !important;
+  backdrop-filter: blur(16px);
+  border: 1px solid var(--premium-glass-border) !important;
+  border-radius: 16px !important;
+  padding: 28px 24px !important;
+  box-shadow: var(--premium-shadow-card);
+  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease !important;
+}
+
+.feat:hover {
+  transform: translateY(-4px);
+  border-color: rgba(8, 102, 255, 0.25) !important;
+  box-shadow: var(--premium-shadow-hover);
+}
+
+.feat-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: var(--primary-dim) !important;
+  color: var(--primary-light) !important;
+  border: 1px solid rgba(8, 102, 255, 0.2);
+}
+
+.feat h3 {
+  font-size: 16px !important;
+  font-weight: 700 !important;
+}
+
+.feat p {
+  font-size: 14px !important;
+  line-height: 1.65 !important;
+}
+
+/* Steps */
+.step {
+  background: var(--premium-glass) !important;
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--premium-glass-border) !important;
+  border-radius: 16px !important;
+  box-shadow: var(--premium-shadow-card);
+  padding: 32px 28px !important;
+}
+
+.step:hover {
+  transform: translateY(-4px) !important;
+  box-shadow: var(--premium-shadow-hover) !important;
+  border-color: rgba(8, 102, 255, 0.22) !important;
+}
+
+.step-num {
+  background: var(--gradient-brand) !important;
+  box-shadow: var(--shadow-violet) !important;
+}
+
+/* ═══════════════════════════════════════
+   LANDING — Pricing (unified brand, no rainbow)
+═══════════════════════════════════════ */
+.promo-banner {
+  animation: none !important;
+  background: rgba(8, 102, 255, 0.08) !important;
+  border: 1px solid rgba(8, 102, 255, 0.2) !important;
+  border-radius: 12px !important;
+}
+
+.promo-banner-text strong {
+  color: var(--primary-light) !important;
+}
+
+.promo-countdown {
+  color: var(--primary-light) !important;
+  background: var(--primary-dim) !important;
+  border-color: rgba(8, 102, 255, 0.25) !important;
+}
+
+.pricing-grid--6 {
+  gap: 20px !important;
+}
+
+.price-card {
+  background: var(--premium-glass) !important;
+  backdrop-filter: blur(14px);
+  border: 1px solid var(--premium-glass-border) !important;
+  border-radius: 16px !important;
+  padding: 28px 24px 24px !important;
+  box-shadow: var(--premium-shadow-card);
+  transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.28s, border-color 0.28s !important;
+}
+
+/* Single brand accent bar — no rainbow tiers */
+.pricing-grid--6 .price-card::before {
+  height: 2px !important;
+  background: linear-gradient(90deg, transparent, rgba(8, 102, 255, 0.5), transparent) !important;
+  opacity: 0.8;
+}
+
+.pricing-grid--6 .price-card:nth-child(n)::before {
+  background: linear-gradient(90deg, transparent, rgba(8, 102, 255, 0.45), transparent) !important;
+}
+
+.pricing-grid--6 .price-card:hover {
+  transform: translateY(-6px) !important;
+  border-color: rgba(8, 102, 255, 0.22) !important;
+  box-shadow: var(--premium-shadow-hover) !important;
+}
+
+.pricing-grid--6 .price-card:nth-child(n):hover {
+  box-shadow: var(--premium-shadow-hover) !important;
+}
+
+/* Featured plan — brand highlight, not muddy gold box */
+.pricing-grid--6 .price-card--gold {
+  background:
+    linear-gradient(160deg, rgba(8, 102, 255, 0.12) 0%, var(--premium-glass) 45%) !important;
+  border-color: rgba(8, 102, 255, 0.35) !important;
+  box-shadow:
+    0 0 0 1px rgba(8, 102, 255, 0.15) inset,
+    0 16px 48px rgba(8, 102, 255, 0.2) !important;
+  transform: scale(1.02);
+}
+
+.pricing-grid--6 .price-card--gold::before {
+  background: linear-gradient(90deg, var(--fbc-brand), var(--fbc-accent-soft)) !important;
+  opacity: 1 !important;
+  height: 3px !important;
+}
+
+.pricing-grid--6 .price-card--gold::after {
+  display: none !important;
+}
+
+.pricing-grid--6 .price-card--gold:hover {
+  transform: scale(1.02) translateY(-6px) !important;
+  box-shadow:
+    0 0 0 1px rgba(8, 102, 255, 0.25) inset,
+    0 24px 56px rgba(8, 102, 255, 0.28) !important;
+}
+
+.pricing-grid--6 .price-name,
+.pricing-grid--6 .price-card:nth-child(n) .price-name,
+.pricing-grid--6 .price-card--gold .price-name {
+  color: var(--text3) !important;
+  letter-spacing: 0.1em !important;
+}
+
+.pricing-grid--6 .price-card--gold .price-name {
+  color: var(--primary-light) !important;
+}
+
+.pricing-grid--6 .price-amount {
+  font-size: 36px !important;
+  letter-spacing: -0.04em !important;
+}
+
+.pricing-grid--6 .price-card--gold .price-amount {
+  background: linear-gradient(135deg, #fff 0%, #a8c4ff 100%) !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+}
+
+.pricing-grid--6 .price-popular {
+  background: var(--gradient-brand) !important;
+  color: #fff !important;
+  box-shadow: var(--shadow-violet) !important;
+}
+
+.pricing-grid--6 .price-btn--basic,
+.pricing-grid--6 .price-btn--pro,
+.pricing-grid--6 .price-btn--gold {
+  background: var(--gradient-brand) !important;
+  color: #fff !important;
+  box-shadow: 0 4px 16px rgba(8, 102, 255, 0.35) !important;
+  border-radius: 10px !important;
+}
+
+.pricing-grid--6 .price-btn--gold {
+  color: #fff !important;
+  font-weight: 700 !important;
+}
+
+.pricing-grid--6 .price-feats li {
+  color: var(--text2) !important;
+  border-bottom-color: var(--border) !important;
+}
+
+.pricing-grid--6 .price-feats li i.fa-check {
+  color: var(--green-light) !important;
+  background: rgba(16, 185, 129, 0.12) !important;
+}
+
+.billing-toggle {
+  border-radius: 10px !important;
+  padding: 4px !important;
+  background: var(--surface) !important;
+}
+
+.billing-toggle button.active {
+  border-radius: 8px !important;
+}
+
+/* CTA section */
+.cta-box {
+  background: var(--premium-glass) !important;
+  backdrop-filter: blur(20px);
+  border: 1px solid var(--premium-glass-border) !important;
+  border-radius: 20px !important;
+  box-shadow: var(--premium-shadow-card);
+}
+
+.cta-h2 {
+  letter-spacing: -0.03em !important;
+}
+
+/* Footer */
+html[data-theme='dark'] .footer-enhanced,
+body:not(.light) .footer-enhanced {
+  border-top: 1px solid var(--border);
+  background: rgba(2, 10, 20, 0.6);
+  backdrop-filter: blur(12px);
+}
+
+/* ═══════════════════════════════════════
+   DASHBOARD — App shell
+═══════════════════════════════════════ */
+#appPage {
+  background:
+    radial-gradient(ellipse 100% 80% at 0% 0%, rgba(8, 102, 255, 0.1), transparent 45%),
+    radial-gradient(ellipse 80% 60% at 100% 0%, rgba(124, 58, 237, 0.08), transparent 40%),
+    var(--bg) !important;
+}
+
+.app-body {
+  padding: 16px !important;
+  gap: 16px !important;
+}
+
+/* Nav rail */
+.nav-sidebar {
+  border-radius: 16px !important;
+  background: var(--premium-glass) !important;
+  backdrop-filter: blur(20px);
+  border: 1px solid var(--premium-glass-border) !important;
+  box-shadow: var(--premium-shadow-card) !important;
+}
+
+.nav-side-item {
+  border-radius: 10px !important;
+  margin: 2px 8px !important;
+}
+
+.nav-side-item.active {
+  background: var(--primary-dim) !important;
+  box-shadow: none !important;
+}
+
+/* Topbar — full-width glass strip */
+.saas-topbar {
+  border: none !important;
+  border-bottom: 1px solid var(--premium-glass-border) !important;
+  background: var(--premium-glass) !important;
+  backdrop-filter: blur(24px) saturate(180%) !important;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.04) inset;
+}
+
+/* Broadcast panels */
+.sidebar,
+.compose-col,
+.compose,
+.broadcast-col {
+  border-radius: 16px !important;
+  background: var(--premium-glass) !important;
+  backdrop-filter: blur(16px);
+  border: 1px solid var(--premium-glass-border) !important;
+  box-shadow: var(--premium-shadow-card) !important;
+}
+
+.compose-section {
+  border-radius: 12px !important;
+}
+
+/* ═══════════════════════════════════════
+   DASHBOARD — Home view
+═══════════════════════════════════════ */
+.hv:not(#view-home) {
+  padding: 24px !important;
+  gap: 24px !important;
+  max-width: 1400px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+/* Home welcome banner: styled in home-dashboard.css (#view-home) */
+
+/* KPI cards — refined, not toy-like */
+.hv-kpi-row {
+  gap: 14px !important;
+}
+
+.hv-kpi {
+  background: var(--premium-glass) !important;
+  border: 1px solid var(--premium-glass-border) !important;
+  border-radius: 14px !important;
+  padding: 18px 20px !important;
+  box-shadow: var(--premium-shadow-card);
+}
+
+#view-home .hv-kpi {
+  backdrop-filter: none !important;
+}
+
+#view-home .hv-kpi:hover {
+  transform: translateY(-2px) !important;
+  border-color: rgba(168, 85, 247, 0.28) !important;
+  box-shadow: var(--premium-shadow-hover) !important;
+}
+
+/* Per-metric colors live in home-dashboard.css + index.css */
+
+#view-home .hv-kpi-val {
+  font-size: 2.125rem !important;
+  letter-spacing: -0.05em !important;
+}
+
+.hv-panel {
+  background: var(--premium-glass) !important;
+  border: 1px solid var(--premium-glass-border) !important;
+  border-radius: 16px !important;
+  box-shadow: var(--premium-shadow-card);
+}
+
+#view-home .hv-panel {
+  backdrop-filter: none !important;
+}
+
+.hv-qa-card,
+.hv-plan-card {
+  background: var(--premium-glass) !important;
+  border: 1px solid var(--premium-glass-border) !important;
+  border-radius: 14px !important;
+  box-shadow: var(--premium-shadow-card) !important;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease !important;
+}
+
+#view-home .hv-qa-card:hover,
+#view-home .hv-plan-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--border2) !important;
+  box-shadow: var(--premium-shadow-hover) !important;
+}
+
+/* Messenger view container */
+#view-messenger {
+  border-radius: 16px !important;
+  border: 1px solid var(--premium-glass-border) !important;
+  box-shadow: var(--premium-shadow-card) !important;
+  overflow: hidden;
+}
+
+/* Modals */
+.modal-box,
+.upgrade-modal-box,
+#upgradeModal > div {
+  border-radius: 18px !important;
+  border: 1px solid var(--premium-glass-border) !important;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.6) !important;
+}
+
+/* Scheduling view — panel backgrounds owned by scheduling.css */
+html[data-theme='dark'] #view-scheduling .sv2-topbar {
+  background: var(--premium-glass) !important;
+  backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--premium-glass-border) !important;
+}
+
+html[data-theme='dark'] #view-scheduling .sv2-card {
+  background: var(--premium-glass) !important;
+  border: 1px solid var(--premium-glass-border) !important;
+  box-shadow: var(--premium-shadow-card) !important;
+}
+
+html[data-theme='dark'] #view-scheduling .sv2-submit {
+  background: var(--gradient-brand) !important;
+  box-shadow: var(--shadow-violet) !important;
+}
+
+/* Quota widget in topbar */
+.saas-topbar .quota-widget {
+  background: rgba(255, 255, 255, 0.03) !important;
+  border: 1px solid var(--premium-glass-border) !important;
+  border-radius: 12px !important;
+}
+
+/* ═══════════════════════════════════════
+   Light theme adjustments
+═══════════════════════════════════════ */
+body.light {
+  --premium-glass: rgba(255, 255, 255, 0.88);
+  --premium-glass-border: rgba(8, 102, 255, 0.1);
+  --premium-shadow-card:
+    0 1px 2px rgba(8, 102, 255, 0.06),
+    0 8px 32px rgba(8, 102, 255, 0.08);
+  --premium-shadow-hover:
+    0 12px 40px rgba(8, 102, 255, 0.14);
+}
+
+body.light .feat,
+body.light .step,
+body.light .price-card,
+body.light #view-broadcast .hv-kpi,
+body.light #view-analytics .hv-kpi,
+body.light #view-broadcast .hv-panel,
+body.light #view-analytics .hv-panel {
+  background: #fff !important;
+}
+
+body.light .pricing-grid--6 .price-card--gold {
+  background: linear-gradient(160deg, rgba(8, 102, 255, 0.06), #fff 50%) !important;
+}
+
+body.light #view-broadcast .hv-kpi-icon,
+body.light #view-analytics .hv-kpi-icon {
+  background: var(--primary-dim) !important;
+  color: var(--primary) !important;
+}

@@ -1,0 +1,147 @@
+/**
+ * FBCast Pro — SaaS UI layer (billing, onboarding, account)
+ */
+
+/* ── Billing card (Settings) ── */
+.saas-billing-card {
+  background: linear-gradient(135deg, rgba(8, 102, 255, 0.12), rgba(124, 58, 237, 0.08));
+  border: 1px solid rgba(8, 102, 255, 0.25);
+  border-radius: var(--ds-radius-lg, 14px);
+  padding: 20px 22px;
+  margin-bottom: 16px;
+}
+.saas-billing-card__hdr {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+.saas-billing-card__title {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--text);
+}
+.saas-billing-card__sub {
+  font-size: 12px;
+  color: var(--text2);
+  margin-top: 4px;
+}
+.saas-plan-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: 100px;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  background: var(--ds-brand-muted, rgba(8, 102, 255, 0.14));
+  color: var(--primary-light, #4f9fff);
+  border: 1px solid rgba(8, 102, 255, 0.3);
+}
+.saas-plan-badge--pro {
+  background: rgba(124, 58, 237, 0.15);
+  color: #a78bfa;
+  border-color: rgba(124, 58, 237, 0.35);
+}
+.saas-usage-bar {
+  height: 8px;
+  background: var(--bg2, #060f22);
+  border-radius: 100px;
+  overflow: hidden;
+  margin: 10px 0 6px;
+}
+.saas-usage-bar__fill {
+  height: 100%;
+  border-radius: 100px;
+  background: linear-gradient(90deg, #0866ff, #7c3aed);
+  transition: width 0.4s ease;
+}
+.saas-usage-meta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: var(--text3);
+  font-weight: 600;
+}
+.saas-billing-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 16px;
+}
+.saas-billing-actions .ds-btn { flex: 1; min-width: 140px; }
+
+/* ── Onboarding overlay ── */
+.saas-onboarding {
+  position: fixed;
+  inset: 0;
+  z-index: 12000;
+  background: rgba(3, 12, 26, 0.92);
+  backdrop-filter: blur(12px);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+.saas-onboarding.is-open { display: flex; }
+.saas-onboarding__card {
+  width: 100%;
+  max-width: 480px;
+  background: var(--surface, #0d1b38);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 32px 28px;
+  box-shadow: var(--ds-shadow-lg);
+  text-align: center;
+}
+.saas-onboarding__steps {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 24px;
+}
+.saas-onboarding__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--border2);
+  transition: background 0.2s, transform 0.2s;
+}
+.saas-onboarding__dot.is-active {
+  background: var(--primary, #0866ff);
+  transform: scale(1.2);
+}
+.saas-onboarding__icon {
+  width: 56px;
+  height: 56px;
+  margin: 0 auto 16px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #0866ff, #5b21b6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  color: #fff;
+}
+.saas-onboarding h2 {
+  font-size: 20px;
+  font-weight: 800;
+  margin-bottom: 8px;
+}
+.saas-onboarding p {
+  font-size: 13px;
+  color: var(--text2);
+  line-height: 1.6;
+  margin-bottom: 24px;
+}
+.saas-onboarding__btns {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+
+/* ── SaaS topbar quota pill enhancement ── */
+.quota-widget { border-radius: 12px; }
