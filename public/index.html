@@ -727,7 +727,7 @@ window.getCsrfToken = async (forceRefresh = false) => {
             What payment methods are accepted?
             <div class="faq-q-icon"><i class="fa-solid fa-plus"></i></div>
           </div>
-          <div class="faq-a">We accept all major credit and debit cards via Stripe — Visa, Mastercard, and American Express. All payments are secured with 256-bit SSL encryption.</div>
+          <div class="faq-a">We accept credit and debit cards via Stripe (Visa, Mastercard, Amex) and crypto via Binance Pay (USDT and more). All payments use 256-bit SSL encryption.</div>
         </div>
       </div>
     </div>
@@ -2708,6 +2708,24 @@ window.getCsrfToken = async (forceRefresh = false) => {
   </div>
 </div>
 
+<!-- ═══ PAYMENT METHOD ═══ -->
+<div class="overlay" id="paymentMethodModal" style="display:none" role="dialog" aria-modal="true" aria-labelledby="paymentMethodTitle" aria-hidden="true">
+  <div class="modal payment-method-modal" style="max-width:440px;padding:28px 24px;">
+    <h2 id="paymentMethodTitle" style="margin:0 0 8px;font-size:1.25rem;">Choose payment method</h2>
+    <p id="paymentMethodSub" style="margin:0 0 20px;color:var(--text-muted,#64748b);font-size:0.9rem;">Pay with card or Binance Pay (crypto).</p>
+    <div class="payment-method-grid" style="display:flex;flex-direction:column;gap:12px;">
+      <button type="button" class="ds-btn ds-btn--primary payment-method-btn" id="payMethodStripe" style="justify-content:center;gap:10px;">
+        <i class="fa-brands fa-stripe"></i> Card (Stripe)
+      </button>
+      <button type="button" class="ds-btn payment-method-btn payment-method-btn--binance" id="payMethodBinance" style="justify-content:center;gap:10px;background:#F0B90B;color:#1E2329;border:none;font-weight:600;">
+        <i class="fa-solid fa-wallet"></i> Binance Pay
+      </button>
+    </div>
+    <p id="paymentMethodHint" style="margin:12px 0 0;font-size:12px;color:var(--text-muted,#94a3b8);display:none;"></p>
+    <button type="button" class="ds-btn ds-btn--ghost" id="paymentMethodCancel" style="margin-top:16px;width:100%;">Cancel</button>
+  </div>
+</div>
+
 <!-- ═══ UPGRADE MODAL ═══ -->
 <div class="overlay" id="upgradeModal" style="display:none" role="dialog" aria-modal="true" aria-labelledby="upgradeModalTitle" aria-hidden="true">
   <div class="modal modal--upgrade">
@@ -2719,11 +2737,12 @@ window.getCsrfToken = async (forceRefresh = false) => {
     </div>
     <div class="modal-security">
       <i class="fas fa-lock"></i>
-      <span>256-bit SSL · Secure Payment</span>
-      <div style="display:flex;gap:4px;margin-left:6px;">
+      <span>256-bit SSL · Card or Binance Pay</span>
+      <div style="display:flex;gap:4px;margin-left:6px;align-items:center;flex-wrap:wrap;">
         <span class="card-tag">VISA</span>
         <span class="card-tag">MC</span>
         <span class="card-tag">AMEX</span>
+        <span class="card-tag card-tag--binance">BINANCE</span>
       </div>
     </div>
     <div class="modal-plans">

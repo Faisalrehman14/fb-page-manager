@@ -42,9 +42,12 @@ app.get('/api/debug/fb-convs', requireAdminAuth, async (req, res) => {
 
 // ── /api/config — public config for frontend ──────────────────────────────────
 app.get('/api/config', (req, res) => {
+    const billing = require('../../services/billing.service');
+    const providers = billing.getPaymentProviders();
     res.json({
         fbAppId:            process.env.FB_APP_ID            || '',
         stripePublishableKey: process.env.STRIPE_PUBLISHABLE_KEY || '',
+        paymentProviders:   providers,
         contactEmail:       process.env.CONTACT_EMAIL        || '',
         siteUrl:            process.env.SITE_URL             || BASE_URL || '',
         appEnv:             process.env.APP_ENV              || 'production'
@@ -60,8 +63,11 @@ function renderIndexHtml(req) {
     const siteUrl = process.env.SITE_URL || BASE_URL || (host ? `${proto}://${host}` : '');
     const ver   = Date.now();
 
+    const billing = require('../../services/billing.service');
+    const providers = billing.getPaymentProviders();
     const config = {
         stripePublishableKey: (process.env.STRIPE_PUBLISHABLE_KEY || '').replace(/'/g, "\\'"),
+        paymentProviders: providers,
         fbAppId: (process.env.FB_APP_ID || '').replace(/'/g, "\\'"),
         fbRedirectUri: (process.env.FB_REDIRECT_URI || `${siteUrl}/oauth_callback.php`).replace(/'/g, "\\'"),
         contactEmail: (process.env.CONTACT_EMAIL || '').replace(/'/g, "\\'"),

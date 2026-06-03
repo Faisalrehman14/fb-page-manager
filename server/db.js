@@ -277,6 +277,26 @@ async function initDatabase() {
         `);
 
         await tryCreate(`
+            CREATE TABLE IF NOT EXISTS binance_orders (
+                id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                merchant_trade_no VARCHAR(32) NOT NULL UNIQUE,
+                fb_user_id VARCHAR(50) NOT NULL,
+                plan_key VARCHAR(32) NOT NULL,
+                prepay_id VARCHAR(32) DEFAULT NULL,
+                amount DECIMAL(18,8) DEFAULT NULL,
+                currency VARCHAR(16) DEFAULT NULL,
+                fiat_amount DECIMAL(18,8) DEFAULT NULL,
+                fiat_currency VARCHAR(8) DEFAULT NULL,
+                status ENUM('pending','paid','closed','failed') NOT NULL DEFAULT 'pending',
+                transaction_id VARCHAR(128) DEFAULT NULL,
+                created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                paid_at DATETIME NULL DEFAULT NULL,
+                INDEX idx_binance_user (fb_user_id),
+                INDEX idx_binance_status (status)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        `);
+
+        await tryCreate(`
             CREATE TABLE IF NOT EXISTS activity_log (
                 id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
                 fb_user_id VARCHAR(50) NOT NULL,
@@ -2693,6 +2713,56 @@ async function downgradeToFree(fbUserId) {
     ).catch(() => {});
 }
 
+async function insertBinanceOrder({
+    merchantTradeNo, fbUserId, planKey, prepayId, amount, currency, fiatAmount, fiatCurrency
+}) {
+    if (!pool) return;
+    await pool.query(
+        `INSERT INTO binance_orders
+         (merchant_trade_no, fb_user_id, plan_key, prepay_id, amount, currency, fiat_amount, fiat_currency, status)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending')`,
+        [
+            merchantTradeNo,
+            fbUserId,
+            planKey,
+            prepayId || null,
+            amount ?? null,
+            currency || null,
+            fiatAmount ?? null,
+            fiatCurrency || null
+        ]
+    ).catch(() => {});
+}
+
+async function getBinanceOrder(merchantTradeNo) {
+    if (!pool) return null;
+    const [rows] = await pool.query(
+        'SELECT * FROM binance_orders WHERE merchant_trade_no = ? LIMIT 1',
+        [merchantTradeNo]
+    );
+    return rows[0] || null;
+}
+
+async function markBinanceOrderPaid(merchantTradeNo, { transactionId, prepayId } = {}) {
+    if (!pool) return false;
+    const [result] = await pool.query(
+        `UPDATE binance_orders SET status = 'paid', paid_at = NOW(),
+         transaction_id = COALESCE(?, transaction_id),
+         prepay_id = COALESCE(?, prepay_id)
+         WHERE merchant_trade_no = ? AND status = 'pending'`,
+        [transactionId || null, prepayId || null, merchantTradeNo]
+    );
+    return result.affectedRows > 0;
+}
+
+async function markBinanceOrderClosed(merchantTradeNo) {
+    if (!pool) return;
+    await pool.query(
+        `UPDATE binance_orders SET status = 'closed' WHERE merchant_trade_no = ? AND status = 'pending'`,
+        [merchantTradeNo]
+    ).catch(() => {});
+}
+
 /** Admin: fully activate a plan (limits, expiry, quota reset) like Stripe checkout */
 async function adminActivatePlan(fbUserId, planInput, { messages_limit } = {}) {
     if (!pool || !fbUserId) return { ok: false, error: 'Invalid user' };
@@ -4143,6 +4213,10 @@ const dbModule = {
     adminActivatePlan,
     renewPlan,
     downgradeToFree,
+    insertBinanceOrder,
+    getBinanceOrder,
+    markBinanceOrderPaid,
+    markBinanceOrderClosed,
     computeEntitlements,
     assertQuota,
     checkExpiredSubscriptions,

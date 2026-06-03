@@ -15,6 +15,12 @@ module.exports = {
     STRIPE_SECRET_KEY: (process.env.STRIPE_SECRET_KEY || '').trim(),
     STRIPE_PUBLISHABLE_KEY: (process.env.STRIPE_PUBLISHABLE_KEY || '').trim(),
     STRIPE_WEBHOOK_SECRET: (process.env.STRIPE_WEBHOOK_SECRET || '').trim(),
+    BINANCE_PAY_API_KEY: (process.env.BINANCE_PAY_API_KEY || '').trim(),
+    BINANCE_PAY_API_SECRET: (process.env.BINANCE_PAY_API_SECRET || '').trim(),
+    BINANCE_PAY_CURRENCY: (process.env.BINANCE_PAY_CURRENCY || 'USDT').trim().toUpperCase(),
+    BINANCE_PAY_USE_FIAT: (process.env.BINANCE_PAY_USE_FIAT || '1').trim() === '1',
+    BINANCE_PAY_FIAT_CURRENCY: (process.env.BINANCE_PAY_FIAT_CURRENCY || 'USD').trim().toUpperCase(),
+    BINANCE_PAY_WEBHOOK_SKIP_VERIFY: (process.env.BINANCE_PAY_WEBHOOK_SKIP_VERIFY || '').trim(),
     CONTACT_EMAIL: (process.env.CONTACT_EMAIL || '').trim(),
 
     // AI Broadcast Assistant (openai = Groq/OpenAI, anthropic = /v1/messages)

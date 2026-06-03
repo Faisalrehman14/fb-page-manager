@@ -1,5 +1,6 @@
 const { getStripe, isStripeConfigured } = require('../integrations/stripe-client');
-const { getPlan, listPlanKeys, planForPriceId } = require('../config/plans');
+const binancePay = require('../integrations/binance-pay-client');
+const { getPlan, listPlanKeys, planForPriceId, planFiatAmountUsd } = require('../config/plans');
 const entitlements = require('./entitlements.service');
 const env = require('../config/env');
 
@@ -261,9 +262,190 @@ async function handleWebhook(db, rawBody, signature, logError) {
     }
 }
 
+function buildBinanceOrderPayload(req, { planKey, fbUserId, merchantTradeNo }) {
+    const plan = getPlan(planKey);
+    const baseUrl = resolveSiteUrl(req);
+    const passThrough = JSON.stringify({ fb_user_id: fbUserId, plan: planKey });
+    const goods = [{
+        goodsType: '02',
+        goodsCategory: 'Z000',
+        referenceGoodsId: planKey.slice(0, 32),
+        goodsName: `FBCast ${plan.name}`.slice(0, 256),
+        goodsDetail: `${plan.limit.toLocaleString()} messages/month`.slice(0, 256)
+    }];
+    const order = {
+        env: {
+            terminalType: 'WEB',
+            orderClientIp: String(req.headers['x-forwarded-for'] || req.socket?.remoteAddress || '').split(',')[0].trim() || undefined
+        },
+        merchantTradeNo,
+        description: `FBCast Pro ${plan.name} subscription`.slice(0, 256),
+        goodsDetails: goods,
+        returnUrl: `${baseUrl}/?payment=success&provider=binance`,
+        cancelUrl: `${baseUrl}/?payment=cancelled&provider=binance`,
+        passThroughInfo: passThrough.slice(0, 512),
+        webhookUrl: `${baseUrl}/api/billing/webhook/binance`,
+        orderExpireTime: Date.now() + 60 * 60 * 1000
+    };
+
+    const usd = planFiatAmountUsd(planKey);
+    if (env.BINANCE_PAY_USE_FIAT && usd > 0) {
+        order.fiatAmount = usd;
+        order.fiatCurrency = env.BINANCE_PAY_FIAT_CURRENCY;
+    } else {
+        order.currency = env.BINANCE_PAY_CURRENCY;
+        order.orderAmount = usd > 0 ? usd : (plan.amountCents / 100);
+    }
+    return order;
+}
+
+async function createBinanceCheckoutSession(db, req, { planKey, fbUserId }) {
+    if (!binancePay.isBinancePayConfigured()) {
+        throw Object.assign(new Error('Binance Pay is not configured. Contact support.'), { status: 503 });
+    }
+    const plan = getPlan(planKey);
+    if (!plan) {
+        throw Object.assign(new Error(`Invalid plan: ${planKey}. Valid: ${listPlanKeys().join(', ')}`), { status: 400 });
+    }
+
+    const pool = db.getPool?.() || db.pool;
+    if (!pool) throw Object.assign(new Error('Database unavailable'), { status: 503 });
+
+    const [rows] = await pool.query('SELECT fb_user_id FROM users WHERE fb_user_id = ?', [fbUserId]);
+    if (!rows.length) {
+        throw Object.assign(new Error('User not found. Please connect Facebook first.'), { status: 404 });
+    }
+
+    const merchantTradeNo = binancePay.generateMerchantTradeNo();
+    const orderPayload = buildBinanceOrderPayload(req, { planKey, fbUserId, merchantTradeNo });
+    const result = await binancePay.createOrder(orderPayload);
+
+    await db.insertBinanceOrder({
+        merchantTradeNo,
+        fbUserId,
+        planKey,
+        prepayId: result.prepayId,
+        amount: result.totalFee ? parseFloat(result.totalFee) : null,
+        currency: result.currency || env.BINANCE_PAY_CURRENCY,
+        fiatAmount: orderPayload.fiatAmount || null,
+        fiatCurrency: orderPayload.fiatCurrency || null
+    });
+
+    const checkoutUrl = result.checkoutUrl || result.universalUrl;
+    if (!checkoutUrl) {
+        throw Object.assign(new Error('Binance Pay did not return a checkout URL'), { status: 502 });
+    }
+
+    return {
+        url: checkoutUrl,
+        provider: 'binance',
+        merchantTradeNo,
+        prepayId: result.prepayId,
+        qrcodeLink: result.qrcodeLink
+    };
+}
+
+async function handleBinanceWebhook(db, rawBody, headers, logError) {
+    const rawStr = Buffer.isBuffer(rawBody) ? rawBody.toString('utf8') : String(rawBody || '');
+    const verify = await binancePay.verifyWebhook(rawStr, headers);
+    if (!verify.ok) {
+        throw Object.assign(new Error(`Invalid Binance webhook: ${verify.reason || 'signature'}`), { status: 400 });
+    }
+
+    let notification;
+    try {
+        notification = JSON.parse(rawStr);
+    } catch (err) {
+        throw Object.assign(new Error('Invalid webhook JSON'), { status: 400, cause: err });
+    }
+
+    const bizStatus = notification.bizStatus;
+    const eventId = `binance:${notification.bizIdStr || notification.bizId || ''}:${bizStatus}`;
+    if (!eventId || eventId === 'binance:::') {
+        return { returnCode: 'SUCCESS', returnMessage: null };
+    }
+
+    const pool = db.getPool?.() || db.pool;
+    if (!pool) throw new Error('Database unavailable');
+
+    await db.ensureBillingTables?.();
+
+    const reserved = await db.reserveWebhookEvent?.(eventId, `binance.${bizStatus}`, rawStr);
+    if (reserved === 'processed') {
+        return { returnCode: 'SUCCESS', returnMessage: null };
+    }
+
+    try {
+        if (bizStatus === 'PAY_SUCCESS') {
+            let data = {};
+            try {
+                data = typeof notification.data === 'string'
+                    ? JSON.parse(notification.data)
+                    : (notification.data || {});
+            } catch (_) {
+                data = {};
+            }
+
+            const merchantTradeNo = data.merchantTradeNo;
+            const order = merchantTradeNo ? await db.getBinanceOrder(merchantTradeNo) : null;
+            let fbUserId = order?.fb_user_id;
+            let planKey = order?.plan_key;
+
+            if (!fbUserId || !planKey) {
+                try {
+                    const pass = data.passThroughInfo ? JSON.parse(data.passThroughInfo) : {};
+                    fbUserId = pass.fb_user_id || fbUserId;
+                    planKey = pass.plan || planKey;
+                } catch (_) { /* ignore */ }
+            }
+
+            if (merchantTradeNo && fbUserId && planKey && getPlan(planKey)) {
+                const updated = await db.markBinanceOrderPaid(merchantTradeNo, {
+                    transactionId: data.transactionId,
+                    prepayId: notification.bizIdStr || String(notification.bizId || '')
+                });
+                if (updated) {
+                    const amountCents = Math.round((parseFloat(data.totalFee) || planFiatAmountUsd(planKey) || 0) * 100);
+                    await db.applyPlan(fbUserId, planKey, {
+                        subscriptionId: `binance:${merchantTradeNo}`,
+                        amountCents,
+                        invoiceId: data.transactionId || merchantTradeNo,
+                        billingReason: 'binance_pay'
+                    });
+                }
+            }
+        } else if (bizStatus === 'PAY_CLOSED') {
+            let data = {};
+            try {
+                data = typeof notification.data === 'string' ? JSON.parse(notification.data) : (notification.data || {});
+            } catch (_) { /* ignore */ }
+            if (data.merchantTradeNo) {
+                await db.markBinanceOrderClosed(data.merchantTradeNo);
+            }
+        }
+
+        await db.markWebhookProcessed?.(eventId);
+        return { returnCode: 'SUCCESS', returnMessage: null };
+    } catch (err) {
+        await db.markWebhookFailed?.(eventId, err.message);
+        logError?.('binance_webhook', err);
+        throw err;
+    }
+}
+
+function getPaymentProviders() {
+    return {
+        stripe: isStripeConfigured(),
+        binance: binancePay.isBinancePayConfigured()
+    };
+}
+
 async function getBillingStatus(db, fbUserId) {
     const status = await entitlements.resolveEntitlements(db, fbUserId);
-    status.billing.stripeConfigured = isStripeConfigured();
+    const providers = getPaymentProviders();
+    status.billing.stripeConfigured = providers.stripe;
+    status.billing.binanceConfigured = providers.binance;
+    status.billing.providers = providers;
     return status;
 }
 
@@ -278,7 +460,9 @@ async function getSubscriptionSummary(db, fbUserId) {
         subscriptionStatus: ent.subscriptionStatus,
         subscriptionExpires: ent.subscription.renewsAt,
         stripeSubscriptionId: ent.subscription.stripeSubscriptionId,
-        hasSubscription: ent.subscription.hasStripeSubscription,
+        hasSubscription: ent.subscription.hasPaidSubscription || ent.subscription.hasStripeSubscription,
+        hasBillingPortal: ent.subscription.hasStripeSubscription,
+        paymentProvider: ent.subscription.paymentProvider,
         email: ent.billing.email,
         trialDaysLeft: ent.trialDaysLeft,
         trialExpired: ent.trialExpired,
@@ -290,10 +474,13 @@ async function getSubscriptionSummary(db, fbUserId) {
 
 module.exports = {
     createCheckoutSession,
+    createBinanceCheckoutSession,
     createPortalSession,
     handleWebhook,
+    handleBinanceWebhook,
     getBillingStatus,
     getSubscriptionSummary,
+    getPaymentProviders,
     syncBillingFromStripe,
     syncSubscriptionFromStripe,
     isStripeConfigured,

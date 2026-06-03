@@ -65,6 +65,9 @@ function buildEntitlementPayload(row, effective) {
 
     const onTrial = !!effective.onTrial;
     const trialExpired = !!effective.trialExpired;
+    const isPaid = dbPlan !== 'free' && dbPlan !== 'unknown';
+    const paidExpired = isPaid && row?.subscription_expires
+        && new Date(row.subscription_expires) < new Date();
 
     let badgeLabel = display.label;
     if (onTrial) badgeLabel = 'Free Trial';
@@ -102,6 +105,11 @@ function buildEntitlementPayload(row, effective) {
             stripeSubscriptionId: row?.stripe_subscription_id || null,
             stripeCustomerId: row?.stripe_customer_id || null,
             hasStripeSubscription: !!row?.stripe_subscription_id
+                && !String(row?.stripe_subscription_id || '').startsWith('binance:'),
+            paymentProvider: String(row?.stripe_subscription_id || '').startsWith('binance:')
+                ? 'binance'
+                : (row?.stripe_subscription_id ? 'stripe' : null),
+            hasPaidSubscription: isPaid && !paidExpired
         },
         billing: {
             email: row?.email || null

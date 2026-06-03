@@ -12,7 +12,9 @@ const MESSAGE_DRAFT_KEY = 'fbcast_message_draft';
 const DELAY_DRAFT_KEY = 'fbcast_delay_draft';
 const ANALYTICS_QUEUE_KEY = 'fbcast_analytics_queue';
 const SESSION_ID_KEY = 'fbcast_session_id';
-const MODAL_IDS = ['upgradeModal', 'privacyModal', 'termsModal'];
+const MODAL_IDS = ['upgradeModal', 'paymentMethodModal', 'privacyModal', 'termsModal'];
+let _paymentProviders = null;
+let _pendingCheckoutPlan = null;
 const TRACK_SYNC_MIN_INTERVAL_MS = 60000;
 const TRACK_SYNC_PERIODIC_MS = 90000;
 
@@ -1028,45 +1030,136 @@ function showUpgradeModal(reason){
   const h2=document.getElementById('upgradeModalTitle');
   const sub=document.getElementById('upgradeModalSub');
   if(h2)h2.textContent=reason==='pro_exhausted'?`All ${q.messageLimit.toLocaleString()} messages used!`:q.subscriptionStatus==='free'?'Free Trial Ended — Upgrade to Continue':'Upgrade Your Plan';
-  if(sub)sub.textContent='Pay securely with your card. SSL-encrypted checkout.';
+  if(sub)sub.textContent='Pay with card (Stripe) or Binance Pay (crypto).';
   openModal('upgradeModal', document.activeElement);
   fbTrackEvent('upgrade_modal_open', { reason: reason || 'manual' });
 }
 
-/* Payment popup */
-window.showPaymentPopup=async function(plan){
-  fbTrackEvent('checkout_start', { plan: plan || 'unknown' });
-  const userData=JSON.parse(localStorage.getItem('fbcast_user')||'{}');
-  if(!userData.fb_user_id){
-    sessionStorage.setItem('fbcast_pending_plan',plan);
-    closeModal('upgradeModal');
-    fbTrackEvent('checkout_needs_login', { plan: plan || 'unknown' });
-    await triggerConnect(plan); return;
+async function fetchPaymentProviders(){
+  if(_paymentProviders) return _paymentProviders;
+  if(appConfig.paymentProviders){
+    _paymentProviders=appConfig.paymentProviders;
+    return _paymentProviders;
   }
-  sessionStorage.removeItem('fbcast_pending_plan');
-  closeModal('upgradeModal');
-  showToast('Opening secure payment form…','info');
+  try{
+    const res=await fetch('/api/billing/providers',{credentials:'same-origin'});
+    const body=await res.json();
+    _paymentProviders=body.data||body;
+  }catch(_){
+    _paymentProviders={stripe:!!STRIPE_PUBLISHABLE_KEY,binance:false};
+  }
+  return _paymentProviders;
+}
+
+function updatePaymentMethodModalState(providers){
+  const hasStripe=!!providers.stripe;
+  const hasBinance=!!providers.binance;
+  const stripeBtn=document.getElementById('payMethodStripe');
+  const binBtn=document.getElementById('payMethodBinance');
+  const hint=document.getElementById('paymentMethodHint');
+  if(stripeBtn){
+    stripeBtn.disabled=!hasStripe;
+    stripeBtn.style.opacity=hasStripe?'1':'0.45';
+  }
+  if(binBtn){
+    binBtn.disabled=!hasBinance;
+    binBtn.style.opacity=hasBinance?'1':'0.5';
+    binBtn.title=hasBinance?'Pay with USDT/crypto via Binance Pay':'';
+  }
+  if(hint){
+    if(!hasBinance&&hasStripe){
+      hint.style.display='block';
+      hint.textContent='Binance Pay: add BINANCE_PAY_API_KEY on Railway to enable crypto checkout.';
+    }else{
+      hint.style.display='none';
+      hint.textContent='';
+    }
+  }
+}
+
+async function startCheckoutWithProvider(plan,provider){
+  const userData=JSON.parse(localStorage.getItem('fbcast_user')||'{}');
+  const endpoint=provider==='binance'?'/api/billing/checkout/binance':'/api/billing/checkout';
+  const label=provider==='binance'?'Binance Pay':'Stripe';
+  showToast('Opening '+label+' checkout…','info');
   try{
     const csrfToken=await getCsrfToken();
-    const data=await runWithRetryUI(async function() {
-      return fetchJsonWithRetry('/api/billing/checkout',{
-        method:'POST',headers:{'Content-Type':'application/json','X-CSRF-Token':csrfToken},
+    const data=await runWithRetryUI(async function(){
+      return fetchJsonWithRetry(endpoint,{
+        method:'POST',
+        headers:{'Content-Type':'application/json','X-CSRF-Token':csrfToken},
         body:JSON.stringify({plan,fb_user_id:userData.fb_user_id}),
       },{attempts:2,backoffMs:500});
-    }, { label: 'Checkout session', maxAttempts: 2 });
-    const checkout = data.data || data;
-    if(data.error)throw new Error(typeof data.error === 'string' ? data.error : data.error?.message);
-    if(checkout.url || data.url){
-      const url = checkout.url || data.url;
-      fbTrackEvent('checkout_redirect', { plan: plan || 'unknown' });
+    },{label:label+' checkout',maxAttempts:2});
+    const checkout=data.data||data;
+    if(data.error) throw new Error(typeof data.error==='string'?data.error:data.error?.message);
+    if(checkout.url||data.url){
+      const url=checkout.url||data.url;
+      fbTrackEvent('checkout_redirect',{plan:plan||'unknown',provider:provider||'stripe'});
       window.location.assign(url);
       return;
     }
     throw new Error('Payment session creation failed');
   }catch(err){
-    fbTrackEvent('checkout_error', { plan: plan || 'unknown', message: err.message || 'network_error' });
+    fbTrackEvent('checkout_error',{plan:plan||'unknown',provider:provider||'unknown',message:err.message||'network_error'});
     showToast('Payment Error: '+(err.message||'Network error'),'error');
   }
+}
+
+function bindPaymentMethodModal(){
+  document.getElementById('payMethodStripe')?.addEventListener('click',async function(){
+    if(this.disabled){ showToast('Card payments are not configured.','error'); return; }
+    const plan=_pendingCheckoutPlan;
+    closeModal('paymentMethodModal');
+    if(plan) await startCheckoutWithProvider(plan,'stripe');
+  });
+  document.getElementById('payMethodBinance')?.addEventListener('click',async function(){
+    if(this.disabled){
+      showToast('Binance Pay is not enabled yet. Use card or contact support.','warning');
+      return;
+    }
+    const plan=_pendingCheckoutPlan;
+    closeModal('paymentMethodModal');
+    if(plan) await startCheckoutWithProvider(plan,'binance');
+  });
+  document.getElementById('paymentMethodCancel')?.addEventListener('click',function(){
+    _pendingCheckoutPlan=null;
+    closeModal('paymentMethodModal');
+  });
+}
+
+/* Payment popup */
+window.showPaymentPopup=async function(plan){
+  fbTrackEvent('checkout_start',{plan:plan||'unknown'});
+  const userData=JSON.parse(localStorage.getItem('fbcast_user')||'{}');
+  if(!userData.fb_user_id){
+    sessionStorage.setItem('fbcast_pending_plan',plan);
+    closeModal('upgradeModal');
+    fbTrackEvent('checkout_needs_login',{plan:plan||'unknown'});
+    await triggerConnect(plan);
+    return;
+  }
+  sessionStorage.removeItem('fbcast_pending_plan');
+  closeModal('upgradeModal');
+
+  const providers=await fetchPaymentProviders();
+  const hasStripe=!!providers.stripe;
+  const hasBinance=!!providers.binance;
+  if(!hasStripe&&!hasBinance){
+    showToast('Payments are not configured. Please contact support.','error');
+    return;
+  }
+
+  if(hasStripe){
+    _pendingCheckoutPlan=plan;
+    const sub=document.getElementById('paymentMethodSub');
+    if(sub) sub.textContent='Select how you want to pay for your subscription.';
+    updatePaymentMethodModalState(providers);
+    openModal('paymentMethodModal',document.activeElement);
+    return;
+  }
+
+  await startCheckoutWithProvider(plan,'binance');
 };
 
 /* Payment redirect handler */
@@ -1273,6 +1366,7 @@ document.addEventListener('DOMContentLoaded',async()=>{
     closeModal('upgradeModal');
     fbTrackEvent('upgrade_modal_dismiss', { source: 'dismiss_button' });
   });
+  bindPaymentMethodModal();
 
   /* Close overlays on backdrop click */
   MODAL_IDS.forEach(id=>{
