@@ -10,7 +10,6 @@ module.exports = {
     WEBHOOK_VERIFY_TOKEN: (process.env.WEBHOOK_VERIFY_TOKEN || process.env.FB_WEBHOOK_VERIFY_TOKEN || 'ADMIN12345').trim(),
     ADMIN_PASSWORD: process.env.ADMIN_PASSWORD || 'admin123',
     FB_GRAPH_VERSION: process.env.FB_GRAPH_VERSION || 'v21.0',
-    FB_LOGIN_CONFIG_ID: (process.env.FB_LOGIN_CONFIG_ID || '').trim(),
     FB_OAUTH_SCOPES: (process.env.FB_OAUTH_SCOPES || '').trim(),
     APP_ENV: (process.env.APP_ENV || 'development').trim(),
     STRIPE_SECRET_KEY: (process.env.STRIPE_SECRET_KEY || '').trim(),

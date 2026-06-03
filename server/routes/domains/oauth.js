@@ -64,7 +64,6 @@ app.get('/api/meta/oauth-info', async (req, res) => {
     const siteUrl = resolveSiteUrl(req);
     const redirectUri = siteUrl + '/oauth_callback.php';
     const appId = (process.env.FB_APP_ID || '').trim();
-    const configId = (process.env.FB_LOGIN_CONFIG_ID || '').trim();
     const sampleUrl = appId
         ? buildFacebookOAuthUrl({ appId, redirectUri, state: 'sample' })
         : null;
@@ -72,13 +71,9 @@ app.get('/api/meta/oauth-info', async (req, res) => {
         appId: appId || null,
         redirectUri,
         oauthMode: getOAuthMode(),
-        configIdSet: !!configId,
         scopes: FB_OAUTH_SCOPES,
         sampleOAuthUrl: sampleUrl,
-        useConfigId: (process.env.FB_OAUTH_USE_CONFIG_ID || '').trim() === '1',
-        hint: getOAuthMode() === 'facebook_login_for_business'
-            ? 'Using config_id (FB_OAUTH_USE_CONFIG_ID=1).'
-            : 'Using classic scope login (default). Set FB_OAUTH_USE_CONFIG_ID=1 to enable config_id.'
+        hint: 'Classic Facebook OAuth (scope). Continue with Facebook uses /oauth_start.php → facebook.com/dialog/oauth'
     });
 });
 

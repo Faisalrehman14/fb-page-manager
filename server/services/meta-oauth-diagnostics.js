@@ -226,8 +226,7 @@ async function getMetaOAuthDiagnostics(fetchFn = global.fetch) {
         serverConfigured: !!(appId && env.FB_APP_SECRET && siteBase()),
         metaReadyForLogin: allMetaIssues.length === 0 && issues.length === 0 && !!env.CONTACT_EMAIL,
         siteHost: host,
-        configIdSet: !!env.FB_LOGIN_CONFIG_ID,
-        oauthUsesScopes: true,
+        oauthMode: 'facebook_login_scopes',
         requiredUrls: urls,
         urlProbes: { privacy: privacyProbe, dataDeletion: deletionProbe },
         metaApp: graphApp?.error ? { error: graphApp.error } : {
