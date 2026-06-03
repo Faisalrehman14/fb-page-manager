@@ -41,7 +41,7 @@ ${bodyHtml}
     app.get(['/terms', '/terms-of-service'], (req, res) => {
         res.type('html').send(wrap('Terms of Service', `
 <p>By using FBCast Pro you agree to comply with Meta/Facebook Platform policies and only message users who have previously contacted your Page.</p>
-<p>Subscriptions are billed via Stripe or Binance Pay. Abuse may result in account suspension.</p>
+<p>Subscriptions are billed via Stripe. Abuse may result in account suspension.</p>
 <p>Contact: <a href="mailto:${contact}">${contact}</a></p>
 `));
     });

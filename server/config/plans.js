@@ -77,12 +77,6 @@ function planForPriceId(priceId) {
     return null;
 }
 
-function planFiatAmountUsd(planKey) {
-    const plan = getPlan(planKey);
-    if (!plan) return null;
-    return (plan.amountCents || 0) / 100;
-}
-
 /** Resolve admin/UI plan key or legacy db plan value → catalog key */
 function resolvePlanKey(input) {
     const key = String(input || '').trim().toLowerCase();
@@ -136,7 +130,6 @@ module.exports = {
     getPlan,
     listPlanKeys,
     planForPriceId,
-    planFiatAmountUsd,
     resolvePlanKey,
     getPlanCatalogForAdmin,
     getDisplayForDbPlan

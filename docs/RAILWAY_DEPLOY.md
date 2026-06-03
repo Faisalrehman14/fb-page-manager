@@ -5,7 +5,7 @@
 | Setting | Value |
 |--------|--------|
 | **Root Directory** | *(leave empty — project root)* |
-| **Branch** | `main` or `binance-pay` |
+| **Branch** | `main` |
 | **Start Command** | `npm start` *(or leave empty — uses `railway.json`)* |
 | **Healthcheck path** | `/api/health` |
 
@@ -40,10 +40,9 @@ Without `DATABASE_URL`, the app still starts but login/data will not persist.
 4. **Wrong branch** → Settings → Source → branch must be `main` with `server/index.js`.
 5. **Wrong root** → Root Directory must be empty unless the repo is a monorepo.
 
-## Binance / Stripe webhooks
+## Stripe webhooks
 
 After deploy, set:
 
 - `SITE_URL` to your Railway public URL
 - Stripe webhook: `https://<domain>/api/billing/webhook`
-- Binance webhook: `https://<domain>/api/billing/webhook/binance`
