@@ -1143,8 +1143,26 @@ window.showPaymentPopup=async function(plan){
   }
 })();
 
+async function showMetaLoginFixBanner(){
+  try{
+    const res=await fetch('/api/meta/oauth-diagnostics',{credentials:'same-origin'});
+    const d=await res.json();
+    if(!d.metaIssues||!d.metaIssues.length) return;
+    if(document.getElementById('metaLoginFixBanner')) return;
+    const box=document.createElement('div');
+    box.id='metaLoginFixBanner';
+    box.setAttribute('role','alert');
+    box.style.cssText='position:fixed;bottom:16px;left:16px;right:16px;max-width:520px;margin:0 auto;z-index:9999;background:#1e293b;color:#f8fafc;border:1px solid #f59e0b;border-radius:12px;padding:14px 16px;font-size:13px;line-height:1.45;box-shadow:0 8px 32px rgba(0,0,0,.4)';
+    const issues=(d.metaIssues||[]).slice(0,2).map(function(x){return '<li>'+x+'</li>';}).join('');
+    const dash=d.metaDashboard?'<a href="'+d.metaDashboard+'" target="_blank" rel="noopener" style="color:#60a5fa">Open Meta App Dashboard</a>':'';
+    box.innerHTML='<strong style="color:#fbbf24">Facebook login blocked by Meta (not server bug)</strong><ul style="margin:8px 0 0 18px;padding:0">'+issues+'</ul><p style="margin:10px 0 0">Fix: Settings → Basic (Site URL), Data Use Checkup, App roles. '+dash+'</p>';
+    document.body.appendChild(box);
+  }catch(_){}
+}
+
 /* DOM READY */
 document.addEventListener('DOMContentLoaded',async()=>{
+  showMetaLoginFixBanner();
   applyTheme();
   startAnnouncementPolling();
   updateHeroAvatars();
