@@ -75,9 +75,10 @@ app.get('/api/meta/oauth-info', async (req, res) => {
         configIdSet: !!configId,
         scopes: FB_OAUTH_SCOPES,
         sampleOAuthUrl: sampleUrl,
-        hint: configId
-            ? 'Using Facebook Login for Business (config_id).'
-            : 'Using scope-based login. If your Meta app uses Facebook Login for Business, set FB_LOGIN_CONFIG_ID in Railway.'
+        useConfigId: (process.env.FB_OAUTH_USE_CONFIG_ID || '').trim() === '1',
+        hint: getOAuthMode() === 'facebook_login_for_business'
+            ? 'Using config_id (FB_OAUTH_USE_CONFIG_ID=1).'
+            : 'Using classic scope login (default). Set FB_OAUTH_USE_CONFIG_ID=1 to enable config_id.'
     });
 });
 

@@ -208,36 +208,9 @@ if (!window.__fbcastNetworkResumeListener) {
 // Popup opens oauth_start.php → Facebook OAuth dialog → oauth_callback.php
 // oauth_callback.php exchanges code server-side and posts result back here.
 
-async function checkMetaOAuthReadiness() {
-  const res = await fetch('/api/meta/oauth-diagnostics', { credentials: 'same-origin' });
-  const d = await res.json();
-  if (!res.ok) throw new Error(d.error || 'Could not check Meta app status');
-  if (d.serverIssues && d.serverIssues.length) {
-    throw new Error('Server: ' + d.serverIssues.join(' '));
-  }
-  const privacy = d.requiredUrls && d.requiredUrls.privacyPolicy;
-  const metaApp = d.metaDashboard || 'https://developers.facebook.com/apps/';
-  const msg = [
-    'Facebook often blocks login until Meta app setup is complete:',
-    '',
-    '1) Data Use Checkup — open app dashboard, complete red banner',
-    '2) Settings → Basic — Privacy Policy URL:',
-    privacy || '(deploy /privacy first)',
-    '3) App roles — add your FB account as Admin or Tester',
-    '',
-    'Open Meta Developer Console now? (Cancel = stay here)'
-  ].join('\n');
-  if (!window.confirm(msg)) {
-    throw new Error('Facebook login cancelled. Complete Meta setup first.');
-  }
-  window.open(metaApp, '_blank', 'noopener');
-  return d;
-}
-
 async function startFacebookLogin(options) {
   const mode = (options && options.mode) || 'redirect';
   if (mode === 'redirect') {
-    await checkMetaOAuthReadiness();
     try { sessionStorage.setItem('fbcast_oauth_pending', '1'); } catch (_) {}
     window.location.assign(window.location.origin + '/oauth_start.php?mode=redirect');
     return new Promise(function () {});
