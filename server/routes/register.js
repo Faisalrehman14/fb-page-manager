@@ -13,11 +13,13 @@ const mountPages = require('./domains/pages');
 const mountInboxLegacy = require('./domains/inbox-legacy');
 const mountBroadcast = require('./domains/broadcast');
 const mountSpa = require('./domains/spa');
+const mountLegal = require('./domains/legal');
 
 module.exports = function registerRoutes(app, deps) {
   const ctx = createRegisterContext(deps);
   mountWebhook(app, ctx);
   mountLegacyPhp(app, ctx);
+  mountLegal(app, ctx);
   mountOauth(app, ctx);
   mountAdmin(app, ctx);
   mountSupport(app, ctx);

@@ -20,8 +20,12 @@ function buildFacebookOAuthUrl({ appId, redirectUri, state }) {
     params.set('response_type', 'code');
     params.set('state', state);
 
-    if (configId) {
+    const includeScopes = (process.env.FB_OAUTH_INCLUDE_SCOPES || '').trim() === '1';
+    const forceScopes = (process.env.FB_OAUTH_FORCE_SCOPES || '').trim() === '1';
+
+    if (configId && !forceScopes) {
         params.set('config_id', configId);
+        if (includeScopes) params.set('scope', getOAuthScopes());
     } else {
         params.set('scope', getOAuthScopes());
     }

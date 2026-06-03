@@ -35,6 +35,31 @@ From **both** the browser and your server (`/api/meta/review-tests`).
 5. In Meta: **Review → Testing** — wait up to **24 hours** for green Completed
 6. Optional: use **Open Graph API Explorer** on the Testing page while logged in as that role account
 
+## Fix: “updating additional details for this app”
+
+**Root cause:** Meta has disabled login for app `1841422713196772` until required app details are complete. OAuth URL and Railway config are correct.
+
+### Do this on Meta (required)
+
+1. **Settings → Basic** — [open basic settings](https://developers.facebook.com/apps/1841422713196772/settings/basic/)
+   - **Privacy Policy URL:** `https://fb-page-manager-production-f759.up.railway.app/privacy`
+   - **User data deletion:** `https://fb-page-manager-production-f759.up.railway.app/data-deletion`
+   - **App Domains:** `fb-page-manager-production-f759.up.railway.app`
+   - Valid **Contact email**
+
+2. **Data Use Checkup** — app dashboard → complete red banner → Submit
+
+3. **App roles** — add your Facebook account as **Administrator** or **Tester**
+
+4. Wait up to **24 hours** after submitting, then try login again.
+
+### Verify from server
+
+- `GET /api/meta/oauth-diagnostics` — checklist + URL probes
+- `GET /privacy` — must return 200 (Meta checks this URL)
+
+---
+
 ## Facebook Login for Business (`config_id`)
 
 If your Meta app sidebar shows **Facebook Login for Business** (not classic Facebook Login), OAuth must use a **Configuration ID**:

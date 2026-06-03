@@ -60,21 +60,35 @@ app.get(['/api/auth/start', '/oauth_start.php'], (req, res) => {
     res.redirect(oauthUrl);
 });
 
-app.get('/api/meta/oauth-info', (req, res) => {
+app.get('/api/meta/oauth-info', async (req, res) => {
     const siteUrl = resolveSiteUrl(req);
     const redirectUri = siteUrl + '/oauth_callback.php';
     const appId = (process.env.FB_APP_ID || '').trim();
     const configId = (process.env.FB_LOGIN_CONFIG_ID || '').trim();
+    const sampleUrl = appId
+        ? buildFacebookOAuthUrl({ appId, redirectUri, state: 'sample' })
+        : null;
     res.json({
         appId: appId || null,
         redirectUri,
         oauthMode: getOAuthMode(),
         configIdSet: !!configId,
-        scopes: configId ? null : FB_OAUTH_SCOPES,
+        scopes: FB_OAUTH_SCOPES,
+        sampleOAuthUrl: sampleUrl,
         hint: configId
             ? 'Using Facebook Login for Business (config_id).'
             : 'Using scope-based login. If your Meta app uses Facebook Login for Business, set FB_LOGIN_CONFIG_ID in Railway.'
     });
+});
+
+app.get('/api/meta/oauth-diagnostics', async (req, res) => {
+    try {
+        const { getMetaOAuthDiagnostics } = require('../../services/meta-oauth-diagnostics');
+        const report = await getMetaOAuthDiagnostics(fetch);
+        res.json(report);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
 });
 
 app.get(['/api/auth/callback', '/oauth_callback.php'], async (req, res) => {
@@ -161,7 +175,13 @@ app.get(['/api/auth/callback', '/oauth_callback.php'], async (req, res) => {
         return sendPopupResult({ type: 'fb_auth_error', error: msg });
     };
 
-    if (error) return authErrMsg(error_description || error || 'Authorization denied');
+    if (error) {
+        const msg = error_description || error || 'Authorization denied';
+        const metaHint = /unavailable|updating additional details/i.test(String(msg))
+            ? ' Meta blocked login — complete Data Use Checkup and App Settings → Basic (privacy policy URL). See /api/meta/oauth-diagnostics'
+            : '';
+        return authErrMsg(msg + metaHint);
+    }
     if (!oauthState || !storedState || oauthState !== storedState) {
         return authErrMsg('Security check failed. Please retry login.');
     }
