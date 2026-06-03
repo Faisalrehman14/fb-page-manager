@@ -61,12 +61,13 @@ function createApp() {
     process.on('uncaughtException', err => logError('uncaughtException', err));
 
     app.get('/api/health', (req, res) => {
-        res.json({
+        res.status(200).json({
             status: 'ok',
             db: state.dbConnected ? 'connected' : 'initializing',
             uptime: Math.floor(process.uptime())
         });
     });
+    app.get('/health', (req, res) => res.redirect(302, '/api/health'));
 
     app.set('trust proxy', 1);
     app.use(helmet({

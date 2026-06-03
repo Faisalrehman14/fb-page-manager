@@ -1,12 +1,14 @@
 {
   "name": "facebook-page-inbox",
   "version": "1.0.0",
+  "main": "server/index.js",
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=20.0.0"
   },
   "scripts": {
     "start": "node server/index.js",
-    "dev": "node server/index.js"
+    "dev": "node server/index.js",
+    "postinstall": "node -e \"require('fs').mkdirSync('uploads',{recursive:true})\""
   },
   "dependencies": {
     "compression": "^1.8.1",

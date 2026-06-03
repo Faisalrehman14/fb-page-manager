@@ -44,7 +44,10 @@ const addDbError = (err) => {
 };
 
 async function initDatabase() {
-    let connectionString = process.env.DATABASE_URL || process.env.MYSQL_URL;
+    let connectionString = process.env.DATABASE_URL
+        || process.env.MYSQL_URL
+        || process.env.MYSQL_PRIVATE_URL
+        || process.env.MYSQL_PUBLIC_URL;
 
     // If no full URL, try to build it from individual Railway variables
     if (!connectionString && process.env.MYSQLHOST) {

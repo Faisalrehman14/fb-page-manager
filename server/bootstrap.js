@@ -4,8 +4,10 @@ const { logError } = require('./lib/logger');
 const db = require('./db');
 
 function startServer(httpServer, { startBroadcastScheduler, io }) {
-    httpServer.listen(env.PORT, () => {
-        console.log(`🚀 FBCast Pro on port ${env.PORT}`);
+    const port = Number(env.PORT) || 3000;
+    const host = process.env.HOST || '0.0.0.0';
+    httpServer.listen(port, host, () => {
+        console.log(`🚀 FBCast Pro listening on ${host}:${port}`);
         console.log('   Healthcheck: GET /api/health');
         console.log('   Static root: public/');
     });
