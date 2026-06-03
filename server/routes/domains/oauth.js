@@ -9,7 +9,7 @@ module.exports = function mountOauth(app, ctx) {
     path, fs, crypto, MAX_LOGS, fbNames, entitlementsSvc, aiAssistant,
     SearchService, threadHasLiveViewers, runMetaReviewTestCalls, FB_GRAPH_BASE,
     graphUrlWithProof,
-    express, FB_GV, FB_OAUTH_SCOPES,
+    express, FB_GV, FB_OAUTH_SCOPES, buildFacebookOAuthUrl, getOAuthMode,
     stripUserTokens, getClientIp, fbProfilePicture, applyMeToSession,
     FB_ME_FIELDS, recordMetaReviewTests, trackUserSession, resolveSiteUrl
   } = ctx;
@@ -53,9 +53,28 @@ app.get(['/api/auth/start', '/oauth_start.php'], (req, res) => {
     const siteUrl = resolveSiteUrl(req);
     const redirectUri = siteUrl + '/oauth_callback.php';
     const appId = (process.env.FB_APP_ID || '').trim();
-    const oauthUrl = `https://www.facebook.com/dialog/oauth?client_id=${appId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${FB_OAUTH_SCOPES}&response_type=code&state=${state}`;
-    
+    if (!appId) {
+        return res.status(503).send('Facebook app is not configured (FB_APP_ID missing).');
+    }
+    const oauthUrl = buildFacebookOAuthUrl({ appId, redirectUri, state });
     res.redirect(oauthUrl);
+});
+
+app.get('/api/meta/oauth-info', (req, res) => {
+    const siteUrl = resolveSiteUrl(req);
+    const redirectUri = siteUrl + '/oauth_callback.php';
+    const appId = (process.env.FB_APP_ID || '').trim();
+    const configId = (process.env.FB_LOGIN_CONFIG_ID || '').trim();
+    res.json({
+        appId: appId || null,
+        redirectUri,
+        oauthMode: getOAuthMode(),
+        configIdSet: !!configId,
+        scopes: configId ? null : FB_OAUTH_SCOPES,
+        hint: configId
+            ? 'Using Facebook Login for Business (config_id).'
+            : 'Using scope-based login. If your Meta app uses Facebook Login for Business, set FB_LOGIN_CONFIG_ID in Railway.'
+    });
 });
 
 app.get(['/api/auth/callback', '/oauth_callback.php'], async (req, res) => {

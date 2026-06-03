@@ -24,7 +24,8 @@ module.exports = function createRegisterContext(deps) {
   const { runMetaReviewTestCalls, buildMetaReviewReport, computeAppSecretProof, FB_GRAPH_BASE } = require('../../services/meta-app-review');
   const express = require('express');
   const FB_GV = env.FB_GRAPH_VERSION;
-  const FB_OAUTH_SCOPES = 'public_profile,pages_show_list,pages_messaging,pages_read_engagement,pages_manage_metadata';
+  const { getOAuthScopes, buildFacebookOAuthUrl, getOAuthMode } = require('../../lib/facebook-oauth');
+  const FB_OAUTH_SCOPES = getOAuthScopes();
 
   function stripUserTokens(users) {
     if (!Array.isArray(users)) return users;
@@ -102,7 +103,7 @@ module.exports = function createRegisterContext(deps) {
     path, fs, crypto, MAX_LOGS, fbNames, entitlementsSvc, aiAssistant,
     SearchService, threadHasLiveViewers, runMetaReviewTestCalls, buildMetaReviewReport, computeAppSecretProof, FB_GRAPH_BASE,
     graphUrlWithProof,
-    express, FB_GV, FB_OAUTH_SCOPES,
+    express, FB_GV, FB_OAUTH_SCOPES, buildFacebookOAuthUrl, getOAuthMode,
     stripUserTokens, getClientIp, fbProfilePicture, applyMeToSession,
     FB_ME_FIELDS, recordMetaReviewTests, trackUserSession, resolveSiteUrl,
     startBroadcastScheduler: null

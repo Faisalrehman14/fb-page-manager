@@ -35,12 +35,28 @@ From **both** the browser and your server (`/api/meta/review-tests`).
 5. In Meta: **Review → Testing** — wait up to **24 hours** for green Completed
 6. Optional: use **Open Graph API Explorer** on the Testing page while logged in as that role account
 
+## Facebook Login for Business (`config_id`)
+
+If your Meta app sidebar shows **Facebook Login for Business** (not classic Facebook Login), OAuth must use a **Configuration ID**:
+
+1. Meta → **Facebook Login for Business** → **Configurations** → **Create configuration**
+2. Choose **User access token** (simpler login — not System User multi-step)
+3. Add permissions: `public_profile`, `pages_show_list`, `pages_messaging`, `pages_read_engagement`
+4. Copy **Configuration ID** → Railway variable: `FB_LOGIN_CONFIG_ID=<id>`
+5. Redeploy
+
+Verify: open `https://your-app.up.railway.app/api/meta/oauth-info` — should show `"oauthMode":"facebook_login_for_business"` and `"configIdSet":true`.
+
+If you see *“updating additional details for this app”*, also complete **Data Use Checkup** on the app dashboard and add your Facebook account under **App roles**.
+
 ## Required OAuth scopes
 
-Already requested by the app:
+When not using `FB_LOGIN_CONFIG_ID`, the app requests:
 
 - `public_profile`
 - `pages_show_list`
+- `pages_messaging`
+- `pages_read_engagement`
 
 ## Environment
 

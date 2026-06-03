@@ -9,7 +9,7 @@ module.exports = function mountAuth(app, ctx) {
     path, fs, crypto, MAX_LOGS, fbNames, entitlementsSvc, aiAssistant,
     SearchService, threadHasLiveViewers, runMetaReviewTestCalls, FB_GRAPH_BASE,
     graphUrlWithProof,
-    express, FB_GV, FB_OAUTH_SCOPES,
+    express, FB_GV, FB_OAUTH_SCOPES, buildFacebookOAuthUrl,
     stripUserTokens, getClientIp, fbProfilePicture, applyMeToSession,
     FB_ME_FIELDS, recordMetaReviewTests, trackUserSession, resolveSiteUrl
   } = ctx;
@@ -61,7 +61,7 @@ app.get('/api/auth/login', (req, res) => {
     const state = crypto.randomBytes(16).toString('hex');
     req.session.oauthState = state;
     const redirectUri = `${BASE_URL}/api/auth/redirect-callback`;
-    res.json({ authUrl: `https://www.facebook.com/${FB_GV}/dialog/oauth?client_id=${FB_APP_ID}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${FB_OAUTH_SCOPES}&state=${state}&response_type=code` });
+    res.json({ authUrl: buildFacebookOAuthUrl({ appId: FB_APP_ID, redirectUri, state }) });
 });
 
 app.get('/api/auth/redirect-callback', async (req, res) => {
