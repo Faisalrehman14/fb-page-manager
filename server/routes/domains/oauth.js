@@ -38,6 +38,9 @@ module.exports = function mountOauth(app, ctx) {
     }
 
 app.get(['/api/auth/start', '/oauth_start.php'], (req, res) => {
+    if (!req.session.appAccountId) {
+        return res.redirect('/login?next=connect');
+    }
     const state = crypto.randomBytes(16).toString('hex');
     const ts = Date.now();
     const mode = req.query.mode === 'popup' ? 'popup' : 'redirect';
@@ -237,6 +240,10 @@ app.get(['/api/auth/callback', '/oauth_callback.php'], async (req, res) => {
         }
         if (req.session.userId) {
             await trackUserSession(req, pages.map(p => ({ id: p.id, name: p.name, link: p.link })));
+        }
+
+        if (req.session.appAccountId && req.session.userId) {
+            await db.linkAppAccountToFacebook(req.session.appAccountId, req.session.userId, userToken);
         }
 
         const authPayload = {

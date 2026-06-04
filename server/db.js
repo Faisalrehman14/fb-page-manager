@@ -277,6 +277,22 @@ async function initDatabase() {
         `);
 
         await tryCreate(`
+            CREATE TABLE IF NOT EXISTS app_accounts (
+                id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                email VARCHAR(255) NOT NULL,
+                password_hash VARCHAR(255) NOT NULL,
+                first_name VARCHAR(120) DEFAULT NULL,
+                last_name VARCHAR(120) DEFAULT NULL,
+                referral_name VARCHAR(255) DEFAULT NULL,
+                linked_fb_user_id VARCHAR(50) DEFAULT NULL,
+                created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                UNIQUE KEY uq_app_email (email),
+                INDEX idx_app_fb (linked_fb_user_id)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        `);
+
+        await tryCreate(`
             CREATE TABLE IF NOT EXISTS activity_log (
                 id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
                 fb_user_id VARCHAR(50) NOT NULL,
@@ -2305,6 +2321,60 @@ async function searchMessages(pageId, query, limit = 40) {
     }
 }
 
+async function createAppAccount({ email, passwordHash, firstName, lastName, referralName }) {
+    if (!pool) throw new Error('Database unavailable');
+    const [result] = await pool.query(
+        `INSERT INTO app_accounts (email, password_hash, first_name, last_name, referral_name)
+         VALUES (?, ?, ?, ?, ?)`,
+        [email, passwordHash, firstName || null, lastName || null, referralName || null]
+    );
+    return { id: result.insertId, email, first_name: firstName, last_name: lastName };
+}
+
+async function getAppAccountByEmail(email) {
+    if (!pool) return null;
+    const [rows] = await pool.query(
+        'SELECT * FROM app_accounts WHERE email = ? LIMIT 1',
+        [email]
+    );
+    return rows[0] || null;
+}
+
+async function getAppAccountById(id) {
+    if (!pool) return null;
+    const [rows] = await pool.query(
+        'SELECT id, email, first_name, last_name, referral_name, linked_fb_user_id, created_at FROM app_accounts WHERE id = ? LIMIT 1',
+        [id]
+    );
+    return rows[0] || null;
+}
+
+async function linkAppAccountToFacebook(appAccountId, fbUserId, accessToken) {
+    if (!pool || !appAccountId || !fbUserId) return;
+    await pool.query(
+        'UPDATE app_accounts SET linked_fb_user_id = ? WHERE id = ?',
+        [fbUserId, appAccountId]
+    );
+    const [accRows] = await pool.query('SELECT email FROM app_accounts WHERE id = ?', [appAccountId]);
+    const accountEmail = accRows[0]?.email || null;
+    await upsertUserFacebookName(fbUserId, '', accessToken);
+    if (accountEmail) {
+        await pool.query('UPDATE users SET email = ? WHERE fb_user_id = ?', [accountEmail, fbUserId]).catch(() => {});
+    }
+}
+
+async function getAppAccountFacebookLink(appAccountId) {
+    if (!pool || !appAccountId) return null;
+    const [rows] = await pool.query(
+        `SELECT a.linked_fb_user_id, u.fb_access_token, u.fb_name
+         FROM app_accounts a
+         LEFT JOIN users u ON u.fb_user_id = a.linked_fb_user_id
+         WHERE a.id = ? LIMIT 1`,
+        [appAccountId]
+    );
+    return rows[0] || null;
+}
+
 async function upsertUserFacebookName(fbUserId, name, accessToken = null) {
     if (!pool || !fbUserId) return;
     const trimmed = String(name || '').trim().slice(0, 255);
@@ -4094,6 +4164,11 @@ const dbModule = {
     getDbErrorLogs: () => dbErrorLogs,
     getStats,
     updateUserQuota,
+    createAppAccount,
+    getAppAccountByEmail,
+    getAppAccountById,
+    linkAppAccountToFacebook,
+    getAppAccountFacebookLink,
     upsertUserFacebookName,
     markAsRead,
     markAsUnread,

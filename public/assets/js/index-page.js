@@ -1213,7 +1213,7 @@ document.addEventListener('DOMContentLoaded',async()=>{
 
   updateQuotaUI();
 
-  // Auto-restore session after page refresh (localStorage or server session)
+  // Auto-restore session (app account + optional Facebook)
   await (async function(){
     if (sessionStorage.getItem('fbcast_oauth_pending') === '1') {
       return;
@@ -1225,35 +1225,51 @@ document.addEventListener('DOMContentLoaded',async()=>{
       }
       return;
     }
-    let hasAuth = false;
-    const storedToken=localStorage.getItem('fb_user_token');
-    if (storedToken) {
-      try {
-        const tokenData = JSON.parse(storedToken);
-        if (tokenData && tokenData.token) hasAuth = true;
-      } catch (_) {}
+    const params=new URLSearchParams(window.location.search);
+    const wantConnect=params.get('connect')==='1';
+    const fbJustConnected=params.get('fb_connected')==='1';
+    if(wantConnect||fbJustConnected){
+      window.history.replaceState({},document.title,window.location.pathname);
     }
-    if (!hasAuth) {
-      try {
-        const st = await fetch('/api/auth/status', { credentials: 'same-origin' });
-        const data = await st.json();
-        if (data && data.authenticated) hasAuth = true;
-      } catch (_) {}
+    const auth=await fetchAuthStatus();
+    if(!auth.authenticated&&!auth.appAccount) return;
+
+    window.showAppDashboard();
+    updateFbConnectBanner(auth);
+
+    if(fbJustConnected&&auth.facebookConnected){
+      showToast('Facebook connected successfully!','success');
     }
-    if (!hasAuth) return;
-    try{
-      window.showAppDashboard();
-      // Always fetch fresh pages from server
-      try {
-        await autoLoadPagesAfterLogin();
-      } catch (e) {
-        reportClientError(e, { source: 'auto_restore_pages' });
-        if (typeof window.showStatus === 'function') {
-          window.showStatus('Could not load pages automatically. Please re-login once.', 'warning');
+
+    if(auth.facebookConnected){
+      try{
+        const boot=await fetch('/api/auth/bootstrap',{credentials:'same-origin'});
+        const data=await boot.json();
+        if(data.authenticated&&data.token){
+          localStorage.setItem('fb_user_token',JSON.stringify({
+            token:data.token,
+            expiresAt:Date.now()+(data.expiresIn||5184000)*1000
+          }));
+          if(data.userId){
+            localStorage.setItem('fbcast_user',JSON.stringify({
+              fb_user_id:data.userId,
+              fb_name:data.userName||''
+            }));
+          }
+          if(data.pages&&data.pages.length){
+            localStorage.setItem('fb_pages',JSON.stringify(data.pages));
+          }
         }
-        showToast('Pages load failed: ' + (e.message || 'Unknown error'), 'error');
+        await autoLoadPagesAfterLogin();
+      }catch(e){
+        reportClientError(e,{source:'auto_restore_pages'});
+        if(!auth.facebookConnected){
+          showToast('Connect Facebook from the banner above to load pages.','warning');
+        }
       }
-    }catch(_){}
+    }else if(params.get('connect')==='1'||params.get('fb_connected')==='1'){
+      showToast('Connect your Facebook account using the button above.','info');
+    }
   })();
 
   // Ensure quota is fresh from server on load
@@ -1376,7 +1392,60 @@ window.showAppDashboard = function () {
   }
 };
 
-/* triggerConnect */
+async function fetchAuthStatus(){
+  try{
+    const res=await fetch('/api/auth/status',{credentials:'same-origin'});
+    return await res.json();
+  }catch(_){
+    return { authenticated:false, facebookConnected:false };
+  }
+}
+
+function updateFbConnectBanner(auth){
+  const banner=document.getElementById('fbConnectBanner');
+  if(!banner) return;
+  const show=!!(auth&&auth.appAccount&&auth.authenticated&&!auth.facebookConnected);
+  banner.style.display=show?'block':'none';
+}
+
+window.refreshAuthUi=async function(){
+  const auth=await fetchAuthStatus();
+  updateFbConnectBanner(auth);
+  if(auth.appAccount&&auth.authenticated){
+    window.showAppDashboard();
+    if(auth.facebookConnected&&auth.userId){
+      localStorage.setItem('fbcast_user',JSON.stringify({
+        fb_user_id:auth.userId,
+        fb_name:auth.userName||''
+      }));
+    }
+  }
+  return auth;
+};
+
+window.connectFacebookAccount=async function(){
+  const auth=await fetchAuthStatus();
+  if(!auth.appAccount){
+    window.location.href='/login?next=connect';
+    return;
+  }
+  if(auth.facebookConnected){
+    showToast('Facebook is already connected.','info');
+    updateFbConnectBanner(auth);
+    return;
+  }
+  if(typeof startFacebookLogin!=='function'){
+    showToast('Facebook login is loading…','info');
+    return;
+  }
+  try{
+    await startFacebookLogin({ mode:'redirect' });
+  }catch(e){
+    showToast(e.message||'Facebook connect failed','error');
+  }
+};
+
+/* triggerConnect — app account first, then Facebook in dashboard */
 window.triggerConnect = async function(plan = null) {
   try {
     if (!plan) {
@@ -1384,69 +1453,29 @@ window.triggerConnect = async function(plan = null) {
       if (pendingPlan) plan = pendingPlan;
     }
     fbTrackEvent('login_attempt', { plan: plan || 'free' });
-    
-    const heroBtn = document.getElementById('heroConnectBtn');
-    if (heroBtn && heroBtn.classList.contains('loading')) return;
 
-    const storedToken = localStorage.getItem('fb_user_token');
-    const storedUser = localStorage.getItem('fbcast_user');
-
-    if (storedToken && storedUser) {
-      window.showAppDashboard();
-
-      if (plan) {
-        setTimeout(() => openModal('upgradeModal'), 300);
-        sessionStorage.removeItem('fbcast_pending_plan');
-      }
-
-      syncQuotaFromServer({ force: true, source: 'triggerConnect_existing', silent: true }).catch(() => {});
-      autoLoadPagesAfterLogin().catch(() => {});
+    const auth = await fetchAuthStatus();
+    if (!auth.appAccount) {
+      if (plan) sessionStorage.setItem('fbcast_pending_plan', plan);
+      window.location.href = '/signup';
       return;
     }
 
-    // Not logged in, start OAuth flow
-    if (plan) sessionStorage.setItem('fbcast_pending_plan', plan);
+    window.showAppDashboard();
+    updateFbConnectBanner(auth);
 
-    const btnIds = ['heroConnectBtn', 'navConnectBtn', 'pricingFreeBtn', 'pricingBasicBtn', 'pricingProBtn'];
-    btnIds.forEach(id => {
-      const b = document.getElementById(id);
-      if (b) { b.classList.add('loading'); b.disabled = true; }
-    });
-
-    try {
-      if (typeof startFacebookLogin !== 'function') throw new Error('Facebook Login module not loaded.');
-      await startFacebookLogin();
-
-      fbTrackEvent('login_oauth_complete', { plan: plan || 'free' });
-
-      window.showAppDashboard();
-      updateQuotaUI();
-
-      syncQuotaFromServer({ force: true, source: 'triggerConnect_new', silent: true }).catch(() => {});
-      autoLoadPagesAfterLogin().catch((e) => {
-        reportClientError(e, { source: 'triggerConnect_pages' });
-        showToast('Dashboard open — reload pages from sidebar if empty.', 'warning');
-      });
-
-      if (plan) {
-        setTimeout(() => openModal('upgradeModal'), 600);
-        sessionStorage.removeItem('fbcast_pending_plan');
-      }
-    } catch (e) {
-      fbTrackEvent('login_error', { message: e.message || 'failed' });
-      if (localStorage.getItem('fb_user_token')) {
-        window.showAppDashboard();
-        showToast('Connected — loading your pages…', 'info');
-        autoLoadPagesAfterLogin().catch(() => {});
-      } else {
-        showToast(e.message || 'Login failed.', 'error');
-      }
-    } finally {
-      btnIds.forEach(id => {
-        const b = document.getElementById(id);
-        if (b) { b.classList.remove('loading'); b.disabled = false; }
-      });
+    if (!auth.facebookConnected) {
+      if (plan) sessionStorage.setItem('fbcast_pending_plan', plan);
+      showToast('Sign in done — now connect your Facebook account.', 'info');
+      return;
     }
+
+    if (plan) {
+      setTimeout(() => openModal('upgradeModal'), 300);
+      sessionStorage.removeItem('fbcast_pending_plan');
+    }
+    syncQuotaFromServer({ force: true, source: 'triggerConnect_existing', silent: true }).catch(() => {});
+    autoLoadPagesAfterLogin().catch(() => {});
   } catch (err) {
     console.error('triggerConnect error:', err);
     reportClientError(err, { source: 'triggerConnect_root' });

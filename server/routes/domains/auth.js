@@ -14,6 +14,26 @@ module.exports = function mountAuth(app, ctx) {
     FB_ME_FIELDS, recordMetaReviewTests, trackUserSession, resolveSiteUrl
   } = ctx;
 
+const appAuth = require('../../services/app-auth.service');
+
+const appCookieOpts = { signed: true, httpOnly: true, sameSite: 'lax', maxAge: 30 * 24 * 60 * 60 * 1000, path: '/' };
+
+function sendAuthStatus(req, res) {
+    const hasApp = !!req.session.appAccountId;
+    const hasFb = !!req.session.accessToken;
+    res.json({
+        authenticated: hasApp || hasFb,
+        appAccount: hasApp ? {
+            id: req.session.appAccountId,
+            email: req.session.appEmail || null,
+            firstName: req.session.appFirstName || null
+        } : null,
+        facebookConnected: hasFb,
+        userName: req.session.userName || null,
+        userId: req.session.userId || null
+    });
+}
+
 // ── Auth ──────────────────────────────────────────────────────────────────────
 app.get('/api/csrf-token', (req, res) => {
     const token = generateCsrf(req);
@@ -106,9 +126,78 @@ app.get('/api/auth/redirect-callback', async (req, res) => {
     }
 });
 
+app.post('/api/auth/register', async (req, res) => {
+    try {
+        const email = appAuth.validateEmail(req.body.email);
+        if (!email) return res.status(400).json({ error: 'Valid email is required' });
+        const pwErr = appAuth.validatePassword(req.body.password);
+        if (pwErr) return res.status(400).json({ error: pwErr });
+        if (String(req.body.password) !== String(req.body.confirmPassword || req.body.confirm_password || '')) {
+            return res.status(400).json({ error: 'Passwords do not match' });
+        }
+        if (!state.dbConnected) return res.status(503).json({ error: 'Database unavailable' });
+
+        const existing = await db.getAppAccountByEmail(email);
+        if (existing) return res.status(409).json({ error: 'An account with this email already exists' });
+
+        const account = await db.createAppAccount({
+            email,
+            passwordHash: appAuth.hashPassword(req.body.password),
+            firstName: String(req.body.firstName || req.body.first_name || '').trim().slice(0, 120),
+            lastName: String(req.body.lastName || req.body.last_name || '').trim().slice(0, 120),
+            referralName: String(req.body.referralName || req.body.referral || '').trim().slice(0, 255)
+        });
+
+        appAuth.setAppSession(req, account);
+        res.cookie('_app_aid', String(account.id), appCookieOpts);
+        generateCsrf(req);
+        res.json({ success: true, account: { id: account.id, email: account.email }, redirect: '/' });
+    } catch (err) {
+        logError('auth_register', err);
+        res.status(500).json({ error: err.message || 'Registration failed' });
+    }
+});
+
+app.post('/api/auth/login', async (req, res) => {
+    try {
+        const email = appAuth.validateEmail(req.body.email);
+        const password = String(req.body.password || '');
+        if (!email || !password) return res.status(400).json({ error: 'Email and password are required' });
+        if (!state.dbConnected) return res.status(503).json({ error: 'Database unavailable' });
+
+        const account = await db.getAppAccountByEmail(email);
+        if (!account || !appAuth.verifyPassword(password, account.password_hash)) {
+            return res.status(401).json({ error: 'Invalid email or password' });
+        }
+
+        appAuth.setAppSession(req, account);
+        res.cookie('_app_aid', String(account.id), appCookieOpts);
+
+        const { tryRestoreFacebookFromAppAccount } = require('../../middleware/session-hydrate');
+        await tryRestoreFacebookFromAppAccount(req);
+
+        if (req.session.accessToken && req.session.userId) {
+            const cookieOpts = { signed: true, httpOnly: true, sameSite: 'lax', maxAge: 7 * 24 * 60 * 60 * 1000 };
+            res.cookie('_fb_at', req.session.accessToken, cookieOpts);
+            res.cookie('_fb_uid', req.session.userId, cookieOpts);
+            if (req.session.userName) res.cookie('_fb_un', req.session.userName, cookieOpts);
+        }
+
+        generateCsrf(req);
+        res.json({
+            success: true,
+            facebookConnected: !!req.session.accessToken,
+            userName: req.session.userName || null,
+            redirect: '/'
+        });
+    } catch (err) {
+        logError('auth_login', err);
+        res.status(500).json({ error: err.message || 'Login failed' });
+    }
+});
+
 app.get('/api/auth/status', (req, res) => {
-    if (req.session.accessToken) res.json({ authenticated: true, userName: req.session.userName, userId: req.session.userId });
-    else res.json({ authenticated: false });
+    sendAuthStatus(req, res);
 });
 
 /** After redirect OAuth — sync browser from server session + DB user data */
@@ -260,7 +349,9 @@ app.post('/api/broadcasts/history', requireAuth, verifyCsrf, async (req, res) =>
 });
 
 app.post('/api/auth/logout', verifyCsrf, (req, res) => {
+    appAuth.clearAppSession(req);
     const cookieOpts = { path: '/', signed: true, httpOnly: true, sameSite: 'lax' };
+    res.clearCookie('_app_aid', appCookieOpts);
     res.clearCookie('_fb_at', cookieOpts);
     res.clearCookie('_fb_uid', cookieOpts);
     res.clearCookie('_fb_un', cookieOpts);

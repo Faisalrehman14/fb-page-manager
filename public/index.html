@@ -149,9 +149,10 @@ window.getCsrfToken = async (forceRefresh = false) => {
     <button type="button" class="nav-theme-btn" id="landingThemeToggle" aria-label="Toggle light or dark mode" title="Toggle theme">
       <i class="fa-solid fa-sun" id="landingThemeIcon" aria-hidden="true"></i>
     </button>
-    <button type="button" class="nav-cta" id="navConnectBtn" onclick="triggerConnect()">
-      <i class="fab fa-facebook"></i> Get Started Free
-    </button>
+    <a href="/login" class="nav-link-login" style="font-size:14px;font-weight:600;color:var(--text2,#64748b);text-decoration:none;margin-right:12px;">Log In</a>
+    <a href="/signup" class="nav-cta" id="navConnectBtn" style="text-decoration:none;display:inline-flex;align-items:center;gap:8px;">
+      Start free trial
+    </a>
     <button class="nav-hamburger" id="navHamburger" aria-label="Open menu">
       <i class="fa-solid fa-bars"></i>
     </button>
@@ -166,9 +167,10 @@ window.getCsrfToken = async (forceRefresh = false) => {
     <a class="mobile-menu-link" href="#how-it-works" onclick="closeMobileMenu()">How It Works</a>
     <a class="mobile-menu-link" href="#compare" onclick="closeMobileMenu()">Why Us</a>
     <a class="mobile-menu-link" href="#pricing" onclick="closeMobileMenu()">Pricing</a>
-    <button class="mobile-menu-cta" onclick="closeMobileMenu();triggerConnect()">
-      <i class="fab fa-facebook"></i> Get Started Free
-    </button>
+    <a class="mobile-menu-cta" href="/signup" onclick="closeMobileMenu()" style="text-decoration:none;text-align:center;">
+      Start free trial
+    </a>
+    <a class="mobile-menu-link" href="/login" onclick="closeMobileMenu()">Log In</a>
   </div>
   <!-- HERO -->
   <main id="landingMain">
@@ -204,10 +206,10 @@ window.getCsrfToken = async (forceRefresh = false) => {
     </p>
 
     <div class="hero-actions">
-      <button class="btn-hero" id="heroConnectBtn" onclick="triggerConnect()">
-        <i class="fab fa-facebook"></i>
-        Connect with Facebook — It's Free
-      </button>
+      <a class="btn-hero" id="heroConnectBtn" href="/signup" style="text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:8px;">
+        Start Free Trial →
+      </a>
+      <a class="btn-hero-secondary" href="/login" style="margin-left:12px;text-decoration:none;display:inline-flex;align-items:center;padding:14px 24px;border-radius:12px;border:1px solid rgba(255,255,255,.25);color:#fff;font-weight:600;">Sign In</a>
       <div class="hero-social-proof">
         <div class="avatars">
           <img class="avatar hero-avatar avatar-1" data-hero-avatar="0" src="pics/p1.jpg" alt="Customer profile" loading="lazy" decoding="async">
@@ -849,6 +851,18 @@ window.getCsrfToken = async (forceRefresh = false) => {
 
 <!-- ═══ APP DASHBOARD ═══ -->
 <div id="appPage" style="display:none">
+
+  <div id="fbConnectBanner" class="fb-connect-banner" style="display:none;" role="region" aria-label="Connect Facebook">
+    <div class="fb-connect-banner__inner">
+      <div>
+        <strong><i class="fab fa-facebook" style="color:#1877f2"></i> Connect your Facebook account</strong>
+        <p style="margin:6px 0 0;font-size:13px;opacity:.9;">Link once — we remember it when you sign in from any device.</p>
+      </div>
+      <button type="button" class="ds-btn ds-btn--primary" id="fbConnectBannerBtn" onclick="if(typeof connectFacebookAccount==='function')connectFacebookAccount();">
+        <i class="fab fa-facebook"></i> Connect Facebook
+      </button>
+    </div>
+  </div>
 
   <!-- TOPBAR — SaaS dashboard chrome -->
   <header class="topbar saas-topbar" role="banner">

@@ -16,7 +16,8 @@ const state = require('./lib/state');
 const { logError, trackRequest } = require('./lib/logger');
 const { createSessionMiddleware } = require('./middleware/session');
 const { csrfBootstrap, generateCsrf, verifyCsrf } = require('./middleware/csrf');
-const { requireAuth, requireAdminAuth, restoreSessionFromCookies } = require('./middleware/auth');
+const { requireAuth, requireAppAccount, requireAdminAuth, restoreSessionFromCookies } = require('./middleware/auth');
+const { hydrateSession } = require('./middleware/session-hydrate');
 const { legacyPhpRedirect } = require('./middleware/legacy-php');
 const { setupSocket } = require('./socket');
 const db = require('./db');
@@ -93,6 +94,8 @@ function createApp() {
                 || p.includes('/api/billing/webhook')
                 || p === '/api/health'
                 || p === '/api/auth/track'
+                || p === '/api/auth/register'
+                || p === '/api/auth/login'
                 || p === '/track_user.php';
         },
         message: { error: 'Too many requests — please wait a moment' }
@@ -112,6 +115,7 @@ function createApp() {
     app.use(sessionMiddleware);
     app.use(csrfBootstrap);
     app.use(restoreSessionFromCookies);
+    app.use(hydrateSession);
     app.use(legacyPhpRedirect);
 
     setupSocket(io, sessionMiddleware);
@@ -129,6 +133,7 @@ function createApp() {
         syncCooldown: state.syncCooldown,
         getDbConnected: () => state.dbConnected,
         requireAuth,
+        requireAppAccount,
         verifyCsrf,
         requireAdminAuth,
         generateCsrf,

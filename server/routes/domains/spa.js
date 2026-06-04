@@ -97,6 +97,14 @@ app.get('/', (req, res) => {
     }
 });
 
+app.get(['/signup', '/signup.html'], (req, res) => {
+    res.sendFile(paths.publicPath('signup.html'));
+});
+
+app.get(['/login', '/login.html'], (req, res) => {
+    res.sendFile(paths.publicPath('login.html'));
+});
+
 // All frontend routes serve the same SPA index.html
 app.get(['/app', '/dashboard.html', '/inbox.html', '/messenger.html', '/index.html'], (req, res) => {
     try {

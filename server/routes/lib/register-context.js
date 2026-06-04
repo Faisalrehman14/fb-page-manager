@@ -3,7 +3,7 @@ module.exports = function createRegisterContext(deps) {
   const {
     db, io, fetch, env, paths, state, logError,
     upload, uploadDisk, syncCooldown,
-    requireAuth, verifyCsrf, requireAdminAuth, generateCsrf,
+    requireAuth, requireAppAccount, verifyCsrf, requireAdminAuth, generateCsrf,
     mountMessenger
   } = deps;
   const FB_APP_ID = env.FB_APP_ID;
@@ -97,7 +97,7 @@ module.exports = function createRegisterContext(deps) {
     deps,
     db, io, fetch, env, paths, state, logError,
     upload, uploadDisk, syncCooldown,
-    requireAuth, verifyCsrf, requireAdminAuth, generateCsrf,
+    requireAuth, requireAppAccount, verifyCsrf, requireAdminAuth, generateCsrf,
     mountMessenger,
     FB_APP_ID, FB_APP_SECRET, BASE_URL, PORT, WEBHOOK_VERIFY_TOKEN, ADMIN_PASSWORD,
     path, fs, crypto, MAX_LOGS, fbNames, entitlementsSvc, aiAssistant,
