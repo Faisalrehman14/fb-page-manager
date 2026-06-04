@@ -238,6 +238,104 @@ app.post('/api/auth/register', async (req, res) => {
     }
 });
 
+app.post('/api/auth/forgot-password/send-otp', async (req, res) => {
+    try {
+        const email = appAuth.validateEmail(req.body.email);
+        if (!email) return res.status(400).json({ error: 'Valid email is required' });
+        if (!state.dbConnected) return res.status(503).json({ error: 'Database unavailable' });
+
+        const emailStatus = emailService.getPublicEmailStatus();
+        if (!emailStatus.ready) {
+            return res.status(503).json({
+                error: emailStatus.message,
+                code: emailStatus.reason
+            });
+        }
+
+        const account = await db.getAppAccountByEmail(email);
+        if (account) {
+            const waitSec = await db.getEmailOtpCooldownRemaining(
+                email, 'password_reset', otpSvc.RESEND_COOLDOWN_MS
+            );
+            if (waitSec > 0) {
+                return res.status(429).json({
+                    error: `Please wait ${waitSec} seconds before requesting another code.`,
+                    retryAfter: waitSec
+                });
+            }
+
+            const code = otpSvc.generateOtpCode();
+            await db.saveEmailOtp({
+                email,
+                purpose: 'password_reset',
+                otpHash: otpSvc.hashOtp(code),
+                ttlMs: otpSvc.OTP_TTL_MS
+            });
+            await emailService.sendPasswordResetOtpEmail(email, code);
+        }
+
+        res.json({
+            success: true,
+            message: 'If an account exists for this email, a reset code has been sent.',
+            expiresInMinutes: 10
+        });
+    } catch (err) {
+        logError('auth_forgot_send_otp', err);
+        const mapped = emailService.mapEmailError?.(err) || err;
+        const isAdminHint = mapped.adminOnly || mapped.provider === 'resend';
+        const msg = isAdminHint && mapped.message
+            ? mapped.message
+            : emailService.toPublicEmailError(err).message;
+        res.status(mapped.status || 503).json({ error: msg });
+    }
+});
+
+app.post('/api/auth/reset-password', async (req, res) => {
+    try {
+        const email = appAuth.validateEmail(req.body.email);
+        if (!email) return res.status(400).json({ error: 'Valid email is required' });
+        const otp = String(req.body.otp || req.body.code || '').trim();
+        if (!/^\d{6}$/.test(otp)) {
+            return res.status(400).json({ error: 'Enter the 6-digit code from your email' });
+        }
+        const pwErr = appAuth.validatePassword(req.body.password);
+        if (pwErr) return res.status(400).json({ error: pwErr });
+        if (String(req.body.password) !== String(req.body.confirmPassword || req.body.confirm_password || '')) {
+            return res.status(400).json({ error: 'Passwords do not match' });
+        }
+        if (!state.dbConnected) return res.status(503).json({ error: 'Database unavailable' });
+
+        const account = await db.getAppAccountByEmail(email);
+        if (!account) {
+            return res.status(400).json({ error: 'Invalid or expired reset code' });
+        }
+
+        const otpCheck = await db.verifyAndConsumeEmailOtp(
+            email, 'password_reset', otpSvc.hashOtp(otp), otpSvc.MAX_ATTEMPTS
+        );
+        if (!otpCheck.ok) {
+            const msgs = {
+                expired_or_missing: 'Reset code expired. Request a new code.',
+                invalid_code: 'Incorrect reset code.',
+                too_many_attempts: 'Too many attempts. Request a new code.'
+            };
+            return res.status(400).json({ error: msgs[otpCheck.reason] || 'Invalid reset code' });
+        }
+
+        const updated = await db.updateAppAccountPassword(email, appAuth.hashPassword(req.body.password));
+        if (!updated) return res.status(500).json({ error: 'Could not update password' });
+
+        res.json({
+            success: true,
+            message: 'Password updated. You can sign in with your new password.',
+            redirect: '/login'
+        });
+    } catch (err) {
+        logError('auth_reset_password', err);
+        res.status(500).json({ error: err.message || 'Password reset failed' });
+    }
+});
+
 app.post('/api/auth/login', async (req, res) => {
     try {
         const email = appAuth.validateEmail(req.body.email);

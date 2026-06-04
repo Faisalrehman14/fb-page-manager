@@ -1918,33 +1918,58 @@ window.getCsrfToken = async (forceRefresh = false) => {
           <h3><i class="fa-solid fa-bullhorn compose-hdr-icon"></i> Broadcast</h3>
           <div class="mode-pills">
             <button class="mode-pill active" id="modeManualBtn">Manual</button>
+            <button class="mode-pill" id="modeMultiBtn">Multi</button>
             <button class="mode-pill" id="modeAutoBtn">Auto All</button>
           </div>
         </div>
 
+        <div class="bcast-mini-stats" id="broadcastMiniStats">
+          <div class="bcast-mini-stat bms-total">
+            <div class="bcast-mini-stat-val" id="miniStatTotal">0</div>
+            <div class="bcast-mini-stat-lbl">Total</div>
+          </div>
+          <div class="bcast-mini-stat bms-sent">
+            <div class="bcast-mini-stat-val" id="miniStatSent">0</div>
+            <div class="bcast-mini-stat-lbl">Sent</div>
+          </div>
+          <div class="bcast-mini-stat bms-failed">
+            <div class="bcast-mini-stat-val" id="miniStatFailed">0</div>
+            <div class="bcast-mini-stat-lbl">Failed</div>
+          </div>
+        </div>
+        <div id="sendHint">Select a page, write message, then start broadcast</div>
+
         <!-- Manual Mode -->
         <div id="manualControls">
-          <!-- Mini session stats -->
-          <div class="bcast-mini-stats">
-            <div class="bcast-mini-stat bms-total">
-              <div class="bcast-mini-stat-val" id="miniStatTotal">0</div>
-              <div class="bcast-mini-stat-lbl">Total</div>
-            </div>
-            <div class="bcast-mini-stat bms-sent">
-              <div class="bcast-mini-stat-val" id="miniStatSent">0</div>
-              <div class="bcast-mini-stat-lbl">Sent</div>
-            </div>
-            <div class="bcast-mini-stat bms-failed">
-              <div class="bcast-mini-stat-val" id="miniStatFailed">0</div>
-              <div class="bcast-mini-stat-lbl">Failed</div>
-            </div>
-          </div>
-          <div id="sendHint">Select a page, write message, then start broadcast</div>
           <div class="action-btns">
-            <button id="btnStart"    class="act-btn"><i class="fa-solid fa-play"></i> Start Broadcast</button>
-<button id="btnPause"    class="act-btn"><i class="fa-solid fa-pause"></i> Pause</button>
-            <button id="btnResume"   class="act-btn"><i class="fa-solid fa-rotate-right"></i> Resume</button>
-            <button id="btnStop"     class="act-btn"><i class="fa-solid fa-stop"></i> Stop</button>
+            <button id="btnStart" class="act-btn"><i class="fa-solid fa-play"></i> Start Broadcast</button>
+          </div>
+        </div>
+
+        <!-- Multi-page parallel (different message per page) -->
+        <div id="multiControls" style="display:none">
+          <div class="multi-info">
+            <i class="fa-solid fa-layer-group"></i>
+            <span>Select pages in the sidebar, set a <strong>different message</strong> for each, then send <strong>in parallel</strong>.</span>
+          </div>
+          <p class="multi-page-count" id="multiPageCount">No pages selected</p>
+          <div id="multiPageMessages" class="multi-page-messages">
+            <p class="multi-page-empty">Select pages in the sidebar to configure messages.</p>
+          </div>
+          <button type="button" class="btn-extra btn-multi-apply" id="btnMultiApplyMain">
+            <i class="fa-solid fa-copy"></i> Copy main message to all
+          </button>
+          <p class="multi-status" id="multiStatusText"></p>
+          <div class="action-btns">
+            <button type="button" id="btnMultiStart" class="act-btn"><i class="fa-solid fa-play"></i> Start parallel broadcast</button>
+          </div>
+        </div>
+
+        <div id="broadcastTransport" class="broadcast-transport">
+          <div class="action-btns">
+            <button id="btnPause" class="act-btn"><i class="fa-solid fa-pause"></i> Pause</button>
+            <button id="btnResume" class="act-btn"><i class="fa-solid fa-rotate-right"></i> Resume</button>
+            <button id="btnStop" class="act-btn"><i class="fa-solid fa-stop"></i> Stop</button>
           </div>
           <div class="extra-actions">
             <button type="button" class="btn-extra btn-retry" id="btnRetryFailed" disabled title="Retry all failed messages">
@@ -2914,6 +2939,7 @@ window.getCsrfToken = async (forceRefresh = false) => {
 <script src="https://js.stripe.com/v3/" defer></script>
 <script src="assets/js/user-data.js?v={{VER}}" defer></script>
 <script src="assets/js/brand-logo.js?v={{VER}}" defer></script>
+<script src="assets/js/multi-broadcast.js?v={{VER}}" defer></script>
 <script src="assets/js/index-page.js?v={{VER}}" defer></script>
 <script src="assets/js/ui-components.js?v={{VER}}" defer></script>
 <script src="assets/js/app-shell.js?v={{VER}}" defer></script>

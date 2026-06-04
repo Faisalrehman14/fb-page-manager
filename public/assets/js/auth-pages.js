@@ -89,11 +89,17 @@
     });
   }
 
+  function otpSendEndpoint(mode) {
+    if (mode === 'forgot-password') return '/api/auth/forgot-password/send-otp';
+    return '/api/auth/register/send-otp';
+  }
+
   async function handleSendOtp() {
     const btn = document.getElementById('sendOtpBtn');
     const label = document.getElementById('sendOtpLabel');
     const emailEl = document.getElementById('email');
     const email = (emailEl?.value || '').trim();
+    const mode = document.getElementById('authForm')?.getAttribute('data-mode') || 'signup';
     if (!email) {
       showError('Enter your email address first.');
       emailEl?.focus();
@@ -105,7 +111,7 @@
     if (label) label.textContent = 'Sending…';
     try {
       const csrf = await getCsrf();
-      const res = await fetch('/api/auth/register/send-otp', {
+      const res = await fetch(otpSendEndpoint(mode), {
         method: 'POST',
         credentials: 'same-origin',
         headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrf },
@@ -123,12 +129,64 @@
       }
       if (btn) btn.classList.add('is-sent');
       if (label) label.textContent = 'Resend code';
-      showSuccess('Verification code sent to ' + email);
+      const okMsg =
+        mode === 'forgot-password'
+          ? data.message || 'If an account exists for this email, a reset code was sent.'
+          : 'Verification code sent to ' + email;
+      showSuccess(okMsg);
     } catch (err) {
       showError(err.message || 'Could not send verification code');
       if (label) label.textContent = 'Send code';
       if (btn) btn.classList.remove('is-sent');
     } finally {
+      if (btn) btn.disabled = false;
+    }
+  }
+
+  async function handleResetPassword(e) {
+    e.preventDefault();
+    const otp = (document.getElementById('otp')?.value || '').trim();
+    if (!otpSent) {
+      showError('Click Send code and enter the 6-digit code from your email.');
+      revealOtpBlock(false);
+      document.getElementById('email')?.focus();
+      return;
+    }
+    if (!/^\d{6}$/.test(otp)) {
+      showError('Enter the 6-digit reset code from your email.');
+      revealOtpBlock(true);
+      return;
+    }
+    const btn = document.getElementById('authSubmit');
+    if (btn) btn.disabled = true;
+    showError('');
+    try {
+      const csrf = await getCsrf();
+      const body = {
+        email: document.getElementById('email')?.value,
+        otp: otp,
+        password: document.getElementById('password')?.value,
+        confirmPassword: document.getElementById('confirmPassword')?.value
+      };
+      const res = await fetch('/api/auth/reset-password', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrf },
+        body: JSON.stringify(body)
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Password reset failed');
+      setSignupStep('done');
+      showSuccess(data.message || 'Password updated. Redirecting to sign in…');
+      setTimeout(function () {
+        window.location.href = data.redirect || '/login';
+      }, 1200);
+    } catch (err) {
+      showError(err.message || 'Password reset failed');
+      if (/code|otp|reset/i.test(err.message || '')) {
+        revealOtpBlock(true);
+        setSignupStep('verify');
+      }
       if (btn) btn.disabled = false;
     }
   }
@@ -268,5 +326,15 @@
       });
     }
     if (form && mode === 'login') form.addEventListener('submit', handleLogin);
+    if (form && mode === 'forgot-password') {
+      checkEmailService();
+      form.addEventListener('submit', handleResetPassword);
+      const params = new URLSearchParams(window.location.search);
+      const prefill = params.get('email');
+      if (prefill) {
+        const emailInput = document.getElementById('email');
+        if (emailInput) emailInput.value = prefill;
+      }
+    }
   });
 })();

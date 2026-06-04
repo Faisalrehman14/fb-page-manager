@@ -105,6 +105,10 @@ app.get(['/login', '/login.html'], (req, res) => {
     res.sendFile(paths.publicPath('login.html'));
 });
 
+app.get(['/forgot-password', '/forgot-password.html'], (req, res) => {
+    res.sendFile(paths.publicPath('forgot-password.html'));
+});
+
 // All frontend routes serve the same SPA index.html
 app.get(['/app', '/dashboard.html', '/inbox.html', '/messenger.html', '/index.html'], (req, res) => {
     try {

@@ -1753,13 +1753,18 @@ window.setLoginOnline=function(){
 
 /* Mode switch */
 document.addEventListener('DOMContentLoaded',()=>{
-  const btnManual=document.getElementById('modeManualBtn');
-  const btnAuto=document.getElementById('modeAutoBtn');
-  const manual=document.getElementById('manualControls');
-  const auto=document.getElementById('autoControls');
-  if(!btnManual)return;
-  btnManual.addEventListener('click',()=>{btnManual.classList.add('active');btnAuto.classList.remove('active');manual.style.display='';auto.style.display='none';});
-  btnAuto.addEventListener('click',()=>{btnAuto.classList.add('active');btnManual.classList.remove('active');auto.style.display='';manual.style.display='none';});
+  if (typeof window.setBroadcastMode === 'function') {
+    /* mode pills handled by multi-broadcast.js */
+  } else {
+    const btnManual=document.getElementById('modeManualBtn');
+    const btnAuto=document.getElementById('modeAutoBtn');
+    const manual=document.getElementById('manualControls');
+    const auto=document.getElementById('autoControls');
+    if(btnManual){
+      btnManual.addEventListener('click',()=>{btnManual.classList.add('active');btnAuto.classList.remove('active');manual.style.display='';auto.style.display='none';});
+      btnAuto.addEventListener('click',()=>{btnAuto.classList.add('active');btnManual.classList.remove('active');auto.style.display='';manual.style.display='none';});
+    }
+  }
   document.getElementById('btnAutoStart')?.addEventListener('click',startAutoSend);
   document.getElementById('btnAutoPause')?.addEventListener('click',()=>{
     if(!pauseSending()){setAutoStatus('warn','No broadcast is running.');return;}

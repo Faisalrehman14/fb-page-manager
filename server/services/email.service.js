@@ -318,6 +318,25 @@ async function sendSignupOtpEmail(toEmail, code) {
     });
 }
 
+async function sendPasswordResetOtpEmail(toEmail, code) {
+    const resetUrl = `${siteUrl()}/forgot-password`;
+    const html = emailLayout({
+        title: 'Reset your password',
+        bodyHtml: `
+          <p>We received a request to reset your FBCast Pro password. Enter this code on the reset page:</p>
+          <p style="font-size:32px;font-weight:700;letter-spacing:8px;color:#0f172a;margin:20px 0;">${code}</p>
+          <p style="font-size:14px;color:#64748b;">Expires in 10 minutes. If you did not request a reset, you can ignore this email — your password will not change.</p>`,
+        ctaLabel: 'Reset password',
+        ctaUrl: resetUrl
+    });
+    await sendMail({
+        to: toEmail,
+        subject: `${code} — FBCast Pro password reset code`,
+        html,
+        text: `Your FBCast Pro password reset code is ${code}. It expires in 10 minutes. Reset at ${resetUrl}`
+    });
+}
+
 async function sendWelcomeEmail(toEmail, firstName) {
     const name = firstName ? ` ${firstName}` : '';
     const html = emailLayout({
@@ -402,6 +421,7 @@ async function sendSubscriptionActivatedEmail(toEmail, { firstName, planName, me
 module.exports = {
     sendMail,
     sendSignupOtpEmail,
+    sendPasswordResetOtpEmail,
     sendWelcomeEmail,
     sendFreeTrialStartedEmail,
     sendTrialEndingReminderEmail,

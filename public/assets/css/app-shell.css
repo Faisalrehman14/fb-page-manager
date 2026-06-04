@@ -250,6 +250,143 @@ body.shell-scheduling .page-card.sched-selected .page-indicator::after {
   line-height: 1;
 }
 
+/* ─── Multi broadcast — per-page messages, parallel send ─── */
+body.shell-multi-broadcast .sidebar-sched-actions {
+  display: inline-flex !important;
+  gap: 4px;
+  align-items: center;
+}
+
+body.shell-multi-broadcast .sidebar-hdr-label-left span::after {
+  content: ' · Multi';
+  font-weight: 600;
+  color: #34d399;
+  font-size: 10px;
+  letter-spacing: 0.02em;
+}
+
+body.shell-multi-broadcast .page-card.multi-selected {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.12), rgba(99, 102, 241, 0.08));
+  border-color: rgba(52, 211, 153, 0.4);
+  box-shadow: inset 3px 0 0 #10b981, 0 2px 12px rgba(16, 185, 129, 0.1);
+}
+
+body.shell-multi-broadcast .page-card.multi-selected .page-name {
+  color: #6ee7b7;
+  font-weight: 700;
+}
+
+body.shell-multi-broadcast .page-card.multi-selected .page-indicator {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #10b981;
+  box-shadow: 0 0 8px rgba(16, 185, 153, 0.45);
+  position: relative;
+}
+
+body.shell-multi-broadcast .page-card.multi-selected .page-indicator::after {
+  content: '✓';
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 800;
+  color: #fff;
+  line-height: 1;
+}
+
+.multi-info {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  font-size: 12px;
+  color: var(--text2, #94a3b8);
+  line-height: 1.45;
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: rgba(16, 185, 129, 0.08);
+  border: 1px solid rgba(52, 211, 153, 0.2);
+}
+
+.multi-info i {
+  color: #34d399;
+  margin-top: 2px;
+}
+
+.multi-page-count {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text3, #64748b);
+  margin: 0 0 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.multi-page-messages {
+  max-height: 220px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 10px;
+  padding-right: 4px;
+}
+
+.multi-page-empty {
+  font-size: 12px;
+  color: var(--text3, #64748b);
+  margin: 0;
+  text-align: center;
+  padding: 16px 8px;
+}
+
+.multi-page-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.multi-page-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text, #e2e8f0);
+}
+
+.multi-page-textarea {
+  width: 100%;
+  min-height: 72px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border, rgba(139, 156, 255, 0.15));
+  background: var(--surface2, rgba(15, 23, 42, 0.5));
+  color: var(--text, #f1f5f9);
+  font-family: inherit;
+  font-size: 12px;
+  resize: vertical;
+}
+
+.multi-page-textarea:focus {
+  outline: none;
+  border-color: rgba(52, 211, 153, 0.5);
+  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.15);
+}
+
+.btn-multi-apply {
+  width: 100%;
+  margin-bottom: 10px;
+}
+
+.multi-status {
+  font-size: 11px;
+  color: var(--text3, #94a3b8);
+  min-height: 16px;
+  margin: 8px 0 0;
+}
+
 body.shell-messenger .nav-sidebar { display: flex !important; }
 
 /* ─── Responsive ─── */

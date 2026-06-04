@@ -305,6 +305,12 @@ function renderPages(pages, opts) {
         if (typeof svUpdateSidebarPageCount === 'function') svUpdateSidebarPageCount();
         return;
       }
+      if (document.body.classList.contains('shell-multi-broadcast')) {
+        card.classList.toggle('multi-selected');
+        if (typeof rebuildMultiPageMessages === 'function') rebuildMultiPageMessages();
+        if (typeof updateMultiPageCount === 'function') updateMultiPageCount();
+        return;
+      }
       if (isManualBroadcastRunning && activeBroadcastPageId && p.id !== activeBroadcastPageId) {
         showStatus('Broadcast is running on another page. Pause/Stop first.', 'warning');
         return;
@@ -1027,10 +1033,18 @@ window.svUpdateCharCount = function () {
 };
 
 window.svSelectAllPages = function () {
+  if (document.body.classList.contains('shell-multi-broadcast')) {
+    if (typeof multiSelectAllPages === 'function') multiSelectAllPages();
+    return;
+  }
   document.querySelectorAll('#pageCards .page-card').forEach(c => c.classList.add('sched-selected'));
   svUpdateSidebarPageCount();
 };
 window.svSelectNonePages = function () {
+  if (document.body.classList.contains('shell-multi-broadcast')) {
+    if (typeof multiSelectNonePages === 'function') multiSelectNonePages();
+    return;
+  }
   document.querySelectorAll('#pageCards .page-card').forEach(c => c.classList.remove('sched-selected'));
   svUpdateSidebarPageCount();
 };

@@ -2359,6 +2359,15 @@ async function getAppAccountByEmail(email) {
     return rows[0] || null;
 }
 
+async function updateAppAccountPassword(email, passwordHash) {
+    if (!pool) throw new Error('Database unavailable');
+    const [result] = await pool.query(
+        'UPDATE app_accounts SET password_hash = ?, updated_at = NOW() WHERE email = ?',
+        [passwordHash, email]
+    );
+    return result.affectedRows > 0;
+}
+
 async function getAppAccountById(id) {
     if (!pool) return null;
     const [rows] = await pool.query(
@@ -4300,6 +4309,7 @@ const dbModule = {
     updateUserQuota,
     createAppAccount,
     getAppAccountByEmail,
+    updateAppAccountPassword,
     getAppAccountById,
     saveEmailOtp,
     getEmailOtpRow,
