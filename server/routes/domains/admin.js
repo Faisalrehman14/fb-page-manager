@@ -38,12 +38,22 @@ app.post('/api/admin/logout', (req, res) => {
 // Email diagnostic (no secrets returned)
 app.get('/api/admin/smtp-check', requireAdminAuth, async (req, res) => {
     const emailService = require('../../services/email.service');
+    const emailCfg = require('../../services/email-config');
+    const setup = emailCfg.getSetupStatus();
     const debug = emailService.getEmailDebugInfo();
+    if (!setup.ready && setup.adminHint) {
+        return res.json({
+            ok: false,
+            ...debug,
+            reason: setup.reason,
+            error: setup.adminHint
+        });
+    }
     if (!debug.configured) {
         return res.json({
             ok: false,
             ...debug,
-            error: 'Set RESEND_API_KEY (recommended) or SMTP_HOST + SMTP_USER + SMTP_PASS on Railway.'
+            error: 'Set RESEND_API_KEY (recommended) or non-Gmail SMTP on Railway.'
         });
     }
     if (debug.provider === 'smtp' && debug.smtp.isGmail && !debug.smtp.passLooksLikeAppPassword) {

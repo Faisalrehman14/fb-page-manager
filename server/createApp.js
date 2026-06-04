@@ -62,9 +62,12 @@ function createApp() {
     process.on('uncaughtException', err => logError('uncaughtException', err));
 
     app.get('/api/health', (req, res) => {
+        const emailService = require('./services/email.service');
+        const email = emailService.getPublicEmailStatus();
         res.status(200).json({
             status: 'ok',
             db: state.dbConnected ? 'connected' : 'initializing',
+            email: { ready: email.ready, provider: email.provider || 'none' },
             uptime: Math.floor(process.uptime())
         });
     });

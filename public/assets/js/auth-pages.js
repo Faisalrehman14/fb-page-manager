@@ -211,6 +211,20 @@
     }
   }
 
+  async function checkEmailService() {
+    const sendBtn = document.getElementById('sendOtpBtn');
+    try {
+      const res = await fetch('/api/auth/email-status', { credentials: 'same-origin' });
+      const data = await res.json();
+      if (!data.ready) {
+        if (sendBtn) sendBtn.disabled = true;
+        showError(data.message || 'Email verification is temporarily unavailable. Please try again later.');
+      } else if (sendBtn) {
+        sendBtn.disabled = false;
+      }
+    } catch (_) {}
+  }
+
   document.addEventListener('DOMContentLoaded', function () {
     bindPasswordToggles();
     bindOtpInput();
@@ -218,6 +232,7 @@
     const form = document.getElementById('authForm');
     const mode = form?.getAttribute('data-mode');
     if (form && mode === 'signup') {
+      checkEmailService();
       form.addEventListener('submit', handleSignup);
       document.getElementById('email')?.addEventListener('blur', function () {
         if (otpSent) return;

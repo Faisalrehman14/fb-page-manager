@@ -1,19 +1,27 @@
 const nodemailer = require('nodemailer');
 const env = require('../config/env');
 const resend = require('./email-resend');
+const emailConfig = require('./email-config');
 
 let _transport = null;
+let _runtimeStatus = { checked: false, ready: false, provider: 'none', error: null };
 
 function siteUrl() {
     return (env.SITE_URL || env.BASE_URL || 'https://fb-page-manager-production-f759.up.railway.app').replace(/\/$/, '');
 }
 
+function smtpAllowed() {
+    if (!emailConfig.isSmtpVarsPresent()) return false;
+    if (emailConfig.isCloudHosted() && emailConfig.isGmailHost(env.SMTP_HOST)) return false;
+    return true;
+}
+
 function getActiveProvider() {
     const forced = String(env.EMAIL_PROVIDER || '').trim().toLowerCase();
     if (forced === 'resend') return resend.isResendConfigured() ? 'resend' : null;
-    if (forced === 'smtp') return isSmtpConfigured() ? 'smtp' : null;
+    if (forced === 'smtp') return smtpAllowed() ? 'smtp' : null;
     if (resend.isResendConfigured()) return 'resend';
-    if (isSmtpConfigured()) return 'smtp';
+    if (smtpAllowed()) return 'smtp';
     return null;
 }
 
@@ -26,18 +34,15 @@ function getSmtpUser() {
 }
 
 function isSmtpConfigured() {
-    const user = getSmtpUser();
-    const pass = normalizeSmtpPass(env.SMTP_PASS);
-    return !!(env.SMTP_HOST && user && pass);
+    return smtpAllowed();
 }
 
 function isEmailConfigured() {
-    return !!getActiveProvider();
+    return emailConfig.getSetupStatus().ready && !!getActiveProvider();
 }
 
 function isGmailHost(host) {
-    const h = String(host || '').toLowerCase();
-    return h.includes('gmail.com') || h === 'smtp.google.com';
+    return emailConfig.isGmailHost(host);
 }
 
 function buildTransportOptions(portOverride) {
@@ -85,12 +90,15 @@ function getTransport(portOverride) {
 }
 
 function getEmailDebugInfo() {
+    const setup = emailConfig.getSetupStatus();
     const provider = getActiveProvider();
     const user = getSmtpUser();
     const pass = normalizeSmtpPass(env.SMTP_PASS);
     return {
-        provider: provider || 'none',
-        configured: !!provider,
+        provider: provider || setup.provider || 'none',
+        configured: setup.ready,
+        setupReason: setup.reason || null,
+        adminHint: setup.adminHint || null,
         resend: {
             configured: resend.isResendConfigured(),
             from: resend.getResendFrom()
@@ -126,14 +134,18 @@ function mapSmtpError(err) {
     const code = String(err?.code || err?.responseCode || '');
 
     if (msg.includes('badcredentials') || msg.includes('535') || msg.includes('username and password not accepted')) {
-        return Object.assign(new Error(
-            'Gmail rejected the App Password. Fix: (1) Revoke old app passwords and create a new one for castmeproo@gmail.com. (2) On your phone, open https://accounts.google.com/DisplayUnlockCaptcha while logged into that Gmail, click Continue, then redeploy Railway. (3) Or set RESEND_API_KEY on Railway (recommended) — see .env.example.'
-        ), { status: 503, code: 'SMTP_AUTH_FAILED' });
+        return Object.assign(new Error('SMTP authentication failed (Gmail blocked on cloud hosting).'), {
+            status: 503,
+            code: 'SMTP_AUTH_FAILED',
+            adminOnly: true
+        });
     }
     if (code === 'EAUTH' || msg.includes('authentication')) {
-        return Object.assign(new Error(
-            'SMTP authentication failed. For Gmail use a new App Password; or add RESEND_API_KEY on Railway.'
-        ), { status: 503, code: 'SMTP_AUTH_FAILED' });
+        return Object.assign(new Error('SMTP authentication failed.'), {
+            status: 503,
+            code: 'SMTP_AUTH_FAILED',
+            adminOnly: true
+        });
     }
     if (msg.includes('etimedout') || msg.includes('timeout') || code === 'ETIMEDOUT') {
         return Object.assign(new Error('Email server timed out. Try again in a moment.'), { status: 503 });
@@ -143,9 +155,81 @@ function mapSmtpError(err) {
 
 function mapEmailError(err) {
     if (err?.provider === 'resend') {
-        return Object.assign(new Error(err.message || 'Resend failed'), { status: 503 });
+        return Object.assign(new Error(err.message || 'Resend failed'), { status: 503, adminOnly: true });
     }
     return mapSmtpError(err);
+}
+
+/** Never expose SMTP/Gmail details on signup or public APIs. */
+function toPublicEmailError(err) {
+    const setup = emailConfig.getSetupStatus();
+    const message = setup.publicMessage
+        || 'We could not send the verification email. Please try again in a few minutes.';
+    return Object.assign(new Error(message), {
+        status: 503,
+        code: setup.reason || err?.code || 'EMAIL_SEND_FAILED'
+    });
+}
+
+function getPublicEmailStatus() {
+    const setup = emailConfig.getSetupStatus();
+    if (!setup.ready) {
+        return {
+            ready: false,
+            provider: setup.provider,
+            message: setup.publicMessage,
+            reason: setup.reason
+        };
+    }
+    if (_runtimeStatus.checked && !_runtimeStatus.ready) {
+        return {
+            ready: false,
+            provider: _runtimeStatus.provider,
+            message: 'Email verification is temporarily unavailable. Please try again shortly.',
+            reason: 'verify_failed'
+        };
+    }
+    return {
+        ready: true,
+        provider: getActiveProvider(),
+        message: null,
+        reason: null
+    };
+}
+
+async function initEmailOnStartup(logFn) {
+    const setup = emailConfig.getSetupStatus();
+    if (!setup.ready) {
+        _runtimeStatus = {
+            checked: true,
+            ready: false,
+            provider: setup.provider,
+            error: setup.adminHint || setup.reason
+        };
+        const log = logFn || console.warn;
+        log(`⚠️  Email NOT ready: ${setup.adminHint || setup.reason}`);
+        return _runtimeStatus;
+    }
+    try {
+        const result = await verifyEmailConnection();
+        _runtimeStatus = {
+            checked: true,
+            ready: true,
+            provider: result.provider || getActiveProvider(),
+            error: null
+        };
+        console.log(`✅ Email ready via ${ _runtimeStatus.provider }`);
+    } catch (err) {
+        _runtimeStatus = {
+            checked: true,
+            ready: false,
+            provider: getActiveProvider(),
+            error: err.message
+        };
+        const log = logFn || console.warn;
+        log(`⚠️  Email verify failed: ${err.message}`);
+    }
+    return _runtimeStatus;
 }
 
 async function verifySmtpWithFallback() {
@@ -201,9 +285,13 @@ function emailLayout({ title, bodyHtml, ctaLabel, ctaUrl }) {
 }
 
 async function sendMail({ to, subject, html, text }) {
+    const pub = getPublicEmailStatus();
+    if (!pub.ready) {
+        throw toPublicEmailError();
+    }
     const provider = getActiveProvider();
     if (!provider) {
-        throw Object.assign(new Error('Email is not configured. Set RESEND_API_KEY or SMTP_* variables.'), { status: 503 });
+        throw toPublicEmailError();
     }
 
     try {
@@ -326,6 +414,9 @@ module.exports = {
     sendSubscriptionActivatedEmail,
     isEmailConfigured,
     getActiveProvider,
+    getPublicEmailStatus,
+    initEmailOnStartup,
+    toPublicEmailError,
     verifyEmailConnection,
     verifySmtpWithFallback,
     getEmailDebugInfo,

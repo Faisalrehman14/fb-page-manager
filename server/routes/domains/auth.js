@@ -130,14 +130,21 @@ app.get('/api/auth/redirect-callback', async (req, res) => {
 const emailService = require('../../services/email.service');
 const otpSvc = require('../../services/email-otp.service');
 
+app.get('/api/auth/email-status', (req, res) => {
+    res.json(emailService.getPublicEmailStatus());
+});
+
 app.post('/api/auth/register/send-otp', async (req, res) => {
     try {
         const email = appAuth.validateEmail(req.body.email);
         if (!email) return res.status(400).json({ error: 'Valid email is required' });
         if (!state.dbConnected) return res.status(503).json({ error: 'Database unavailable' });
-        if (!emailService.isEmailConfigured()) {
+
+        const emailStatus = emailService.getPublicEmailStatus();
+        if (!emailStatus.ready) {
             return res.status(503).json({
-                error: 'Email verification is not configured. Set RESEND_API_KEY or SMTP_* on the server.'
+                error: emailStatus.message,
+                code: emailStatus.reason
             });
         }
 
@@ -170,10 +177,8 @@ app.post('/api/auth/register/send-otp', async (req, res) => {
         });
     } catch (err) {
         logError('auth_send_otp', err);
-        const safe = emailService.mapSmtpError?.(err) || err;
-        res.status(safe.status || err.status || 500).json({
-            error: safe.message || 'Could not send verification email'
-        });
+        const pub = emailService.toPublicEmailError(err);
+        res.status(pub.status || 503).json({ error: pub.message });
     }
 });
 

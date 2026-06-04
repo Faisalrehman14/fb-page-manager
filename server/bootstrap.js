@@ -3,6 +3,7 @@ const state = require('./lib/state');
 const { logError } = require('./lib/logger');
 const db = require('./db');
 const transactionalEmail = require('./services/transactional-email.service');
+const emailService = require('./services/email.service');
 
 function startServer(httpServer, { startBroadcastScheduler, io }) {
     const port = Number(env.PORT) || 3000;
@@ -33,6 +34,7 @@ function startServer(httpServer, { startBroadcastScheduler, io }) {
                 startBroadcastScheduler();
             }
             transactionalEmail.startTrialReminderScheduler(logError);
+            emailService.initEmailOnStartup((msg) => console.warn(msg)).catch(() => {});
             setInterval(() => {
                 db.checkExpiredSubscriptions?.().catch(() => {});
             }, 60 * 60 * 1000);
