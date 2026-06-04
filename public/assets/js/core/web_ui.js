@@ -47,7 +47,7 @@ function formatEta(ms) {
 function updateCampaignIntel() {
   const pageId = $('pageSelect')?.value || '';
   const message = ($('messageText')?.value || '').trim();
-  const delay = Math.max(500, parseInt($('delayMs')?.value, 10) || 1200);
+  const delay = Math.max(200, parseInt($('delayMs')?.value, 10) || 800);
   const adviceEl = $('intelAdvice');
 
   const hasLoadedAudience = !!allRecipients.length && recipientsPageId === pageId;
@@ -859,7 +859,7 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   btnStart?.addEventListener('click', async () => {
-    const pageId = $('pageSelect')?.value, text = messageText?.value.trim(), delay = Math.max(500, parseInt(delayMs?.value, 10) || 1200);
+    const pageId = $('pageSelect')?.value, text = messageText?.value.trim(), delay = Math.max(200, parseInt(delayMs?.value, 10) || 800);
     if (!pageId) return showStatus('Select a page first.', 'warning');
     if (!text && !currentImageUrl) return showStatus('Enter a message or attach an image.', 'warning');
 
@@ -1195,7 +1195,7 @@ window.svSaveSchedule = async function () {
   if (!dtVal) { showStatus('Select a scheduled date and time.', 'warning'); return; }
 
   const scheduledAt = new Date(dtVal).toISOString();
-  const delayMs     = parseInt($('svDelay')?.value, 10) || 1200;
+  const delayMs     = parseInt($('svDelay')?.value, 10) || 800;
 
   const btn = $('svSubmitBtn');
   btn.disabled = true;

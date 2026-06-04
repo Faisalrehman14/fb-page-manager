@@ -168,7 +168,7 @@ app.post('/api/schedules', requireAuth, verifyCsrf, async (req, res) => {
             pages,
             message,
             image_url: image_url || null,
-            delay_ms: Math.max(500, parseInt(delay_ms) || 1200),
+            delay_ms: Math.max(200, parseInt(delay_ms) || 800),
             scheduled_at: scheduledDate
         });
         res.json({ success: true, id });
@@ -246,9 +246,12 @@ app.delete('/api/schedules/:id', requireAuth, verifyCsrf, async (req, res) => {
 
 // ── Broadcast Scheduler — runs every 60 s ────────────────────────────────────
 // Send messages exactly like manual broadcast (enqueueAndSendUtility in fb_api.js)
+const BROADCAST_TEXT_IMAGE_GAP_MS = 120;
+
 async function sendToPage(pageId, pageToken, psids, nameMap, message, image_url, delay_ms, siteUrl) {
     let sent = 0, failed = 0;
     const base = `${FB_GRAPH_BASE}/${pageId}/messages`;
+    const paceMs = Math.max(200, parseInt(delay_ms, 10) || 800);
 
     let imagePayload = null;
     if (image_url) {
@@ -268,7 +271,8 @@ async function sendToPage(pageId, pageToken, psids, nameMap, message, image_url,
         }
     }
 
-    for (const psid of psids) {
+    for (let idx = 0; idx < psids.length; idx++) {
+        const psid = psids[idx];
         let ok = true;
         try {
             if (imagePayload) {
@@ -281,7 +285,9 @@ async function sendToPage(pageId, pageToken, psids, nameMap, message, image_url,
                 const r = await fetch(base, { method: 'POST', body });
                 const d = await r.json();
                 if (d.error) { failed++; ok = false; }
-                if (delay_ms > 0) await new Promise(res => setTimeout(res, delay_ms));
+                else if (message && BROADCAST_TEXT_IMAGE_GAP_MS > 0) {
+                    await new Promise(res => setTimeout(res, BROADCAST_TEXT_IMAGE_GAP_MS));
+                }
             }
 
             if (!ok) continue;
@@ -303,7 +309,9 @@ async function sendToPage(pageId, pageToken, psids, nameMap, message, image_url,
             }
         } catch (_) { failed++; }
 
-        if (delay_ms > 0) await new Promise(res => setTimeout(res, delay_ms));
+        if (idx < psids.length - 1 && paceMs > 0) {
+            await new Promise(res => setTimeout(res, paceMs));
+        }
     }
     return { sent, failed };
 }

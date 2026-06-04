@@ -153,8 +153,19 @@
 
 .bcast-panel-v2__label i { color: var(--primary-light, #60a5fa); font-size: 10px; }
 
+.delay-presets--compact {
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+}
+
 .delay-presets--compact .delay-preset {
-  padding: 8px 6px;
+  padding: 8px 4px;
+}
+
+@media (max-width: 520px) {
+  .delay-presets--compact {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
 
 .delay-presets--compact .delay-value {

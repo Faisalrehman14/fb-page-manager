@@ -641,11 +641,11 @@ function restoreComposerDraftFromServer() {
     messageEl.value = prefs.message_draft;
     updateCharBar(messageEl.value.length);
   }
-  if (delayEl && prefs && prefs.default_delay_ms >= 500) {
+  if (delayEl && prefs && prefs.default_delay_ms >= 200) {
     delayEl.value = String(prefs.default_delay_ms);
   }
   if (typeof applyDelayPreset === 'function' && delayEl) {
-    applyDelayPreset(delayEl.value || '1200');
+    applyDelayPreset(delayEl.value || '800');
   }
 }
 window.restoreComposerDraftFromServer = restoreComposerDraftFromServer;
@@ -671,13 +671,13 @@ function persistComposerDraft() {
   _draftSaveTimer = setTimeout(() => {
     const patch = {};
     if (messageEl) patch.message_draft = messageEl.value.slice(0, 2000);
-    if (delayEl) patch.default_delay_ms = Math.max(500, parseInt(delayEl.value || '1200', 10) || 1200);
+    if (delayEl) patch.default_delay_ms = Math.max(200, parseInt(delayEl.value || '800', 10) || 800);
     window.fbcastUserData.savePreferences(patch);
   }, 600);
 }
 
 function applyDelayPreset(delay) {
-  const normalized = String(Math.max(500, parseInt(delay || '1200', 10) || 1200));
+  const normalized = String(Math.max(200, parseInt(delay || '800', 10) || 800));
   const delayInput = document.getElementById('delayMs');
   if (delayInput) delayInput.value = normalized;
   document.querySelectorAll('.delay-preset').forEach(function (btn) {
@@ -691,12 +691,12 @@ function initDelayPresetControls() {
   if (!delayInput || !presetButtons.length) return;
 
   const prefs = window.fbcastUserData ? window.fbcastUserData.getPreferences() : null;
-  const current = delayInput.value || (prefs && prefs.default_delay_ms) || '1200';
+  const current = delayInput.value || (prefs && prefs.default_delay_ms) || '800';
   applyDelayPreset(current);
 
   presetButtons.forEach(function (btn) {
     btn.addEventListener('click', function () {
-      const presetDelay = this.getAttribute('data-delay') || '1200';
+      const presetDelay = this.getAttribute('data-delay') || '800';
       applyDelayPreset(presetDelay);
       persistComposerDraft();
     });
@@ -1791,7 +1791,7 @@ async function startAutoSend(){
   const msg=document.getElementById('messageText').value.trim();
   const imgUrl=(typeof currentImageUrl!=='undefined'?currentImageUrl:'')||window._imgAttachUrl||'';
   if(!msg&&!imgUrl){setAutoStatus('error','Please write a message or attach an image first.');return;}
-  const delay=Math.max(500,parseInt(document.getElementById('delayMs').value)||1200);
+  const delay=Math.max(200,parseInt(document.getElementById('delayMs').value)||800);
 
   // Get FB User ID - required for quota tracking
   let fbUserId = null;

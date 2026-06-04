@@ -1907,23 +1907,28 @@ window.getCsrfToken = async (forceRefresh = false) => {
       <section class="bcast-panel-v2__section">
         <label class="bcast-panel-v2__label"><i class="fa-solid fa-clock"></i> Delay between messages</label>
         <div class="delay-presets delay-presets--compact" id="delayPresets" role="group" aria-label="Delay between messages">
-          <button type="button" class="delay-preset" data-delay="3000" title="Safer for rate limits">
+          <button type="button" class="delay-preset" data-delay="2000" title="Safer for rate limits">
             <i class="fa-solid fa-shield-halved"></i>
             <span class="delay-name">Slow</span>
-            <span class="delay-value">3s</span>
+            <span class="delay-value">2s</span>
           </button>
-          <button type="button" class="delay-preset active" data-delay="1200" title="Recommended">
+          <button type="button" class="delay-preset active" data-delay="800" title="Recommended balance">
             <i class="fa-solid fa-gauge"></i>
             <span class="delay-name">Normal</span>
-            <span class="delay-value">1.2s</span>
+            <span class="delay-value">0.8s</span>
           </button>
-          <button type="button" class="delay-preset" data-delay="500" title="Faster, higher risk">
+          <button type="button" class="delay-preset" data-delay="400" title="Faster delivery">
             <i class="fa-solid fa-bolt"></i>
             <span class="delay-name">Fast</span>
-            <span class="delay-value">0.5s</span>
+            <span class="delay-value">0.4s</span>
+          </button>
+          <button type="button" class="delay-preset" data-delay="200" title="Maximum speed — may hit Meta limits">
+            <i class="fa-solid fa-rocket"></i>
+            <span class="delay-name">Turbo</span>
+            <span class="delay-value">0.2s</span>
           </button>
         </div>
-        <input id="delayMs" type="hidden" value="1200">
+        <input id="delayMs" type="hidden" value="800">
       </section>
 
       <section class="bcast-panel-v2__status">
@@ -2080,10 +2085,10 @@ window.getCsrfToken = async (forceRefresh = false) => {
             <div class="sv2-section sv2-section--delay">
               <label class="sv2-section-label field-label" for="svDelay"><i class="fa-solid fa-gauge"></i> Send Delay</label>
               <select class="sv2-input sv2-delay-select" id="svDelay" title="Delay between each message send" aria-label="Send delay between messages">
-                <option value="800">Fast · 0.8s</option>
-                <option value="1200" selected>Balanced · 1.2s</option>
+                <option value="200">Turbo · 0.2s</option>
+                <option value="400">Fast · 0.4s</option>
+                <option value="800" selected>Balanced · 0.8s</option>
                 <option value="2000">Safe · 2s</option>
-                <option value="3000">Careful · 3s</option>
               </select>
             </div>
           </div>
@@ -2465,9 +2470,10 @@ window.getCsrfToken = async (forceRefresh = false) => {
             <h4><i class="fa-solid fa-bullhorn"></i> Default Delay</h4>
             <p>Set the default delay between messages for new broadcasts.</p>
             <div class="settings-delay-opts">
-              <button class="delay-opt" data-delay="3000"><i class="fa-solid fa-shield-halved"></i> Slow</button>
-              <button class="delay-opt active" data-delay="1200"><i class="fa-solid fa-gauge"></i> Normal</button>
-              <button class="delay-opt" data-delay="500"><i class="fa-solid fa-bolt"></i> Fast</button>
+              <button class="delay-opt" data-delay="2000"><i class="fa-solid fa-shield-halved"></i> Slow</button>
+              <button class="delay-opt active" data-delay="800"><i class="fa-solid fa-gauge"></i> Normal</button>
+              <button class="delay-opt" data-delay="400"><i class="fa-solid fa-bolt"></i> Fast</button>
+              <button class="delay-opt" data-delay="200"><i class="fa-solid fa-rocket"></i> Turbo</button>
             </div>
           </div>
 
@@ -2569,7 +2575,7 @@ window.getCsrfToken = async (forceRefresh = false) => {
             </div>
             <div class="faq-item">
               <div class="faq-q"><i class="fa-solid fa-question-circle"></i> What delay should I use?</div>
-              <div class="faq-a">We recommend "Normal" (1200ms) for most users. Use "Slow" if you experience failures. "Fast" increases speed but risks rate limits.</div>
+              <div class="faq-a">Default "Normal" is 800ms between recipients. Use "Turbo" (200ms) for maximum speed; if Meta rate-limits you, switch to Slow or Normal.</div>
             </div>
             <div class="faq-item">
               <div class="faq-q"><i class="fa-solid fa-question-circle"></i> How do I upgrade my plan?</div>

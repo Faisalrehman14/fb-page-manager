@@ -34,6 +34,14 @@ const STORAGE_KEYS = {
   QUEUE:      'send_queue'
 };
 
+/** Broadcast pacing — lower = faster (Meta may rate-limit below ~300ms). */
+const BROADCAST_DELAY_MIN = 200;
+const BROADCAST_DELAY_DEFAULT = 800;
+const BROADCAST_TEXT_IMAGE_GAP_MS = 120;
+const BROADCAST_QUOTA_BATCH = 8;
+const BROADCAST_QUEUE_PERSIST_EVERY = 8;
+const BROADCAST_FB_POST_CFG = { attempts: 2, backoffMs: 120, timeoutMs: 14000 };
+
 const RETRY_CFG_DEFAULT = { attempts: 2, backoffMs: 400 };
 
 async function requestJson(url, options = {}, retryCfg = RETRY_CFG_DEFAULT) {
@@ -467,7 +475,7 @@ async function fbGetUrl(fullUrl) {
   }, { attempts: 3, backoffMs: 420 });
 }
 
-async function fbPost(path, token, body) {
+async function fbPost(path, token, body, retryCfg) {
   const csrfToken = await window.getCsrfToken?.() || '';
   return requestJson('/api/fb-proxy', {
     method:  'POST',
@@ -476,7 +484,7 @@ async function fbPost(path, token, body) {
       'X-CSRF-Token': csrfToken
     },
     body:    JSON.stringify({ method: 'POST', path, token, body }),
-  }, { attempts: 3, backoffMs: 420 });
+  }, retryCfg || { attempts: 3, backoffMs: 420 });
 }
 
 function normalizePageRecord(page) {
@@ -813,6 +821,32 @@ async function _updateQuota(fbUserId, count) {
   return 'ok';
 }
 
+function normalizeBroadcastDelayMs(ms) {
+  return Math.max(BROADCAST_DELAY_MIN, parseInt(ms, 10) || BROADCAST_DELAY_DEFAULT);
+}
+
+/** Batch quota API calls — avoids one HTTP round-trip per message. */
+function createQuotaBatcher(fbUserId) {
+  let pending = 0;
+  return {
+    remainingAdjust() { return pending; },
+    async bump(n = 1) {
+      if (!fbUserId || n <= 0) return 'ok';
+      pending += n;
+      if (pending >= BROADCAST_QUOTA_BATCH) {
+        return this.flush();
+      }
+      return 'ok';
+    },
+    async flush() {
+      if (!fbUserId || pending <= 0) return 'ok';
+      const batch = pending;
+      pending = 0;
+      return _updateQuota(fbUserId, batch);
+    }
+  };
+}
+
 /** Upload broadcast image to Meta once; returns { attachment_id } for all recipients. */
 async function prepareBroadcastImage(pageId, pageToken, imageUrl) {
   const csrfToken = await window.getCsrfToken?.() || '';
@@ -841,7 +875,7 @@ async function enqueueAndSendUtility({
   imageUrl,
   recipientIds,
   recipientNames = {},
-  delayMs = 1200,
+  delayMs = BROADCAST_DELAY_DEFAULT,
   fbUserId = null,
   onProgress,
   onDone,
@@ -910,6 +944,9 @@ async function enqueueAndSendUtility({
   emitBroadcastState();
 
   let finishReason = 'completed';
+  const paceMs = normalizeBroadcastDelayMs(delayMs);
+  const quotaBatch = createQuotaBatcher(fbUserId);
+  let queuePersistCounter = 0;
 
   let imagePayload = null;
   if (imageUrl) {
@@ -958,7 +995,8 @@ async function enqueueAndSendUtility({
 
     const item = queue[i];
     try {
-      if (fbUserId && typeof window.getRemaining === 'function' && window.getRemaining() < 1) {
+      if (fbUserId && typeof window.getRemaining === 'function'
+          && window.getRemaining() - quotaBatch.remainingAdjust() < 1) {
         _handleQuotaBlocked({ error: 'Message quota exceeded', code: 'QUOTA_EXCEEDED' });
         rt.isSending = false;
         item.status = 'failed';
@@ -980,8 +1018,8 @@ async function enqueueAndSendUtility({
           recipient:      { id: item.id },
           message:        { text: personalizedText },
           messaging_type: 'UTILITY'
-        });
-        const qResult = await _updateQuota(fbUserId, 1);
+        }, BROADCAST_FB_POST_CFG);
+        const qResult = await quotaBatch.bump(1);
         if (qResult === 'exhausted') {
           rt.isSending = false;
           item.status = 'failed';
@@ -1051,7 +1089,13 @@ async function enqueueAndSendUtility({
     }
 
     rt.currentIndex = i + 1;
-    if (!usingIsolated) localStorage.setItem(STORAGE_KEYS.QUEUE, JSON.stringify(queue));
+    queuePersistCounter += 1;
+    const persistQueue = !usingIsolated && (
+      queuePersistCounter % BROADCAST_QUEUE_PERSIST_EVERY === 0
+      || item.status === 'failed'
+      || i === queue.length - 1
+    );
+    if (persistQueue) localStorage.setItem(STORAGE_KEYS.QUEUE, JSON.stringify(queue));
     if (onProgress) onProgress({ index: rt.currentIndex, total: queue.length, item });
 
     if (!rt.isSending) {
@@ -1059,8 +1103,13 @@ async function enqueueAndSendUtility({
       finishReason = 'stopped';
       break;
     }
-    await delayWithControls(delayMs, rt);
+    if (i < queue.length - 1) {
+      await delayWithControls(paceMs, rt);
+    }
   }
+
+  await quotaBatch.flush();
+  if (!usingIsolated) localStorage.setItem(STORAGE_KEYS.QUEUE, JSON.stringify(queue));
 
   const stats = summarizeQueue(queue);
   if (finishReason === 'completed' && stats.cancelled > 0) finishReason = 'stopped';
