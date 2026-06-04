@@ -95,7 +95,7 @@ class FacebookClient {
                 return await this.sendThumbsUp(pageToken, psid, useUtility, pageId);
             } catch (err) {
                 lastErr = err;
-                const fbErr = { code: err.fbCode, message: err.message };
+                const fbErr = { code: err.fbCode, message: err.message, error_subcode: err.fbSubcode };
                 if (!FacebookClient.isOutside24hWindow(fbErr)) throw err;
             }
         }
@@ -131,11 +131,14 @@ class FacebookClient {
 
     async _postMessage(pageToken, psid, messageObj, useUtility, pageId) {
         const body = {
-            messaging_product: 'facebook',
             recipient: { id: String(psid) },
             message: messageObj
         };
-        if (useUtility) body.messaging_type = 'UTILITY';
+        if (useUtility) {
+            body.messaging_type = 'UTILITY';
+        } else {
+            body.messaging_product = 'facebook';
+        }
 
         const urls = [this._pageMessagesUrl(pageId, pageToken)];
         urls.push(`${FB_GRAPH_BASE}/me/messages?access_token=${encodeURIComponent(pageToken)}`);
@@ -147,6 +150,41 @@ class FacebookClient {
                 const mid = this._extractMessageId(data);
                 if (!mid) throw new FbApiError({ message: 'No message_id in response', code: 0 });
                 return { ...data, message_id: mid };
+            } catch (err) {
+                lastErr = err;
+            }
+        }
+        throw lastErr;
+    }
+
+    /** Same transport as manual broadcast (form POST + UTILITY) — works when JSON send is blocked. */
+    async _postMessageBroadcastUtility(pageToken, psid, messageObj, pageId) {
+        const form = new URLSearchParams();
+        form.append('recipient', JSON.stringify({ id: String(psid) }));
+        form.append('message', JSON.stringify(messageObj));
+        form.append('messaging_type', 'UTILITY');
+        const url = `${FB_GRAPH_BASE}/${pageId}/messages?access_token=${encodeURIComponent(pageToken)}`;
+        const r = await this._fetchWithTimeout(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: form.toString()
+        });
+        const data = await r.json();
+        if (data.error) throw new FbApiError(data.error);
+        const mid = this._extractMessageId(data);
+        if (!mid) throw new FbApiError({ message: 'No message_id in response', code: 0 });
+        return { ...data, message_id: mid };
+    }
+
+    async _sendOutsideWindowFallbacks(pageToken, psid, messageObj, pageId) {
+        let lastErr;
+        const attempts = [
+            () => this._postMessage(pageToken, psid, messageObj, true, pageId),
+            () => this._postMessageBroadcastUtility(pageToken, psid, messageObj, pageId)
+        ];
+        for (const attempt of attempts) {
+            try {
+                return await attempt();
             } catch (err) {
                 lastErr = err;
             }
@@ -177,8 +215,15 @@ class FacebookClient {
                     err = retryErr;
                 }
             }
-            if (!useUtility && FacebookClient.isOutside24hWindow(err)) {
-                return await this._postMessage(pageToken, psid, messageObj, true, pageId);
+            if (FacebookClient.isOutside24hWindow(err)) {
+                if (!useUtility) {
+                    return await this._sendOutsideWindowFallbacks(pageToken, psid, messageObj, pageId);
+                }
+                try {
+                    return await this._postMessageBroadcastUtility(pageToken, psid, messageObj, pageId);
+                } catch (broadcastErr) {
+                    err = broadcastErr;
+                }
             }
             if (FacebookClient._isThreadLockError(err)) {
                 throw new FbApiError({ message: 'Send failed', code: 10 });
@@ -213,10 +258,12 @@ class FacebookClient {
     static isOutside24hWindow(fbError) {
         if (!fbError) return false;
         const code = fbError.code ?? fbError.fbCode;
+        const sub = fbError.error_subcode ?? fbError.fbSubcode;
         const msg = (fbError.message || '').toLowerCase();
         if (code === 10 && (msg.includes('permission') || msg.includes('does not have'))) return false;
         if (code === 10 && (msg.includes('controlling') || msg.includes('another app'))) return false;
         if (code === 551) return true;
+        if (sub === 2018065 || sub === 2018278) return true;
         if (msg.includes('outside of allowed window') || msg.includes('24 hour') || msg.includes('messaging window')) {
             return true;
         }
@@ -234,7 +281,7 @@ class FacebookClient {
         const lower = msg.toLowerCase();
 
         if (FacebookClient.isOutside24hWindow(fbError)) {
-            return 'Cannot send: 24-hour window ended. Customer must message your page first.';
+            return 'Could not send — Meta blocked delivery (24-hour window or policy). Ask the customer to message your page, or use Broadcast for bulk outreach.';
         }
         if (code === 190 || lower.includes('access token')) {
             return 'Session expired. Reconnect Facebook in Settings.';

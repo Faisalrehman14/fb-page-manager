@@ -2081,6 +2081,7 @@
       const sendPayload = {
         action: 'send_message', page_id: M.activePageId,
         psid: M.activePsid, message: text, page_token: M.activeToken,
+        recipient_name: M.activeConvName || '',
       };
       const sendOpts = {
         method: 'POST',

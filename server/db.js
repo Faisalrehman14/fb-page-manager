@@ -1089,11 +1089,15 @@ async function getConversationIdByParticipant(pageId, participantId) {
     if (hit && hit.exp > Date.now()) return { id: hit.id, fbConvId: hit.fbConvId };
     try {
         const [rows] = await pool.query(
-            'SELECT id, fb_conv_id FROM messenger_conversations WHERE page_id = ? AND fb_user_id = ?',
+            'SELECT id, fb_conv_id, user_name FROM messenger_conversations WHERE page_id = ? AND fb_user_id = ?',
             [pageId, participantId]
         );
         if (rows[0]) {
-            const result = { id: rows[0].id, fbConvId: rows[0].fb_conv_id || null };
+            const result = {
+                id: rows[0].id,
+                fbConvId: rows[0].fb_conv_id || null,
+                user_name: rows[0].user_name || null
+            };
             _convIdCache.set(key, { ...result, exp: Date.now() + CONV_ID_CACHE_TTL });
             return result;
         }

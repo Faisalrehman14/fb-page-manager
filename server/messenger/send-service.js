@@ -6,9 +6,28 @@ class SendService {
         this.fb = new FacebookClient(fetchFn);
     }
 
-    async send({ pageId, psid, message, image_url, page_token }) {
+    async _recipientDisplayName(pageId, psid, hintName) {
+        const fromClient = String(hintName || '').trim();
+        if (fromClient && fromClient !== 'User') return fromClient;
+        try {
+            const conv = await this.db.getConversationIdByParticipant(pageId, psid);
+            const name = (conv?.user_name || '').trim();
+            if (name && name !== 'User') return name;
+        } catch (_) { /* optional */ }
+        return 'Friend';
+    }
+
+    _personalizeBroadcastText(text, recipientName) {
+        if (!text || !/\{\{name\}\}/i.test(text)) return text;
+        return String(text).replace(/\{\{name\}\}/gi, recipientName || 'Friend');
+    }
+
+    async send({ pageId, psid, message, image_url, page_token, recipient_name }) {
         const token = page_token || await this.db.getPageToken(pageId);
         if (!token) throw new Error('Page token not found');
+
+        const recipientName = await this._recipientDisplayName(pageId, psid, recipient_name);
+        const textOut = this._personalizeBroadcastText(message, recipientName);
 
         // Support sending image and text together — two sequential sends
         const parts = [];
@@ -20,8 +39,8 @@ class SendService {
                 attachmentType: 'image'
             });
         }
-        if (message) {
-            parts.push({ msgObj: { text: message }, label: message });
+        if (textOut) {
+            parts.push({ msgObj: { text: textOut }, label: textOut });
         }
         if (!parts.length) throw new Error('No message content');
 
@@ -36,7 +55,7 @@ class SendService {
 
         const mid = lastMid;
         const createdTime = new Date().toISOString();
-        const displayText = message || '[Image]';
+        const displayText = textOut || '[Image]';
         let convId = null;
         try {
             const convInfo = await this.db.getConversationIdByParticipant(pageId, psid);

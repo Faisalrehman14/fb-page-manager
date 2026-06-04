@@ -304,7 +304,7 @@ function createMessengerRouter(deps) {
                         return res.json(result);
                     }
                     case 'send_message': {
-                        const { psid, message, image_url } = req.body;
+                        const { psid, message, image_url, recipient_name } = req.body;
                         let page_token = req.body.page_token;
                         if (!pageId || !psid || (!message && !image_url)) {
                             return res.status(400).json({ error: 'Missing fields' });
@@ -342,7 +342,8 @@ function createMessengerRouter(deps) {
                             psid,
                             message,
                             image_url,
-                            page_token
+                            page_token,
+                            recipient_name
                         });
                         if (userId && db.updateUserQuota) {
                             await db.updateUserQuota(userId, 1);
