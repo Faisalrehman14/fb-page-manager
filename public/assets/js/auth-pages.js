@@ -218,9 +218,10 @@
       const data = await res.json();
       if (!data.ready) {
         if (sendBtn) sendBtn.disabled = true;
-        showError(data.message || 'Email verification is temporarily unavailable. Please try again later.');
-      } else if (sendBtn) {
-        sendBtn.disabled = false;
+        showError(data.message || 'Email verification is not available yet.');
+      } else {
+        showError('');
+        if (sendBtn) sendBtn.disabled = false;
       }
     } catch (_) {}
   }

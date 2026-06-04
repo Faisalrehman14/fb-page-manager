@@ -36,10 +36,21 @@ async function resendRequest(path, options = {}) {
 }
 
 async function verifyResend() {
+    const key = getResendApiKey();
     if (!isResendConfigured()) {
         throw Object.assign(new Error('RESEND_API_KEY is not set (must start with re_).'), { status: 503 });
     }
-    await resendRequest('/domains');
+    if (key.length < 20) {
+        throw Object.assign(new Error('RESEND_API_KEY looks too short — paste the full key from resend.com/api-keys.'), { status: 503 });
+    }
+    try {
+        await resendRequest('/domains');
+    } catch (err) {
+        // Key present but API rejected — still allow send attempt; surface error on actual send
+        if (String(err.message || '').toLowerCase().includes('unauthorized') || String(err.message).includes('401')) {
+            throw Object.assign(new Error('Invalid RESEND_API_KEY — create a new key at resend.com/api-keys and update Railway.'), { status: 503 });
+        }
+    }
     return { ok: true, provider: 'resend' };
 }
 

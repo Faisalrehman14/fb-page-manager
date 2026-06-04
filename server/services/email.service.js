@@ -181,14 +181,7 @@ function getPublicEmailStatus() {
             reason: setup.reason
         };
     }
-    if (_runtimeStatus.checked && !_runtimeStatus.ready) {
-        return {
-            ready: false,
-            provider: _runtimeStatus.provider,
-            message: 'Email verification is temporarily unavailable. Please try again shortly.',
-            reason: 'verify_failed'
-        };
-    }
+    // Resend/SMTP configured — allow signup; failures surface on Send code, not page load
     return {
         ready: true,
         provider: getActiveProvider(),
@@ -220,14 +213,15 @@ async function initEmailOnStartup(logFn) {
         };
         console.log(`✅ Email ready via ${ _runtimeStatus.provider }`);
     } catch (err) {
+        const provider = getActiveProvider();
         _runtimeStatus = {
             checked: true,
-            ready: false,
-            provider: getActiveProvider(),
+            ready: !!provider,
+            provider,
             error: err.message
         };
         const log = logFn || console.warn;
-        log(`⚠️  Email verify failed: ${err.message}`);
+        log(`⚠️  Email verify warning: ${err.message}`);
     }
     return _runtimeStatus;
 }

@@ -177,8 +177,12 @@ app.post('/api/auth/register/send-otp', async (req, res) => {
         });
     } catch (err) {
         logError('auth_send_otp', err);
-        const pub = emailService.toPublicEmailError(err);
-        res.status(pub.status || 503).json({ error: pub.message });
+        const mapped = emailService.mapEmailError?.(err) || err;
+        const isAdminHint = mapped.adminOnly || mapped.provider === 'resend';
+        const msg = isAdminHint && mapped.message
+            ? mapped.message
+            : emailService.toPublicEmailError(err).message;
+        res.status(mapped.status || 503).json({ error: msg });
     }
 });
 
