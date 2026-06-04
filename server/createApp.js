@@ -95,6 +95,7 @@ function createApp() {
                 || p === '/api/health'
                 || p === '/api/auth/track'
                 || p === '/api/auth/register'
+                || p === '/api/auth/register/send-otp'
                 || p === '/api/auth/login'
                 || p === '/track_user.php';
         },

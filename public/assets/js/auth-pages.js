@@ -1,4 +1,6 @@
 (function () {
+  let otpSent = false;
+
   async function getCsrf() {
     const r = await fetch('/api/csrf-token', { credentials: 'same-origin' });
     const d = await r.json();
@@ -7,6 +9,18 @@
 
   function showError(msg) {
     const el = document.getElementById('authError');
+    if (!el) return;
+    if (!msg) {
+      el.style.display = 'none';
+      el.textContent = '';
+      return;
+    }
+    el.textContent = msg;
+    el.style.display = 'block';
+  }
+
+  function showSuccess(msg) {
+    const el = document.getElementById('authSuccess');
     if (!el) return;
     if (!msg) {
       el.style.display = 'none';
@@ -30,8 +44,52 @@
     });
   }
 
+  async function handleSendOtp() {
+    const btn = document.getElementById('sendOtpBtn');
+    const emailEl = document.getElementById('email');
+    const email = (emailEl?.value || '').trim();
+    if (!email) {
+      showError('Enter your email first.');
+      return;
+    }
+    showError('');
+    showSuccess('');
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = 'Sending…';
+    }
+    try {
+      const csrf = await getCsrf();
+      const res = await fetch('/api/auth/register/send-otp', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrf },
+        body: JSON.stringify({ email })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Could not send code');
+      otpSent = true;
+      const otpField = document.getElementById('otpField');
+      const hint = document.getElementById('otpSentHint');
+      if (otpField) otpField.style.display = 'block';
+      if (hint) hint.style.display = 'block';
+      document.getElementById('otp')?.focus();
+      showSuccess('Code sent to ' + email);
+      if (btn) btn.textContent = 'Resend code';
+    } catch (err) {
+      showError(err.message || 'Could not send verification code');
+      if (btn) btn.textContent = 'Send code';
+    } finally {
+      if (btn) btn.disabled = false;
+    }
+  }
+
   async function handleSignup(e) {
     e.preventDefault();
+    if (!otpSent) {
+      showError('Click “Send code” and enter the verification code from your email.');
+      return;
+    }
     const btn = document.getElementById('authSubmit');
     if (btn) btn.disabled = true;
     showError('');
@@ -41,6 +99,7 @@
         firstName: document.getElementById('firstName')?.value,
         lastName: document.getElementById('lastName')?.value,
         email: document.getElementById('email')?.value,
+        otp: document.getElementById('otp')?.value,
         password: document.getElementById('password')?.value,
         confirmPassword: document.getElementById('confirmPassword')?.value,
         referralName: document.getElementById('referral')?.value
@@ -92,6 +151,7 @@
 
   document.addEventListener('DOMContentLoaded', function () {
     bindPasswordToggles();
+    document.getElementById('sendOtpBtn')?.addEventListener('click', handleSendOtp);
     const form = document.getElementById('authForm');
     const mode = form?.getAttribute('data-mode');
     if (form && mode === 'signup') form.addEventListener('submit', handleSignup);

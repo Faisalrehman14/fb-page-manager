@@ -293,6 +293,22 @@ async function initDatabase() {
         `);
 
         await tryCreate(`
+            CREATE TABLE IF NOT EXISTS email_otp_codes (
+                id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                email VARCHAR(255) NOT NULL,
+                purpose VARCHAR(32) NOT NULL DEFAULT 'signup',
+                otp_hash VARCHAR(128) NOT NULL,
+                expires_at DATETIME NOT NULL,
+                last_sent_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                attempts INT UNSIGNED NOT NULL DEFAULT 0,
+                used_at DATETIME NULL DEFAULT NULL,
+                created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                INDEX idx_otp_email (email, purpose),
+                INDEX idx_otp_expires (expires_at)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        `);
+
+        await tryCreate(`
             CREATE TABLE IF NOT EXISTS activity_log (
                 id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
                 fb_user_id VARCHAR(50) NOT NULL,
@@ -2349,6 +2365,70 @@ async function getAppAccountById(id) {
     return rows[0] || null;
 }
 
+async function saveEmailOtp({ email, purpose, otpHash, ttlMs }) {
+    if (!pool) throw new Error('Database unavailable');
+    const ms = Number(ttlMs) || 10 * 60 * 1000;
+    const expires = new Date(Date.now() + ms);
+    await pool.query(
+        'DELETE FROM email_otp_codes WHERE email = ? AND purpose = ?',
+        [email, purpose]
+    );
+    await pool.query(
+        `INSERT INTO email_otp_codes (email, purpose, otp_hash, expires_at, last_sent_at, attempts)
+         VALUES (?, ?, ?, ?, NOW(), 0)`,
+        [email, purpose, otpHash, expires]
+    );
+}
+
+async function getEmailOtpRow(email, purpose) {
+    if (!pool) return null;
+    const [rows] = await pool.query(
+        `SELECT * FROM email_otp_codes
+         WHERE email = ? AND purpose = ? AND used_at IS NULL AND expires_at > NOW()
+         ORDER BY id DESC LIMIT 1`,
+        [email, purpose]
+    );
+    return rows[0] || null;
+}
+
+async function getEmailOtpCooldownRemaining(email, purpose, cooldownMs) {
+    if (!pool) return 0;
+    const [rows] = await pool.query(
+        `SELECT last_sent_at FROM email_otp_codes
+         WHERE email = ? AND purpose = ?
+         ORDER BY id DESC LIMIT 1`,
+        [email, purpose]
+    );
+    if (!rows[0]?.last_sent_at) return 0;
+    const sent = new Date(rows[0].last_sent_at).getTime();
+    const wait = cooldownMs - (Date.now() - sent);
+    return wait > 0 ? Math.ceil(wait / 1000) : 0;
+}
+
+async function verifyAndConsumeEmailOtp(email, purpose, otpHash, maxAttempts) {
+    if (!pool) return { ok: false, reason: 'no_db' };
+    const row = await getEmailOtpRow(email, purpose);
+    if (!row) return { ok: false, reason: 'expired_or_missing' };
+
+    if (row.attempts >= maxAttempts) {
+        return { ok: false, reason: 'too_many_attempts' };
+    }
+
+    if (row.otp_hash !== otpHash) {
+        await pool.query(
+            'UPDATE email_otp_codes SET attempts = attempts + 1 WHERE id = ?',
+            [row.id]
+        );
+        return { ok: false, reason: 'invalid_code' };
+    }
+
+    await pool.query(
+        'UPDATE email_otp_codes SET used_at = NOW() WHERE id = ?',
+        [row.id]
+    );
+    return { ok: true };
+}
+
 async function linkAppAccountToFacebook(appAccountId, fbUserId, accessToken) {
     if (!pool || !appAccountId || !fbUserId) return;
     await pool.query(
@@ -4167,6 +4247,10 @@ const dbModule = {
     createAppAccount,
     getAppAccountByEmail,
     getAppAccountById,
+    saveEmailOtp,
+    getEmailOtpRow,
+    getEmailOtpCooldownRemaining,
+    verifyAndConsumeEmailOtp,
     linkAppAccountToFacebook,
     getAppAccountFacebookLink,
     upsertUserFacebookName,

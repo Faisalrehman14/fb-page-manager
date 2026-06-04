@@ -126,10 +126,61 @@ app.get('/api/auth/redirect-callback', async (req, res) => {
     }
 });
 
+const emailService = require('../../services/email.service');
+const otpSvc = require('../../services/email-otp.service');
+
+app.post('/api/auth/register/send-otp', async (req, res) => {
+    try {
+        const email = appAuth.validateEmail(req.body.email);
+        if (!email) return res.status(400).json({ error: 'Valid email is required' });
+        if (!state.dbConnected) return res.status(503).json({ error: 'Database unavailable' });
+        if (!emailService.isEmailConfigured()) {
+            return res.status(503).json({
+                error: 'Email verification is not configured. Set SMTP_HOST, SMTP_USER, SMTP_PASS on the server.'
+            });
+        }
+
+        const existing = await db.getAppAccountByEmail(email);
+        if (existing) return res.status(409).json({ error: 'An account with this email already exists' });
+
+        const waitSec = await db.getEmailOtpCooldownRemaining(
+            email, 'signup', otpSvc.RESEND_COOLDOWN_MS
+        );
+        if (waitSec > 0) {
+            return res.status(429).json({
+                error: `Please wait ${waitSec} seconds before requesting another code.`,
+                retryAfter: waitSec
+            });
+        }
+
+        const code = otpSvc.generateOtpCode();
+        await db.saveEmailOtp({
+            email,
+            purpose: 'signup',
+            otpHash: otpSvc.hashOtp(code),
+            ttlMs: otpSvc.OTP_TTL_MS
+        });
+        await emailService.sendSignupOtpEmail(email, code);
+
+        res.json({
+            success: true,
+            message: 'Verification code sent to your email.',
+            expiresInMinutes: 10
+        });
+    } catch (err) {
+        logError('auth_send_otp', err);
+        res.status(err.status || 500).json({ error: err.message || 'Could not send verification email' });
+    }
+});
+
 app.post('/api/auth/register', async (req, res) => {
     try {
         const email = appAuth.validateEmail(req.body.email);
         if (!email) return res.status(400).json({ error: 'Valid email is required' });
+        const otp = String(req.body.otp || req.body.code || '').trim();
+        if (!/^\d{6}$/.test(otp)) {
+            return res.status(400).json({ error: 'Enter the 6-digit verification code from your email' });
+        }
         const pwErr = appAuth.validatePassword(req.body.password);
         if (pwErr) return res.status(400).json({ error: pwErr });
         if (String(req.body.password) !== String(req.body.confirmPassword || req.body.confirm_password || '')) {
@@ -139,6 +190,18 @@ app.post('/api/auth/register', async (req, res) => {
 
         const existing = await db.getAppAccountByEmail(email);
         if (existing) return res.status(409).json({ error: 'An account with this email already exists' });
+
+        const otpCheck = await db.verifyAndConsumeEmailOtp(
+            email, 'signup', otpSvc.hashOtp(otp), otpSvc.MAX_ATTEMPTS
+        );
+        if (!otpCheck.ok) {
+            const msgs = {
+                expired_or_missing: 'Verification code expired. Click Send code again.',
+                invalid_code: 'Incorrect verification code.',
+                too_many_attempts: 'Too many attempts. Request a new code.'
+            };
+            return res.status(400).json({ error: msgs[otpCheck.reason] || 'Invalid verification code' });
+        }
 
         const account = await db.createAppAccount({
             email,

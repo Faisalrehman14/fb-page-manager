@@ -16,6 +16,11 @@ module.exports = {
     STRIPE_PUBLISHABLE_KEY: (process.env.STRIPE_PUBLISHABLE_KEY || '').trim(),
     STRIPE_WEBHOOK_SECRET: (process.env.STRIPE_WEBHOOK_SECRET || '').trim(),
     CONTACT_EMAIL: (process.env.CONTACT_EMAIL || '').trim(),
+    SMTP_HOST: (process.env.SMTP_HOST || '').trim(),
+    SMTP_PORT: (process.env.SMTP_PORT || '587').trim(),
+    SMTP_USER: (process.env.SMTP_USER || '').trim(),
+    SMTP_PASS: (process.env.SMTP_PASS || '').trim(),
+    SMTP_FROM: (process.env.SMTP_FROM || '').trim(),
 
     // AI Broadcast Assistant (openai = Groq/OpenAI, anthropic = /v1/messages)
     AI_BASE_URL: (process.env.AI_BASE_URL || '').trim(),
