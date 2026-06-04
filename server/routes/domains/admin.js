@@ -174,6 +174,13 @@ app.post('/api/admin/users/:id/update', requireAdminAuth, async (req, res) => {
         if (plan !== undefined) {
             const result = await db.adminActivatePlan(req.params.id, plan, { messages_limit });
             if (!result.ok) return res.status(400).json(result);
+            const planKey = String(plan || '').toLowerCase();
+            if (planKey && planKey !== 'free') {
+                const transactionalEmail = require('../../services/transactional-email.service');
+                transactionalEmail.queueSubscriptionActivated(
+                    req.params.id, planKey, 'admin_activation', logError
+                );
+            }
             return res.json({ success: true, ...result });
         }
         const sets = [];

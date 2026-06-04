@@ -218,7 +218,10 @@ async function initDatabase() {
             "ALTER TABLE users ADD COLUMN free_trial_expires_at DATETIME NULL",
             "ALTER TABLE users ADD COLUMN last_login_ip VARCHAR(45) DEFAULT NULL",
             "ALTER TABLE users ADD COLUMN last_login_at DATETIME NULL",
-            "ALTER TABLE users ADD COLUMN plan_activated_at DATETIME NULL"
+            "ALTER TABLE users ADD COLUMN plan_activated_at DATETIME NULL",
+            "ALTER TABLE app_accounts ADD COLUMN welcome_email_sent_at DATETIME NULL",
+            "ALTER TABLE users ADD COLUMN free_trial_email_sent_at DATETIME NULL",
+            "ALTER TABLE users ADD COLUMN trial_reminder_email_sent_at DATETIME NULL"
         ];
         for (const sql of migrations) {
             try { await connection.query(sql); } catch (_) { /* column already exists */ }
@@ -2430,7 +2433,7 @@ async function verifyAndConsumeEmailOtp(email, purpose, otpHash, maxAttempts) {
 }
 
 async function linkAppAccountToFacebook(appAccountId, fbUserId, accessToken) {
-    if (!pool || !appAccountId || !fbUserId) return;
+    if (!pool || !appAccountId || !fbUserId) return { isNewFbUser: false };
     await pool.query(
         'UPDATE app_accounts SET linked_fb_user_id = ? WHERE id = ?',
         [fbUserId, appAccountId]
@@ -2441,6 +2444,8 @@ async function linkAppAccountToFacebook(appAccountId, fbUserId, accessToken) {
     if (accountEmail) {
         await pool.query('UPDATE users SET email = ? WHERE fb_user_id = ?', [accountEmail, fbUserId]).catch(() => {});
     }
+    const { isNew } = await ensureUserExists(fbUserId);
+    return { isNewFbUser: !!isNew };
 }
 
 async function getAppAccountFacebookLink(appAccountId) {
@@ -2487,14 +2492,62 @@ async function upsertUserFacebookName(fbUserId, name, accessToken = null) {
 
 /** First login: 7-day free trial with 2000 messages */
 async function ensureUserExists(fbUserId) {
-    if (!pool || !fbUserId) return false;
+    if (!pool || !fbUserId) return { isNew: false };
     const [result] = await pool.query(
         `INSERT INTO users (fb_user_id, plan, messenger_messages_limit, messenger_messages_used, free_trial_expires_at)
          VALUES (?, 'free', ?, 0, DATE_ADD(NOW(), INTERVAL ? DAY))
          ON DUPLICATE KEY UPDATE fb_user_id = fb_user_id`,
         [fbUserId, FREE_TIER.limit, FREE_TRIAL_DAYS]
     );
-    return result.affectedRows === 1;
+    return { isNew: result.affectedRows === 1 };
+}
+
+async function tryClaimWelcomeEmail(appAccountId) {
+    if (!pool || !appAccountId) return false;
+    const [result] = await pool.query(
+        `UPDATE app_accounts SET welcome_email_sent_at = NOW()
+         WHERE id = ? AND welcome_email_sent_at IS NULL`,
+        [appAccountId]
+    );
+    return result.affectedRows > 0;
+}
+
+async function tryClaimFreeTrialEmail(fbUserId) {
+    if (!pool || !fbUserId) return false;
+    const [result] = await pool.query(
+        `UPDATE users SET free_trial_email_sent_at = NOW()
+         WHERE fb_user_id = ? AND free_trial_email_sent_at IS NULL`,
+        [fbUserId]
+    );
+    return result.affectedRows > 0;
+}
+
+async function tryClaimTrialReminderEmail(fbUserId) {
+    if (!pool || !fbUserId) return false;
+    const [result] = await pool.query(
+        `UPDATE users SET trial_reminder_email_sent_at = NOW()
+         WHERE fb_user_id = ? AND trial_reminder_email_sent_at IS NULL`,
+        [fbUserId]
+    );
+    return result.affectedRows > 0;
+}
+
+async function getUsersNeedingTrialReminder(daysBefore) {
+    if (!pool) return [];
+    const days = Math.max(1, Number(daysBefore) || 2);
+    const [rows] = await pool.query(
+        `SELECT u.fb_user_id, u.free_trial_expires_at, u.email AS user_email,
+                a.email AS app_email, a.first_name
+         FROM users u
+         LEFT JOIN app_accounts a ON a.linked_fb_user_id = u.fb_user_id
+         WHERE u.plan = 'free'
+           AND u.free_trial_expires_at IS NOT NULL
+           AND u.free_trial_expires_at > NOW()
+           AND u.free_trial_expires_at <= DATE_ADD(NOW(), INTERVAL ? DAY)
+           AND u.trial_reminder_email_sent_at IS NULL`,
+        [days]
+    );
+    return rows;
 }
 
 async function getUserQuotaRow(fbUserId) {
@@ -2810,6 +2863,7 @@ async function applyPlan(fbUserId, planKey, { subscriptionId = '', email = '', a
     if (amountCents || invoiceId) {
         await recordPayment(fbUserId, { invoiceId, plan: plan.dbPlan, amountCents, status: 'succeeded', billingReason });
     }
+    return { planKey, billingReason: billingReason || 'subscription' };
 }
 
 async function renewPlan(fbUserId, planKey, { invoiceId, amountCents, billingReason }) {
@@ -4252,6 +4306,11 @@ const dbModule = {
     getEmailOtpCooldownRemaining,
     verifyAndConsumeEmailOtp,
     linkAppAccountToFacebook,
+    tryClaimWelcomeEmail,
+    tryClaimFreeTrialEmail,
+    tryClaimTrialReminderEmail,
+    getUsersNeedingTrialReminder,
+    getUserQuotaRow,
     getAppAccountFacebookLink,
     upsertUserFacebookName,
     markAsRead,

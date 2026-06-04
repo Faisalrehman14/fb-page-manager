@@ -15,6 +15,7 @@ module.exports = function mountAuth(app, ctx) {
   } = ctx;
 
 const appAuth = require('../../services/app-auth.service');
+const transactionalEmail = require('../../services/transactional-email.service');
 
 const appCookieOpts = { signed: true, httpOnly: true, sameSite: 'lax', maxAge: 30 * 24 * 60 * 60 * 1000, path: '/' };
 
@@ -214,6 +215,7 @@ app.post('/api/auth/register', async (req, res) => {
         appAuth.setAppSession(req, account);
         res.cookie('_app_aid', String(account.id), appCookieOpts);
         generateCsrf(req);
+        transactionalEmail.queueWelcomeForAppAccount(account, logError);
         res.json({ success: true, account: { id: account.id, email: account.email }, redirect: '/' });
     } catch (err) {
         logError('auth_register', err);
@@ -247,6 +249,7 @@ app.post('/api/auth/login', async (req, res) => {
         }
 
         generateCsrf(req);
+        transactionalEmail.queueWelcomeForAppAccount(account, logError);
         res.json({
             success: true,
             facebookConnected: !!req.session.accessToken,

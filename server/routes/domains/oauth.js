@@ -14,6 +14,8 @@ module.exports = function mountOauth(app, ctx) {
     FB_ME_FIELDS, recordMetaReviewTests, trackUserSession, resolveSiteUrl
   } = ctx;
 
+const transactionalEmail = require('../../services/transactional-email.service');
+
 // ── Facebook OAuth Flow ───────────────────────────────────────────────────
     const oauthCookieOpts = { signed: true, httpOnly: true, sameSite: 'lax', maxAge: 10 * 60 * 1000, path: '/' };
 
@@ -243,7 +245,12 @@ app.get(['/api/auth/callback', '/oauth_callback.php'], async (req, res) => {
         }
 
         if (req.session.appAccountId && req.session.userId) {
-            await db.linkAppAccountToFacebook(req.session.appAccountId, req.session.userId, userToken);
+            const linkResult = await db.linkAppAccountToFacebook(
+                req.session.appAccountId, req.session.userId, userToken
+            );
+            if (linkResult?.isNewFbUser) {
+                transactionalEmail.queueFreeTrialForNewFbUser(req.session.userId, logError);
+            }
         }
 
         const authPayload = {

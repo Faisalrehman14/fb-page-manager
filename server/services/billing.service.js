@@ -1,7 +1,18 @@
 const { getStripe, isStripeConfigured } = require('../integrations/stripe-client');
 const { getPlan, listPlanKeys, planForPriceId } = require('../config/plans');
 const entitlements = require('./entitlements.service');
+const transactionalEmail = require('./transactional-email.service');
 const env = require('../config/env');
+
+async function applyPlanAndNotify(db, fbUserId, planKey, opts = {}, logError) {
+    const result = await db.applyPlan(fbUserId, planKey, opts);
+    if (result?.planKey) {
+        transactionalEmail.queueSubscriptionActivated(
+            fbUserId, result.planKey, result.billingReason, logError
+        );
+    }
+    return result;
+}
 
 function resolveSiteUrl(req) {
     const envUrl = (env.SITE_URL || env.BASE_URL || '').trim().replace(/\/$/, '');
@@ -34,10 +45,18 @@ async function syncSubscriptionFromStripe(db, sub, opts = {}) {
     const activeStatuses = new Set(['active', 'trialing']);
 
     if (activeStatuses.has(status) && planKey) {
-        await db.applyPlan(fbUserId, planKey, {
-            subscriptionId: sub.id,
-            billingReason: opts.billingReason || 'subscription_sync'
-        });
+        const reason = opts.billingReason || 'subscription_sync';
+        if (reason === 'customer.subscription.created') {
+            await applyPlanAndNotify(db, fbUserId, planKey, {
+                subscriptionId: sub.id,
+                billingReason: reason
+            }, opts.logError);
+        } else {
+            await db.applyPlan(fbUserId, planKey, {
+                subscriptionId: sub.id,
+                billingReason: reason
+            });
+        }
         return { synced: true, action: 'apply', planKey };
     }
 
@@ -190,20 +209,20 @@ async function handleWebhook(db, rawBody, signature, logError) {
                 const subId = session.subscription;
                 const email = session.customer_details?.email || session.customer_email || '';
                 if (fbUserId && planKey && getPlan(planKey)) {
-                    await db.applyPlan(fbUserId, planKey, {
+                    await applyPlanAndNotify(db, fbUserId, planKey, {
                         subscriptionId: subId,
                         email,
                         amountCents: session.amount_total || 0,
                         invoiceId: session.invoice || subId || '',
-                        billingReason: 'subscription_create'
-                    });
+                        billingReason: event.type
+                    }, logError);
                 }
                 break;
             }
             case 'customer.subscription.created':
             case 'customer.subscription.updated': {
                 const sub = event.data.object;
-                await syncSubscriptionFromStripe(db, sub, { billingReason: event.type });
+                await syncSubscriptionFromStripe(db, sub, { billingReason: event.type, logError });
                 break;
             }
             case 'customer.subscription.deleted': {
