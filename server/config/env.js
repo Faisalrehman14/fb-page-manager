@@ -29,6 +29,9 @@ module.exports = {
     SMTP_USER: stripEnvQuotes(process.env.SMTP_USER || ''),
     SMTP_PASS: stripEnvQuotes(process.env.SMTP_PASS || ''),
     SMTP_FROM: stripEnvQuotes(process.env.SMTP_FROM || ''),
+    EMAIL_PROVIDER: stripEnvQuotes(process.env.EMAIL_PROVIDER || ''),
+    RESEND_API_KEY: stripEnvQuotes(process.env.RESEND_API_KEY || ''),
+    RESEND_FROM: stripEnvQuotes(process.env.RESEND_FROM || ''),
 
     // AI Broadcast Assistant (openai = Groq/OpenAI, anthropic = /v1/messages)
     AI_BASE_URL: (process.env.AI_BASE_URL || '').trim(),

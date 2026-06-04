@@ -137,7 +137,7 @@ app.post('/api/auth/register/send-otp', async (req, res) => {
         if (!state.dbConnected) return res.status(503).json({ error: 'Database unavailable' });
         if (!emailService.isEmailConfigured()) {
             return res.status(503).json({
-                error: 'Email verification is not configured. Set SMTP_HOST, SMTP_USER, SMTP_PASS on the server.'
+                error: 'Email verification is not configured. Set RESEND_API_KEY or SMTP_* on the server.'
             });
         }
 

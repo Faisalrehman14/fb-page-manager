@@ -15,7 +15,9 @@ function generateOtpCode() {
 }
 
 function isOtpConfigured() {
-    return !!(env.SMTP_HOST && env.SMTP_USER && env.SMTP_PASS);
+    const resend = String(env.RESEND_API_KEY || '').trim().startsWith('re_');
+    const smtp = !!(env.SMTP_HOST && env.SMTP_USER && env.SMTP_PASS);
+    return resend || smtp;
 }
 
 module.exports = {

@@ -1,5 +1,6 @@
 const nodemailer = require('nodemailer');
 const env = require('../config/env');
+const resend = require('./email-resend');
 
 let _transport = null;
 
@@ -7,13 +8,31 @@ function siteUrl() {
     return (env.SITE_URL || env.BASE_URL || 'https://fb-page-manager-production-f759.up.railway.app').replace(/\/$/, '');
 }
 
-/** Gmail app passwords are 16 chars, often copied with spaces — strip them. */
+function getActiveProvider() {
+    const forced = String(env.EMAIL_PROVIDER || '').trim().toLowerCase();
+    if (forced === 'resend') return resend.isResendConfigured() ? 'resend' : null;
+    if (forced === 'smtp') return isSmtpConfigured() ? 'smtp' : null;
+    if (resend.isResendConfigured()) return 'resend';
+    if (isSmtpConfigured()) return 'smtp';
+    return null;
+}
+
 function normalizeSmtpPass(pass) {
     return String(pass || '').trim().replace(/\s+/g, '');
 }
 
 function getSmtpUser() {
     return String(env.SMTP_USER || '').trim();
+}
+
+function isSmtpConfigured() {
+    const user = getSmtpUser();
+    const pass = normalizeSmtpPass(env.SMTP_PASS);
+    return !!(env.SMTP_HOST && user && pass);
+}
+
+function isEmailConfigured() {
+    return !!getActiveProvider();
 }
 
 function isGmailHost(host) {
@@ -30,12 +49,7 @@ function buildTransportOptions(portOverride) {
     if (isGmailHost(host)) {
         const port = portOverride != null ? Number(portOverride) : (Number(env.SMTP_PORT) || 587);
         if (port === 465) {
-            return {
-                host: 'smtp.gmail.com',
-                port: 465,
-                secure: true,
-                auth: { user, pass }
-            };
+            return { host: 'smtp.gmail.com', port: 465, secure: true, auth: { user, pass } };
         }
         return {
             host: 'smtp.gmail.com',
@@ -70,29 +84,42 @@ function getTransport(portOverride) {
     return transport;
 }
 
-function getSmtpDebugInfo() {
+function getEmailDebugInfo() {
+    const provider = getActiveProvider();
     const user = getSmtpUser();
     const pass = normalizeSmtpPass(env.SMTP_PASS);
     return {
-        configured: isEmailConfigured(),
-        host: String(env.SMTP_HOST || '').trim() || null,
-        port: Number(env.SMTP_PORT) || 587,
-        user: user || null,
-        passLength: pass.length,
-        passLooksLikeAppPassword: pass.length === 16 && /^[a-z0-9]+$/i.test(pass),
-        from: String(env.SMTP_FROM || '').trim() || null
+        provider: provider || 'none',
+        configured: !!provider,
+        resend: {
+            configured: resend.isResendConfigured(),
+            from: resend.getResendFrom()
+        },
+        smtp: {
+            configured: isSmtpConfigured(),
+            host: String(env.SMTP_HOST || '').trim() || null,
+            port: Number(env.SMTP_PORT) || 587,
+            user: user || null,
+            passLength: pass.length,
+            passLooksLikeAppPassword: pass.length === 16 && /^[a-z0-9]+$/i.test(pass),
+            from: String(env.SMTP_FROM || '').trim() || null,
+            isGmail: isGmailHost(env.SMTP_HOST)
+        }
     };
 }
 
-function isEmailConfigured() {
-    const user = getSmtpUser();
-    const pass = normalizeSmtpPass(env.SMTP_PASS);
-    return !!(env.SMTP_HOST && user && pass);
+function getSmtpDebugInfo() {
+    const d = getEmailDebugInfo();
+    return {
+        configured: d.configured,
+        provider: d.provider,
+        ...d.smtp,
+        from: d.provider === 'resend' ? d.resend.from : d.smtp.from
+    };
 }
 
-/** User-safe message; full error should be logged server-side only. */
 function mapSmtpError(err) {
-    if (err?.code === 'SMTP_AUTH_FAILED' || err?.status === 503 && err?.message?.includes('App Password')) {
+    if (err?.code === 'SMTP_AUTH_FAILED' || (err?.status === 503 && err?.message?.includes('App Password'))) {
         return err;
     }
     const msg = String(err?.message || err || '').toLowerCase();
@@ -100,15 +127,12 @@ function mapSmtpError(err) {
 
     if (msg.includes('badcredentials') || msg.includes('535') || msg.includes('username and password not accepted')) {
         return Object.assign(new Error(
-            'Email server login failed. On Railway, set SMTP_USER to your full Gmail address and SMTP_PASS to a 16-character Gmail App Password (not your normal Gmail password). Create one at: Google Account → Security → 2-Step Verification → App passwords.'
+            'Gmail rejected the App Password. Fix: (1) Revoke old app passwords and create a new one for castmeproo@gmail.com. (2) On your phone, open https://accounts.google.com/DisplayUnlockCaptcha while logged into that Gmail, click Continue, then redeploy Railway. (3) Or set RESEND_API_KEY on Railway (recommended) — see .env.example.'
         ), { status: 503, code: 'SMTP_AUTH_FAILED' });
-    }
-    if (msg.includes('self signed') || msg.includes('certificate')) {
-        return Object.assign(new Error('Email server TLS error. Try SMTP_PORT=465 on Railway.'), { status: 503 });
     }
     if (code === 'EAUTH' || msg.includes('authentication')) {
         return Object.assign(new Error(
-            'Email authentication failed. Check SMTP_USER and SMTP_PASS in Railway variables.'
+            'SMTP authentication failed. For Gmail use a new App Password; or add RESEND_API_KEY on Railway.'
         ), { status: 503, code: 'SMTP_AUTH_FAILED' });
     }
     if (msg.includes('etimedout') || msg.includes('timeout') || code === 'ETIMEDOUT') {
@@ -117,45 +141,45 @@ function mapSmtpError(err) {
     return Object.assign(new Error('Could not send email. Please try again later.'), { status: 503 });
 }
 
-async function verifySmtpConnection() {
-    resetTransport();
-    const transport = getTransport();
-    if (!transport) {
-        throw Object.assign(new Error('SMTP is not configured.'), { status: 503 });
+function mapEmailError(err) {
+    if (err?.provider === 'resend') {
+        return Object.assign(new Error(err.message || 'Resend failed'), { status: 503 });
     }
-    try {
-        await transport.verify();
-        return { ok: true };
-    } catch (err) {
-        resetTransport();
-        throw mapSmtpError(err);
-    }
+    return mapSmtpError(err);
 }
 
-/** Try configured port then 465 for Gmail. */
 async function verifySmtpWithFallback() {
-    const info = getSmtpDebugInfo();
+    const info = getEmailDebugInfo().smtp;
     if (!info.configured) {
         throw Object.assign(new Error('SMTP is not configured.'), { status: 503 });
     }
     resetTransport();
     const primaryPort = info.port;
     try {
-        const transport = getTransport(primaryPort);
-        await transport.verify();
-        return { ok: true, port: primaryPort };
+        await getTransport(primaryPort).verify();
+        return { ok: true, port: primaryPort, provider: 'smtp' };
     } catch (firstErr) {
         resetTransport();
-        if (!isGmailHost(env.SMTP_HOST) || primaryPort === 465) throw mapSmtpError(firstErr);
+        if (!info.isGmail || primaryPort === 465) throw mapSmtpError(firstErr);
         try {
-            const transport = getTransport(465);
-            await transport.verify();
-            return { ok: true, port: 465, note: 'Set SMTP_PORT=465 on Railway' };
+            await getTransport(465).verify();
+            return { ok: true, port: 465, provider: 'smtp', note: 'Set SMTP_PORT=465 on Railway' };
         } catch (_) {
             resetTransport();
             throw mapSmtpError(firstErr);
         }
     }
+}
+
+async function verifyEmailConnection() {
+    const provider = getActiveProvider();
+    if (!provider) {
+        throw Object.assign(new Error('No email provider. Set RESEND_API_KEY or SMTP_* on Railway.'), { status: 503 });
+    }
+    if (provider === 'resend') {
+        return resend.verifyResend();
+    }
+    return verifySmtpWithFallback();
 }
 
 function emailLayout({ title, bodyHtml, ctaLabel, ctaUrl }) {
@@ -177,16 +201,22 @@ function emailLayout({ title, bodyHtml, ctaLabel, ctaUrl }) {
 }
 
 async function sendMail({ to, subject, html, text }) {
-    const transport = getTransport();
-    if (!transport) {
-        throw Object.assign(new Error('Email is not configured. Set SMTP_* variables.'), { status: 503 });
+    const provider = getActiveProvider();
+    if (!provider) {
+        throw Object.assign(new Error('Email is not configured. Set RESEND_API_KEY or SMTP_* variables.'), { status: 503 });
     }
-    const user = getSmtpUser();
-    const from = env.SMTP_FROM || `FBCast Pro <${user}>`;
+
     try {
+        if (provider === 'resend') {
+            await resend.sendViaResend({ to, subject, html, text });
+            return;
+        }
+        const transport = getTransport();
+        const user = getSmtpUser();
+        const from = env.SMTP_FROM || `FBCast Pro <${user}>`;
         await transport.sendMail({ from, to, subject, html, text: text || subject });
     } catch (err) {
-        throw mapSmtpError(err);
+        throw mapEmailError(err);
     }
 }
 
@@ -295,10 +325,13 @@ module.exports = {
     sendTrialEndingReminderEmail,
     sendSubscriptionActivatedEmail,
     isEmailConfigured,
-    verifySmtpConnection,
+    getActiveProvider,
+    verifyEmailConnection,
     verifySmtpWithFallback,
+    getEmailDebugInfo,
     getSmtpDebugInfo,
     resetTransport,
     mapSmtpError,
+    mapEmailError,
     siteUrl
 };

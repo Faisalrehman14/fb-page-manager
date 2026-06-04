@@ -35,32 +35,40 @@ app.post('/api/admin/logout', (req, res) => {
     res.json({ success: true });
 });
 
-// SMTP diagnostic (no password returned)
+// Email diagnostic (no secrets returned)
 app.get('/api/admin/smtp-check', requireAdminAuth, async (req, res) => {
     const emailService = require('../../services/email.service');
-    const debug = emailService.getSmtpDebugInfo();
+    const debug = emailService.getEmailDebugInfo();
     if (!debug.configured) {
         return res.json({
             ok: false,
             ...debug,
-            error: 'SMTP_HOST, SMTP_USER, and SMTP_PASS are not all set on Railway.'
+            error: 'Set RESEND_API_KEY (recommended) or SMTP_HOST + SMTP_USER + SMTP_PASS on Railway.'
         });
     }
-    if (!debug.passLooksLikeAppPassword) {
+    if (debug.provider === 'smtp' && debug.smtp.isGmail && !debug.smtp.passLooksLikeAppPassword) {
         return res.json({
             ok: false,
             ...debug,
-            error: `SMTP_PASS length is ${debug.passLength} — Gmail App Password must be exactly 16 characters (no spaces).`
+            error: `SMTP_PASS length is ${debug.smtp.passLength} — Gmail App Password must be exactly 16 characters.`
         });
     }
     try {
-        const result = await emailService.verifySmtpWithFallback();
-        res.json({ ok: true, ...debug, ...result, message: 'Gmail SMTP login successful' });
+        const result = await emailService.verifyEmailConnection();
+        res.json({
+            ok: true,
+            ...debug,
+            ...result,
+            message: `Email OK via ${debug.provider}`
+        });
     } catch (err) {
         res.json({
             ok: false,
             ...debug,
-            error: err.message || 'SMTP verification failed'
+            error: err.message || 'Email verification failed',
+            hint: debug.provider === 'smtp' && debug.smtp.isGmail
+                ? 'Try RESEND_API_KEY, or open https://accounts.google.com/DisplayUnlockCaptcha while logged into Gmail, then create a new App Password.'
+                : 'Check Railway variables and redeploy.'
         });
     }
 });
