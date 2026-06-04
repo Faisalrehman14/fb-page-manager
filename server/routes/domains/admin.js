@@ -35,6 +35,36 @@ app.post('/api/admin/logout', (req, res) => {
     res.json({ success: true });
 });
 
+// SMTP diagnostic (no password returned)
+app.get('/api/admin/smtp-check', requireAdminAuth, async (req, res) => {
+    const emailService = require('../../services/email.service');
+    const debug = emailService.getSmtpDebugInfo();
+    if (!debug.configured) {
+        return res.json({
+            ok: false,
+            ...debug,
+            error: 'SMTP_HOST, SMTP_USER, and SMTP_PASS are not all set on Railway.'
+        });
+    }
+    if (!debug.passLooksLikeAppPassword) {
+        return res.json({
+            ok: false,
+            ...debug,
+            error: `SMTP_PASS length is ${debug.passLength} — Gmail App Password must be exactly 16 characters (no spaces).`
+        });
+    }
+    try {
+        const result = await emailService.verifySmtpWithFallback();
+        res.json({ ok: true, ...debug, ...result, message: 'Gmail SMTP login successful' });
+    } catch (err) {
+        res.json({
+            ok: false,
+            ...debug,
+            error: err.message || 'SMTP verification failed'
+        });
+    }
+});
+
 // Admin stats
 app.get('/api/admin/stats', requireAdminAuth, async (req, res) => {
     const pool = db.pool;

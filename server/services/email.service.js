@@ -21,14 +21,14 @@ function isGmailHost(host) {
     return h.includes('gmail.com') || h === 'smtp.google.com';
 }
 
-function buildTransportOptions() {
+function buildTransportOptions(portOverride) {
     const host = String(env.SMTP_HOST || '').trim();
     const user = getSmtpUser();
     const pass = normalizeSmtpPass(env.SMTP_PASS);
     if (!host || !user || !pass) return null;
 
     if (isGmailHost(host)) {
-        const port = Number(env.SMTP_PORT) || 587;
+        const port = portOverride != null ? Number(portOverride) : (Number(env.SMTP_PORT) || 587);
         if (port === 465) {
             return {
                 host: 'smtp.gmail.com',
@@ -47,7 +47,7 @@ function buildTransportOptions() {
         };
     }
 
-    const port = Number(env.SMTP_PORT) || 587;
+    const port = portOverride != null ? Number(portOverride) : (Number(env.SMTP_PORT) || 587);
     return {
         host,
         port,
@@ -57,12 +57,31 @@ function buildTransportOptions() {
     };
 }
 
-function getTransport() {
-    if (_transport) return _transport;
-    const opts = buildTransportOptions();
+function resetTransport() {
+    _transport = null;
+}
+
+function getTransport(portOverride) {
+    if (_transport && portOverride == null) return _transport;
+    const opts = buildTransportOptions(portOverride);
     if (!opts) return null;
-    _transport = nodemailer.createTransport(opts);
-    return _transport;
+    const transport = nodemailer.createTransport(opts);
+    if (portOverride == null) _transport = transport;
+    return transport;
+}
+
+function getSmtpDebugInfo() {
+    const user = getSmtpUser();
+    const pass = normalizeSmtpPass(env.SMTP_PASS);
+    return {
+        configured: isEmailConfigured(),
+        host: String(env.SMTP_HOST || '').trim() || null,
+        port: Number(env.SMTP_PORT) || 587,
+        user: user || null,
+        passLength: pass.length,
+        passLooksLikeAppPassword: pass.length === 16 && /^[a-z0-9]+$/i.test(pass),
+        from: String(env.SMTP_FROM || '').trim() || null
+    };
 }
 
 function isEmailConfigured() {
@@ -99,6 +118,7 @@ function mapSmtpError(err) {
 }
 
 async function verifySmtpConnection() {
+    resetTransport();
     const transport = getTransport();
     if (!transport) {
         throw Object.assign(new Error('SMTP is not configured.'), { status: 503 });
@@ -107,7 +127,34 @@ async function verifySmtpConnection() {
         await transport.verify();
         return { ok: true };
     } catch (err) {
+        resetTransport();
         throw mapSmtpError(err);
+    }
+}
+
+/** Try configured port then 465 for Gmail. */
+async function verifySmtpWithFallback() {
+    const info = getSmtpDebugInfo();
+    if (!info.configured) {
+        throw Object.assign(new Error('SMTP is not configured.'), { status: 503 });
+    }
+    resetTransport();
+    const primaryPort = info.port;
+    try {
+        const transport = getTransport(primaryPort);
+        await transport.verify();
+        return { ok: true, port: primaryPort };
+    } catch (firstErr) {
+        resetTransport();
+        if (!isGmailHost(env.SMTP_HOST) || primaryPort === 465) throw mapSmtpError(firstErr);
+        try {
+            const transport = getTransport(465);
+            await transport.verify();
+            return { ok: true, port: 465, note: 'Set SMTP_PORT=465 on Railway' };
+        } catch (_) {
+            resetTransport();
+            throw mapSmtpError(firstErr);
+        }
     }
 }
 
@@ -249,6 +296,9 @@ module.exports = {
     sendSubscriptionActivatedEmail,
     isEmailConfigured,
     verifySmtpConnection,
+    verifySmtpWithFallback,
+    getSmtpDebugInfo,
+    resetTransport,
     mapSmtpError,
     siteUrl
 };

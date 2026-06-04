@@ -1,5 +1,13 @@
 require('dotenv').config({ path: require('path').join(__dirname, '../../.env') });
 
+function stripEnvQuotes(v) {
+    const s = String(v || '').trim();
+    if ((s.startsWith('"') && s.endsWith('"')) || (s.startsWith("'") && s.endsWith("'"))) {
+        return s.slice(1, -1).trim();
+    }
+    return s;
+}
+
 module.exports = {
     PORT: process.env.PORT || 3000,
     FB_APP_ID: (process.env.FB_APP_ID || '').trim(),
@@ -16,11 +24,11 @@ module.exports = {
     STRIPE_PUBLISHABLE_KEY: (process.env.STRIPE_PUBLISHABLE_KEY || '').trim(),
     STRIPE_WEBHOOK_SECRET: (process.env.STRIPE_WEBHOOK_SECRET || '').trim(),
     CONTACT_EMAIL: (process.env.CONTACT_EMAIL || '').trim(),
-    SMTP_HOST: (process.env.SMTP_HOST || '').trim(),
-    SMTP_PORT: (process.env.SMTP_PORT || '587').trim(),
-    SMTP_USER: (process.env.SMTP_USER || '').trim(),
-    SMTP_PASS: (process.env.SMTP_PASS || '').trim(),
-    SMTP_FROM: (process.env.SMTP_FROM || '').trim(),
+    SMTP_HOST: stripEnvQuotes(process.env.SMTP_HOST || ''),
+    SMTP_PORT: stripEnvQuotes(process.env.SMTP_PORT || '587'),
+    SMTP_USER: stripEnvQuotes(process.env.SMTP_USER || ''),
+    SMTP_PASS: stripEnvQuotes(process.env.SMTP_PASS || ''),
+    SMTP_FROM: stripEnvQuotes(process.env.SMTP_FROM || ''),
 
     // AI Broadcast Assistant (openai = Groq/OpenAI, anthropic = /v1/messages)
     AI_BASE_URL: (process.env.AI_BASE_URL || '').trim(),
