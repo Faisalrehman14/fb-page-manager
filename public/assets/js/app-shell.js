@@ -202,12 +202,14 @@
 
     const topSections = ['home', 'messenger', 'broadcast'];
     topSections.forEach((s) => {
-      const show = s === next.top || (s === 'broadcast' && next.top === 'broadcast');
+      const show =
+        s === next.top &&
+        (s !== 'broadcast' || view === 'broadcast');
       showTopView(s, show);
     });
 
-    const isBroadcast = view === 'broadcast';
-    showBroadcastChrome(isBroadcast);
+    const isManualBroadcast = view === 'broadcast';
+    showBroadcastChrome(isManualBroadcast);
     showBroadcastSubviews(next.broadcastSub);
 
     const sidebar = document.querySelector('.sidebar');

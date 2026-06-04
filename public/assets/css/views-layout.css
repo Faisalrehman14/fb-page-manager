@@ -1,0 +1,57 @@
+/**
+ * Dashboard sub-views (scheduling, analytics, settings, help) — layout isolation from broadcast composer
+ */
+
+/* Pro sub-views must not inherit broadcast 3-column row layout */
+#view-analytics.pro-view,
+#view-settings.pro-view,
+#view-help.pro-view,
+#view-scheduling.broadcast-subview {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  width: 100%;
+  display: none;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+#view-analytics.broadcast-subview.is-active,
+#view-settings.broadcast-subview.is-active,
+#view-help.broadcast-subview.is-active,
+#view-scheduling.broadcast-subview.is-active {
+  display: flex;
+}
+
+/* Scheduling uses sv2 layout — fill available height */
+#view-scheduling.broadcast-subview.is-active {
+  height: 100%;
+}
+
+body.shell-scheduling #view-scheduling.broadcast-subview.is-active {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Analytics panel should grow inside pro-view */
+#view-analytics.pro-view .analytics-panel {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+#view-analytics .pro-view__scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  max-width: none;
+  width: 100%;
+}
+
+/* Prevent empty broadcast composer row from reserving space (JS hides container; belt-and-suspenders) */
+#view-broadcast[style*='display: none'] {
+  display: none !important;
+  flex: 0 0 0 !important;
+  width: 0 !important;
+  overflow: hidden !important;
+}

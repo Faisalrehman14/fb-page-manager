@@ -762,8 +762,12 @@ html[data-theme='dark'] .theme-toggle .tt-icon--light{color:rgba(251,191,36,.45)
 .app-body{flex:1;display:flex;gap:12px;padding:12px;overflow:hidden;min-height:0;align-items:stretch;background:var(--bg);flex-shrink:0}
 
 /* Content views — fill all remaining space */
-#view-home,#view-broadcast,#view-scheduling,#view-analytics,#view-settings,#view-help {
+#view-home,#view-broadcast {
   flex:1; min-width:0; overflow-y:auto; height:100%;
+}
+
+#view-scheduling,#view-analytics,#view-settings,#view-help {
+  flex:1; min-width:0; min-height:0; height:100%;
 }
 
 /* ── NAV SIDEBAR ── */

@@ -83,6 +83,7 @@
 <link rel="stylesheet" href="assets/css/theme-final.css?v={{VER}}">
 <link rel="stylesheet" href="assets/css/saas-polish.css?v={{VER}}">
 <link rel="stylesheet" href="assets/css/broadcast-ui.css?v={{VER}}">
+<link rel="stylesheet" href="assets/css/views-layout.css?v={{VER}}">
 <link rel="stylesheet" href="assets/css/app-mobile-nav.css?v={{VER}}">
 <link rel="stylesheet" href="assets/css/ui-overhaul.css?v={{VER}}">
 <link rel="stylesheet" href="assets/css/production-ui.css?v={{VER}}">
@@ -2004,7 +2005,7 @@ window.getCsrfToken = async (forceRefresh = false) => {
     </div><!-- /view-broadcast -->
 
     <!-- ══ SCHEDULING VIEW ══ -->
-    <div id="view-scheduling">
+    <div id="view-scheduling" class="broadcast-subview pro-subview" style="display:none">
 
       <!-- TOP BAR -->
       <div class="sv2-topbar">
@@ -2252,7 +2253,7 @@ window.getCsrfToken = async (forceRefresh = false) => {
     </div><!-- /stats-panel -->
 
     <!-- ANALYTICS VIEW -->
-    <div id="view-analytics" class="broadcast-view pro-view" style="display:none">
+    <div id="view-analytics" class="pro-view broadcast-subview" style="display:none">
       <div class="pro-view__scroll">
         <header class="pro-view__head">
           <div>
@@ -2385,7 +2386,7 @@ window.getCsrfToken = async (forceRefresh = false) => {
     </div>
 
     <!-- SETTINGS VIEW -->
-    <div id="view-settings" class="broadcast-view pro-view" style="display:none">
+    <div id="view-settings" class="pro-view broadcast-subview" style="display:none">
       <div class="pro-view__scroll">
         <header class="pro-view__head">
           <div>
@@ -2543,7 +2544,7 @@ window.getCsrfToken = async (forceRefresh = false) => {
     </div>
 
     <!-- HELP VIEW -->
-    <div id="view-help" class="broadcast-view pro-view" style="display:none">
+    <div id="view-help" class="pro-view broadcast-subview" style="display:none">
       <div class="pro-view__scroll">
         <header class="pro-view__head">
           <div>
