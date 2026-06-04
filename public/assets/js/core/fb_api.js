@@ -814,7 +814,20 @@ async function _updateQuota(fbUserId, count) {
 }
 
 // ── Bulk send queue ────────────────────────────────────
-async function enqueueAndSendUtility({ pageId, messageText, imageUrl, recipientIds, recipientNames = {}, delayMs = 1200, fbUserId = null, onProgress, onDone }) {
+async function enqueueAndSendUtility({
+  pageId,
+  messageText,
+  imageUrl,
+  recipientIds,
+  recipientNames = {},
+  delayMs = 1200,
+  fbUserId = null,
+  onProgress,
+  onDone,
+  isolatedRuntime = null
+}) {
+  const rt = isolatedRuntime || runtime;
+  const usingIsolated = !!isolatedRuntime;
   const pages = JSON.parse(localStorage.getItem(STORAGE_KEYS.PAGES) || '[]');
   const page  = pages.find(p => p.id === pageId);
   if (!page) throw new Error('Page not found.');
