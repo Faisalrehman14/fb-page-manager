@@ -170,7 +170,10 @@ app.post('/api/auth/register/send-otp', async (req, res) => {
         });
     } catch (err) {
         logError('auth_send_otp', err);
-        res.status(err.status || 500).json({ error: err.message || 'Could not send verification email' });
+        const safe = emailService.mapSmtpError?.(err) || err;
+        res.status(safe.status || err.status || 500).json({
+            error: safe.message || 'Could not send verification email'
+        });
     }
 });
 

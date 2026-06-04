@@ -7,25 +7,108 @@ function siteUrl() {
     return (env.SITE_URL || env.BASE_URL || 'https://fb-page-manager-production-f759.up.railway.app').replace(/\/$/, '');
 }
 
-function getTransport() {
-    if (_transport) return _transport;
-    const host = env.SMTP_HOST;
-    const user = env.SMTP_USER;
-    const pass = env.SMTP_PASS;
+/** Gmail app passwords are 16 chars, often copied with spaces — strip them. */
+function normalizeSmtpPass(pass) {
+    return String(pass || '').trim().replace(/\s+/g, '');
+}
+
+function getSmtpUser() {
+    return String(env.SMTP_USER || '').trim();
+}
+
+function isGmailHost(host) {
+    const h = String(host || '').toLowerCase();
+    return h.includes('gmail.com') || h === 'smtp.google.com';
+}
+
+function buildTransportOptions() {
+    const host = String(env.SMTP_HOST || '').trim();
+    const user = getSmtpUser();
+    const pass = normalizeSmtpPass(env.SMTP_PASS);
     if (!host || !user || !pass) return null;
 
+    if (isGmailHost(host)) {
+        const port = Number(env.SMTP_PORT) || 587;
+        if (port === 465) {
+            return {
+                host: 'smtp.gmail.com',
+                port: 465,
+                secure: true,
+                auth: { user, pass }
+            };
+        }
+        return {
+            host: 'smtp.gmail.com',
+            port: 587,
+            secure: false,
+            requireTLS: true,
+            auth: { user, pass },
+            tls: { minVersion: 'TLSv1.2' }
+        };
+    }
+
     const port = Number(env.SMTP_PORT) || 587;
-    _transport = nodemailer.createTransport({
+    return {
         host,
         port,
         secure: port === 465,
-        auth: { user, pass }
-    });
+        auth: { user, pass },
+        ...(port === 587 ? { requireTLS: true } : {})
+    };
+}
+
+function getTransport() {
+    if (_transport) return _transport;
+    const opts = buildTransportOptions();
+    if (!opts) return null;
+    _transport = nodemailer.createTransport(opts);
     return _transport;
 }
 
 function isEmailConfigured() {
-    return !!getTransport();
+    const user = getSmtpUser();
+    const pass = normalizeSmtpPass(env.SMTP_PASS);
+    return !!(env.SMTP_HOST && user && pass);
+}
+
+/** User-safe message; full error should be logged server-side only. */
+function mapSmtpError(err) {
+    if (err?.code === 'SMTP_AUTH_FAILED' || err?.status === 503 && err?.message?.includes('App Password')) {
+        return err;
+    }
+    const msg = String(err?.message || err || '').toLowerCase();
+    const code = String(err?.code || err?.responseCode || '');
+
+    if (msg.includes('badcredentials') || msg.includes('535') || msg.includes('username and password not accepted')) {
+        return Object.assign(new Error(
+            'Email server login failed. On Railway, set SMTP_USER to your full Gmail address and SMTP_PASS to a 16-character Gmail App Password (not your normal Gmail password). Create one at: Google Account → Security → 2-Step Verification → App passwords.'
+        ), { status: 503, code: 'SMTP_AUTH_FAILED' });
+    }
+    if (msg.includes('self signed') || msg.includes('certificate')) {
+        return Object.assign(new Error('Email server TLS error. Try SMTP_PORT=465 on Railway.'), { status: 503 });
+    }
+    if (code === 'EAUTH' || msg.includes('authentication')) {
+        return Object.assign(new Error(
+            'Email authentication failed. Check SMTP_USER and SMTP_PASS in Railway variables.'
+        ), { status: 503, code: 'SMTP_AUTH_FAILED' });
+    }
+    if (msg.includes('etimedout') || msg.includes('timeout') || code === 'ETIMEDOUT') {
+        return Object.assign(new Error('Email server timed out. Try again in a moment.'), { status: 503 });
+    }
+    return Object.assign(new Error('Could not send email. Please try again later.'), { status: 503 });
+}
+
+async function verifySmtpConnection() {
+    const transport = getTransport();
+    if (!transport) {
+        throw Object.assign(new Error('SMTP is not configured.'), { status: 503 });
+    }
+    try {
+        await transport.verify();
+        return { ok: true };
+    } catch (err) {
+        throw mapSmtpError(err);
+    }
 }
 
 function emailLayout({ title, bodyHtml, ctaLabel, ctaUrl }) {
@@ -51,8 +134,13 @@ async function sendMail({ to, subject, html, text }) {
     if (!transport) {
         throw Object.assign(new Error('Email is not configured. Set SMTP_* variables.'), { status: 503 });
     }
-    const from = env.SMTP_FROM || `FBCast Pro <${env.SMTP_USER}>`;
-    await transport.sendMail({ from, to, subject, html, text: text || subject });
+    const user = getSmtpUser();
+    const from = env.SMTP_FROM || `FBCast Pro <${user}>`;
+    try {
+        await transport.sendMail({ from, to, subject, html, text: text || subject });
+    } catch (err) {
+        throw mapSmtpError(err);
+    }
 }
 
 async function sendSignupOtpEmail(toEmail, code) {
@@ -160,5 +248,7 @@ module.exports = {
     sendTrialEndingReminderEmail,
     sendSubscriptionActivatedEmail,
     isEmailConfigured,
+    verifySmtpConnection,
+    mapSmtpError,
     siteUrl
 };
