@@ -8,27 +8,39 @@
   <link rel="stylesheet" href="/assets/css/auth-pages.css">
 </head>
 <body class="auth-page">
-  <a href="/" class="auth-back"><i class="fa-solid fa-arrow-left"></i> Back to Home</a>
-  <div class="auth-card">
-    <p class="auth-brand">FBCast Pro</p>
-    <h1 class="auth-title">Sign in</h1>
-    <p class="auth-sub">Welcome back — your Facebook connection stays linked.</p>
-    <div id="authError" class="auth-error" role="alert"></div>
-    <form id="authForm" data-mode="login" novalidate>
-      <div class="auth-field">
-        <label for="email">Email address</label>
-        <input id="email" name="email" type="email" autocomplete="email" placeholder="you@example.com" required>
+  <div class="auth-shell">
+    <a href="/" class="auth-back"><i class="fa-solid fa-arrow-left"></i> Back to Home</a>
+
+    <div class="auth-card">
+      <header class="auth-header">
+        <div class="auth-logo" aria-hidden="true"><i class="fa-solid fa-bullhorn"></i></div>
+        <p class="auth-brand">FBCast Pro</p>
+        <h1 class="auth-title">Sign in</h1>
+        <p class="auth-sub">Welcome back. Your Facebook pages stay linked after you sign in.</p>
+      </header>
+
+      <div id="authError" class="auth-alert auth-error" role="alert">
+        <i class="fa-solid fa-circle-exclamation"></i>
+        <span class="auth-alert-text"></span>
       </div>
-      <div class="auth-field">
-        <label for="password">Password</label>
-        <div class="auth-pw-wrap">
-          <input id="password" name="password" type="password" autocomplete="current-password" placeholder="Your password" required>
-          <button type="button" class="auth-pw-toggle" data-pw-toggle="password" aria-label="Show password"><i class="fa-solid fa-eye"></i></button>
+
+      <form id="authForm" data-mode="login" novalidate>
+        <div class="auth-field">
+          <label for="email">Email address</label>
+          <input id="email" name="email" type="email" autocomplete="email" placeholder="you@example.com" required>
         </div>
-      </div>
-      <button type="submit" class="auth-btn" id="authSubmit">Sign in</button>
-    </form>
-    <p class="auth-footer">Don't have an account? <a href="/signup">Create account</a></p>
+        <div class="auth-field">
+          <label for="password">Password</label>
+          <div class="auth-pw-wrap">
+            <input id="password" name="password" type="password" autocomplete="current-password" placeholder="Your password" required>
+            <button type="button" class="auth-pw-toggle" data-pw-toggle="password" aria-label="Show password"><i class="fa-solid fa-eye"></i></button>
+          </div>
+        </div>
+        <button type="submit" class="auth-btn" id="authSubmit">Sign in</button>
+      </form>
+
+      <p class="auth-footer">Don't have an account? <a href="/signup">Create account</a></p>
+    </div>
   </div>
   <script src="/assets/js/auth-pages.js" defer></script>
 </body>

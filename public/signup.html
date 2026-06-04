@@ -8,59 +8,118 @@
   <link rel="stylesheet" href="/assets/css/auth-pages.css">
 </head>
 <body class="auth-page">
-  <a href="/" class="auth-back"><i class="fa-solid fa-arrow-left"></i> Back to Home</a>
-  <div class="auth-card">
-    <p class="auth-brand">FBCast Pro</p>
-    <h1 class="auth-title">Create account</h1>
-    <p class="auth-sub">Verify your email with a code, then connect Facebook from the dashboard.</p>
-    <div id="authError" class="auth-error" role="alert"></div>
-    <div id="authSuccess" class="auth-success" role="status"></div>
-    <form id="authForm" data-mode="signup" novalidate>
-      <div class="auth-row">
-        <div class="auth-field">
-          <label for="firstName">First name</label>
-          <input id="firstName" name="firstName" type="text" autocomplete="given-name" placeholder="John" required>
+  <div class="auth-shell">
+    <a href="/" class="auth-back"><i class="fa-solid fa-arrow-left"></i> Back to Home</a>
+
+    <div class="auth-card">
+      <header class="auth-header">
+        <div class="auth-logo" aria-hidden="true"><i class="fa-solid fa-bullhorn"></i></div>
+        <p class="auth-brand">FBCast Pro</p>
+        <h1 class="auth-title">Create account</h1>
+        <p class="auth-sub">Verify your email, set a password, then connect Facebook once from your dashboard.</p>
+      </header>
+
+      <div class="auth-steps" aria-label="Signup progress">
+        <div class="auth-step is-active" id="stepVerify" data-step="verify">
+          <span class="auth-step-num">1</span>
+          <span class="auth-step-label">Verify email</span>
         </div>
-        <div class="auth-field">
-          <label for="lastName">Last name</label>
-          <input id="lastName" name="lastName" type="text" autocomplete="family-name" placeholder="Doe" required>
-        </div>
-      </div>
-      <div class="auth-field">
-        <label for="email">Email address</label>
-        <div class="auth-email-row">
-          <input id="email" name="email" type="email" autocomplete="email" placeholder="you@example.com" required>
-          <button type="button" class="auth-btn-secondary" id="sendOtpBtn">Send code</button>
-        </div>
-        <p class="auth-hint" id="otpSentHint" style="display:none;color:#16a34a;">Verification code sent — check your inbox (and spam).</p>
-      </div>
-      <div class="auth-field" id="otpField" style="display:none;">
-        <label for="otp">Verification code</label>
-        <input id="otp" name="otp" type="text" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="one-time-code" placeholder="6-digit code" required>
-        <p class="auth-hint">Enter the code we emailed you. Expires in 10 minutes.</p>
-      </div>
-      <div class="auth-field">
-        <label for="password">Password</label>
-        <div class="auth-pw-wrap">
-          <input id="password" name="password" type="password" autocomplete="new-password" placeholder="Create a password" required minlength="8">
-          <button type="button" class="auth-pw-toggle" data-pw-toggle="password" aria-label="Show password"><i class="fa-solid fa-eye"></i></button>
-        </div>
-        <p class="auth-hint">Must be at least 8 characters</p>
-      </div>
-      <div class="auth-field">
-        <label for="confirmPassword">Confirm password</label>
-        <div class="auth-pw-wrap">
-          <input id="confirmPassword" name="confirmPassword" type="password" autocomplete="new-password" placeholder="Confirm your password" required>
-          <button type="button" class="auth-pw-toggle" data-pw-toggle="confirmPassword" aria-label="Show password"><i class="fa-solid fa-eye"></i></button>
+        <div class="auth-step" id="stepAccount" data-step="account">
+          <span class="auth-step-num">2</span>
+          <span class="auth-step-label">Your details</span>
         </div>
       </div>
-      <div class="auth-field">
-        <label for="referral">Referral name <span style="font-weight:400;color:#94a3b8">(optional)</span></label>
-        <input id="referral" name="referral" type="text" placeholder="Who referred you?">
+
+      <div id="authError" class="auth-alert auth-error" role="alert">
+        <i class="fa-solid fa-circle-exclamation"></i>
+        <span class="auth-alert-text"></span>
       </div>
-      <button type="submit" class="auth-btn" id="authSubmit">Create account</button>
-    </form>
-    <p class="auth-footer">Already have an account? <a href="/login">Sign in</a></p>
+      <div id="authSuccess" class="auth-alert auth-success" role="status">
+        <i class="fa-solid fa-circle-check"></i>
+        <span class="auth-alert-text"></span>
+      </div>
+
+      <form id="authForm" data-mode="signup" novalidate>
+        <section class="auth-section" aria-labelledby="verifyHeading">
+          <h2 class="auth-section-title" id="verifyHeading">Email verification</h2>
+
+          <div class="auth-field">
+            <label for="email">Email address</label>
+            <div class="auth-email-group">
+              <input id="email" name="email" type="email" autocomplete="email" placeholder="you@example.com" required>
+              <button type="button" class="auth-btn-secondary" id="sendOtpBtn">
+                <i class="fa-solid fa-paper-plane"></i>
+                <span id="sendOtpLabel">Send code</span>
+              </button>
+            </div>
+            <p class="auth-hint" id="otpSentHint" style="display:none;">
+              <i class="fa-solid fa-envelope-circle-check"></i>
+              Code sent — check inbox and spam folder.
+            </p>
+          </div>
+
+          <div class="auth-field">
+            <label for="otp">6-digit verification code</label>
+            <div class="auth-otp-block is-hidden" id="otpBlock">
+              <input
+                id="otp"
+                name="otp"
+                class="auth-otp-input"
+                type="text"
+                inputmode="numeric"
+                pattern="[0-9]{6}"
+                maxlength="6"
+                autocomplete="one-time-code"
+                placeholder="000000"
+                aria-describedby="otpHint"
+              >
+              <p class="auth-hint" id="otpHint">Enter the code we sent. It expires in 10 minutes.</p>
+            </div>
+            <p class="auth-hint" id="otpPlaceholderHint">Click <strong>Send code</strong> above to receive your verification code.</p>
+          </div>
+        </section>
+
+        <section class="auth-section" aria-labelledby="accountHeading">
+          <h2 class="auth-section-title" id="accountHeading">Account details</h2>
+
+          <div class="auth-row">
+            <div class="auth-field">
+              <label for="firstName">First name</label>
+              <input id="firstName" name="firstName" type="text" autocomplete="given-name" placeholder="John" required>
+            </div>
+            <div class="auth-field">
+              <label for="lastName">Last name</label>
+              <input id="lastName" name="lastName" type="text" autocomplete="family-name" placeholder="Doe" required>
+            </div>
+          </div>
+
+          <div class="auth-field">
+            <label for="password">Password</label>
+            <div class="auth-pw-wrap">
+              <input id="password" name="password" type="password" autocomplete="new-password" placeholder="At least 8 characters" required minlength="8">
+              <button type="button" class="auth-pw-toggle" data-pw-toggle="password" aria-label="Show password"><i class="fa-solid fa-eye"></i></button>
+            </div>
+          </div>
+
+          <div class="auth-field">
+            <label for="confirmPassword">Confirm password</label>
+            <div class="auth-pw-wrap">
+              <input id="confirmPassword" name="confirmPassword" type="password" autocomplete="new-password" placeholder="Repeat password" required>
+              <button type="button" class="auth-pw-toggle" data-pw-toggle="confirmPassword" aria-label="Show password"><i class="fa-solid fa-eye"></i></button>
+            </div>
+          </div>
+
+          <div class="auth-field">
+            <label for="referral">Referral <span class="auth-optional">(optional)</span></label>
+            <input id="referral" name="referral" type="text" placeholder="Who referred you?">
+          </div>
+        </section>
+
+        <button type="submit" class="auth-btn" id="authSubmit">Create account</button>
+      </form>
+
+      <p class="auth-footer">Already have an account? <a href="/login">Sign in</a></p>
+    </div>
   </div>
   <script src="/assets/js/auth-pages.js" defer></script>
 </body>

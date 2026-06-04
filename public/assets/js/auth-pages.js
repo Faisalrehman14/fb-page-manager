@@ -7,28 +7,64 @@
     return d.csrfToken || d.token || '';
   }
 
-  function showError(msg) {
-    const el = document.getElementById('authError');
+  function setAlert(el, msg) {
     if (!el) return;
+    const textEl = el.querySelector('.auth-alert-text') || el;
     if (!msg) {
       el.style.display = 'none';
-      el.textContent = '';
+      if (textEl !== el) textEl.textContent = '';
+      else el.textContent = '';
       return;
     }
-    el.textContent = msg;
-    el.style.display = 'block';
+    if (textEl !== el) textEl.textContent = msg;
+    else {
+      const icon = el.querySelector('i');
+      el.textContent = '';
+      if (icon) el.appendChild(icon);
+      const span = document.createElement('span');
+      span.className = 'auth-alert-text';
+      span.textContent = msg;
+      el.appendChild(span);
+    }
+    el.style.display = 'flex';
+  }
+
+  function showError(msg) {
+    setAlert(document.getElementById('authError'), msg);
+    if (msg) setAlert(document.getElementById('authSuccess'), '');
   }
 
   function showSuccess(msg) {
-    const el = document.getElementById('authSuccess');
-    if (!el) return;
-    if (!msg) {
-      el.style.display = 'none';
-      el.textContent = '';
-      return;
+    setAlert(document.getElementById('authSuccess'), msg);
+    if (msg) setAlert(document.getElementById('authError'), '');
+  }
+
+  function setSignupStep(step) {
+    const verify = document.getElementById('stepVerify');
+    const account = document.getElementById('stepAccount');
+    if (!verify || !account) return;
+    verify.classList.remove('is-active', 'is-done');
+    account.classList.remove('is-active', 'is-done');
+    if (step === 'verify') {
+      verify.classList.add('is-active');
+    } else if (step === 'account') {
+      verify.classList.add('is-done');
+      account.classList.add('is-active');
+    } else if (step === 'done') {
+      verify.classList.add('is-done');
+      account.classList.add('is-done');
     }
-    el.textContent = msg;
-    el.style.display = 'block';
+  }
+
+  function revealOtpBlock(focus) {
+    const block = document.getElementById('otpBlock');
+    const placeholder = document.getElementById('otpPlaceholderHint');
+    if (block) {
+      block.classList.remove('is-hidden');
+      block.classList.add('is-visible');
+    }
+    if (placeholder) placeholder.style.display = 'none';
+    if (focus) document.getElementById('otp')?.focus();
   }
 
   function bindPasswordToggles() {
@@ -44,20 +80,29 @@
     });
   }
 
+  function bindOtpInput() {
+    const otp = document.getElementById('otp');
+    if (!otp) return;
+    otp.addEventListener('input', function () {
+      otp.value = otp.value.replace(/\D/g, '').slice(0, 6);
+      if (otp.value.length === 6) setSignupStep('account');
+    });
+  }
+
   async function handleSendOtp() {
     const btn = document.getElementById('sendOtpBtn');
+    const label = document.getElementById('sendOtpLabel');
     const emailEl = document.getElementById('email');
     const email = (emailEl?.value || '').trim();
     if (!email) {
-      showError('Enter your email first.');
+      showError('Enter your email address first.');
+      emailEl?.focus();
       return;
     }
     showError('');
     showSuccess('');
-    if (btn) {
-      btn.disabled = true;
-      btn.textContent = 'Sending…';
-    }
+    if (btn) btn.disabled = true;
+    if (label) label.textContent = 'Sending…';
     try {
       const csrf = await getCsrf();
       const res = await fetch('/api/auth/register/send-otp', {
@@ -69,16 +114,20 @@
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Could not send code');
       otpSent = true;
-      const otpField = document.getElementById('otpField');
+      revealOtpBlock(true);
+      setSignupStep('verify');
       const hint = document.getElementById('otpSentHint');
-      if (otpField) otpField.style.display = 'block';
-      if (hint) hint.style.display = 'block';
-      document.getElementById('otp')?.focus();
-      showSuccess('Code sent to ' + email);
-      if (btn) btn.textContent = 'Resend code';
+      if (hint) {
+        hint.style.display = 'flex';
+        hint.classList.add('is-success');
+      }
+      if (btn) btn.classList.add('is-sent');
+      if (label) label.textContent = 'Resend code';
+      showSuccess('Verification code sent to ' + email);
     } catch (err) {
       showError(err.message || 'Could not send verification code');
-      if (btn) btn.textContent = 'Send code';
+      if (label) label.textContent = 'Send code';
+      if (btn) btn.classList.remove('is-sent');
     } finally {
       if (btn) btn.disabled = false;
     }
@@ -86,8 +135,16 @@
 
   async function handleSignup(e) {
     e.preventDefault();
+    const otp = (document.getElementById('otp')?.value || '').trim();
     if (!otpSent) {
-      showError('Click “Send code” and enter the verification code from your email.');
+      showError('Click Send code and enter the 6-digit code from your email.');
+      revealOtpBlock(false);
+      document.getElementById('email')?.focus();
+      return;
+    }
+    if (!/^\d{6}$/.test(otp)) {
+      showError('Enter the 6-digit verification code from your email.');
+      revealOtpBlock(true);
       return;
     }
     const btn = document.getElementById('authSubmit');
@@ -99,7 +156,7 @@
         firstName: document.getElementById('firstName')?.value,
         lastName: document.getElementById('lastName')?.value,
         email: document.getElementById('email')?.value,
-        otp: document.getElementById('otp')?.value,
+        otp: otp,
         password: document.getElementById('password')?.value,
         confirmPassword: document.getElementById('confirmPassword')?.value,
         referralName: document.getElementById('referral')?.value
@@ -112,9 +169,14 @@
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Registration failed');
+      setSignupStep('done');
       window.location.href = data.redirect || '/';
     } catch (err) {
       showError(err.message || 'Registration failed');
+      if (/verification|code|otp/i.test(err.message || '')) {
+        revealOtpBlock(true);
+        setSignupStep('verify');
+      }
       if (btn) btn.disabled = false;
     }
   }
@@ -151,10 +213,18 @@
 
   document.addEventListener('DOMContentLoaded', function () {
     bindPasswordToggles();
+    bindOtpInput();
     document.getElementById('sendOtpBtn')?.addEventListener('click', handleSendOtp);
     const form = document.getElementById('authForm');
     const mode = form?.getAttribute('data-mode');
-    if (form && mode === 'signup') form.addEventListener('submit', handleSignup);
+    if (form && mode === 'signup') {
+      form.addEventListener('submit', handleSignup);
+      document.getElementById('email')?.addEventListener('blur', function () {
+        if (otpSent) return;
+        const v = (document.getElementById('email')?.value || '').trim();
+        if (v && v.includes('@')) setSignupStep('verify');
+      });
+    }
     if (form && mode === 'login') form.addEventListener('submit', handleLogin);
   });
 })();
