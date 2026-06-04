@@ -2176,9 +2176,9 @@
     if (!ql) return [];
     const words = ql.split(/\s+/).filter(Boolean);
     return M.convs.filter(c => {
-      const name = (c.name || 'User').toLowerCase();
-      const psid = String(c.psid || '');
-      const last = (c.lastMsg || '').toLowerCase();
+      const name = String(c.name || c.user_name || 'User').toLowerCase();
+      const psid = String(c.psid || c.fb_user_id || '');
+      const last = String(c.lastMsg || c.snippet || '').toLowerCase();
       return words.every(w => name.includes(w) || psid.includes(w) || last.includes(w));
     });
   }
@@ -4021,6 +4021,7 @@
     }
 
     renderPages();
+    bindMessengerSearchInput();
     const _sb = $('msngSoundBtn');
     if (_sb) _sb.innerHTML = `<i class="fa-solid fa-${_soundEnabled ? 'volume-high' : 'volume-xmark'}"></i>`;
 
@@ -4083,8 +4084,38 @@
     loadConvs(pageId, false, { loadSeq, fresh: true });
   };
 
-  // ── Outer page selector integration ─────────────────────────────────────────
-  document.addEventListener('DOMContentLoaded', () => {
+  // messenger.js loads on demand (after DOMContentLoaded) — must not rely on that event alone.
+  let _msngSearchInputBound = false;
+  let _msngDomSetupDone = false;
+
+  function bindMessengerSearchInput() {
+    if (_msngSearchInputBound) return;
+    const searchInput = document.getElementById('msngSearchInput');
+    if (!searchInput) return;
+    _msngSearchInputBound = true;
+    searchInput.addEventListener('input', function () {
+      window.msngSearch(this);
+    });
+    searchInput.addEventListener('keyup', function (e) {
+      if (e.key === 'Escape') {
+        this.value = '';
+        window.msngSearch(this);
+      }
+    });
+  }
+
+  function whenDomReady(fn) {
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', fn);
+    } else {
+      fn();
+    }
+  }
+
+  function initMessengerDomOnce() {
+    if (_msngDomSetupDone) return;
+    _msngDomSetupDone = true;
+
     const sel = document.getElementById('pageSelect');
     if (sel) {
       sel.addEventListener('change', function () {
@@ -4097,8 +4128,7 @@
       });
     }
 
-    // Load earlier messages button click handler
-    document.addEventListener('click', function(e) {
+    document.addEventListener('click', function (e) {
       const btn = e.target.closest('.msng-load-more-btn');
       if (btn && M.oldestMsgTime) {
         e.preventDefault();
@@ -4111,7 +4141,6 @@
       }
     });
 
-    // Image lightbox — delegate on document so it works for dynamically added images
     document.addEventListener('click', (e) => {
       const img = e.target.closest('.msng-att-img');
       if (!img || !img.src) return;
@@ -4128,20 +4157,10 @@
       }
     });
 
-    // Search input handler
-    const searchInput = document.getElementById('msngSearchInput');
-    if (searchInput) {
-      searchInput.addEventListener('input', function() {
-        window.msngSearch(this);
-      });
-      searchInput.addEventListener('keyup', function(e) {
-        if (e.key === 'Escape') {
-          this.value = '';
-          window.msngSearch(this);
-        }
-      });
-    }
-  });
+    bindMessengerSearchInput();
+  }
+
+  whenDomReady(initMessengerDomOnce);
 
   // ── Stop polling when messenger view is not active ───────────────────────────
   const _origSwitch = window.switchDashboardView;
