@@ -1709,7 +1709,7 @@ button.sidebar-sync-btn.loading{display:flex!important;flex-direction:row!import
 
 .field-label{font-size:11px;color:var(--text2);font-weight:700;text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px;display:flex;align-items:center;gap:7px}
 .field-label i{color:var(--primary-light);font-size:11px}
-.delay-presets{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.delay-presets{display:grid;grid-template-columns:repeat(5,1fr);gap:5px}
 .delay-preset{border:1px solid var(--border2);background:var(--surface2);border-radius:var(--radius);padding:10px 8px;color:var(--text2);font-family:inherit;cursor:pointer;transition:all .18s;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;position:relative}
 .delay-preset:hover{border-color:rgba(8,102,255,.35);transform:translateY(-2px);color:var(--text);background:var(--surface3)}
 .delay-preset.active{background:linear-gradient(135deg,rgba(8,102,255,.15),rgba(8,102,255,.07));border-color:rgba(8,102,255,.4);color:var(--primary-light);box-shadow:0 0 0 1px rgba(8,102,255,.15) inset,0 4px 16px rgba(8,102,255,.12)}
@@ -1719,6 +1719,7 @@ button.sidebar-sync-btn.loading{display:flex!important;flex-direction:row!import
 .delay-preset:nth-child(2) i{color:var(--primary-light)}
 .delay-preset:nth-child(3) i{color:var(--amber)}
 .delay-preset:nth-child(4) i{color:#f472b6}
+.delay-preset:nth-child(5) i{color:#22d3ee}
 .delay-name{font-size:12px;font-weight:800;line-height:1;letter-spacing:-.2px}
 .delay-value{font-size:10px;opacity:.75;font-family:'JetBrains Mono',monospace}
 .delay-wrap{display:flex;align-items:center;border:1px solid var(--border2);border-radius:var(--radius);overflow:hidden;transition:border-color .15s}

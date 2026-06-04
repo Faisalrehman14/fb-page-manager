@@ -641,7 +641,7 @@ function restoreComposerDraftFromServer() {
     messageEl.value = prefs.message_draft;
     updateCharBar(messageEl.value.length);
   }
-  if (delayEl && prefs && prefs.default_delay_ms >= 200) {
+  if (delayEl && prefs && prefs.default_delay_ms >= 50) {
     delayEl.value = String(prefs.default_delay_ms);
   }
   if (typeof applyDelayPreset === 'function' && delayEl) {
@@ -671,13 +671,13 @@ function persistComposerDraft() {
   _draftSaveTimer = setTimeout(() => {
     const patch = {};
     if (messageEl) patch.message_draft = messageEl.value.slice(0, 2000);
-    if (delayEl) patch.default_delay_ms = Math.max(200, parseInt(delayEl.value || '800', 10) || 800);
+    if (delayEl) patch.default_delay_ms = Math.max(50, parseInt(delayEl.value || '800', 10) || 800);
     window.fbcastUserData.savePreferences(patch);
   }, 600);
 }
 
 function applyDelayPreset(delay) {
-  const normalized = String(Math.max(200, parseInt(delay || '800', 10) || 800));
+  const normalized = String(Math.max(50, parseInt(delay || '800', 10) || 800));
   const delayInput = document.getElementById('delayMs');
   if (delayInput) delayInput.value = normalized;
   document.querySelectorAll('.delay-preset').forEach(function (btn) {
@@ -1791,7 +1791,7 @@ async function startAutoSend(){
   const msg=document.getElementById('messageText').value.trim();
   const imgUrl=(typeof currentImageUrl!=='undefined'?currentImageUrl:'')||window._imgAttachUrl||'';
   if(!msg&&!imgUrl){setAutoStatus('error','Please write a message or attach an image first.');return;}
-  const delay=Math.max(200,parseInt(document.getElementById('delayMs').value)||800);
+  const delay=Math.max(50,parseInt(document.getElementById('delayMs').value)||800);
 
   // Get FB User ID - required for quota tracking
   let fbUserId = null;

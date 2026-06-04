@@ -4594,7 +4594,7 @@ async function getUserPreferences(fb_user_id) {
     return {
         notif_broadcast: !!r.notif_broadcast,
         notif_failed: !!r.notif_failed,
-        default_delay_ms: Math.max(200, parseInt(r.default_delay_ms, 10) || 800),
+        default_delay_ms: Math.max(50, parseInt(r.default_delay_ms, 10) || 800),
         message_draft: r.message_draft || ''
     };
 }
@@ -4606,7 +4606,7 @@ async function upsertUserPreferences(fb_user_id, patch = {}) {
         notif_broadcast: patch.notif_broadcast !== undefined ? !!patch.notif_broadcast : current.notif_broadcast,
         notif_failed: patch.notif_failed !== undefined ? !!patch.notif_failed : current.notif_failed,
         default_delay_ms: patch.default_delay_ms !== undefined
-            ? Math.max(200, parseInt(patch.default_delay_ms, 10) || 800)
+            ? Math.max(50, parseInt(patch.default_delay_ms, 10) || 800)
             : current.default_delay_ms,
         message_draft: patch.message_draft !== undefined
             ? String(patch.message_draft || '').slice(0, 2000)

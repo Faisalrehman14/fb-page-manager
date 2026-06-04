@@ -47,7 +47,7 @@ function formatEta(ms) {
 function updateCampaignIntel() {
   const pageId = $('pageSelect')?.value || '';
   const message = ($('messageText')?.value || '').trim();
-  const delay = Math.max(200, parseInt($('delayMs')?.value, 10) || 800);
+  const delay = Math.max(50, parseInt($('delayMs')?.value, 10) || 800);
   const adviceEl = $('intelAdvice');
 
   const hasLoadedAudience = !!allRecipients.length && recipientsPageId === pageId;
@@ -622,6 +622,14 @@ window.insertPersonalizationTag = function(tag) {
 // ── Image Attachment Panel ─────────────────────────────
 let currentImageUrl = '';
 
+function updateImageOnlyPaceHint() {
+  const hint = $('imageOnlyPaceHint');
+  if (!hint) return;
+  const hasImage = !!(currentImageUrl || window._imgAttachUrl);
+  const hasText = !!($('messageText')?.value || '').trim();
+  hint.style.display = hasImage && !hasText ? '' : 'none';
+}
+
 function initImagePanel() {
   const toggle     = $('imgAttachToggle');
   const panel      = $('imgAttachPanel');
@@ -650,6 +658,7 @@ function initImagePanel() {
     if (badge) badge.style.display = '';
     if (urlArea) urlArea.style.display = 'none';
     if (uploadArea) uploadArea.style.display = 'none';
+    updateImageOnlyPaceHint();
   }
 
   function resetUploadZoneUi() {
@@ -669,6 +678,7 @@ function initImagePanel() {
     const isUpload = tabUpload && tabUpload.classList.contains('active');
     if (urlArea) urlArea.style.display = isUpload ? 'none' : '';
     if (uploadArea) uploadArea.style.display = isUpload ? '' : 'none';
+    updateImageOnlyPaceHint();
   }
 
   // Toggle panel open/close
@@ -799,6 +809,7 @@ document.addEventListener('DOMContentLoaded', () => {
   recipientFilter?.addEventListener('change', () => { renderRecipients(); updateSendHint(); });
 
   messageText?.addEventListener('input', () => {
+    updateImageOnlyPaceHint();
     const charCount = $('charCount');
     const len = messageText.value.length;
     if (charCount) {
@@ -859,7 +870,7 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   btnStart?.addEventListener('click', async () => {
-    const pageId = $('pageSelect')?.value, text = messageText?.value.trim(), delay = Math.max(200, parseInt(delayMs?.value, 10) || 800);
+    const pageId = $('pageSelect')?.value, text = messageText?.value.trim(), delay = Math.max(50, parseInt(delayMs?.value, 10) || 800);
     if (!pageId) return showStatus('Select a page first.', 'warning');
     if (!text && !currentImageUrl) return showStatus('Enter a message or attach an image.', 'warning');
 

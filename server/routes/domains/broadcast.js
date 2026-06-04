@@ -168,7 +168,7 @@ app.post('/api/schedules', requireAuth, verifyCsrf, async (req, res) => {
             pages,
             message,
             image_url: image_url || null,
-            delay_ms: Math.max(200, parseInt(delay_ms) || 800),
+            delay_ms: Math.max(50, parseInt(delay_ms) || 800),
             scheduled_at: scheduledDate
         });
         res.json({ success: true, id });
@@ -246,12 +246,17 @@ app.delete('/api/schedules/:id', requireAuth, verifyCsrf, async (req, res) => {
 
 // ── Broadcast Scheduler — runs every 60 s ────────────────────────────────────
 // Send messages exactly like manual broadcast (enqueueAndSendUtility in fb_api.js)
-const BROADCAST_TEXT_IMAGE_GAP_MS = 120;
+const BROADCAST_TEXT_IMAGE_GAP_MS = 80;
+const BROADCAST_IMAGE_ONLY_PACE_MS = 50;
 
 async function sendToPage(pageId, pageToken, psids, nameMap, message, image_url, delay_ms, siteUrl) {
     let sent = 0, failed = 0;
     const base = `${FB_GRAPH_BASE}/${pageId}/messages`;
-    const paceMs = Math.max(200, parseInt(delay_ms, 10) || 800);
+    const imageOnly = !!(image_url && !String(message || '').trim());
+    const userPace = Math.max(50, parseInt(delay_ms, 10) || 800);
+    const paceMs = imageOnly
+        ? (userPace >= 1500 ? Math.min(userPace, 500) : Math.min(userPace, BROADCAST_IMAGE_ONLY_PACE_MS))
+        : userPace;
 
     let imagePayload = null;
     if (image_url) {

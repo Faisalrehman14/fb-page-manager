@@ -34,13 +34,17 @@ const STORAGE_KEYS = {
   QUEUE:      'send_queue'
 };
 
-/** Broadcast pacing — lower = faster (Meta may rate-limit below ~300ms). */
-const BROADCAST_DELAY_MIN = 200;
+/** Broadcast pacing — lower = faster (Meta may rate-limit below ~50ms). */
+const BROADCAST_DELAY_MIN = 50;
 const BROADCAST_DELAY_DEFAULT = 800;
-const BROADCAST_TEXT_IMAGE_GAP_MS = 120;
+const BROADCAST_IMAGE_ONLY_PACE_MS = 50;
+const BROADCAST_TEXT_IMAGE_GAP_MS = 80;
 const BROADCAST_QUOTA_BATCH = 8;
+const BROADCAST_QUOTA_BATCH_IMAGE = 20;
 const BROADCAST_QUEUE_PERSIST_EVERY = 8;
+const BROADCAST_QUEUE_PERSIST_IMAGE = 20;
 const BROADCAST_FB_POST_CFG = { attempts: 2, backoffMs: 120, timeoutMs: 14000 };
+const BROADCAST_FB_POST_CFG_FAST = { attempts: 1, backoffMs: 0, timeoutMs: 12000 };
 
 const RETRY_CFG_DEFAULT = { attempts: 2, backoffMs: 400 };
 
@@ -825,15 +829,26 @@ function normalizeBroadcastDelayMs(ms) {
   return Math.max(BROADCAST_DELAY_MIN, parseInt(ms, 10) || BROADCAST_DELAY_DEFAULT);
 }
 
+/** Image-only = one Graph call per person — cap delay for ultra throughput. */
+function resolveBroadcastPaceMs(delayMs, imageOnly) {
+  const user = normalizeBroadcastDelayMs(delayMs);
+  if (!imageOnly) return user;
+  if (user >= 1500) return Math.min(user, 500);
+  return Math.min(user, BROADCAST_IMAGE_ONLY_PACE_MS);
+}
+
 /** Batch quota API calls — avoids one HTTP round-trip per message. */
-function createQuotaBatcher(fbUserId) {
+function createQuotaBatcher(fbUserId, opts = {}) {
+  const deferAll = !!opts.deferAll;
+  const batchSize = opts.batchSize || BROADCAST_QUOTA_BATCH;
   let pending = 0;
   return {
     remainingAdjust() { return pending; },
     async bump(n = 1) {
       if (!fbUserId || n <= 0) return 'ok';
       pending += n;
-      if (pending >= BROADCAST_QUOTA_BATCH) {
+      if (deferAll) return 'ok';
+      if (pending >= batchSize) {
         return this.flush();
       }
       return 'ok';
@@ -944,9 +959,19 @@ async function enqueueAndSendUtility({
   emitBroadcastState();
 
   let finishReason = 'completed';
-  const paceMs = normalizeBroadcastDelayMs(delayMs);
-  const quotaBatch = createQuotaBatcher(fbUserId);
+  const imageOnly = !!(imageUrl && !String(messageText || '').trim());
+  const paceMs = resolveBroadcastPaceMs(delayMs, imageOnly);
+  const quotaBatch = createQuotaBatcher(fbUserId, {
+    deferAll: imageOnly,
+    batchSize: imageOnly ? BROADCAST_QUOTA_BATCH_IMAGE : BROADCAST_QUOTA_BATCH
+  });
+  const fbPostCfg = imageOnly ? BROADCAST_FB_POST_CFG_FAST : BROADCAST_FB_POST_CFG;
+  const queuePersistEvery = imageOnly ? BROADCAST_QUEUE_PERSIST_IMAGE : BROADCAST_QUEUE_PERSIST_EVERY;
   let queuePersistCounter = 0;
+
+  if (imageOnly && window.showToast) {
+    window.showToast(`Image-only ultra mode · ~${paceMs}ms between sends`, 'info', 2800);
+  }
 
   let imagePayload = null;
   if (imageUrl) {
@@ -1018,7 +1043,7 @@ async function enqueueAndSendUtility({
           recipient:      { id: item.id },
           message:        { text: personalizedText },
           messaging_type: 'UTILITY'
-        }, BROADCAST_FB_POST_CFG);
+        }, fbPostCfg);
         const qResult = await quotaBatch.bump(1);
         if (qResult === 'exhausted') {
           rt.isSending = false;
@@ -1033,16 +1058,16 @@ async function enqueueAndSendUtility({
 
       // ── Send image message (if any) — uses Meta attachment_id from prepare step ──
       if (imagePayload && rt.isSending) {
-        if (messageText) await delayWithControls(350, rt);
+        if (messageText) await delayWithControls(BROADCAST_TEXT_IMAGE_GAP_MS, rt);
         const imgRes = await fbPost(`${page.id}/messages`, page.access_token, {
           recipient:      { id: item.id },
           message:        { attachment: { type: 'image', payload: imagePayload } },
           messaging_type: 'UTILITY'
-        });
+        }, fbPostCfg);
         if (imgRes && imgRes.error) {
           throw new Error(typeof imgRes.error === 'object' ? (imgRes.error.message || JSON.stringify(imgRes.error)) : imgRes.error);
         }
-        const qResult = await _updateQuota(fbUserId, 1);
+        const qResult = await quotaBatch.bump(1);
         if (qResult === 'exhausted') {
           rt.isSending = false;
           item.status = 'failed';
@@ -1091,7 +1116,7 @@ async function enqueueAndSendUtility({
     rt.currentIndex = i + 1;
     queuePersistCounter += 1;
     const persistQueue = !usingIsolated && (
-      queuePersistCounter % BROADCAST_QUEUE_PERSIST_EVERY === 0
+      queuePersistCounter % queuePersistEvery === 0
       || item.status === 'failed'
       || i === queue.length - 1
     );
@@ -1103,7 +1128,7 @@ async function enqueueAndSendUtility({
       finishReason = 'stopped';
       break;
     }
-    if (i < queue.length - 1) {
+    if (i < queue.length - 1 && paceMs > 0) {
       await delayWithControls(paceMs, rt);
     }
   }

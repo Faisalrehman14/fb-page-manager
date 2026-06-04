@@ -1922,13 +1922,21 @@ window.getCsrfToken = async (forceRefresh = false) => {
             <span class="delay-name">Fast</span>
             <span class="delay-value">0.4s</span>
           </button>
-          <button type="button" class="delay-preset" data-delay="200" title="Maximum speed — may hit Meta limits">
+          <button type="button" class="delay-preset" data-delay="200" title="Very fast">
             <i class="fa-solid fa-rocket"></i>
             <span class="delay-name">Turbo</span>
             <span class="delay-value">0.2s</span>
           </button>
+          <button type="button" class="delay-preset" data-delay="50" title="Image-only auto uses this — max speed">
+            <i class="fa-solid fa-bolt-lightning"></i>
+            <span class="delay-name">Ultra</span>
+            <span class="delay-value">0.05s</span>
+          </button>
         </div>
         <input id="delayMs" type="hidden" value="800">
+        <p class="bcast-hint bcast-hint--sub" id="imageOnlyPaceHint" style="display:none;margin-top:6px;font-size:11px">
+          <i class="fa-solid fa-bolt-lightning"></i> Image-only: ultra-fast mode (~50ms between sends)
+        </p>
       </section>
 
       <section class="bcast-panel-v2__status">
@@ -2473,6 +2481,7 @@ window.getCsrfToken = async (forceRefresh = false) => {
               <button class="delay-opt" data-delay="2000"><i class="fa-solid fa-shield-halved"></i> Slow</button>
               <button class="delay-opt active" data-delay="800"><i class="fa-solid fa-gauge"></i> Normal</button>
               <button class="delay-opt" data-delay="400"><i class="fa-solid fa-bolt"></i> Fast</button>
+              <button class="delay-opt" data-delay="50"><i class="fa-solid fa-bolt-lightning"></i> Ultra</button>
               <button class="delay-opt" data-delay="200"><i class="fa-solid fa-rocket"></i> Turbo</button>
             </div>
           </div>
