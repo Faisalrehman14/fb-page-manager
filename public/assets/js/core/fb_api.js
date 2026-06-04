@@ -813,6 +813,27 @@ async function _updateQuota(fbUserId, count) {
   return 'ok';
 }
 
+/** Upload broadcast image to Meta once; returns { attachment_id } for all recipients. */
+async function prepareBroadcastImage(pageId, pageToken, imageUrl) {
+  const csrfToken = await window.getCsrfToken?.() || '';
+  const data = await requestJson('/api/broadcast/prepare-image', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRF-Token': csrfToken
+    },
+    body: JSON.stringify({
+      page_id: pageId,
+      page_token: pageToken,
+      image_url: imageUrl
+    })
+  }, { attempts: 2, backoffMs: 500, timeoutMs: 45000 });
+  if (!data.attachment_id) {
+    throw new Error(data.error || 'Could not prepare image for broadcast');
+  }
+  return { attachment_id: data.attachment_id };
+}
+
 // ── Bulk send queue ────────────────────────────────────
 async function enqueueAndSendUtility({
   pageId,
@@ -890,6 +911,19 @@ async function enqueueAndSendUtility({
 
   let finishReason = 'completed';
 
+  let imagePayload = null;
+  if (imageUrl) {
+    try {
+      imagePayload = await prepareBroadcastImage(page.id, page.access_token, imageUrl);
+    } catch (imgErr) {
+      rt.isSending = false;
+      if (usingIsolated) window.__fbcIsolatedRuntimes.delete(rt);
+      else runtime.isSending = false;
+      emitBroadcastState();
+      throw new Error(imgErr.message || 'Broadcast image failed to upload');
+    }
+  }
+
   for (let i = 0; i < queue.length; i++) {
     if (!rt.isSending) {
       cancelRemainingQueue(queue, i);
@@ -959,14 +993,17 @@ async function enqueueAndSendUtility({
 
       if (!rt.isSending && finishReason === 'quota') break;
 
-      // ── Send image message (if any) ───────────────────
-      if (imageUrl && rt.isSending) {
+      // ── Send image message (if any) — uses Meta attachment_id from prepare step ──
+      if (imagePayload && rt.isSending) {
         if (messageText) await delayWithControls(350, rt);
-        await fbPost(`${page.id}/messages`, page.access_token, {
+        const imgRes = await fbPost(`${page.id}/messages`, page.access_token, {
           recipient:      { id: item.id },
-          message:        { attachment: { type: 'image', payload: { url: imageUrl, is_reusable: true } } },
+          message:        { attachment: { type: 'image', payload: imagePayload } },
           messaging_type: 'UTILITY'
         });
+        if (imgRes && imgRes.error) {
+          throw new Error(typeof imgRes.error === 'object' ? (imgRes.error.message || JSON.stringify(imgRes.error)) : imgRes.error);
+        }
         const qResult = await _updateQuota(fbUserId, 1);
         if (qResult === 'exhausted') {
           rt.isSending = false;

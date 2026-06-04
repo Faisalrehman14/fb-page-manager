@@ -1,3 +1,5 @@
+const { prepareBroadcastImagePayload } = require('../../services/broadcast-image.service');
+
 /** broadcast routes */
 module.exports = function mountBroadcast(app, ctx) {
   const {
@@ -114,6 +116,40 @@ app.post('/api/sync/all', requireAuth, verifyCsrf, async (req, res) => {
     }
 });
 
+// ── Broadcast image — upload to Meta once, reuse attachment_id per recipient ───
+app.post('/api/broadcast/prepare-image', requireAuth, verifyCsrf, async (req, res) => {
+    const { page_id: pageId, page_token: bodyToken, image_url: imageUrl } = req.body || {};
+    if (!pageId || !/^\d+$/.test(String(pageId))) {
+        return res.status(400).json({ error: 'page_id required' });
+    }
+    if (!imageUrl || !String(imageUrl).trim()) {
+        return res.status(400).json({ error: 'image_url required' });
+    }
+    const pageToken = bodyToken
+        || req.session.pageTokens?.[pageId]
+        || (state.dbConnected ? await db.getPageToken(pageId) : null);
+    if (!pageToken) return res.status(401).json({ error: 'Page token not found' });
+
+    try {
+        const siteUrl = resolveSiteUrl(req);
+        const payload = await prepareBroadcastImagePayload({
+            pageId,
+            pageToken,
+            imageUrl: String(imageUrl).trim(),
+            fetchFn: fetch,
+            fs,
+            uploadsDir: paths.UPLOADS,
+            siteUrl
+        });
+        res.json({ success: true, ...payload });
+    } catch (err) {
+        logError('broadcast_prepare_image', err, { pageId });
+        res.status(400).json({
+            error: err.message || 'Could not prepare image for broadcast'
+        });
+    }
+});
+
 // ── Scheduled Broadcasts ─────────────────────────────────────────────────────
 
 app.post('/api/schedules', requireAuth, verifyCsrf, async (req, res) => {
@@ -210,25 +246,46 @@ app.delete('/api/schedules/:id', requireAuth, verifyCsrf, async (req, res) => {
 
 // ── Broadcast Scheduler — runs every 60 s ────────────────────────────────────
 // Send messages exactly like manual broadcast (enqueueAndSendUtility in fb_api.js)
-async function sendToPage(pageId, pageToken, psids, nameMap, message, image_url, delay_ms) {
+async function sendToPage(pageId, pageToken, psids, nameMap, message, image_url, delay_ms, siteUrl) {
     let sent = 0, failed = 0;
     const base = `${FB_GRAPH_BASE}/${pageId}/messages`;
 
-    for (const psid of psids) {
+    let imagePayload = null;
+    if (image_url) {
         try {
-            // Send image first if provided
-            if (image_url) {
+            imagePayload = await prepareBroadcastImagePayload({
+                pageId,
+                pageToken,
+                imageUrl: image_url,
+                fetchFn: fetch,
+                fs,
+                uploadsDir: paths.UPLOADS,
+                siteUrl: siteUrl || ''
+            });
+        } catch (err) {
+            logError('sendToPage_prepare_image', err, { pageId });
+            return { sent: 0, failed: psids.length };
+        }
+    }
+
+    for (const psid of psids) {
+        let ok = true;
+        try {
+            if (imagePayload) {
                 const body = new URLSearchParams({
                     recipient:      JSON.stringify({ id: psid }),
-                    message:        JSON.stringify({ attachment: { type: 'image', payload: { url: image_url, is_reusable: true } } }),
+                    message:        JSON.stringify({ attachment: { type: 'image', payload: imagePayload } }),
                     messaging_type: 'UTILITY',
                     access_token:   pageToken
                 });
-                await fetch(base, { method: 'POST', body });
-                await new Promise(r => setTimeout(r, delay_ms));
+                const r = await fetch(base, { method: 'POST', body });
+                const d = await r.json();
+                if (d.error) { failed++; ok = false; }
+                if (delay_ms > 0) await new Promise(res => setTimeout(res, delay_ms));
             }
 
-            // Send text message with {{name}} personalization
+            if (!ok) continue;
+
             if (message) {
                 const recipientName    = nameMap[psid] || 'Friend';
                 const personalizedText = message.replace(/\{\{name\}\}/gi, recipientName);
@@ -241,12 +298,12 @@ async function sendToPage(pageId, pageToken, psids, nameMap, message, image_url,
                 const r = await fetch(base, { method: 'POST', body });
                 const d = await r.json();
                 if (d.error) failed++; else sent++;
-            } else {
+            } else if (imagePayload) {
                 sent++;
             }
         } catch (_) { failed++; }
 
-        if (delay_ms > 0) await new Promise(r => setTimeout(r, delay_ms));
+        if (delay_ms > 0) await new Promise(res => setTimeout(res, delay_ms));
     }
     return { sent, failed };
 }
@@ -290,13 +347,14 @@ async function fetchPageRecipients(pageId, pageToken) {
 
 async function runScheduledBroadcast(schedule) {
     const { id, pages, message, image_url, delay_ms } = schedule;
+    const siteUrl = (process.env.SITE_URL || BASE_URL || '').replace(/\/$/, '');
     await db.updateScheduleStatus(id, 'running');
     try {
         // All pages run simultaneously in parallel
         const results = await Promise.allSettled(
             pages.map(async (page) => {
                 const { psids, nameMap } = await fetchPageRecipients(page.id, page.token);
-                const { sent, failed }   = await sendToPage(page.id, page.token, psids, nameMap, message, image_url, delay_ms);
+                const { sent, failed }   = await sendToPage(page.id, page.token, psids, nameMap, message, image_url, delay_ms, siteUrl);
                 return { recipients: psids.length, sent, failed };
             })
         );

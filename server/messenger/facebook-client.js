@@ -290,6 +290,23 @@ class FacebookClient {
         return msg.replace(/^\(#\d+\)\s*/i, '').trim() || 'Send failed';
     }
 
+    async uploadReusableImageAttachment(pageToken, pageId, fileBuffer, mime, filename = 'image.jpg') {
+        const form = new FormData();
+        form.append('message', JSON.stringify({
+            attachment: { type: 'image', payload: { is_reusable: true } }
+        }));
+        form.append('filedata', new Blob([fileBuffer], { type: mime }), filename);
+        const url = `${FB_GRAPH_BASE}/${pageId}/message_attachments?access_token=${encodeURIComponent(pageToken)}`;
+        const r = await this._fetchWithTimeout(url, { method: 'POST', body: form });
+        const data = await r.json();
+        if (data.error) throw new FbApiError(data.error);
+        const attachmentId = data.attachment_id;
+        if (!attachmentId) {
+            throw new FbApiError({ message: 'No attachment_id in upload response', code: 0 });
+        }
+        return attachmentId;
+    }
+
     async sendAttachment(pageToken, psid, pageId, fileBuffer, mime, filename, useUtility = false) {
         const attachType = mime.startsWith('image/') ? 'image'
             : mime.startsWith('video/') ? 'video' : 'file';

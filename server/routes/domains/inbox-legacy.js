@@ -372,12 +372,13 @@ app.post('/api/fb-proxy', requireAuth, verifyCsrf, async (req, res) => {
 // ── Upload Image ─────────────────────────────────────────────────────────────
 app.post('/api/upload-image', verifyCsrf, uploadDisk.single('image'), (req, res) => {
     if (!req.file) return res.status(400).json({ success: false, error: 'No file uploaded' });
-    
-    const proto = req.headers['x-forwarded-proto'] || 'https';
-    const host = req.headers['x-forwarded-host'] || req.headers.host || '';
-    const siteUrl = process.env.SITE_URL || BASE_URL || (host ? `${proto}://${host}` : '');
+
+    let siteUrl = resolveSiteUrl(req);
+    if (siteUrl.startsWith('http://') && !/localhost|127\.0\.0\.1/i.test(siteUrl)) {
+        siteUrl = siteUrl.replace(/^http:\/\//i, 'https://');
+    }
     const url = `${siteUrl.replace(/\/$/, '')}/uploads/${req.file.filename}`;
-    
+
     res.json({ success: true, url, filename: req.file.filename });
 });
 
