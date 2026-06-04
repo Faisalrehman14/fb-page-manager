@@ -38,6 +38,7 @@
     if (!n) el.textContent = 'No pages selected — click pages in the sidebar';
     else if (n === total && total > 0) el.textContent = `All ${n} pages selected`;
     else el.textContent = `${n} page${n === 1 ? '' : 's'} selected`;
+    updateMultiStartButton();
   }
 
   function rebuildMultiPageMessages() {
@@ -69,12 +70,34 @@
 
   function getPerPageMessages() {
     const map = {};
-    document.querySelectorAll('#multiPageMessages .multi-page-row').forEach((row) => {
+    document.querySelectorAll('#multiPageMessages .bcast-page-msg').forEach((row) => {
       const id = row.getAttribute('data-page-id');
       const ta = row.querySelector('textarea');
       if (id && ta) map[id] = ta.value.trim();
     });
     return map;
+  }
+
+  function hasMultiBroadcastReady() {
+    const selected = getMultiSelectedPages();
+    if (!selected.length) return false;
+    const perPage = getPerPageMessages();
+    const mainMsg = document.getElementById('messageText')?.value?.trim() || '';
+    const imgUrl =
+      (typeof currentImageUrl !== 'undefined' ? currentImageUrl : '') || window._imgAttachUrl || '';
+    if (imgUrl && !selected.some((p) => !(perPage[p.id] || '').trim() && !mainMsg)) {
+      return true;
+    }
+    return selected.every((p) => (perPage[p.id] || mainMsg).trim().length > 0);
+  }
+
+  function updateMultiStartButton() {
+    const start = document.getElementById('btnMultiStart');
+    if (!start || !document.body.classList.contains('shell-multi-broadcast')) return;
+    if (multiRunning) return;
+    const canStart = hasMultiBroadcastReady();
+    start.disabled = !canStart;
+    start.setAttribute('aria-disabled', canStart ? 'false' : 'true');
   }
 
   function applyMainMessageToAll() {
@@ -108,12 +131,15 @@
   }
 
   function setMultiButtons(state) {
-    const start = document.getElementById('btnMultiStart');
     const pause = document.getElementById('btnPause');
     const resume = document.getElementById('btnResume');
     const stop = document.getElementById('btnStop');
     const idle = state === 'idle';
-    if (start) start.disabled = !idle;
+    if (idle) updateMultiStartButton();
+    else {
+      const start = document.getElementById('btnMultiStart');
+      if (start) start.disabled = true;
+    }
     if (pause) pause.disabled = idle;
     if (resume) resume.disabled = state !== 'paused';
     if (stop) stop.disabled = idle;
@@ -148,10 +174,13 @@
     if (sendHint) sendHint.style.display = '';
     const schedActions = document.getElementById('sidebarSchedActions');
     if (schedActions) schedActions.style.display = mode === 'multi' ? 'inline-flex' : '';
-    if (mode !== 'multi') clearMultiSelection();
-    else {
+    if (mode !== 'multi') {
+      clearMultiSelection();
+    } else {
       rebuildMultiPageMessages();
       updateMultiPageCount();
+      setMultiButtons('idle');
+      updateMultiStartButton();
     }
     window.__broadcastMode = mode;
   }
@@ -385,7 +414,13 @@
     btnMulti?.addEventListener('click', () => setBroadcastMode('multi'));
 
     document.getElementById('btnMultiStart')?.addEventListener('click', startMultiParallelSend);
-    document.getElementById('btnMultiApplyMain')?.addEventListener('click', applyMainMessageToAll);
+    document.getElementById('btnMultiApplyMain')?.addEventListener('click', () => {
+      applyMainMessageToAll();
+      updateMultiStartButton();
+    });
+    document.getElementById('messageText')?.addEventListener('input', () => {
+      if (document.body.classList.contains('shell-multi-broadcast')) updateMultiStartButton();
+    });
 
     window.addEventListener('fbc:broadcast-state', (e) => {
       if (!document.body.classList.contains('shell-multi-broadcast')) return;
@@ -404,4 +439,5 @@
   window.multiSelectNonePages = multiSelectNonePages;
   window.setBroadcastMode = setBroadcastMode;
   window.startMultiParallelSend = startMultiParallelSend;
+  window.updateMultiStartButton = updateMultiStartButton;
 })();

@@ -510,7 +510,12 @@ function setManualBroadcastButtons(state) {
     if (idle) setLoading(btnStart, false);
   }
   if (btnMultiStart) {
-    btnMultiStart.disabled = !idle || !document.body.classList.contains('shell-multi-broadcast');
+    const inMulti = document.body.classList.contains('shell-multi-broadcast');
+    if (inMulti && typeof window.updateMultiStartButton === 'function') {
+      window.updateMultiStartButton();
+    } else {
+      btnMultiStart.disabled = true;
+    }
   }
   if (btnPause) btnPause.disabled = !running;
   if (btnResume) btnResume.disabled = !paused;
