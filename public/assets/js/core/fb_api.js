@@ -462,7 +462,8 @@ function normalizePageRecord(page) {
     name: page.name || page.id,
     access_token: page.access_token || page.accessToken || '',
     category: page.category || '',
-    picture
+    picture,
+    unreadCount: Math.max(0, parseInt(page.unreadCount, 10) || 0)
   };
 }
 

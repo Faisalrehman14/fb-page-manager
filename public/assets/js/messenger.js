@@ -1080,6 +1080,7 @@
 
     syncPageBadge(M.activePageId);
     updateMessengerChrome();
+    schedulePageUnreadRefresh(600);
 
     if (list.length) {
       clearConvListPlaceholders(listEl);
@@ -1204,24 +1205,58 @@
   }
 
   function applyUnreadByPage(unreadByPage) {
-    if (!unreadByPage || typeof unreadByPage !== 'object') return;
-    Object.entries(unreadByPage).forEach(([pid, n]) => {
-      const count = parseInt(n, 10) || 0;
-      if (String(pid) === String(M.activePageId)) {
-        syncPageBadge(pid, count);
+    const map = {};
+    if (unreadByPage && typeof unreadByPage === 'object') {
+      Object.entries(unreadByPage).forEach(([pid, n]) => {
+        map[String(pid)] = Math.max(0, parseInt(n, 10) || 0);
+      });
+    }
+    (M.pages || []).forEach((p) => {
+      const id = String(p.id);
+      const serverCount = map[id] ?? 0;
+      if (id === String(M.activePageId)) {
+        syncPageBadge(id, serverCount);
       } else {
-        updatePageBadge(pid, count);
+        updatePageBadge(id, serverCount);
       }
     });
+    renderPages();
     updateDocumentUnreadTitle();
+  }
+
+  async function fetchPageUnreadCounts() {
+    if (!M.pages.length) return {};
+    try {
+      const params = {};
+      if (M.pagePoll.since) params.since = M.pagePoll.since;
+      if (M.activePageId) params.active_page_id = M.activePageId;
+      if (M.activePsid) params.active_psid = M.activePsid;
+      const data = await get('poll_pages', params);
+      if (data?.server_time) M.pagePoll.since = data.server_time;
+      if (data?.unread_by_page) applyUnreadByPage(data.unread_by_page);
+      return data?.unread_by_page || {};
+    } catch (e) {
+      console.warn('[Messenger] fetchPageUnreadCounts:', e.message);
+      return {};
+    }
+  }
+
+  let _pageUnreadRefreshTimer = null;
+  function schedulePageUnreadRefresh(delayMs = 400) {
+    clearTimeout(_pageUnreadRefreshTimer);
+    _pageUnreadRefreshTimer = setTimeout(() => {
+      _pageUnreadRefreshTimer = null;
+      fetchPageUnreadCounts();
+    }, delayMs);
   }
 
   function updatePageBadge(pageId, count) {
     if (!pageId) return;
-    const prev = M.pageUnread[pageId] || 0;
+    const id = String(pageId);
+    const prev = M.pageUnread[id] || 0;
     const n = parseInt(count, 10) || 0;
-    M.pageUnread[pageId] = n;
-    const badge = $('msngPageBadge_' + pageId);
+    M.pageUnread[id] = n;
+    const badge = $('msngPageBadge_' + id);
     if (badge) {
       badge.style.display = n > 0 ? 'flex' : 'none';
       badge.textContent   = n > 99 ? '99+' : String(n);
@@ -1232,10 +1267,12 @@
         setTimeout(() => badge.classList.remove('msng-page-badge--pop'), 500);
       }
     }
-    const sub = $('msngPageSub_' + pageId);
+    const sub = $('msngPageSub_' + id);
     if (sub) sub.textContent = n > 0 ? `${n} unread` : 'No unread';
-    const item = document.querySelector(`.msng-page-item[data-page-id="${CSS.escape(String(pageId))}"]`);
+    const item = document.querySelector(`.msng-page-item[data-page-id="${CSS.escape(id)}"]`);
     if (item) item.classList.toggle('has-unread', n > 0);
+    const dot = item?.querySelector('.msng-page-unread-dot');
+    if (dot) dot.style.display = n > 0 ? 'block' : 'none';
     updateDocumentUnreadTitle();
   }
 
@@ -1746,13 +1783,13 @@
 
   function schedulePagePoll(delayMs) {
     stopPagePollTimer();
-    if (M.pages.length <= 1) return;
+    if (!M.pages.length) return;
     M.pagePoll.timer = setTimeout(runPagePoll, delayMs);
   }
 
   async function runPagePoll() {
     M.pagePoll.timer = null;
-    if (document.hidden || M.pages.length <= 1) return;
+    if (document.hidden || !M.pages.length) return;
 
     try {
       const params = {};
@@ -1791,7 +1828,7 @@
 
   function startPagePolling() {
     stopPagePollTimer();
-    if (M.pages.length <= 1) return;
+    if (!M.pages.length) return;
     if (!M.pagePoll.since) {
       M.pagePoll.since = new Date(Date.now() - 5000).toISOString();
     }
@@ -2664,6 +2701,8 @@
       } else if (hasSkeleton) {
         renderConvs();
       }
+      syncPageBadge(M.activePageId);
+      schedulePageUnreadRefresh(400);
     } catch (e) {
       console.error('[Messenger] loadConvs:', e);
       M.ui.syncing = false;
@@ -3540,6 +3579,7 @@
       } else {
         await refreshConvListSilent();
       }
+      await fetchPageUnreadCounts();
     } finally {
       if (!M._convListRefreshTimer && btn) btn.classList.remove('spinning');
     }
@@ -3619,12 +3659,14 @@
         ? `<img class="msng-page-avatar" src="${esc(pic)}" alt="${esc(p.name)}" onerror="this.outerHTML='<div class=\\'msng-page-avatar-ph\\'>${esc(initial)}</div>'">`
         : `<div class="msng-page-avatar-ph">${esc(initial)}</div>`;
 
-      const pgUnread = M.pageUnread[p.id] || 0;
-      const subText  = pgUnread > 0 ? `${pgUnread} unread` : 'No unread';
-      const pgBadge  = `<span class="msng-page-badge" id="msngPageBadge_${esc(p.id)}"
+      const pid = String(p.id);
+      const pgUnread = M.pageUnread[pid] || 0;
+      const subText  = pgUnread > 0 ? `${pgUnread} unread chat${pgUnread !== 1 ? 's' : ''}` : 'No unread';
+      const pgBadge  = `<span class="msng-page-badge" id="msngPageBadge_${esc(pid)}"
                               style="display:${pgUnread > 0 ? 'flex' : 'none'}">${pgUnread > 99 ? '99+' : pgUnread}</span>`;
-      return `<div class="msng-page-item ${isActive ? 'active' : ''} ${pgUnread > 0 ? 'has-unread' : ''}" data-page-id="${esc(p.id)}">
-        <div class="msng-page-avatar-wrap">${avatar}</div>
+      const unreadDot = `<span class="msng-page-unread-dot" style="display:${pgUnread > 0 ? 'block' : 'none'}" aria-hidden="true"></span>`;
+      return `<div class="msng-page-item ${isActive ? 'active' : ''} ${pgUnread > 0 ? 'has-unread' : ''}" data-page-id="${esc(pid)}">
+        <div class="msng-page-avatar-wrap">${avatar}${unreadDot}</div>
         <div class="msng-page-info">
           <div class="msng-page-name">${esc(p.name)}</div>
           <div class="msng-page-sub" id="msngPageSub_${esc(p.id)}">${esc(subText)}</div>
@@ -3958,13 +4000,12 @@
   const _origMsngInit = window.msngInit;
   window.msngInit = function (retries = 0) {
     M.pages = (window.loadedPages || []).filter(p => p?.id && p?.access_token);
-    // Seed per-page unread counts from the pages API response
     M.pages.forEach(p => {
-      if (M.pageUnread[p.id] == null) M.pageUnread[p.id] = p.unreadCount || 0;
+      const id = String(p.id);
+      if (M.pageUnread[id] == null) {
+        M.pageUnread[id] = Math.max(0, parseInt(p.unreadCount, 10) || 0);
+      }
     });
-    get('poll_pages', {}).then((data) => {
-      if (data?.unread_by_page) applyUnreadByPage(data.unread_by_page);
-    }).catch(() => {});
     loadCannedReplies().catch(() => {});
     if (!M.pages.length) {
       renderPages();
@@ -3979,24 +4020,25 @@
       return;
     }
 
-    // Render pages column
     renderPages();
-    // Sync sound button icon with saved preference
     const _sb = $('msngSoundBtn');
     if (_sb) _sb.innerHTML = `<i class="fa-solid fa-${_soundEnabled ? 'volume-high' : 'volume-xmark'}"></i>`;
 
     const preferredId = window.currentPageId || M.pages[0].id;
-    if (!M.activePageId || !M.pages.find(p => p.id === M.activePageId)) {
-      window.msngSelectPage(preferredId);
-    } else {
-      renderConvs();
-    }
-    bindConvListDelegate();
-    startPolling();
-
-    // Initialize Socket.io for real-time
-    initSocketListeners();
+    (async () => {
+      await fetchPageUnreadCounts();
+      if (!M.activePageId || !M.pages.find(p => String(p.id) === String(M.activePageId))) {
+        window.msngSelectPage(preferredId);
+      } else {
+        renderConvs();
+      }
+      bindConvListDelegate();
+      startPolling();
+      initSocketListeners();
+    })();
   };
+
+  window.msngRefreshPageUnread = fetchPageUnreadCounts;
 
   // ── Updated msngSelectPage ──────────────────────────────────────────────────
   window.msngSelectPage = function (pageId) {
@@ -4076,6 +4118,14 @@
       e.preventDefault();
       e.stopPropagation();
       openLightbox(img.src);
+    });
+
+    window.addEventListener('fbc:conversation-changed', () => schedulePageUnreadRefresh(700));
+    window.addEventListener('fbc:pages-ready', () => {
+      if (document.getElementById('view-messenger')?.style.display !== 'none') {
+        M.pages = (window.loadedPages || []).filter(p => p?.id && p?.access_token);
+        fetchPageUnreadCounts();
+      }
     });
 
     // Search input handler

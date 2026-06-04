@@ -121,6 +121,22 @@ body.in-messenger .sidebar { display: none !important; }
 }
 
 .msng-page-avatar-wrap { width: 36px; height: 36px; flex-shrink: 0; position: relative; }
+.msng-page-unread-dot {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--msng-red);
+  border: 2px solid var(--msng-surface, #0f172a);
+  box-shadow: 0 0 0 1px rgba(239, 68, 68, 0.45), 0 0 10px rgba(239, 68, 68, 0.55);
+  pointer-events: none;
+  z-index: 2;
+}
+.msng-page-item.has-unread:not(.active) .msng-page-unread-dot {
+  animation: msngPageBadgePop 0.45s ease;
+}
 .msng-page-avatar {
   width: 36px; height: 36px; border-radius: 9px;
   object-fit: cover; display: block;
@@ -169,6 +185,11 @@ body.in-messenger .sidebar { display: none !important; }
 }
 .msng-page-item.has-unread:not(.active) .msng-page-name {
   color: #fca5a5;
+  font-weight: 700;
+}
+.msng-page-item.has-unread:not(.active) .msng-page-sub {
+  color: #f87171;
+  font-weight: 600;
 }
 
 @media (max-width: 640px) {
