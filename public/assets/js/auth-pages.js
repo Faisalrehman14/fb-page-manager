@@ -199,6 +199,32 @@
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Login failed');
+
+      if (data.facebookConnected) {
+        try {
+          const boot = await fetch('/api/auth/bootstrap', { credentials: 'same-origin' });
+          const b = await boot.json();
+          if (b.authenticated && b.token) {
+            localStorage.setItem('fb_user_token', JSON.stringify({
+              token: b.token,
+              expiresAt: Date.now() + (b.expiresIn || 5184000) * 1000
+            }));
+            if (b.userId) {
+              localStorage.setItem('fbcast_user', JSON.stringify({
+                fb_user_id: b.userId,
+                fb_name: b.userName || '',
+                name: b.userName || ''
+              }));
+            }
+            if (b.pages && b.pages.length) {
+              localStorage.setItem('fb_pages', JSON.stringify(b.pages));
+            }
+          }
+        } catch (_) {}
+      }
+
+      try { sessionStorage.setItem('fbcast_just_logged_in', '1'); } catch (_) {}
+
       const next = new URLSearchParams(window.location.search).get('next');
       if (next === 'connect' && !data.facebookConnected) {
         window.location.href = '/?connect=1';

@@ -228,6 +228,9 @@ app.post('/api/auth/register', async (req, res) => {
         res.cookie('_app_aid', String(account.id), appCookieOpts);
         generateCsrf(req);
         transactionalEmail.queueWelcomeForAppAccount(account, logError);
+        await new Promise((resolve, reject) => {
+            req.session.save((err) => (err ? reject(err) : resolve()));
+        });
         res.json({ success: true, account: { id: account.id, email: account.email }, redirect: '/' });
     } catch (err) {
         logError('auth_register', err);
@@ -262,12 +265,17 @@ app.post('/api/auth/login', async (req, res) => {
 
         generateCsrf(req);
         transactionalEmail.queueWelcomeForAppAccount(account, logError);
-        res.json({
+        const payload = {
             success: true,
             facebookConnected: !!req.session.accessToken,
+            userId: req.session.userId || null,
             userName: req.session.userName || null,
             redirect: '/'
+        };
+        await new Promise((resolve, reject) => {
+            req.session.save((err) => (err ? reject(err) : resolve()));
         });
+        res.json(payload);
     } catch (err) {
         logError('auth_login', err);
         res.status(500).json({ error: err.message || 'Login failed' });

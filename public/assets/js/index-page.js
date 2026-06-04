@@ -1231,42 +1231,18 @@ document.addEventListener('DOMContentLoaded',async()=>{
     if(wantConnect||fbJustConnected){
       window.history.replaceState({},document.title,window.location.pathname);
     }
-    const auth=await fetchAuthStatus();
-    if(!auth.authenticated&&!auth.appAccount) return;
+    const justLoggedIn=sessionStorage.getItem('fbcast_just_logged_in')==='1';
+    if(justLoggedIn)sessionStorage.removeItem('fbcast_just_logged_in');
 
-    window.showAppDashboard();
-    updateFbConnectBanner(auth);
+    const auth=await (typeof refreshAuthUi==='function'?refreshAuthUi():fetchAuthStatus());
+    if(!auth.authenticated&&!auth.appAccount) return;
 
     if(fbJustConnected&&auth.facebookConnected){
       showToast('Facebook connected successfully!','success');
-    }
-
-    if(auth.facebookConnected){
-      try{
-        const boot=await fetch('/api/auth/bootstrap',{credentials:'same-origin'});
-        const data=await boot.json();
-        if(data.authenticated&&data.token){
-          localStorage.setItem('fb_user_token',JSON.stringify({
-            token:data.token,
-            expiresAt:Date.now()+(data.expiresIn||5184000)*1000
-          }));
-          if(data.userId){
-            localStorage.setItem('fbcast_user',JSON.stringify({
-              fb_user_id:data.userId,
-              fb_name:data.userName||''
-            }));
-          }
-          if(data.pages&&data.pages.length){
-            localStorage.setItem('fb_pages',JSON.stringify(data.pages));
-          }
-        }
-        await autoLoadPagesAfterLogin();
-      }catch(e){
-        reportClientError(e,{source:'auto_restore_pages'});
-        if(!auth.facebookConnected){
-          showToast('Connect Facebook from the banner above to load pages.','warning');
-        }
-      }
+    }else if(justLoggedIn&&auth.facebookConnected){
+      showToast('Welcome back — Facebook is connected.','success');
+    }else if(justLoggedIn&&!auth.facebookConnected){
+      showToast('Signed in. Connect Facebook from the banner above.','info');
     }else if(params.get('connect')==='1'||params.get('fb_connected')==='1'){
       showToast('Connect your Facebook account using the button above.','info');
     }
@@ -1408,19 +1384,106 @@ function updateFbConnectBanner(auth){
   banner.style.display=show?'block':'none';
 }
 
-window.refreshAuthUi=async function(){
-  const auth=await fetchAuthStatus();
-  updateFbConnectBanner(auth);
-  if(auth.appAccount&&auth.authenticated){
-    window.showAppDashboard();
-    if(auth.facebookConnected&&auth.userId){
-      localStorage.setItem('fbcast_user',JSON.stringify({
-        fb_user_id:auth.userId,
-        fb_name:auth.userName||''
+window.setLoginOffline=function(){
+  const ls=document.getElementById('loginStatus');
+  if(ls)ls.classList.remove('online');
+  const lt=document.getElementById('loginStatusText');
+  if(lt)lt.textContent='Not connected';
+};
+
+function persistUserFromAuth(auth){
+  if(!auth||!auth.facebookConnected||!auth.userId)return;
+  const name=auth.userName||(auth.appAccount&&auth.appAccount.firstName)||'';
+  localStorage.setItem('fbcast_user',JSON.stringify({
+    fb_user_id:auth.userId,
+    fb_name:name,
+    name:name
+  }));
+  try{window.dispatchEvent(new Event('fbcast:user-updated'));}catch(_){}
+}
+
+async function bootstrapSessionToClient(){
+  try{
+    const boot=await fetch('/api/auth/bootstrap',{credentials:'same-origin'});
+    const data=await boot.json();
+    if(data.authenticated&&data.token){
+      localStorage.setItem('fb_user_token',JSON.stringify({
+        token:data.token,
+        expiresAt:Date.now()+(data.expiresIn||5184000)*1000
       }));
+      if(window.AppShell&&typeof window.AppShell.persistBootstrapData==='function'){
+        window.AppShell.persistBootstrapData(data);
+      }else{
+        if(data.userId){
+          localStorage.setItem('fbcast_user',JSON.stringify({
+            fb_user_id:data.userId,
+            fb_name:data.userName||'',
+            name:data.userName||''
+          }));
+        }
+        if(data.pages&&data.pages.length){
+          localStorage.setItem('fb_pages',JSON.stringify(data.pages));
+        }
+        try{window.dispatchEvent(new Event('fbcast:user-updated'));}catch(_){}
+      }
+      return data;
+    }
+  }catch(e){
+    reportClientError(e,{source:'bootstrapSessionToClient'});
+  }
+  return null;
+}
+
+async function applyAuthUiState(auth){
+  if(!auth)auth=await fetchAuthStatus();
+  updateFbConnectBanner(auth);
+  const nameEl=document.getElementById('topbarUserName');
+  const avatarEl=document.getElementById('topbarAvatar');
+
+  if(auth.facebookConnected){
+    if(typeof setLoginOnline==='function')setLoginOnline();
+    persistUserFromAuth(auth);
+  }else{
+    if(typeof setLoginOffline==='function')setLoginOffline();
+    if(auth.appAccount&&auth.authenticated){
+      const label=auth.appAccount.firstName
+        ||(auth.appAccount.email?auth.appAccount.email.split('@')[0]:'')
+        ||'Account';
+      if(nameEl)nameEl.textContent=label;
+      if(avatarEl){
+        avatarEl.textContent=(auth.appAccount.firstName||label)[0].toUpperCase();
+      }
+    }else if(nameEl){
+      nameEl.textContent='Not connected';
+      if(avatarEl)avatarEl.textContent='?';
     }
   }
   return auth;
+}
+
+let _refreshAuthUiInFlight=null;
+window.refreshAuthUi=async function(){
+  if(_refreshAuthUiInFlight)return _refreshAuthUiInFlight;
+  _refreshAuthUiInFlight=(async()=>{
+    const auth=await fetchAuthStatus();
+    if(auth.appAccount&&auth.authenticated){
+      window.showAppDashboard();
+    }
+    await applyAuthUiState(auth);
+    if(auth.facebookConnected){
+      await bootstrapSessionToClient();
+      await applyAuthUiState(auth);
+      if(typeof autoLoadPagesAfterLogin==='function'){
+        await autoLoadPagesAfterLogin();
+      }
+    }
+    return auth;
+  })();
+  try{
+    return await _refreshAuthUiInFlight;
+  }finally{
+    _refreshAuthUiInFlight=null;
+  }
 };
 
 window.connectFacebookAccount=async function(){
@@ -2006,7 +2069,7 @@ function addRecipientRow(item){
     if (!avatarEl || !nameEl) return;
     try {
       const storedUser = JSON.parse(localStorage.getItem('fbcast_user') || '{}');
-      const name = storedUser.name || storedUser.fb_name || '';
+      const name = storedUser.name || storedUser.fb_name || storedUser.fbName || '';
       if (name) {
         const initials = name.split(' ').map(function (w) { return w[0] || ''; }).slice(0, 2).join('').toUpperCase();
         avatarEl.textContent = initials || name[0].toUpperCase();

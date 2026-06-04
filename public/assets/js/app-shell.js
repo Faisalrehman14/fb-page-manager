@@ -362,7 +362,6 @@
     }
 
     if (typeof global.applyTheme === 'function') global.applyTheme();
-    if (typeof global.setLoginOnline === 'function') global.setLoginOnline();
 
     try {
       const cached = JSON.parse(localStorage.getItem('fb_pages') || '[]');
@@ -434,7 +433,9 @@
       } catch (_) {}
     }
     showDashboard();
-    if (typeof global.autoLoadPagesAfterLogin === 'function') {
+    if (typeof global.refreshAuthUi === 'function') {
+      await global.refreshAuthUi();
+    } else if (typeof global.autoLoadPagesAfterLogin === 'function') {
       global.autoLoadPagesAfterLogin().catch(() => {});
     }
     if (typeof global.syncQuotaFromServer === 'function') {
