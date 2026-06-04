@@ -24,7 +24,12 @@ async function resendRequest(path, options = {}) {
     });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
-        const msg = data?.message || data?.error || `Resend API error (${res.status})`;
+        const raw = data?.message || data?.error || `Resend API error (${res.status})`;
+        let msg = raw;
+        const lower = String(raw).toLowerCase();
+        if (lower.includes('only send') || lower.includes('testing') || lower.includes('verify a domain')) {
+            msg = 'Resend test mode: verify your domain at resend.com/domains, or sign up with the same email as your Resend account.';
+        }
         throw Object.assign(new Error(msg), { status: res.status >= 500 ? 503 : 400, provider: 'resend' });
     }
     return data;
