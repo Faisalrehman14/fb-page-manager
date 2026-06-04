@@ -2336,13 +2336,23 @@ window.getCsrfToken = async (forceRefresh = false) => {
           </div>
 
           <div class="analytics-row-2">
-            <div class="pro-card analytics-leaderboard">
-              <div class="analytics-card-hdr">
-                <span><i class="fa-solid fa-trophy"></i> Top performing pages</span>
-                <span class="analytics-card-sub" id="analyticsTopPagesSub">—</span>
+            <div class="pro-card analytics-leaderboard analytics-leaderboard--pro">
+              <div class="analytics-card-hdr analytics-card-hdr--leader">
+                <div class="analytics-card-hdr-left">
+                  <span class="analytics-card-icon" aria-hidden="true"><i class="fa-solid fa-trophy"></i></span>
+                  <div class="analytics-card-hdr-text">
+                    <span class="analytics-card-title">Top performing pages</span>
+                    <span class="analytics-card-caption" id="analyticsTopPagesCaption">Ranked by messages delivered</span>
+                  </div>
+                </div>
+                <span class="analytics-card-badge" id="analyticsTopPagesSub">—</span>
               </div>
-              <div id="analyticsTopPagesList">
-                <div class="analytics-empty"><p>No page data yet.</p></div>
+              <div id="analyticsTopPagesList" class="analytics-top-pages-list">
+                <div class="analytics-empty analytics-empty--leader">
+                  <i class="fa-solid fa-chart-simple" aria-hidden="true"></i>
+                  <p>No page data yet</p>
+                  <span class="analytics-empty-hint">Run a broadcast to see which pages perform best.</span>
+                </div>
               </div>
             </div>
 

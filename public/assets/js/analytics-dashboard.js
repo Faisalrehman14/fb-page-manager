@@ -224,12 +224,35 @@
     el.innerHTML = `<span class="akpi-delta-arrow">${arrow}</span> ${d.text} <span class="akpi-delta-lbl">vs prev</span>`;
   }
 
+  function pagePictureUrl(page) {
+    if (!page) return '';
+    if (typeof page.picture === 'string') return page.picture;
+    if (page.picture && page.picture.data && page.picture.data.url) return page.picture.data.url;
+    return '';
+  }
+
+  function resolvePageMeta(pageId, fallbackName) {
+    const pages = global.loadedPages || window.loadedPages || [];
+    const match = pageId ? pages.find((p) => String(p.id) === String(pageId)) : null;
+    const name = match?.name || fallbackName || 'Unknown page';
+    return { name, picture: pagePictureUrl(match) };
+  }
+
   function topPages(items, limit) {
     const map = new Map();
     items.forEach((it) => {
       const key = it.pageId || it.label || 'unknown';
-      const name = it.pageName || it.label || (it.pageId ? `Page ${String(it.pageId).slice(-4)}` : 'Manual');
-      const cur = map.get(key) || { name, sent: 0, failed: 0, runs: 0 };
+      const name =
+        it.pageName ||
+        it.label ||
+        (it.pageId ? `Page ${String(it.pageId).slice(-4)}` : 'Manual');
+      const cur = map.get(key) || {
+        pageId: it.pageId || null,
+        name,
+        sent: 0,
+        failed: 0,
+        runs: 0
+      };
       cur.sent += Number(it.sent) || 0;
       cur.failed += Number(it.failed) || 0;
       cur.runs += 1;
@@ -237,11 +260,35 @@
     });
     return Array.from(map.values())
       .map((p) => {
+        const meta = resolvePageMeta(p.pageId, p.name);
         const total = p.sent + p.failed;
-        return { ...p, rate: total ? Math.round((p.sent / total) * 100) : 0 };
+        return {
+          ...p,
+          name: meta.name,
+          picture: meta.picture,
+          rate: total ? Math.round((p.sent / total) * 100) : 0
+        };
       })
       .sort((a, b) => b.sent - a.sent)
       .slice(0, limit || 5);
+  }
+
+  function leaderRankClass(i) {
+    if (i === 0) return 'leader-rank--gold';
+    if (i === 1) return 'leader-rank--silver';
+    if (i === 2) return 'leader-rank--bronze';
+    return '';
+  }
+
+  function leaderAvatarHtml(p) {
+    const initial = (p.name || '?').trim().charAt(0).toUpperCase();
+    if (p.picture) {
+      return `<div class="leader-avatar leader-avatar--img">
+        <img src="${escapeHtml(p.picture)}" alt="" loading="lazy" onerror="this.remove();this.parentElement.classList.remove('leader-avatar--img');this.parentElement.querySelector('.leader-avatar-fb').style.display=''">
+        <span class="leader-avatar-fb" style="display:none">${escapeHtml(initial)}</span>
+      </div>`;
+    }
+    return `<div class="leader-avatar"><span class="leader-avatar-fb">${escapeHtml(initial)}</span></div>`;
   }
 
   function renderTopPages(items) {
@@ -250,25 +297,47 @@
     if (!list) return;
     const top = topPages(items, 5);
     if (!top.length || top[0].sent === 0) {
-      list.innerHTML = '<div class="analytics-empty"><p>No page-level data yet.</p></div>';
+      list.innerHTML = `<div class="analytics-empty analytics-empty--leader">
+        <i class="fa-solid fa-chart-simple" aria-hidden="true"></i>
+        <p>No page-level data yet</p>
+        <span class="analytics-empty-hint">Broadcast from connected pages to build rankings.</span>
+      </div>`;
       if (sub) sub.textContent = '—';
       return;
     }
-    if (sub) sub.textContent = `${top.length} active`;
+    const totalSent = top.reduce((s, p) => s + p.sent, 0);
+    if (sub) sub.textContent = `${top.length} page${top.length === 1 ? '' : 's'} · ${totalSent.toLocaleString()} sent`;
     const max = Math.max(1, ...top.map((p) => p.sent));
     list.innerHTML = top
       .map((p, i) => {
         const pct = Math.round((p.sent / max) * 100);
-        const initial = (p.name || '?').trim().charAt(0).toUpperCase();
-        return `<div class="leader-row">
-          <div class="leader-rank">${i + 1}</div>
-          <div class="leader-avatar">${escapeHtml(initial)}</div>
+        const rankCls = leaderRankClass(i);
+        const rateCls =
+          p.rate >= 90 ? 'leader-chip--good' : p.rate >= 70 ? 'leader-chip--ok' : 'leader-chip--warn';
+        return `<article class="leader-row leader-row--pro" data-rank="${i + 1}">
+          <div class="leader-rank ${rankCls}" aria-label="Rank ${i + 1}">${i + 1}</div>
+          ${leaderAvatarHtml(p)}
           <div class="leader-body">
-            <div class="leader-name">${escapeHtml(p.name)}</div>
-            <div class="leader-meta">${p.sent.toLocaleString()} sent · ${p.runs} run${p.runs === 1 ? '' : 's'} · ${p.rate}% rate</div>
-            <div class="leader-bar"><div class="leader-bar-fill" style="width:${pct}%"></div></div>
+            <div class="leader-head">
+              <div class="leader-name" title="${escapeHtml(p.name)}">${escapeHtml(p.name)}</div>
+              <div class="leader-score">
+                <span class="leader-score-val">${p.sent.toLocaleString()}</span>
+                <span class="leader-score-lbl">sent</span>
+              </div>
+            </div>
+            <div class="leader-chips">
+              <span class="leader-chip"><i class="fa-solid fa-paper-plane"></i>${p.sent.toLocaleString()} sent</span>
+              <span class="leader-chip"><i class="fa-solid fa-repeat"></i>${p.runs} run${p.runs === 1 ? '' : 's'}</span>
+              <span class="leader-chip ${rateCls}"><i class="fa-solid fa-circle-check"></i>${p.rate}% success</span>
+            </div>
+            <div class="leader-bar-wrap">
+              <div class="leader-bar" role="presentation">
+                <div class="leader-bar-fill" style="width:${pct}%"></div>
+              </div>
+              <span class="leader-bar-pct">${pct}%</span>
+            </div>
           </div>
-        </div>`;
+        </article>`;
       })
       .join('');
   }
