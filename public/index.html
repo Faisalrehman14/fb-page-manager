@@ -82,6 +82,7 @@
 <link rel="stylesheet" href="assets/css/theme-saas.css?v={{VER}}">
 <link rel="stylesheet" href="assets/css/theme-final.css?v={{VER}}">
 <link rel="stylesheet" href="assets/css/saas-polish.css?v={{VER}}">
+<link rel="stylesheet" href="assets/css/broadcast-ui.css?v={{VER}}">
 <link rel="stylesheet" href="assets/css/app-mobile-nav.css?v={{VER}}">
 <link rel="stylesheet" href="assets/css/ui-overhaul.css?v={{VER}}">
 <link rel="stylesheet" href="assets/css/production-ui.css?v={{VER}}">
@@ -1874,183 +1875,131 @@ window.getCsrfToken = async (forceRefresh = false) => {
           </div>
         </div>
 
-        <div class="compose-notice compose-notice--tip">
-          <i class="fa-solid fa-bolt"></i>
-          <div>Keep messages <strong>short & personal</strong> for higher open rates and better reach.</div>
-        </div>
+        <details class="bcast-tpl-acc compose-tpl-acc">
+          <summary><i class="fa-solid fa-wand-magic-sparkles"></i> Quick templates</summary>
+          <div class="quick-tpls quick-tpls--compact">
+            <button type="button" class="tpl-chip" data-tpl="Hi! Your order has been shipped and will arrive in 2-3 days. Thank you for shopping with us! 🚚"><i class="fa-solid fa-box"></i> Order</button>
+            <button type="button" class="tpl-chip" data-tpl="🎉 Flash Sale! Get 30% OFF everything today only. Limited time offer — shop now before it ends!"><i class="fa-solid fa-tags"></i> Sale</button>
+            <button type="button" class="tpl-chip" data-tpl="Reminder: Your appointment is confirmed for tomorrow. Please reply YES to confirm or NO to reschedule. 📅"><i class="fa-solid fa-calendar-check"></i> Reminder</button>
+            <button type="button" class="tpl-chip" data-tpl="Hi! Thank you for being a valued customer. We appreciate your support and look forward to serving you again! 🙏"><i class="fa-solid fa-heart"></i> Thanks</button>
+          </div>
+        </details>
       </div>
 
     </div>
 
-    <!-- COL 3: SETTINGS + BROADCAST -->
-    <div class="broadcast-col">
+    <!-- COL 3: BROADCAST CONTROL -->
+    <div class="broadcast-col bcast-panel-v2">
 
-      <!-- Settings -->
-      <div class="compose-section">
-        <div class="compose-hdr">
-          <h3><i class="fa-solid fa-sliders compose-hdr-icon"></i> Settings</h3>
+      <header class="bcast-panel-v2__head">
+        <div class="bcast-panel-v2__title">
+          <i class="fa-solid fa-bullhorn"></i>
+          <span>Broadcast control</span>
         </div>
-        <label class="field-label"><i class="fa-solid fa-clock"></i> Delay Between Messages</label>
-        <div class="delay-presets" id="delayPresets" role="group" aria-label="Delay between messages">
-          <button type="button" class="delay-preset" data-delay="3000">
+        <div class="bcast-mode-switch mode-pills" role="tablist" aria-label="Broadcast mode">
+          <button type="button" class="mode-pill active" id="modeManualBtn" role="tab">Manual</button>
+          <button type="button" class="mode-pill" id="modeMultiBtn" role="tab">Multi</button>
+          <button type="button" class="mode-pill" id="modeAutoBtn" role="tab">Auto</button>
+        </div>
+      </header>
+
+      <section class="bcast-panel-v2__section">
+        <label class="bcast-panel-v2__label"><i class="fa-solid fa-clock"></i> Delay between messages</label>
+        <div class="delay-presets delay-presets--compact" id="delayPresets" role="group" aria-label="Delay between messages">
+          <button type="button" class="delay-preset" data-delay="3000" title="Safer for rate limits">
             <i class="fa-solid fa-shield-halved"></i>
             <span class="delay-name">Slow</span>
-            <span class="delay-value">3000 ms</span>
+            <span class="delay-value">3s</span>
           </button>
-          <button type="button" class="delay-preset active" data-delay="1200">
+          <button type="button" class="delay-preset active" data-delay="1200" title="Recommended">
             <i class="fa-solid fa-gauge"></i>
             <span class="delay-name">Normal</span>
-            <span class="delay-value">1200 ms</span>
+            <span class="delay-value">1.2s</span>
           </button>
-          <button type="button" class="delay-preset" data-delay="500">
+          <button type="button" class="delay-preset" data-delay="500" title="Faster, higher risk">
             <i class="fa-solid fa-bolt"></i>
             <span class="delay-name">Fast</span>
-            <span class="delay-value">500 ms</span>
+            <span class="delay-value">0.5s</span>
           </button>
         </div>
         <input id="delayMs" type="hidden" value="1200">
-        <div class="field-hint"><i class="fa-solid fa-circle-info" style="color:var(--primary-light);margin-right:4px"></i>Slow: safer · Normal: recommended · Fast: aggressive</div>
-      </div>
+      </section>
 
-      <!-- Broadcast -->
-      <div class="compose-section">
-        <div class="compose-hdr">
-          <h3><i class="fa-solid fa-bullhorn compose-hdr-icon"></i> Broadcast</h3>
-          <div class="mode-pills">
-            <button class="mode-pill active" id="modeManualBtn">Manual</button>
-            <button class="mode-pill" id="modeMultiBtn">Multi</button>
-            <button class="mode-pill" id="modeAutoBtn">Auto All</button>
-          </div>
-        </div>
-
-        <div class="bcast-mini-stats" id="broadcastMiniStats">
+      <section class="bcast-panel-v2__status">
+        <p id="sendHint" class="bcast-hint">Select a page, write your message, then start.</p>
+        <div class="bcast-mini-stats bcast-mini-stats--inline" id="broadcastMiniStats" aria-label="Session totals">
           <div class="bcast-mini-stat bms-total">
-            <div class="bcast-mini-stat-val" id="miniStatTotal">0</div>
-            <div class="bcast-mini-stat-lbl">Total</div>
+            <span class="bcast-mini-stat-val" id="miniStatTotal">0</span>
+            <span class="bcast-mini-stat-lbl">Total</span>
           </div>
           <div class="bcast-mini-stat bms-sent">
-            <div class="bcast-mini-stat-val" id="miniStatSent">0</div>
-            <div class="bcast-mini-stat-lbl">Sent</div>
+            <span class="bcast-mini-stat-val" id="miniStatSent">0</span>
+            <span class="bcast-mini-stat-lbl">Sent</span>
           </div>
           <div class="bcast-mini-stat bms-failed">
-            <div class="bcast-mini-stat-val" id="miniStatFailed">0</div>
-            <div class="bcast-mini-stat-lbl">Failed</div>
+            <span class="bcast-mini-stat-val" id="miniStatFailed">0</span>
+            <span class="bcast-mini-stat-lbl">Failed</span>
           </div>
         </div>
-        <div id="sendHint">Select a page, write message, then start broadcast</div>
+      </section>
 
-        <!-- Manual Mode -->
-        <div id="manualControls">
-          <div class="action-btns">
-            <button id="btnStart" class="act-btn"><i class="fa-solid fa-play"></i> Start Broadcast</button>
-          </div>
-        </div>
-
-        <!-- Multi-page parallel (different message per page) -->
-        <div id="multiControls" style="display:none">
-          <div class="multi-info">
-            <i class="fa-solid fa-layer-group"></i>
-            <span>Select pages in the sidebar, set a <strong>different message</strong> for each, then send <strong>in parallel</strong>.</span>
-          </div>
-          <p class="multi-page-count" id="multiPageCount">No pages selected</p>
-          <div id="multiPageMessages" class="multi-page-messages">
-            <p class="multi-page-empty">Select pages in the sidebar to configure messages.</p>
-          </div>
-          <button type="button" class="btn-extra btn-multi-apply" id="btnMultiApplyMain">
-            <i class="fa-solid fa-copy"></i> Copy main message to all
+      <section class="bcast-panel-v2__modes">
+        <div id="manualControls" class="bcast-mode-pane">
+          <button type="button" id="btnStart" class="bcast-cta bcast-cta--primary">
+            <i class="fa-solid fa-play"></i> Start broadcast
           </button>
-          <p class="multi-status" id="multiStatusText"></p>
-          <div class="action-btns">
-            <button type="button" id="btnMultiStart" class="act-btn"><i class="fa-solid fa-play"></i> Start parallel broadcast</button>
-          </div>
         </div>
 
-        <div id="broadcastTransport" class="broadcast-transport">
-          <div class="action-btns">
-            <button id="btnPause" class="act-btn"><i class="fa-solid fa-pause"></i> Pause</button>
-            <button id="btnResume" class="act-btn"><i class="fa-solid fa-rotate-right"></i> Resume</button>
-            <button id="btnStop" class="act-btn"><i class="fa-solid fa-stop"></i> Stop</button>
-          </div>
-          <div class="extra-actions">
-            <button type="button" class="btn-extra btn-retry" id="btnRetryFailed" disabled title="Retry all failed messages">
-              <i class="fa-solid fa-rotate-right"></i> Retry Failed
+        <div id="multiControls" class="bcast-mode-pane" style="display:none">
+          <div class="bcast-multi-bar">
+            <span class="bcast-multi-count" id="multiPageCount">No pages selected</span>
+            <button type="button" class="bcast-link-btn" id="btnMultiApplyMain">
+              <i class="fa-solid fa-copy"></i> Copy from main
             </button>
           </div>
+          <div id="multiPageMessages" class="bcast-page-msgs">
+            <p class="bcast-page-msgs__empty">Click pages in the sidebar to set per-page messages.</p>
+          </div>
+          <p class="bcast-live-status" id="multiStatusText" aria-live="polite"></p>
+          <button type="button" id="btnMultiStart" class="bcast-cta bcast-cta--primary">
+            <i class="fa-solid fa-play"></i> Start parallel broadcast
+          </button>
         </div>
 
-        <!-- Auto Mode -->
-        <div id="autoControls" style="display:none">
-          <div class="auto-info" id="autoStatusCard">
+        <div id="autoControls" class="bcast-mode-pane" style="display:none">
+          <div class="bcast-auto-status" id="autoStatusCard">
             <i class="fa-solid fa-circle-info"></i>
-            <span>All pages will be broadcast sequentially — fully automated.</span>
+            <span>Same message to every page, sent one after another.</span>
           </div>
-          <div id="autoPageBadge" style="display:none" class="page-badge">
+          <div id="autoPageBadge" class="bcast-page-badge" style="display:none">
             <i class="fa-solid fa-flag"></i>
             <span id="autoPageBadgeText">Page 1 / 1</span>
           </div>
-          <div class="action-btns">
-            <button id="btnAutoStart"  class="act-btn"><i class="fa-solid fa-play"></i> Auto Start All Pages</button>
-            <button id="btnAutoPause"  class="act-btn" disabled><i class="fa-solid fa-pause"></i> Pause</button>
-            <button id="btnAutoResume" class="act-btn" disabled><i class="fa-solid fa-rotate-right"></i> Resume</button>
-            <button id="btnAutoStop"   class="act-btn" disabled><i class="fa-solid fa-stop"></i> Stop</button>
-          </div>
+          <button type="button" id="btnAutoStart" class="bcast-cta bcast-cta--primary">
+            <i class="fa-solid fa-play"></i> Start auto broadcast
+          </button>
         </div>
-      </div>
+      </section>
 
-      <!-- Quick Templates -->
-      <div class="compose-section">
-        <div class="compose-hdr">
-          <h3><i class="fa-solid fa-wand-magic-sparkles compose-hdr-icon"></i> Quick Templates</h3>
+      <footer id="broadcastTransport" class="bcast-toolbar">
+        <div class="bcast-toolbar__group" aria-label="Playback controls">
+          <button type="button" id="btnPause" class="bcast-tool-btn bcast-tool-btn--pause" title="Pause" disabled>
+            <i class="fa-solid fa-pause"></i>
+          </button>
+          <button type="button" id="btnResume" class="bcast-tool-btn" title="Resume" disabled>
+            <i class="fa-solid fa-play"></i>
+          </button>
+          <button type="button" id="btnStop" class="bcast-tool-btn bcast-tool-btn--stop" title="Stop" disabled>
+            <i class="fa-solid fa-stop"></i>
+          </button>
         </div>
-        <div class="quick-tpls">
-          <div class="tpl-item" data-tpl="Hi! Your order has been shipped and will arrive in 2-3 days. Thank you for shopping with us! 🚚">
-            <div class="tpl-icon tpl-icon--order"><i class="fa-solid fa-box"></i></div>
-            <div class="tpl-body">
-              <div class="tpl-name">Order Update</div>
-              <div class="tpl-preview">Your order has been shipped and will arrive…</div>
-            </div>
-            <i class="fa-solid fa-chevron-right tpl-arrow"></i>
-          </div>
-          <div class="tpl-item" data-tpl="🎉 Flash Sale! Get 30% OFF everything today only. Limited time offer — shop now before it ends!">
-            <div class="tpl-icon tpl-icon--sale"><i class="fa-solid fa-tags"></i></div>
-            <div class="tpl-body">
-              <div class="tpl-name">Flash Sale</div>
-              <div class="tpl-preview">🎉 Get 30% OFF everything today only…</div>
-            </div>
-            <i class="fa-solid fa-chevron-right tpl-arrow"></i>
-          </div>
-          <div class="tpl-item" data-tpl="Reminder: Your appointment is confirmed for tomorrow. Please reply YES to confirm or NO to reschedule. 📅">
-            <div class="tpl-icon tpl-icon--reminder"><i class="fa-solid fa-calendar-check"></i></div>
-            <div class="tpl-body">
-              <div class="tpl-name">Appointment Reminder</div>
-              <div class="tpl-preview">Your appointment is confirmed for tomorrow…</div>
-            </div>
-            <i class="fa-solid fa-chevron-right tpl-arrow"></i>
-          </div>
-          <div class="tpl-item" data-tpl="Hi! Thank you for being a valued customer. We appreciate your support and look forward to serving you again! 🙏">
-            <div class="tpl-icon tpl-icon--greet"><i class="fa-solid fa-heart"></i></div>
-            <div class="tpl-body">
-              <div class="tpl-name">Thank You</div>
-              <div class="tpl-preview">Thank you for being a valued customer…</div>
-            </div>
-            <i class="fa-solid fa-chevron-right tpl-arrow"></i>
-          </div>
-        </div>
-      </div>
+        <button type="button" class="bcast-tool-btn bcast-tool-btn--retry" id="btnRetryFailed" disabled title="Retry failed messages">
+          <i class="fa-solid fa-rotate-right"></i>
+          <span>Retry failed</span>
+        </button>
+      </footer>
 
-      <!-- Best Practices -->
-      <div class="compose-section">
-        <div class="compose-hdr">
-          <h3><i class="fa-solid fa-lightbulb compose-hdr-icon"></i> Best Practices</h3>
-        </div>
-        <div class="tips-list">
-          <div class="tip-item"><i class="fa-solid fa-circle-check"></i><span>Keep messages under 200 chars for better readability</span></div>
-          <div class="tip-item"><i class="fa-solid fa-circle-check"></i><span>Use <strong>Normal</strong> delay to avoid Facebook rate limits</span></div>
-          <div class="tip-item"><i class="fa-solid fa-circle-check"></i><span>Test with a small page before broadcasting to all</span></div>
-          <div class="tip-item"><i class="fa-solid fa-circle-check"></i><span>Avoid promotional keywords to reduce policy risk</span></div>
-          <div class="tip-item"><i class="fa-solid fa-circle-check"></i><span>Add an image to increase message engagement rates</span></div>
-        </div>
-      </div>
+    </div><!-- /broadcast-col -->
 
     </div><!-- /view-broadcast -->
 

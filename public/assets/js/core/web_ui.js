@@ -496,18 +496,25 @@ function updateStats() {
 
 function setManualBroadcastButtons(state) {
   const btnStart = $('btnStart');
+  const btnMultiStart = $('btnMultiStart');
   const btnPause = $('btnPause');
   const btnResume = $('btnResume');
   const btnStop = $('btnStop');
-  if (!btnStart) return;
+  const startBtn = document.body.classList.contains('shell-multi-broadcast') ? btnMultiStart : btnStart;
+  if (!startBtn && !btnPause) return;
   const idle = state === 'idle';
   const running = state === 'running';
   const paused = state === 'paused';
-  btnStart.disabled = !idle;
-  if (idle) setLoading(btnStart, false);
-  btnPause.disabled = !running;
-  btnResume.disabled = !paused;
-  btnStop.disabled = idle;
+  if (btnStart) {
+    btnStart.disabled = !idle || document.body.classList.contains('shell-multi-broadcast');
+    if (idle) setLoading(btnStart, false);
+  }
+  if (btnMultiStart) {
+    btnMultiStart.disabled = !idle || !document.body.classList.contains('shell-multi-broadcast');
+  }
+  if (btnPause) btnPause.disabled = !running;
+  if (btnResume) btnResume.disabled = !paused;
+  if (btnStop) btnStop.disabled = idle;
 }
 
 function finishManualBroadcast(summary) {

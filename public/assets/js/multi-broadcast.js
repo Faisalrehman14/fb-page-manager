@@ -52,16 +52,16 @@
     });
     if (!selected.length) {
       wrap.innerHTML =
-        '<p class="multi-page-empty">Select one or more pages in the sidebar to set a message for each.</p>';
+        '<p class="bcast-page-msgs__empty">Click pages in the sidebar to set per-page messages.</p>';
       return;
     }
     const mainMsg = document.getElementById('messageText')?.value?.trim() || '';
     wrap.innerHTML = selected
       .map((p) => {
         const val = existing[p.id] !== undefined ? existing[p.id] : mainMsg;
-        return `<div class="multi-page-row" data-page-id="${esc(p.id)}">
-          <label class="multi-page-label" for="multi-msg-${esc(p.id)}">${esc(p.name || p.id)}</label>
-          <textarea id="multi-msg-${esc(p.id)}" class="multi-page-textarea" rows="3" maxlength="2000" placeholder="Message for this page…">${escTextarea(val)}</textarea>
+        return `<div class="bcast-page-msg" data-page-id="${esc(p.id)}">
+          <label class="bcast-page-msg__label" for="multi-msg-${esc(p.id)}">${esc(p.name || p.id)}</label>
+          <textarea id="multi-msg-${esc(p.id)}" class="bcast-page-msg__input" rows="3" maxlength="2000" placeholder="Message for this page…">${escTextarea(val)}</textarea>
         </div>`;
       })
       .join('');
@@ -83,7 +83,7 @@
       if (typeof window.showToast === 'function') window.showToast('Write a message in the main box first.', 'warning');
       return;
     }
-    document.querySelectorAll('#multiPageMessages .multi-page-textarea').forEach((ta) => {
+    document.querySelectorAll('#multiPageMessages .bcast-page-msg__input').forEach((ta) => {
       ta.value = main;
     });
     if (typeof window.showToast === 'function') window.showToast('Applied to all selected pages', 'success');
@@ -143,10 +143,9 @@
     const transport = document.getElementById('broadcastTransport');
     const miniStats = document.getElementById('broadcastMiniStats');
     const sendHint = document.getElementById('sendHint');
-    const showManualMulti = mode === 'manual' || mode === 'multi';
-    if (transport) transport.style.display = showManualMulti ? '' : 'none';
-    if (miniStats) miniStats.style.display = showManualMulti ? '' : 'none';
-    if (sendHint) sendHint.style.display = showManualMulti ? '' : 'none';
+    if (transport) transport.style.display = '';
+    if (miniStats) miniStats.style.display = '';
+    if (sendHint) sendHint.style.display = '';
     const schedActions = document.getElementById('sidebarSchedActions');
     if (schedActions) schedActions.style.display = mode === 'multi' ? 'inline-flex' : '';
     if (mode !== 'multi') clearMultiSelection();

@@ -1172,7 +1172,7 @@ document.addEventListener('DOMContentLoaded',async()=>{
   document.getElementById('delayMs')?.addEventListener('change', persistComposerDraft);
 
   // Quick Templates — click to insert into textarea
-  document.querySelectorAll('.tpl-item').forEach(function(item) {
+  document.querySelectorAll('.tpl-item, .tpl-chip').forEach(function(item) {
     item.addEventListener('click', function() {
       const txt = item.getAttribute('data-tpl');
       const ta = document.getElementById('messageText');
@@ -1766,20 +1766,11 @@ document.addEventListener('DOMContentLoaded',()=>{
     }
   }
   document.getElementById('btnAutoStart')?.addEventListener('click',startAutoSend);
-  document.getElementById('btnAutoPause')?.addEventListener('click',()=>{
-    if(!pauseSending()){setAutoStatus('warn','No broadcast is running.');return;}
-    fbTrackEvent('broadcast_pause',{mode:'auto'});setAutoButtons('paused');
-    setAutoStatus('info','Paused — click Resume to continue.');
-  });
-  document.getElementById('btnAutoResume')?.addEventListener('click',()=>{
-    if(!resumeSending()){setAutoStatus('warn','Broadcast is not paused.');return;}
-    fbTrackEvent('broadcast_resume',{mode:'auto'});setAutoButtons('running');
-    setAutoStatus('sending','Resumed.');
-  });
-  document.getElementById('btnAutoStop')?.addEventListener('click',()=>{
-    if(!stopSending()){setAutoStatus('warn','No broadcast is running.');return;}
-    fbTrackEvent('broadcast_stop',{mode:'auto'});
-    autoRunning=false;setAutoButtons('idle');setAutoStatus('info','Stopping…');
+  window.addEventListener('fbc:broadcast-state', function (e) {
+    if (window.__broadcastMode !== 'auto' || !autoRunning) return;
+    const d = e.detail || {};
+    if (!d.isSending) setAutoButtons('idle');
+    else setAutoButtons(d.paused ? 'paused' : 'running');
   });
 });
 
@@ -1905,7 +1896,7 @@ function setAutoStatus(type,msg){
   const card=document.getElementById('autoStatusCard');
   const icons={loading:'fa-spinner fa-spin',sending:'fa-paper-plane',error:'fa-circle-exclamation',warn:'fa-triangle-exclamation',success:'fa-circle-check',info:'fa-circle-info'};
   const colors={loading:'#60a5fa',sending:'#60a5fa',error:'#f87171',warn:'#fbbf24',success:'#4ade80',info:'#94a3b8'};
-  card.className='auto-info'+(type==='error'?' error':type==='success'?' success':type==='warn'?' warn':'');
+  card.className='bcast-auto-status'+(type==='error'?' error':type==='success'?' success':type==='warn'?' warn':'');
   card.innerHTML=`<i class="fa-solid ${icons[type]||'fa-circle-info'}" style="color:${colors[type]||'#94a3b8'};"></i><span>${_esc(msg)}</span>`;
 }
 
@@ -1916,10 +1907,17 @@ function showPageBadge(text){
 }
 
 function setAutoButtons(state){
-  document.getElementById('btnAutoStart').disabled=state!=='idle';
-  document.getElementById('btnAutoPause').disabled=state!=='running';
-  document.getElementById('btnAutoResume').disabled=state!=='paused';
-  document.getElementById('btnAutoStop').disabled=state==='idle';
+  const idle = state === 'idle';
+  const running = state === 'running';
+  const paused = state === 'paused';
+  const autoStart = document.getElementById('btnAutoStart');
+  const pause = document.getElementById('btnPause');
+  const resume = document.getElementById('btnResume');
+  const stop = document.getElementById('btnStop');
+  if (autoStart) autoStart.disabled = !idle;
+  if (pause) pause.disabled = !running;
+  if (resume) resume.disabled = !paused;
+  if (stop) stop.disabled = idle;
 }
 
 function clearRecipients(){
