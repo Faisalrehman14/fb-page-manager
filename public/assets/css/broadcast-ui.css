@@ -538,13 +538,20 @@ body.shell-broadcast #appPage > .app-body {
 body.shell-broadcast #appPage .nav-sidebar {
   grid-column: 1;
   grid-row: 1;
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
   align-self: stretch;
-  min-width: 0 !important;
-  max-width: var(--bcast-nav-w, 72px) !important;
   width: var(--bcast-nav-w, 72px) !important;
+  min-width: var(--bcast-nav-w, 72px) !important;
   border-radius: 0 !important;
   z-index: 40;
   overflow: hidden;
+  transition:
+    width var(--ds-duration-slow, 0.35s) var(--ds-ease, ease),
+    min-width var(--ds-duration-slow, 0.35s) var(--ds-ease, ease),
+    box-shadow 0.25s ease !important;
 }
 
 body.shell-broadcast #appPage .sidebar {
@@ -593,16 +600,10 @@ body.shell-broadcast #appPage .stats-panel {
   border-radius: 0 !important;
 }
 
-/* Nav hover — full expand as overlay so the grid columns stay fixed */
+/* Nav hover — smooth expand as overlay; grid column 1 stays 72px */
 body.shell-broadcast #appPage .nav-sidebar:hover {
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
   width: var(--ds-nav-width-expanded, 200px) !important;
   min-width: var(--ds-nav-width-expanded, 200px) !important;
-  max-width: var(--ds-nav-width-expanded, 200px) !important;
-  overflow: hidden;
   z-index: 50 !important;
   box-shadow: 4px 0 28px rgba(0, 0, 0, 0.35) !important;
 }

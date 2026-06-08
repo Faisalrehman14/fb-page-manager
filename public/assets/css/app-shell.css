@@ -70,10 +70,14 @@ body.app-dashboard-active #appPage {
   min-width: var(--ds-nav-width, 72px) !important;
   background: linear-gradient(180deg, var(--bg2, #060F22) 0%, var(--bg, #030C1A) 100%) !important;
   border-right: 1px solid var(--ds-border) !important;
-  transition: width var(--ds-duration-slow, 0.35s) var(--ds-ease, ease) !important;
+  transition:
+    width var(--ds-duration-slow, 0.35s) var(--ds-ease, ease),
+    min-width var(--ds-duration-slow, 0.35s) var(--ds-ease, ease),
+    box-shadow 0.25s ease !important;
 }
 .nav-sidebar:hover {
   width: var(--ds-nav-width-expanded, 200px) !important;
+  min-width: var(--ds-nav-width-expanded, 200px) !important;
 }
 .nav-side-item {
   position: relative;
@@ -109,12 +113,50 @@ body.app-dashboard-active #appPage {
 
 /* ─── Sidebar columns — consistent left-rail layout (flex sections) ─── */
 #appPage > .app-body {
+  position: relative;
   flex-direction: row;
   flex-wrap: nowrap;
   align-items: stretch;
 }
 
-#appPage .nav-sidebar,
+/* Reserve 72px for the nav rail; the rail expands as an overlay on hover */
+#appPage > .app-body::before {
+  content: '';
+  display: block;
+  width: var(--ds-nav-width, 72px);
+  min-width: var(--ds-nav-width, 72px);
+  flex-shrink: 0;
+  order: -1;
+}
+
+body.shell-broadcast #appPage > .app-body::before {
+  display: none;
+}
+
+#appPage .nav-sidebar {
+  position: absolute;
+  top: 12px;
+  bottom: 12px;
+  left: 12px;
+  z-index: 40;
+  align-self: auto;
+  flex-shrink: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+#appPage .nav-sidebar:hover {
+  z-index: 50;
+  box-shadow: 4px 0 28px rgba(0, 0, 0, 0.32) !important;
+}
+
+body.shell-scheduling #appPage .nav-sidebar,
+body.shell-broadcast #appPage .nav-sidebar {
+  top: 0;
+  bottom: 0;
+  left: 0;
+}
+
 #appPage .sidebar {
   flex-shrink: 0;
   align-self: stretch;
@@ -420,6 +462,7 @@ body.shell-messenger .nav-sidebar { display: flex !important; }
 /* ─── Responsive ─── */
 @media (max-width: 900px) {
   .nav-sidebar { display: none !important; }
+  #appPage > .app-body::before { display: none !important; }
   .app-topbar { padding: 0 var(--ds-space-4, 16px); }
   #appPage {
     flex-direction: column;
