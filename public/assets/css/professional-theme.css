@@ -1230,7 +1230,8 @@ body.light.app-dashboard-active {
 body.shell-scheduling #appPage > .app-body,
 body.shell-broadcast #appPage > .app-body,
 body.shell-messenger #appPage > .app-body,
-body.shell-home #appPage > .app-body {
+body.shell-home #appPage > .app-body,
+body.app-dashboard-active #appPage > .app-body {
   gap: 0 !important;
   padding: 0 !important;
   background: var(--sched-bg) !important;
@@ -1690,6 +1691,400 @@ html[data-theme='light'] body.app-dashboard-active #appPage .page-card.active .p
 html[data-theme='light'] body.app-dashboard-active #appPage .page-card.selected .page-name,
 body.light.app-dashboard-active #appPage .page-card.active .page-name,
 body.light.app-dashboard-active #appPage .page-card.selected .page-name {
+  color: #5b21b6 !important;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   DASHBOARD — main content panels (match sidebar indigo shell)
+   Home · Broadcast · Messenger · Analytics · Settings
+═══════════════════════════════════════════════════════════ */
+
+body.app-dashboard-active #appPage {
+  --pro-surface: var(--sched-surface);
+  --pro-surface-raised: var(--sched-surface);
+  --pro-bg-subtle: var(--sched-surface-2);
+  --pro-bg-elevated: var(--sched-surface);
+  --pro-border: var(--sched-edge);
+  --pro-divider: var(--sched-edge);
+  --pro-border-strong: var(--sched-edge);
+  --pro-text: var(--sched-text);
+  --pro-text-secondary: var(--sched-text-2);
+  --pro-text-muted: var(--sched-text-3);
+  --pro-accent: var(--sched-accent);
+  --pro-accent-muted: var(--sched-accent-soft);
+  --pro-accent-subtle: var(--sched-accent-soft);
+  --pro-accent-border: rgba(99, 102, 241, 0.28);
+  --pro-accent-hover: #4f46e5;
+  --pro-gradient-brand: linear-gradient(135deg, #6366f1 0%, #4f46e5 52%, #7c3aed 100%);
+  --pro-shadow-focus: 0 0 0 3px rgba(99, 102, 241, 0.22);
+}
+
+/* ── Shared panels, cards, headers ── */
+body.app-dashboard-active #appPage .pro-card,
+body.app-dashboard-active #appPage .compose,
+body.app-dashboard-active #appPage .compose-col,
+body.app-dashboard-active #appPage .broadcast-col,
+body.app-dashboard-active #appPage .stats-panel,
+body.app-dashboard-active #appPage .settings-card,
+body.app-dashboard-active #appPage .saas-billing-card,
+body.app-dashboard-active #appPage .hv-stat,
+body.app-dashboard-active #appPage .hv-kpi-card,
+body.app-dashboard-active #appPage .hv-action-card,
+body.app-dashboard-active #appPage .hv-bottom-card {
+  background: var(--sched-surface) !important;
+  border-color: var(--sched-edge) !important;
+  box-shadow: none !important;
+}
+
+body.app-dashboard-active #appPage .pro-view__head,
+body.app-dashboard-active #appPage .compose-hdr,
+body.app-dashboard-active #appPage .bcast-panel-v2__head,
+body.app-dashboard-active #appPage .stats-hdr,
+body.app-dashboard-active #appPage .analytics-card-hdr {
+  background: linear-gradient(180deg, rgba(16, 22, 48, 0.98) 0%, rgba(8, 12, 28, 0.96) 100%) !important;
+  border-bottom-color: var(--sched-edge) !important;
+}
+
+body.app-dashboard-active #appPage .pro-view__title,
+body.app-dashboard-active #appPage .pro-view__head h2,
+body.app-dashboard-active #appPage .compose-hdr h3,
+body.app-dashboard-active #appPage .bcast-panel-v2__title,
+body.app-dashboard-active #appPage .settings-card h4,
+body.app-dashboard-active #appPage .analytics-card-title {
+  color: var(--sched-text) !important;
+}
+
+body.app-dashboard-active #appPage .pro-view__sub,
+body.app-dashboard-active #appPage .pro-view__eyebrow,
+body.app-dashboard-active #appPage .settings-card p,
+body.app-dashboard-active #appPage .analytics-card-caption {
+  color: var(--sched-text-2) !important;
+}
+
+body.app-dashboard-active #appPage .pro-view__eyebrow i,
+body.app-dashboard-active #appPage .bcast-panel-v2__label i {
+  color: var(--sched-accent) !important;
+}
+
+/* ── Buttons ── */
+body.app-dashboard-active #appPage .ds-btn--primary,
+body.app-dashboard-active #appPage .hv-hero-cta,
+body.app-dashboard-active #appPage .hv-action-btn,
+body.app-dashboard-active #appPage #btnStart,
+body.app-dashboard-active #appPage .compose-send,
+body.app-dashboard-active #appPage #sendBtn {
+  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 52%, #7c3aed 100%) !important;
+  border-color: rgba(139, 92, 246, 0.35) !important;
+  box-shadow: 0 4px 14px rgba(99, 102, 241, 0.28) !important;
+  color: #fff !important;
+}
+
+body.app-dashboard-active #appPage .ds-btn--primary:hover:not(:disabled),
+body.app-dashboard-active #appPage .hv-hero-cta:hover,
+body.app-dashboard-active #appPage .hv-action-btn:hover {
+  background: linear-gradient(135deg, #7c3aed 0%, #6366f1 50%, #4f46e5 100%) !important;
+  box-shadow: 0 6px 20px rgba(99, 102, 241, 0.35) !important;
+}
+
+body.app-dashboard-active #appPage .ds-btn--secondary,
+body.app-dashboard-active #appPage .ds-btn--ghost,
+body.app-dashboard-active #appPage .period-btn,
+body.app-dashboard-active #appPage .delay-preset,
+body.app-dashboard-active #appPage .tpl-chip {
+  background: rgba(255, 255, 255, 0.04) !important;
+  border-color: var(--sched-edge) !important;
+  color: var(--sched-text-2) !important;
+}
+
+body.app-dashboard-active #appPage .ds-btn--secondary:hover:not(:disabled),
+body.app-dashboard-active #appPage .ds-btn--ghost:hover:not(:disabled),
+body.app-dashboard-active #appPage .period-btn:hover:not(.active),
+body.app-dashboard-active #appPage .delay-preset:hover:not(.active),
+body.app-dashboard-active #appPage .tpl-chip:hover {
+  background: var(--sched-accent-soft) !important;
+  border-color: rgba(99, 102, 241, 0.35) !important;
+  color: var(--sched-text) !important;
+}
+
+body.app-dashboard-active #appPage .period-btn.active,
+body.app-dashboard-active #appPage .delay-preset.active,
+body.app-dashboard-active #appPage .settings-segmented .seg-opt.active {
+  background: var(--sched-accent-soft) !important;
+  border-color: rgba(99, 102, 241, 0.4) !important;
+  color: #c4b5fd !important;
+  box-shadow: inset 0 0 0 1px rgba(139, 92, 246, 0.15) !important;
+}
+
+body.app-dashboard-active #appPage .delay-preset.active::after {
+  background: var(--sched-accent) !important;
+}
+
+/* ── Home ── */
+body.app-dashboard-active #view-home {
+  background: var(--sched-bg) !important;
+}
+
+body.app-dashboard-active #view-home .hv-hero {
+  background:
+    linear-gradient(118deg, rgba(99, 102, 241, 0.14) 0%, transparent 58%),
+    linear-gradient(180deg, rgba(16, 22, 48, 0.98) 0%, rgba(8, 12, 28, 0.96) 100%) !important;
+  border-color: var(--sched-edge) !important;
+}
+
+body.app-dashboard-active #view-home .hv-hero-name {
+  background: linear-gradient(135deg, #a5b4fc 0%, #c4b5fd 55%, #e9d5ff 100%) !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+}
+
+body.app-dashboard-active #view-home .hv-kpi-icon.hv-kpi-indigo,
+body.app-dashboard-active #view-home .hv-hero-cta {
+  background: linear-gradient(135deg, #6366f1, #4f46e5) !important;
+}
+
+/* ── Broadcast ── */
+body.app-dashboard-active #view-broadcast {
+  background: transparent !important;
+}
+
+body.app-dashboard-active #appPage .compose-hdr,
+body.app-dashboard-active #appPage .bcast-panel-v2__head,
+body.app-dashboard-active #appPage .stats-hdr {
+  color: var(--sched-text) !important;
+}
+
+body.app-dashboard-active #appPage #messageText,
+body.app-dashboard-active #appPage .compose-textarea,
+body.app-dashboard-active #appPage .img-attach-panel,
+body.app-dashboard-active #appPage .img-drop-zone,
+body.app-dashboard-active #appPage .quick-stat-card,
+body.app-dashboard-active #appPage .intel-card,
+body.app-dashboard-active #appPage .bcast-mini-stat,
+body.app-dashboard-active #appPage .stat-box,
+body.app-dashboard-active #appPage .progress-bar-area,
+body.app-dashboard-active #appPage .progress-track {
+  background: var(--sched-surface-2) !important;
+  border-color: var(--sched-edge) !important;
+  color: var(--sched-text) !important;
+}
+
+body.app-dashboard-active #appPage #messageText:focus {
+  border-color: var(--sched-accent) !important;
+  box-shadow: var(--pro-shadow-focus) !important;
+}
+
+body.app-dashboard-active #appPage .char-count-fill,
+body.app-dashboard-active #appPage .progress-fill,
+body.app-dashboard-active #appPage .stat-box.s-total::before {
+  background: linear-gradient(90deg, #6366f1, #8b5cf6) !important;
+  box-shadow: none !important;
+}
+
+body.app-dashboard-active #appPage .stat-box.s-total .stat-val {
+  color: #c4b5fd !important;
+}
+
+body.app-dashboard-active #appPage .compose-tpl-acc {
+  background: var(--sched-surface-2) !important;
+  border-color: var(--sched-edge) !important;
+}
+
+body.app-dashboard-active #appPage .compose-tpl-acc summary i {
+  color: var(--sched-accent) !important;
+}
+
+/* ── Messenger ── */
+body.app-dashboard-active .msng-layout-pro {
+  --msng-bg-canvas: var(--sched-bg);
+  --msng-bg-panel: var(--sched-surface);
+  --msng-bg-subtle: var(--sched-surface-2);
+  --msng-text-primary: var(--sched-text);
+  --msng-text-secondary: var(--sched-text-2);
+  --msng-text-muted: var(--sched-text-3);
+  --msng-border-light: var(--sched-edge);
+  --msng-accent: var(--sched-accent);
+  --msng-accent-hover: #4f46e5;
+  --msng-bubble-out: var(--sched-accent);
+}
+
+body.app-dashboard-active #view-messenger:has(.msng-layout-pro) {
+  background: var(--sched-bg) !important;
+}
+
+body.app-dashboard-active .msng-layout-pro .msng-convs-hdr,
+body.app-dashboard-active .msng-layout-pro .msng-pages,
+body.app-dashboard-active .msng-layout-pro .msng-chat-hdr,
+body.app-dashboard-active .msng-layout-pro .msng-composer {
+  background: var(--sched-surface) !important;
+  border-color: var(--sched-edge) !important;
+}
+
+body.app-dashboard-active .msng-layout-pro .msng-convs-title,
+body.app-dashboard-active .msng-layout-pro .msng-chat-hdr-name {
+  color: var(--sched-text) !important;
+}
+
+body.app-dashboard-active .msng-layout-pro .msng-filter-chip.active,
+body.app-dashboard-active .msng-layout-pro .msng-icon-btn:hover {
+  background: var(--sched-accent-soft) !important;
+  border-color: rgba(99, 102, 241, 0.35) !important;
+  color: #c4b5fd !important;
+}
+
+/* ── Analytics & Settings ── */
+body.app-dashboard-active #view-analytics,
+body.app-dashboard-active #view-settings {
+  background: var(--sched-bg) !important;
+}
+
+body.app-dashboard-active #view-analytics .analytics-kpi,
+body.app-dashboard-active #view-analytics .analytics-chart-box,
+body.app-dashboard-active #view-analytics .analytics-leaderboard,
+body.app-dashboard-active #view-analytics .analytics-heatmap-card {
+  background: var(--sched-surface) !important;
+  border-color: var(--sched-edge) !important;
+}
+
+body.app-dashboard-active #view-analytics .akpi-blue::before {
+  background: linear-gradient(90deg, #6366f1, #8b5cf6) !important;
+}
+
+body.app-dashboard-active #view-analytics .akpi-purple::before {
+  background: linear-gradient(90deg, #7c3aed, #a78bfa) !important;
+}
+
+body.app-dashboard-active #view-analytics .analytics-kpi:hover {
+  border-color: rgba(99, 102, 241, 0.28) !important;
+  box-shadow: 0 12px 32px rgba(99, 102, 241, 0.1) !important;
+}
+
+body.app-dashboard-active #view-analytics .pro-chart-bar {
+  fill: rgba(99, 102, 241, 0.75) !important;
+}
+
+body.app-dashboard-active #view-analytics .pro-chart-bar:hover {
+  fill: #8b5cf6 !important;
+}
+
+body.app-dashboard-active #view-settings .settings-header h3,
+body.app-dashboard-active #view-settings .settings-toggle {
+  color: var(--sched-text) !important;
+}
+
+body.app-dashboard-active #view-settings .settings-toggle {
+  background: var(--sched-surface-2) !important;
+  border-color: var(--sched-edge) !important;
+}
+
+body.app-dashboard-active #view-settings .settings-toggle:hover {
+  background: var(--sched-accent-soft) !important;
+  border-color: rgba(99, 102, 241, 0.35) !important;
+}
+
+body.app-dashboard-active #view-settings .saas-usage-bar {
+  background: var(--sched-surface-2) !important;
+}
+
+body.app-dashboard-active #view-settings .saas-usage-bar__fill {
+  background: linear-gradient(90deg, #6366f1, #8b5cf6) !important;
+}
+
+/* ── Light mode ── */
+html[data-theme='light'] body.app-dashboard-active #appPage .pro-card,
+html[data-theme='light'] body.app-dashboard-active #appPage .compose,
+html[data-theme='light'] body.app-dashboard-active #appPage .compose-col,
+html[data-theme='light'] body.app-dashboard-active #appPage .broadcast-col,
+html[data-theme='light'] body.app-dashboard-active #appPage .stats-panel,
+html[data-theme='light'] body.app-dashboard-active #appPage .settings-card,
+html[data-theme='light'] body.app-dashboard-active #appPage .saas-billing-card,
+html[data-theme='light'] body.app-dashboard-active #appPage .hv-stat,
+html[data-theme='light'] body.app-dashboard-active #appPage .hv-kpi-card,
+body.light.app-dashboard-active #appPage .pro-card,
+body.light.app-dashboard-active #appPage .compose,
+body.light.app-dashboard-active #appPage .compose-col,
+body.light.app-dashboard-active #appPage .broadcast-col,
+body.light.app-dashboard-active #appPage .stats-panel,
+body.light.app-dashboard-active #appPage .settings-card,
+body.light.app-dashboard-active #appPage .saas-billing-card,
+body.light.app-dashboard-active #appPage .hv-stat,
+body.light.app-dashboard-active #appPage .hv-kpi-card {
+  background: var(--sched-surface) !important;
+  border-color: var(--sched-edge) !important;
+}
+
+html[data-theme='light'] body.app-dashboard-active #appPage .pro-view__head,
+html[data-theme='light'] body.app-dashboard-active #appPage .compose-hdr,
+html[data-theme='light'] body.app-dashboard-active #appPage .bcast-panel-v2__head,
+body.light.app-dashboard-active #appPage .pro-view__head,
+body.light.app-dashboard-active #appPage .compose-hdr,
+body.light.app-dashboard-active #appPage .bcast-panel-v2__head {
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%) !important;
+  border-bottom-color: var(--sched-edge) !important;
+}
+
+html[data-theme='light'] body.app-dashboard-active #view-home .hv-hero,
+body.light.app-dashboard-active #view-home .hv-hero {
+  background:
+    linear-gradient(118deg, rgba(99, 102, 241, 0.08) 0%, transparent 58%),
+    linear-gradient(180deg, #ffffff 0%, #f8fafc 100%) !important;
+  border-color: var(--sched-edge) !important;
+}
+
+html[data-theme='light'] body.app-dashboard-active #appPage .ds-btn--secondary,
+html[data-theme='light'] body.app-dashboard-active #appPage .ds-btn--ghost,
+html[data-theme='light'] body.app-dashboard-active #appPage .period-btn,
+html[data-theme='light'] body.app-dashboard-active #appPage .delay-preset,
+html[data-theme='light'] body.app-dashboard-active #appPage .tpl-chip,
+body.light.app-dashboard-active #appPage .ds-btn--secondary,
+body.light.app-dashboard-active #appPage .ds-btn--ghost,
+body.light.app-dashboard-active #appPage .period-btn,
+body.light.app-dashboard-active #appPage .delay-preset,
+body.light.app-dashboard-active #appPage .tpl-chip {
+  background: #ffffff !important;
+  border-color: var(--sched-edge) !important;
+  color: var(--sched-text-2) !important;
+}
+
+html[data-theme='light'] body.app-dashboard-active #appPage .period-btn.active,
+html[data-theme='light'] body.app-dashboard-active #appPage .delay-preset.active,
+html[data-theme='light'] body.app-dashboard-active #appPage .settings-segmented .seg-opt.active,
+body.light.app-dashboard-active #appPage .period-btn.active,
+body.light.app-dashboard-active #appPage .delay-preset.active,
+body.light.app-dashboard-active #appPage .settings-segmented .seg-opt.active {
+  background: var(--sched-accent-soft) !important;
+  border-color: rgba(99, 102, 241, 0.28) !important;
+  color: #5b21b6 !important;
+}
+
+html[data-theme='light'] body.app-dashboard-active #appPage #messageText,
+html[data-theme='light'] body.app-dashboard-active #appPage .stat-box,
+html[data-theme='light'] body.app-dashboard-active #view-analytics .analytics-kpi,
+html[data-theme='light'] body.app-dashboard-active #view-analytics .analytics-chart-box,
+body.light.app-dashboard-active #appPage #messageText,
+body.light.app-dashboard-active #appPage .stat-box,
+body.light.app-dashboard-active #view-analytics .analytics-kpi,
+body.light.app-dashboard-active #view-analytics .analytics-chart-box {
+  background: var(--sched-surface-2) !important;
+  border-color: var(--sched-edge) !important;
+  color: var(--sched-text) !important;
+}
+
+html[data-theme='light'] body.app-dashboard-active .msng-layout-pro,
+body.light.app-dashboard-active .msng-layout-pro {
+  --msng-bg-canvas: var(--sched-bg);
+  --msng-bg-panel: var(--sched-surface);
+  --msng-bg-subtle: var(--sched-surface-2);
+  --msng-text-primary: var(--sched-text);
+  --msng-text-secondary: var(--sched-text-2);
+  --msng-text-muted: var(--sched-text-3);
+  --msng-border-light: var(--sched-edge);
+  --msng-bubble-in: #f1f5f9;
+  --msng-bubble-in-text: var(--sched-text);
+}
+
+html[data-theme='light'] body.app-dashboard-active #appPage .stat-box.s-total .stat-val,
+body.light.app-dashboard-active #appPage .stat-box.s-total .stat-val {
   color: #5b21b6 !important;
 }
 
