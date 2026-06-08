@@ -638,9 +638,25 @@ function effectiveUnreadForSave(unreadCount, isRead, lastFromMeVal) {
     return n;
 }
 
+function convUnreadFromRow(row) {
+    if (!row) return 0;
+    if (row.last_from_me === 1) return 0;
+    return row.is_unread || 0;
+}
+
+const SAVE_CONV_LAST_FROM_ME_SQL = `CASE
+    WHEN VALUES(last_from_me) = 1 THEN 1
+    WHEN last_from_me = 1 AND VALUES(updated_at) IS NOT NULL AND updated_at IS NOT NULL
+         AND VALUES(updated_at) <= updated_at THEN 1
+    ELSE VALUES(last_from_me)
+END`;
+
+/** Never resurrect unread after a page reply; ignore stale Facebook unread_count. */
 const SAVE_CONV_IS_UNREAD_SQL = `CASE
-    WHEN VALUES(last_from_me) = 1 AND VALUES(is_unread) > 0 THEN 0
-    WHEN last_from_me = 1 AND is_unread = 0 AND VALUES(is_unread) > 0 THEN 0
+    WHEN VALUES(last_from_me) = 1 THEN 0
+    WHEN last_from_me = 1 AND VALUES(updated_at) IS NOT NULL AND updated_at IS NOT NULL
+         AND VALUES(updated_at) <= updated_at THEN 0
+    WHEN last_from_me = 1 AND VALUES(is_unread) > 0 THEN 0
     ELSE VALUES(is_unread)
 END`;
 
@@ -669,7 +685,7 @@ async function saveConversation(conversation) {
                 ),
                 is_unread = ${SAVE_CONV_IS_UNREAD_SQL},
                 can_reply = VALUES(can_reply),
-                last_from_me = VALUES(last_from_me)
+                last_from_me = ${SAVE_CONV_LAST_FROM_ME_SQL}
         `, [pageId, participantId, id, participantName, snippet, updatedTime ? new Date(updatedTime) : null, fbUnreadCount, canReplyVal, lastFromMeVal]);
     } catch (err) {
         addDbError(`saveConversation: ${err.message}`);
@@ -720,7 +736,7 @@ async function saveConversations(messenger_conversations) {
                     ),
                     is_unread = ${SAVE_CONV_IS_UNREAD_SQL},
                     can_reply = VALUES(can_reply),
-                    last_from_me = VALUES(last_from_me)
+                    last_from_me = ${SAVE_CONV_LAST_FROM_ME_SQL}
             `, params);
         } catch (err) {
             addDbError(`saveConversationsBatch: ${err.message}`);
@@ -750,8 +766,8 @@ async function getConversations(pageId, limit = 100, offset = 0, archived = fals
             participantPicture: row.participant_picture,
             snippet: normalizeSnippetForList(row.snippet || ''),
             updatedTime: row.updated_time,
-            isRead: row.is_unread === 0,
-            unreadCount: row.is_unread || 0,
+            isRead: row.is_unread === 0 || row.last_from_me === 1,
+            unreadCount: convUnreadFromRow(row),
             lastMessageFromPage: row.last_from_me === 1,
             canReply: row.can_reply !== 0
         }));
@@ -783,8 +799,8 @@ async function searchConversations(pageId, query, limit = 50) {
             participantPicture: row.participant_picture,
             snippet: row.snippet,
             updatedTime: row.updated_time,
-            isRead: (row.is_unread || 0) === 0,
-            unreadCount: row.is_unread || 0
+            isRead: convUnreadFromRow(row) === 0,
+            unreadCount: convUnreadFromRow(row)
         }));
     } catch (err) {
         addDbError(`searchConversations: ${err.message}`);
@@ -834,8 +850,8 @@ async function hydrateSearchConversationsForInbox(pageId, mappedConvs) {
                 participantPicture: row.participant_picture || src.user_picture || '',
                 snippet: normalizeSnippetForList(row.snippet || src.snippet || src.last_msg || ''),
                 updatedTime: row.updated_time || src.updated_at || src.last_msg_at,
-                isRead: row.is_unread === 0,
-                unreadCount: row.is_unread || 0,
+                isRead: convUnreadFromRow(row) === 0,
+                unreadCount: convUnreadFromRow(row),
                 lastMessageFromPage: row.last_from_me === 1,
                 canReply: row.can_reply !== 0
             });
@@ -991,8 +1007,8 @@ async function getConversationsBulk(pageIds, limitPerPage = 100) {
                     participantName: row.participant_name,
                     snippet: row.snippet,
                     updatedTime: row.updated_time,
-                    isRead: (row.is_unread || 0) === 0,
-                    unreadCount: row.is_unread || 0,
+                    isRead: convUnreadFromRow(row) === 0,
+                    unreadCount: convUnreadFromRow(row),
                     pageName: row.page_name,
                     pagePicture: row.page_picture,
                     lastMessageFromPage: row.last_from_me === 1
@@ -1154,8 +1170,8 @@ async function getAllConversations() {
             participantName: row.participant_name,
             snippet: row.snippet,
             updatedTime: row.updated_time,
-            isRead: (row.is_unread || 0) === 0,
-            unreadCount: row.is_unread || 0,
+            isRead: convUnreadFromRow(row) === 0,
+            unreadCount: convUnreadFromRow(row),
             pageName: row.page_name,
             pagePicture: row.page_picture,
             lastMessageFromPage: row.last_from_me === 1

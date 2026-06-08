@@ -401,14 +401,31 @@
     const key = String(psid);
     const nu = parseInt(serverUnread, 10) || 0;
     const fromPage = lastFromMe === true || lastFromMe === 1;
+    const conv = getConv(M.activePageId, psid);
 
-    if (fromPage) return 0;
+    if (fromPage || (conv && conv.lastFromMe)) return 0;
     if (isConvReadLocked(psid)) return 0;
     if (key === String(M.activePsid)) {
       if (nu > 0) queueMarkConvRead(key, { immediate: true });
       return 0;
     }
     return nu > 0 ? nu : 0;
+  }
+
+  /** Optimistic read — sidebar badge + unread filter update immediately. */
+  function markConvReadLocally(psid, opts = {}) {
+    if (!psid) return;
+    const key = String(psid);
+    lockConvRead(key);
+    const conv = getConv(M.activePageId, key);
+    if (conv) {
+      conv.unread = 0;
+      if (opts.lastFromMe) conv.lastFromMe = true;
+    }
+    invalidateConvListRender();
+    renderConvs({ immediate: true });
+    syncPageBadge(M.activePageId);
+    updateMessengerChrome();
   }
 
   function commitConvReadState(psid, unread) {
@@ -525,19 +542,17 @@
 
   function bumpConvAfterPageSend(psid, { lastMsg, lastMsgAt } = {}) {
     const conv = getConv(M.activePageId, psid);
-    if (!conv) return;
-    if (lastMsg != null) conv.lastMsg = lastMsg;
-    conv.lastFromMe = true;
-    conv.unread = 0;
-    conv.lastMsgAt = lastMsgAt != null ? lastMsgAt : new Date().toISOString();
-    lockConvRead(psid);
+    if (lastMsg != null && conv) conv.lastMsg = lastMsg;
+    if (conv) conv.lastFromMe = true;
+    if (conv && lastMsgAt != null) conv.lastMsgAt = lastMsgAt;
+    else if (conv) conv.lastMsgAt = new Date().toISOString();
+    markConvReadLocally(psid, { lastFromMe: true });
     resortConvsByMeta();
     const cached = _convListCache.get(M.activePageId);
     if (cached) {
       cached.convs = M.convs;
       cached.order = M._convOrder.slice();
     }
-    renderConvs({ immediate: true });
   }
 
   function convRowSig(c) {
@@ -1844,11 +1859,16 @@
   // ══════════════════════════════════════════════════════════
 
   function resetReadState() {
+    const activePsid = M.activePsid ? String(M.activePsid) : null;
     M._readLocked.clear();
     M._readLockAt.clear();
     M._readMarkTimers.forEach(t => clearTimeout(t));
     M._readMarkTimers.clear();
     M._readMarkInflight.clear();
+    if (activePsid && M.activePageId) {
+      markConvReadLocally(activePsid);
+      queueMarkConvRead(activePsid, { immediate: true });
+    }
   }
 
   function startPolling() {
@@ -2976,9 +2996,7 @@
 
     lockConvRead(psid);
     const conv = getConv(pageId || M.activePageId, psid);
-    if (conv) conv.unread = 0;
-    invalidateConvListRender();
-    renderConvs({ immediate: true });
+    markConvReadLocally(psid);
 
     if (_socket?.connected) {
       if (M._joinedThread) _socket.emit('leave_thread', M._joinedThread);
@@ -3498,6 +3516,7 @@
         lastMsg: '👍',
         lastMsgAt: entry?.created_at || new Date().toISOString()
       });
+      queueMarkConvRead(M.activePsid, { immediate: true });
     } catch (e) {
       const bubble = document.querySelector(`[data-temp-id="${tempId}"]`);
       if (bubble) { bubble.classList.add('failed'); bubble.classList.remove('pending'); }
@@ -3576,6 +3595,7 @@
         lastMsg: entry?.message || '[Image]',
         lastMsgAt: entry?.created_at || new Date().toISOString()
       });
+      queueMarkConvRead(M.activePsid, { immediate: true });
       URL.revokeObjectURL(objUrl);
     } catch (e) {
       const bubble = document.querySelector(`[data-temp-id="${tempId}"]`);
@@ -3887,10 +3907,13 @@
         conv.lastMsg    = msgPreviewText(normalized) || normalizePreviewText(msg.text || '');
         conv.lastFromMe = !!msg.isFromPage;
         conv.lastMsgAt  = msg.createdTime || new Date().toISOString();
-        if (!isOpenConv && !msg.isFromPage) {
+        if (msg.isFromPage) {
+          markConvReadLocally(msgPsid, { lastFromMe: true });
+          queueMarkConvRead(msgPsid, { immediate: true });
+        } else if (!isOpenConv) {
           conv.unread = (conv.unread || 0) + 1;
-        } else if (isOpenConv && !msg.isFromPage) {
-          conv.unread = 0;
+        } else {
+          markConvReadLocally(msgPsid);
           queueMarkConvRead(msgPsid, { immediate: true });
         }
         resortConvsByMeta();
@@ -3988,8 +4011,8 @@
             changed = true;
           }
         } else {
-          lockConvRead(conv.psid);
-          conv.unread = 0;
+          markConvReadLocally(conv.psid, { lastFromMe: pageSent });
+          queueMarkConvRead(conv.psid, { immediate: true });
           changed = true;
           if (pageSent && data.updatedTime) conv.lastMsgAt = data.updatedTime;
         }
@@ -4076,12 +4099,10 @@
     // ── thread_read — another agent marked thread read ───────────────────────
     _socket.on('thread_read', (data) => {
       if (!data || String(data.pageId) !== String(M.activePageId)) return;
-      lockConvRead(data.psid);
-      const conv = M.convs.find(c => String(c.psid) === String(data.psid));
-      if (conv) {
-        conv.unread = 0;
-        renderConvs();
-        syncPageBadge(M.activePageId);
+      if (data.psid) markConvReadLocally(data.psid);
+      else {
+        const conv = M.convs.find(c => String(c.id) === String(data.threadId));
+        if (conv) markConvReadLocally(conv.psid);
       }
     });
 

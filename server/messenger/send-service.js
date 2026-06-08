@@ -106,16 +106,12 @@ class SendService {
             });
         });
 
-        const pageIdBg = pageId;
-        const psidBg = psid;
-        const convIdBg = convId;
-        const tokenBg = token;
-        setImmediate(() => {
-            if (convIdBg) this.db.markAsRead(convIdBg).catch(() => {});
-            if (tokenBg && psidBg) {
-                this.fb.markSeen(tokenBg, psidBg, pageIdBg).catch(() => {});
-            }
-        });
+        if (convId) {
+            await this.db.markAsRead(convId).catch(() => {});
+        }
+        if (token && psid) {
+            this.fb.markSeen(token, psid, pageId).catch(() => {});
+        }
 
         return {
             success: true,
@@ -176,9 +172,10 @@ class SendService {
                 unreadCount: 0,
                 lastMessageFromPage: true
             });
-            if (convId) this.db.markAsRead(convId).catch(() => {});
-            if (token && psid) this.fb.markSeen(token, psid, pageId).catch(() => {});
         });
+
+        if (convId) await this.db.markAsRead(convId).catch(() => {});
+        if (token && psid) this.fb.markSeen(token, psid, pageId).catch(() => {});
 
         return { success: true, message_id: mid, meta_read: { ok: true } };
     }

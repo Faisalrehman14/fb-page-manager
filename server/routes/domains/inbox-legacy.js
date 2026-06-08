@@ -311,11 +311,53 @@ app.post('/api/messenger/upload', requireAuth, upload.single('file'), async (req
 
         if (state.dbConnected && data.message_id) {
             const convInfo = await db.getConversationIdByParticipant(pageId, psid);
-            if (convInfo?.id) {
-                await db.saveMessage({ id: data.message_id, conversationId: convInfo.id, pageId, senderId: pageId, senderType: 'page', text: '', isFromPage: true, createdTime: new Date().toISOString(), attachments: [{ t: attachType, u: '' }] });
+            const convId = convInfo?.id || await db.ensureConversation(pageId, psid);
+            const createdTime = new Date().toISOString();
+            const displayText = attachType === 'image' ? '[Image]' : '[Attachment]';
+            if (convId) {
+                await db.saveMessage({
+                    id: data.message_id,
+                    threadId: convId,
+                    conversationId: convId,
+                    pageId,
+                    senderId: pageId,
+                    senderType: 'page',
+                    text: '',
+                    isFromPage: true,
+                    createdTime,
+                    attachments: [{ t: attachType, u: '' }]
+                });
+                await db.updateConversationFromMessage({
+                    threadId: convId,
+                    text: displayText,
+                    createdTime,
+                    lastFromMe: true,
+                    attachment_type: attachType
+                }).catch(() => {});
+                await db.markAsRead(convId).catch(() => {});
             }
+            io.to(`page_${pageId}`).emit('conversation_updated', {
+                id: convId,
+                pageId,
+                participantId: psid,
+                snippet: displayText,
+                updatedTime: new Date(),
+                isRead: true,
+                unreadCount: 0,
+                lastMessageFromPage: true
+            });
         }
-        io.to(`page_${pageId}`).emit('new_message', { id: data.message_id, psid, text: '', isFromPage: true, createdTime: new Date().toISOString(), attachments: [{ t: attachType, u: '' }] });
+        io.to(`page_${pageId}`).emit('new_message', {
+            id: data.message_id,
+            pageId,
+            participantId: psid,
+            psid,
+            text: '',
+            isFromPage: true,
+            createdTime: new Date().toISOString(),
+            attachment_type: attachType,
+            attachments: [{ t: attachType, u: '' }]
+        });
         res.json({ success: true, message_id: data.message_id });
     } catch (err) {
         logError('messenger_upload', err, { pageId, psid });
