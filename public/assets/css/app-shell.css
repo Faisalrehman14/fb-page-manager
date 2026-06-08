@@ -147,78 +147,21 @@ body.shell-messenger #view-messenger .msng-root {
   transform: none !important;
 }
 
-/* Messenger — 2-column grid; nav hover expands as overlay (no inbox shift) */
+/* Messenger — same in-flow flex + nav expand as Scheduling, Home, etc. */
 body.shell-messenger #appPage > .app-body {
-  display: grid !important;
-  grid-template-columns: var(--ds-nav-width, 72px) minmax(0, 1fr);
-  grid-template-rows: minmax(0, 1fr);
-  gap: 0 !important;
-  padding: 0 !important;
-  overflow: hidden !important;
-  align-items: stretch !important;
-}
-
-body.shell-messenger #appPage > .app-body > .sidebar,
-body.shell-messenger #appPage > .app-body > #view-home,
-body.shell-messenger #appPage > .app-body > #view-broadcast,
-body.shell-messenger #appPage > .app-body > .stats-panel {
-  display: none !important;
-}
-
-body.shell-messenger #appPage .nav-sidebar {
-  grid-column: 1;
-  grid-row: 1;
-  position: relative;
-  z-index: 40;
-  width: 100% !important;
-  min-width: 0 !important;
-  max-width: none !important;
-  flex: unset !important;
-  align-self: stretch;
-  overflow: hidden;
-  transition:
-    width var(--ds-duration-slow, 0.35s) var(--ds-ease, ease),
-    min-width var(--ds-duration-slow, 0.35s) var(--ds-ease, ease),
-    box-shadow 0.25s ease !important;
-}
-
-body.shell-messenger #appPage .nav-sidebar:hover {
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: var(--ds-nav-width-expanded, 200px) !important;
-  min-width: var(--ds-nav-width-expanded, 200px) !important;
-  max-width: var(--ds-nav-width-expanded, 200px) !important;
-  z-index: 50;
-  box-shadow: 4px 0 24px rgba(0, 0, 0, 0.28) !important;
-}
-
-body.shell-messenger #appPage .nav-sidebar.nav-sidebar--locked,
-body.shell-messenger #appPage .nav-sidebar.nav-sidebar--locked:hover,
-html.shell-no-motion body.shell-messenger #appPage .nav-sidebar,
-html.shell-no-motion body.shell-messenger #appPage .nav-sidebar:hover {
-  position: relative !important;
-  left: auto !important;
-  top: auto !important;
-  bottom: auto !important;
-  width: 100% !important;
-  min-width: 0 !important;
-  max-width: none !important;
-  box-shadow: none !important;
-  transition: none !important;
+  display: flex !important;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: stretch;
 }
 
 body.shell-messenger #view-messenger {
-  grid-column: 2;
-  grid-row: 1;
-  flex: unset !important;
+  flex: 1 1 auto;
   min-width: 0;
   min-height: 0;
   border-radius: 0 !important;
   box-shadow: none !important;
   border: none !important;
-  transition: none !important;
 }
 
 /* Lock nav width during route change (click while hovered) */
