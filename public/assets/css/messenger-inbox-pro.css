@@ -60,56 +60,158 @@ body:not(.light) .msng-layout-pro {
   min-height: 0;
 }
 
-/* ─── Page rail (compact, left of inbox) ─── */
+/* ─── Page column — match Broadcast pages sidebar ─── */
 .msng-layout-pro .msng-pages {
-  width: 56px !important;
-  min-width: 56px !important;
+  width: 220px !important;
+  min-width: 200px !important;
+  max-width: 220px !important;
   background: var(--msng-bg-panel) !important;
   border-right: 1px solid var(--msng-border-light) !important;
   box-shadow: none !important;
   backdrop-filter: none !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
 }
 
 .msng-layout-pro .msng-pages-hdr {
-  display: none !important;
+  display: flex !important;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 14px 12px !important;
+  border-bottom: 1px solid var(--msng-border-light) !important;
+  flex-shrink: 0;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--msng-text-secondary);
+  background: linear-gradient(180deg, rgba(99, 102, 241, 0.06), transparent) !important;
+}
+
+.msng-layout-pro .msng-pages-hdr i {
+  color: var(--msng-accent);
+  font-size: 12px;
+}
+
+.msng-layout-pro .msng-pages-hdr span {
+  flex: 1;
 }
 
 .msng-layout-pro .msng-pages-list {
-  padding: 8px 6px !important;
-  align-items: center;
+  padding: 8px 10px !important;
+  align-items: stretch !important;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .msng-layout-pro .msng-page-item {
-  flex-direction: column;
-  padding: 6px !important;
-  margin-bottom: 4px;
-  border-radius: 12px !important;
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  gap: 10px !important;
+  padding: 10px 12px !important;
+  margin-bottom: 3px;
+  border-radius: 10px !important;
+  border: 1px solid transparent !important;
   transform: none !important;
   box-shadow: none !important;
+  position: relative;
+}
+
+.msng-layout-pro .msng-page-item:hover {
+  background: rgba(255, 255, 255, 0.04) !important;
+  border-color: var(--msng-border-light) !important;
+  transform: translateX(2px) !important;
 }
 
 .msng-layout-pro .msng-page-item.active {
-  background: rgba(8, 102, 255, 0.12) !important;
-  border-color: rgba(8, 102, 255, 0.25) !important;
-  box-shadow: none !important;
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.14), rgba(99, 102, 241, 0.06)) !important;
+  border-color: rgba(99, 102, 241, 0.28) !important;
+  box-shadow: inset 3px 0 0 var(--msng-accent), 0 2px 12px rgba(99, 102, 241, 0.12) !important;
+  transform: translateX(3px) !important;
 }
 
-.msng-layout-pro .msng-page-info,
-.msng-layout-pro .msng-page-sub,
+.msng-layout-pro .msng-page-info {
+  display: block !important;
+  flex: 1;
+  min-width: 0;
+}
+
+.msng-layout-pro .msng-page-sub {
+  display: block !important;
+}
+
 .msng-layout-pro .msng-page-badge {
-  display: none !important;
+  display: flex !important;
+  flex-shrink: 0;
 }
 
 .msng-layout-pro .msng-page-avatar-wrap {
-  width: 40px !important;
-  height: 40px !important;
+  width: 36px !important;
+  height: 36px !important;
+  flex-shrink: 0;
+  margin: 0 !important;
+  position: relative;
 }
 
 .msng-layout-pro .msng-page-avatar,
 .msng-layout-pro .msng-page-avatar-ph {
-  width: 40px !important;
-  height: 40px !important;
-  border-radius: 50% !important;
+  width: 36px !important;
+  height: 36px !important;
+  border-radius: 9px !important;
+  object-fit: cover;
+}
+
+.msng-layout-pro .msng-page-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--msng-text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  letter-spacing: -0.2px;
+}
+
+.msng-layout-pro .msng-page-item.active .msng-page-name {
+  color: #c4b5fd;
+  font-weight: 700;
+}
+
+.msng-layout-pro .msng-page-sub {
+  font-size: 10px;
+  color: var(--msng-text-muted);
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@media (max-width: 1100px) {
+  .msng-layout-pro .msng-pages {
+    width: 220px !important;
+    min-width: 200px !important;
+  }
+
+  .msng-layout-pro .msng-page-info,
+  .msng-layout-pro .msng-pages-hdr span {
+    display: block !important;
+  }
+
+  .msng-layout-pro .msng-page-item {
+    justify-content: flex-start !important;
+    padding: 10px 12px !important;
+  }
+
+  .msng-layout-pro .msng-page-avatar-wrap {
+    margin: 0 !important;
+  }
+
+  .msng-layout-pro .msng-page-badge {
+    position: static !important;
+  }
 }
 
 /* ─── Inbox column ─── */
