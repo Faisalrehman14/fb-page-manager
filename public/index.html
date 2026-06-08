@@ -1924,35 +1924,35 @@ window.getCsrfToken = async (forceRefresh = false) => {
       <section class="bcast-panel-v2__section">
         <label class="bcast-panel-v2__label"><i class="fa-solid fa-clock"></i> Delay between messages</label>
         <div class="delay-presets delay-presets--compact" id="delayPresets" role="group" aria-label="Delay between messages">
-          <button type="button" class="delay-preset" data-delay="2000" title="Safer for rate limits">
+          <button type="button" class="delay-preset" data-delay="800" title="Safer for rate limits">
             <i class="fa-solid fa-shield-halved"></i>
             <span class="delay-name">Slow</span>
-            <span class="delay-value">2s</span>
-          </button>
-          <button type="button" class="delay-preset active" data-delay="800" title="Recommended balance">
-            <i class="fa-solid fa-gauge"></i>
-            <span class="delay-name">Normal</span>
             <span class="delay-value">0.8s</span>
           </button>
-          <button type="button" class="delay-preset" data-delay="400" title="Faster delivery">
-            <i class="fa-solid fa-bolt"></i>
-            <span class="delay-name">Fast</span>
+          <button type="button" class="delay-preset active" data-delay="400" title="Recommended balance">
+            <i class="fa-solid fa-gauge"></i>
+            <span class="delay-name">Normal</span>
             <span class="delay-value">0.4s</span>
           </button>
-          <button type="button" class="delay-preset" data-delay="200" title="Very fast">
+          <button type="button" class="delay-preset" data-delay="200" title="Faster delivery">
             <i class="fa-solid fa-rocket"></i>
             <span class="delay-name">Turbo</span>
             <span class="delay-value">0.2s</span>
           </button>
-          <button type="button" class="delay-preset" data-delay="50" title="Image-only auto uses this — max speed">
-            <i class="fa-solid fa-bolt-lightning"></i>
-            <span class="delay-name">Ultra</span>
+          <button type="button" class="delay-preset" data-delay="50" title="Very fast">
+            <i class="fa-solid fa-bolt"></i>
+            <span class="delay-name">Fast</span>
             <span class="delay-value">0.05s</span>
           </button>
+          <button type="button" class="delay-preset" data-delay="25" title="Image-only auto uses this — max speed">
+            <i class="fa-solid fa-bolt-lightning"></i>
+            <span class="delay-name">Ultra</span>
+            <span class="delay-value">0.025s</span>
+          </button>
         </div>
-        <input id="delayMs" type="hidden" value="800">
+        <input id="delayMs" type="hidden" value="400">
         <p class="bcast-hint bcast-hint--sub" id="imageOnlyPaceHint" style="display:none;margin-top:6px;font-size:11px">
-          <i class="fa-solid fa-bolt-lightning"></i> Image-only: ultra-fast mode (~50ms between sends)
+          <i class="fa-solid fa-bolt-lightning"></i> Image-only: ultra-fast mode (~25ms between sends)
         </p>
       </section>
 
@@ -2110,10 +2110,11 @@ window.getCsrfToken = async (forceRefresh = false) => {
             <div class="sv2-section sv2-section--delay">
               <label class="sv2-section-label field-label" for="svDelay"><i class="fa-solid fa-gauge"></i> Send Delay</label>
               <select class="sv2-input sv2-delay-select" id="svDelay" title="Delay between each message send" aria-label="Send delay between messages">
+                <option value="25">Ultra · 0.025s</option>
+                <option value="50">Fast · 0.05s</option>
                 <option value="200">Turbo · 0.2s</option>
-                <option value="400">Fast · 0.4s</option>
-                <option value="800" selected>Balanced · 0.8s</option>
-                <option value="2000">Safe · 2s</option>
+                <option value="400" selected>Balanced · 0.4s</option>
+                <option value="800">Safe · 0.8s</option>
               </select>
             </div>
           </div>
@@ -2495,11 +2496,11 @@ window.getCsrfToken = async (forceRefresh = false) => {
             <h4><i class="fa-solid fa-bullhorn"></i> Default Delay</h4>
             <p>Set the default delay between messages for new broadcasts.</p>
             <div class="settings-delay-opts">
-              <button class="delay-opt" data-delay="2000"><i class="fa-solid fa-shield-halved"></i> Slow</button>
-              <button class="delay-opt active" data-delay="800"><i class="fa-solid fa-gauge"></i> Normal</button>
-              <button class="delay-opt" data-delay="400"><i class="fa-solid fa-bolt"></i> Fast</button>
-              <button class="delay-opt" data-delay="50"><i class="fa-solid fa-bolt-lightning"></i> Ultra</button>
+              <button class="delay-opt" data-delay="800"><i class="fa-solid fa-shield-halved"></i> Slow</button>
+              <button class="delay-opt active" data-delay="400"><i class="fa-solid fa-gauge"></i> Normal</button>
               <button class="delay-opt" data-delay="200"><i class="fa-solid fa-rocket"></i> Turbo</button>
+              <button class="delay-opt" data-delay="50"><i class="fa-solid fa-bolt"></i> Fast</button>
+              <button class="delay-opt" data-delay="25"><i class="fa-solid fa-bolt-lightning"></i> Ultra</button>
             </div>
           </div>
 
@@ -2601,7 +2602,7 @@ window.getCsrfToken = async (forceRefresh = false) => {
             </div>
             <div class="faq-item">
               <div class="faq-q"><i class="fa-solid fa-question-circle"></i> What delay should I use?</div>
-              <div class="faq-a">Default "Normal" is 800ms between recipients. Use "Turbo" (200ms) for maximum speed; if Meta rate-limits you, switch to Slow or Normal.</div>
+              <div class="faq-a">Default "Normal" is 400ms between recipients. Use "Ultra" (25ms) for maximum speed; if Meta rate-limits you, switch to Slow or Normal.</div>
             </div>
             <div class="faq-item">
               <div class="faq-q"><i class="fa-solid fa-question-circle"></i> How do I upgrade my plan?</div>

@@ -34,10 +34,10 @@ const STORAGE_KEYS = {
   QUEUE:      'send_queue'
 };
 
-/** Broadcast pacing — lower = faster (Meta may rate-limit below ~50ms). */
-const BROADCAST_DELAY_MIN = 50;
-const BROADCAST_DELAY_DEFAULT = 800;
-const BROADCAST_IMAGE_ONLY_PACE_MS = 50;
+/** Broadcast pacing — lower = faster (Meta may rate-limit below ~25ms). */
+const BROADCAST_DELAY_MIN = 25;
+const BROADCAST_DELAY_DEFAULT = 400;
+const BROADCAST_IMAGE_ONLY_PACE_MS = 25;
 const BROADCAST_TEXT_IMAGE_GAP_MS = 80;
 const BROADCAST_QUOTA_BATCH = 8;
 const BROADCAST_QUOTA_BATCH_IMAGE = 20;

@@ -431,7 +431,7 @@ app.get('/api/user/profile', requireAuth, async (req, res) => {
         if (!state.dbConnected) {
             return res.json({
                 quota: { subscriptionStatus: 'free', messageLimit: 2000, messagesUsed: 0 },
-                preferences: { notif_broadcast: true, notif_failed: true, default_delay_ms: 1200, message_draft: '' }
+                preferences: { notif_broadcast: true, notif_failed: true, default_delay_ms: 400, message_draft: '' }
             });
         }
         const profile = await db.getUserProfile(uid);
@@ -460,7 +460,7 @@ app.get('/api/user/preferences', requireAuth, async (req, res) => {
         if (!uid) return res.status(401).json({ error: 'Not authenticated' });
         const preferences = state.dbConnected
             ? await db.getUserPreferences(uid)
-            : { notif_broadcast: true, notif_failed: true, default_delay_ms: 1200, message_draft: '' };
+            : { notif_broadcast: true, notif_failed: true, default_delay_ms: 400, message_draft: '' };
         res.json({ preferences });
     } catch (err) {
         logError('get_preferences', err);
@@ -480,7 +480,7 @@ app.put('/api/user/preferences', requireAuth, verifyCsrf, async (req, res) => {
         if (body.message_draft !== undefined) patch.message_draft = body.message_draft;
         const preferences = state.dbConnected
             ? await db.upsertUserPreferences(uid, patch)
-            : { ...patch, notif_broadcast: true, notif_failed: true, default_delay_ms: 1200, message_draft: '' };
+            : { ...patch, notif_broadcast: true, notif_failed: true, default_delay_ms: 400, message_draft: '' };
         res.json({ success: true, preferences });
     } catch (err) {
         logError('put_preferences', err);

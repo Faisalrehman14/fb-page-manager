@@ -35,7 +35,7 @@
 
     document.querySelectorAll('#view-settings .delay-opt').forEach((btn) => {
       btn.addEventListener('click', () => {
-        const delay = parseInt(btn.getAttribute('data-delay') || '800', 10);
+        const delay = parseInt(btn.getAttribute('data-delay') || '400', 10);
         document.querySelectorAll('#view-settings .delay-opt').forEach((b) => b.classList.remove('active'));
         btn.classList.add('active');
         const delayInput = document.getElementById('delayMs');
@@ -49,7 +49,7 @@
     global.addEventListener('fbc:preferences-loaded', (e) => {
       const d = e.detail;
       if (!d) return;
-      const active = String(d.default_delay_ms || 800);
+      const active = String(d.default_delay_ms || 400);
       document.querySelectorAll('#view-settings .delay-opt').forEach((b) => {
         b.classList.toggle('active', b.getAttribute('data-delay') === active);
       });

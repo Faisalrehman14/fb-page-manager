@@ -235,7 +235,7 @@
     const perPage = getPerPageMessages();
     const imgUrl =
       (typeof currentImageUrl !== 'undefined' ? currentImageUrl : '') || window._imgAttachUrl || '';
-    const delay = Math.max(50, parseInt(document.getElementById('delayMs')?.value, 10) || 800);
+    const delay = Math.max(25, parseInt(document.getElementById('delayMs')?.value, 10) || 400);
 
     const jobs = selected.map((page) => ({
       page,

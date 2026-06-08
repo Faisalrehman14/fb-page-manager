@@ -9,7 +9,7 @@
     preferences: {
       notif_broadcast: true,
       notif_failed: true,
-      default_delay_ms: 800,
+      default_delay_ms: 400,
       message_draft: ''
     },
     loaded: false
@@ -48,7 +48,7 @@
     state.preferences = {
       notif_broadcast: prefs.notif_broadcast !== false,
       notif_failed: prefs.notif_failed !== false,
-      default_delay_ms: Math.max(50, parseInt(prefs.default_delay_ms, 10) || 800),
+      default_delay_ms: Math.max(25, parseInt(prefs.default_delay_ms, 10) || 400),
       message_draft: prefs.message_draft || ''
     };
     try {

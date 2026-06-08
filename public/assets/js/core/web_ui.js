@@ -47,7 +47,7 @@ function formatEta(ms) {
 function updateCampaignIntel() {
   const pageId = $('pageSelect')?.value || '';
   const message = ($('messageText')?.value || '').trim();
-  const delay = Math.max(50, parseInt($('delayMs')?.value, 10) || 800);
+  const delay = Math.max(25, parseInt($('delayMs')?.value, 10) || 400);
   const adviceEl = $('intelAdvice');
 
   const hasLoadedAudience = !!allRecipients.length && recipientsPageId === pageId;
@@ -59,8 +59,8 @@ function updateCampaignIntel() {
 
   let pace = 'Balanced';
   let paceRisk = 'low';
-  if (delay < 900) { pace = 'Aggressive'; paceRisk = 'high'; }
-  else if (delay < 1800) { pace = 'Balanced'; paceRisk = 'medium'; }
+  if (delay < 200) { pace = 'Aggressive'; paceRisk = 'high'; }
+  else if (delay < 800) { pace = 'Balanced'; paceRisk = 'medium'; }
   else { pace = 'Safe'; paceRisk = 'low'; }
   setIntelValue('intelPace', pace, riskClass(paceRisk));
 
@@ -76,7 +76,7 @@ function updateCampaignIntel() {
   if (urlCount > 1) riskPoints += 1;
   if (exclamations >= 4) riskPoints += 1;
   if (upperRatio > 0.45 && message.length > 30) riskPoints += 1;
-  if (delay < 900) riskPoints += 1;
+  if (delay < 200) riskPoints += 1;
   if (spamTerms) riskPoints += 1;
 
   let riskLabel = 'Low';
@@ -894,7 +894,7 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   btnStart?.addEventListener('click', async () => {
-    const pageId = $('pageSelect')?.value, text = messageText?.value.trim(), delay = Math.max(50, parseInt(delayMs?.value, 10) || 800);
+    const pageId = $('pageSelect')?.value, text = messageText?.value.trim(), delay = Math.max(25, parseInt(delayMs?.value, 10) || 400);
     if (!pageId) return showStatus('Select a page first.', 'warning');
     if (!text && !currentImageUrl) return showStatus('Enter a message or attach an image.', 'warning');
 
@@ -1230,7 +1230,7 @@ window.svSaveSchedule = async function () {
   if (!dtVal) { showStatus('Select a scheduled date and time.', 'warning'); return; }
 
   const scheduledAt = new Date(dtVal).toISOString();
-  const delayMs     = parseInt($('svDelay')?.value, 10) || 800;
+  const delayMs     = parseInt($('svDelay')?.value, 10) || 400;
 
   const btn = $('svSubmitBtn');
   btn.disabled = true;

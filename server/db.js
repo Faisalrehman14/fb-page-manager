@@ -4475,7 +4475,7 @@ async function createSchedule({ fb_user_id, pages, message, image_url, delay_ms,
          (fb_user_id, page_id, page_name, page_token, pages_data, message, image_url, delay_ms, scheduled_at)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [fb_user_id, firstPage.id || '', firstPage.name || null, firstPage.token || '',
-         pagesJson, message, image_url || null, delay_ms || 800, scheduled_at]
+         pagesJson, message, image_url || null, delay_ms || 400, scheduled_at]
     );
     return result.insertId;
 }
@@ -4588,7 +4588,7 @@ async function getBroadcastHistory(fb_user_id, days = 90) {
 const DEFAULT_PREFS = {
     notif_broadcast: true,
     notif_failed: true,
-    default_delay_ms: 800,
+    default_delay_ms: 400,
     message_draft: ''
 };
 
@@ -4603,7 +4603,7 @@ async function getUserPreferences(fb_user_id) {
     return {
         notif_broadcast: !!r.notif_broadcast,
         notif_failed: !!r.notif_failed,
-        default_delay_ms: Math.max(50, parseInt(r.default_delay_ms, 10) || 800),
+        default_delay_ms: Math.max(25, parseInt(r.default_delay_ms, 10) || 400),
         message_draft: r.message_draft || ''
     };
 }
@@ -4615,7 +4615,7 @@ async function upsertUserPreferences(fb_user_id, patch = {}) {
         notif_broadcast: patch.notif_broadcast !== undefined ? !!patch.notif_broadcast : current.notif_broadcast,
         notif_failed: patch.notif_failed !== undefined ? !!patch.notif_failed : current.notif_failed,
         default_delay_ms: patch.default_delay_ms !== undefined
-            ? Math.max(50, parseInt(patch.default_delay_ms, 10) || 800)
+            ? Math.max(25, parseInt(patch.default_delay_ms, 10) || 400)
             : current.default_delay_ms,
         message_draft: patch.message_draft !== undefined
             ? String(patch.message_draft || '').slice(0, 2000)
