@@ -158,6 +158,20 @@
     if (labelEl && cfg) labelEl.textContent = cfg.label;
   }
 
+  function setShellNoMotion(on) {
+    document.documentElement.classList.toggle('shell-no-motion', on);
+  }
+
+  /** Collapse nav rail instantly after click (hover expand was shifting main content). */
+  function collapseNavRail() {
+    const nav = document.querySelector('#appPage .nav-sidebar');
+    if (!nav) return;
+    nav.classList.add('nav-sidebar--locked');
+    if (nav._navLockLeave) return;
+    nav._navLockLeave = () => nav.classList.remove('nav-sidebar--locked');
+    nav.addEventListener('mouseleave', nav._navLockLeave);
+  }
+
   function showTopView(name, display) {
     const el = $('view-' + name);
     if (!el) return;
@@ -194,6 +208,12 @@
     const prev = VIEWS[currentView];
     const next = VIEWS[view];
 
+    if (document.activeElement && typeof document.activeElement.blur === 'function') {
+      document.activeElement.blur();
+    }
+    setShellNoMotion(true);
+    collapseNavRail();
+
     if (prev && prev.onLeave) prev.onLeave();
     document.body.classList.remove('shell-scheduling', 'shell-messenger', 'shell-broadcast', 'shell-home', 'in-messenger');
     if (next.bodyClass) document.body.classList.add(next.bodyClass);
@@ -208,11 +228,12 @@
     if (sidebar) sidebar.style.display = next.hideSidebar ? 'none' : '';
 
     const topSections = ['home', 'messenger', 'broadcast'];
+    topSections.forEach((s) => showTopView(s, false));
     topSections.forEach((s) => {
       const show =
         s === next.top &&
         (s !== 'broadcast' || view === 'broadcast');
-      showTopView(s, show);
+      if (show) showTopView(s, true);
     });
 
     const isManualBroadcast = view === 'broadcast';
@@ -220,6 +241,10 @@
     showBroadcastSubviews(next.broadcastSub);
 
     if (next.onEnter) next.onEnter();
+
+    queueMicrotask(() => {
+      requestAnimationFrame(() => setShellNoMotion(false));
+    });
 
     if (view !== 'broadcast' && typeof showStatus === 'function') {
       showStatus('Viewing ' + next.label + '…', 'info');

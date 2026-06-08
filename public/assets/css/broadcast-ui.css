@@ -533,7 +533,6 @@ body.shell-broadcast #appPage > .app-body {
   overflow: hidden !important;
   align-items: stretch !important;
   min-width: 0 !important;
-  transition: grid-template-columns var(--ds-duration-slow, 0.35s) var(--ds-ease, ease);
 }
 
 body.shell-broadcast #appPage > .app-body:has(.nav-sidebar:hover) {

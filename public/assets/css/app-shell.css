@@ -148,6 +148,76 @@ body.shell-messenger #view-messenger .msng-root {
   transform: none !important;
 }
 
+/* Messenger — fixed 2-column grid; nav hover expands as overlay (no content shift) */
+body.shell-messenger #appPage > .app-body {
+  display: grid !important;
+  grid-template-columns: var(--ds-nav-width, 72px) minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
+  gap: 0 !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  align-items: stretch !important;
+}
+
+body.shell-messenger #appPage .nav-sidebar {
+  grid-column: 1;
+  grid-row: 1;
+  position: relative;
+  z-index: 40;
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  align-self: stretch;
+}
+
+body.shell-messenger #appPage .nav-sidebar:hover {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: var(--ds-nav-width-expanded, 200px) !important;
+  min-width: var(--ds-nav-width-expanded, 200px) !important;
+  z-index: 50;
+  box-shadow: 4px 0 24px rgba(0, 0, 0, 0.28);
+}
+
+body.shell-messenger #view-messenger {
+  grid-column: 2;
+  grid-row: 1;
+  min-width: 0;
+  min-height: 0;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  border: none !important;
+}
+
+/* Lock nav width during route change (click while hovered) */
+html.shell-no-motion #appPage .nav-sidebar,
+html.shell-no-motion #appPage > .app-body,
+html.shell-no-motion #appPage .sidebar,
+html.shell-no-motion #view-home,
+html.shell-no-motion #view-messenger,
+html.shell-no-motion #view-broadcast,
+html.shell-no-motion #view-scheduling,
+html.shell-no-motion #view-analytics,
+html.shell-no-motion #view-settings,
+html.shell-no-motion #view-help {
+  transition: none !important;
+  animation: none !important;
+}
+
+#appPage .nav-sidebar.nav-sidebar--locked,
+#appPage .nav-sidebar.nav-sidebar--locked:hover {
+  width: var(--ds-nav-width, 72px) !important;
+  min-width: var(--ds-nav-width, 72px) !important;
+  position: relative !important;
+  left: auto !important;
+  top: auto !important;
+  bottom: auto !important;
+  transition: none !important;
+  box-shadow: none !important;
+}
+
 .app-view {
   flex: 1;
   min-width: 0;

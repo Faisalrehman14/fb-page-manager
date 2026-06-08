@@ -1229,7 +1229,8 @@ body.light.app-dashboard-active {
 
 body.shell-scheduling #appPage > .app-body,
 body.shell-broadcast #appPage > .app-body,
-body.shell-messenger #appPage > .app-body {
+body.shell-messenger #appPage > .app-body,
+body.shell-home #appPage > .app-body {
   gap: 0 !important;
   padding: 0 !important;
   background: var(--sched-bg) !important;
