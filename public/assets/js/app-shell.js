@@ -61,10 +61,9 @@
       icon: 'fa-facebook-messenger',
       top: 'messenger',
       broadcastSub: null,
-      hideSidebar: false,
+      hideSidebar: true,
       bodyClass: 'shell-messenger',
       onEnter() {
-        document.body.classList.add('in-messenger');
         loadMessengerScript()
           .then(() => {
             if (typeof loadMessengerConversations === 'function') loadMessengerConversations();
@@ -72,9 +71,6 @@
           .catch(() => {
             if (typeof showStatus === 'function') showStatus('Could not load Messenger. Refresh and try again.', 'error');
           });
-      },
-      onLeave() {
-        document.body.classList.remove('in-messenger');
       }
     },
     scheduling: {
@@ -192,39 +188,6 @@
     });
   }
 
-  function getActiveViewEl(view, cfg) {
-    if (view === 'broadcast') return $('view-broadcast');
-    if (cfg.broadcastSub) return $('view-' + cfg.broadcastSub);
-    return $('view-' + view);
-  }
-
-  /** Replay enter transition every time a section becomes visible. */
-  function playViewEnter(el) {
-    if (!el) return;
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-
-    if (el._shellViewEnterEnd) {
-      el.removeEventListener('animationend', el._shellViewEnterEnd);
-      el._shellViewEnterEnd = null;
-    }
-
-    el.classList.remove('shell-view-enter');
-    void el.offsetWidth;
-
-    requestAnimationFrame(() => {
-      el.classList.add('shell-view-enter');
-    });
-
-    const onEnd = (e) => {
-      if (e.target !== el || e.animationName !== 'shellViewIn') return;
-      el.classList.remove('shell-view-enter');
-      el.removeEventListener('animationend', onEnd);
-      el._shellViewEnterEnd = null;
-    };
-    el._shellViewEnterEnd = onEnd;
-    el.addEventListener('animationend', onEnd);
-  }
-
   function navigate(view) {
     if (!VIEWS[view]) view = 'home';
     closeMobileMore();
@@ -234,10 +197,15 @@
     if (prev && prev.onLeave) prev.onLeave();
     document.body.classList.remove('shell-scheduling', 'shell-messenger', 'shell-broadcast', 'shell-home', 'in-messenger');
     if (next.bodyClass) document.body.classList.add(next.bodyClass);
+    if (view === 'messenger') document.body.classList.add('in-messenger');
 
     currentView = view;
     setNavActive(view);
     setBreadcrumb(view);
+
+    /* Hide/show pages column before swapping views to avoid horizontal reflow */
+    const sidebar = document.querySelector('.sidebar');
+    if (sidebar) sidebar.style.display = next.hideSidebar ? 'none' : '';
 
     const topSections = ['home', 'messenger', 'broadcast'];
     topSections.forEach((s) => {
@@ -251,12 +219,7 @@
     showBroadcastChrome(isManualBroadcast);
     showBroadcastSubviews(next.broadcastSub);
 
-    const sidebar = document.querySelector('.sidebar');
-    if (sidebar) sidebar.style.display = next.hideSidebar ? 'none' : '';
-
     if (next.onEnter) next.onEnter();
-
-    playViewEnter(getActiveViewEl(view, next));
 
     if (view !== 'broadcast' && typeof showStatus === 'function') {
       showStatus('Viewing ' + next.label + '…', 'info');

@@ -125,7 +125,7 @@ body.app-dashboard-active #appPage {
   overflow: hidden;
 }
 
-/* ─── Main content views — transition replayed via .shell-view-enter (app-shell.js) ─── */
+/* ─── Main content views — instant swap, no enter animation ─── */
 #view-home,
 #view-messenger,
 #view-broadcast,
@@ -136,6 +136,16 @@ body.app-dashboard-active #appPage {
 .app-view,
 .pro-view {
   animation: none !important;
+  transition: none !important;
+}
+
+body.shell-messenger #appPage > .app-body,
+body.shell-messenger #appPage .sidebar,
+body.shell-messenger #view-messenger,
+body.shell-messenger #view-messenger .msng-root {
+  transition: none !important;
+  animation: none !important;
+  transform: none !important;
 }
 
 .app-view {
@@ -147,10 +157,6 @@ body.app-dashboard-active #appPage {
   flex-direction: column;
 }
 .app-view.is-active { display: flex; }
-
-.shell-view-enter {
-  animation: none !important;
-}
 
 /* Sub-views inside broadcast container */
 .broadcast-subview {

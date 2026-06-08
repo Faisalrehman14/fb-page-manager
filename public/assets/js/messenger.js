@@ -4276,9 +4276,9 @@
   const _origSwitch = window.switchDashboardView;
   if (_origSwitch) {
     window.switchDashboardView = function (view) {
-      document.body.classList.toggle('in-messenger', view === 'messenger');
-      view === 'messenger' ? startPolling() : stopPolling();
       _origSwitch(view);
+      if (view === 'messenger') startPolling();
+      else stopPolling();
     };
   }
 
