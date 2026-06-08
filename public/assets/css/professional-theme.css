@@ -1385,10 +1385,10 @@ body.light.app-dashboard-active #appPage .nav-user-plan {
   color: var(--sched-text-3) !important;
 }
 
-/* Pages column */
+/* Pages column — match Messenger .msng-pages panel exactly */
 body.app-dashboard-active:not(.light) #appPage .sidebar,
 html[data-theme='dark'] body.app-dashboard-active #appPage .sidebar {
-  background: var(--sched-surface-2) !important;
+  background: var(--sched-surface) !important;
   border: none !important;
   border-right: 1px solid var(--sched-edge) !important;
   border-radius: 0 !important;
@@ -1404,15 +1404,12 @@ body.light.app-dashboard-active #appPage .sidebar {
   box-shadow: none !important;
 }
 
-body.app-dashboard-active:not(.light) #appPage .sidebar-hdr,
-html[data-theme='dark'] body.app-dashboard-active #appPage .sidebar-hdr {
-  background: linear-gradient(180deg, rgba(16, 22, 48, 0.98) 0%, rgba(8, 12, 28, 0.96) 100%) !important;
-  border-bottom-color: var(--sched-edge) !important;
-}
-
+body.app-dashboard-active #appPage .sidebar-hdr,
+html[data-theme='dark'] body.app-dashboard-active #appPage .sidebar-hdr,
 html[data-theme='light'] body.app-dashboard-active #appPage .sidebar-hdr,
 body.light.app-dashboard-active #appPage .sidebar-hdr {
-  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%) !important;
+  background: linear-gradient(180deg, rgba(99, 102, 241, 0.06), transparent) !important;
+  border-bottom: 1px solid var(--sched-edge) !important;
   border-bottom-color: var(--sched-edge) !important;
 }
 
@@ -1423,7 +1420,7 @@ html[data-theme='dark'] body.app-dashboard-active #appPage .sidebar-hdr-title {
 
 body.app-dashboard-active:not(.light) #appPage .sidebar-hdr-subtitle[data-mode="scheduling"],
 html[data-theme='dark'] body.app-dashboard-active #appPage .sidebar-hdr-subtitle[data-mode="scheduling"] {
-  color: #a78bfa !important;
+  color: var(--sched-text-3) !important;
 }
 
 html[data-theme='light'] body.app-dashboard-active #appPage .sidebar-hdr-title,
@@ -1433,17 +1430,17 @@ body.light.app-dashboard-active #appPage .sidebar-hdr-title {
 
 html[data-theme='light'] body.app-dashboard-active #appPage .sidebar-hdr-subtitle[data-mode="scheduling"],
 body.light.app-dashboard-active #appPage .sidebar-hdr-subtitle[data-mode="scheduling"] {
-  color: #6d28d9 !important;
+  color: var(--sched-text-3) !important;
 }
 
 body.app-dashboard-active:not(.light) #appPage .sidebar-hdr-brand > i,
 html[data-theme='dark'] body.app-dashboard-active #appPage .sidebar-hdr-brand > i {
-  color: #a5b4fc !important;
+  color: var(--sched-accent) !important;
 }
 
 html[data-theme='light'] body.app-dashboard-active #appPage .sidebar-hdr-brand > i,
 body.light.app-dashboard-active #appPage .sidebar-hdr-brand > i {
-  color: #6366f1 !important;
+  color: var(--sched-accent) !important;
 }
 
 body.app-dashboard-active:not(.light) #appPage .sidebar-page-count,
@@ -1490,14 +1487,14 @@ body.light.app-dashboard-active #appPage .sidebar-sync-btn:hover:not(:disabled) 
 
 body.app-dashboard-active:not(.light) #appPage .sidebar-hdr-toolbar,
 html[data-theme='dark'] body.app-dashboard-active #appPage .sidebar-hdr-toolbar {
-  background: linear-gradient(135deg, rgba(99, 102, 241, 0.14), rgba(14, 22, 48, 0.96)) !important;
-  border-color: rgba(139, 92, 246, 0.28) !important;
+  background: var(--sched-surface) !important;
+  border-color: var(--sched-edge) !important;
 }
 
 html[data-theme='light'] body.app-dashboard-active #appPage .sidebar-hdr-toolbar,
 body.light.app-dashboard-active #appPage .sidebar-hdr-toolbar {
-  background: linear-gradient(135deg, rgba(99, 102, 241, 0.08), rgba(238, 242, 255, 0.9)) !important;
-  border-color: rgba(99, 102, 241, 0.18) !important;
+  background: var(--sched-surface) !important;
+  border-color: var(--sched-edge) !important;
 }
 
 body.app-dashboard-active:not(.light) #appPage .sidebar-hdr-toolbar-info,
@@ -1512,12 +1509,12 @@ body.light.app-dashboard-active #appPage .sidebar-hdr-toolbar-info {
 
 body.app-dashboard-active:not(.light) #appPage .sidebar-hdr-toolbar-info > i,
 html[data-theme='dark'] body.app-dashboard-active #appPage .sidebar-hdr-toolbar-info > i {
-  color: #a78bfa !important;
+  color: var(--sched-accent) !important;
 }
 
 html[data-theme='light'] body.app-dashboard-active #appPage .sidebar-hdr-toolbar-info > i,
 body.light.app-dashboard-active #appPage .sidebar-hdr-toolbar-info > i {
-  color: #6366f1 !important;
+  color: var(--sched-accent) !important;
 }
 
 body.app-dashboard-active:not(.light) #appPage .sidebar-sched-selection,
@@ -1560,12 +1557,12 @@ body.light.app-dashboard-active #appPage .sidebar-sched-chip:hover {
 
 body.app-dashboard-active:not(.light) #appPage .page-name,
 html[data-theme='dark'] body.app-dashboard-active #appPage .page-name {
-  color: #e2e8f0 !important;
+  color: var(--sched-text) !important;
 }
 
 body.app-dashboard-active:not(.light) #appPage .page-category,
 html[data-theme='dark'] body.app-dashboard-active #appPage .page-category {
-  color: var(--sched-text-2) !important;
+  color: var(--sched-text-3) !important;
 }
 
 html[data-theme='light'] body.app-dashboard-active #appPage .page-name,
@@ -1580,8 +1577,8 @@ body.light.app-dashboard-active #appPage .page-category {
 
 body.app-dashboard-active:not(.light) #appPage .page-card:hover,
 html[data-theme='dark'] body.app-dashboard-active #appPage .page-card:hover {
-  background: rgba(99, 102, 241, 0.08) !important;
-  border-color: rgba(139, 156, 255, 0.18) !important;
+  background: rgba(255, 255, 255, 0.04) !important;
+  border-color: var(--sched-edge) !important;
 }
 
 html[data-theme='light'] body.app-dashboard-active #appPage .page-card,
@@ -1593,7 +1590,7 @@ body.light.app-dashboard-active #appPage .page-card {
 html[data-theme='light'] body.app-dashboard-active #appPage .page-card:hover,
 body.light.app-dashboard-active #appPage .page-card:hover {
   background: rgba(99, 102, 241, 0.06) !important;
-  border-color: rgba(99, 102, 241, 0.14) !important;
+  border-color: var(--sched-edge) !important;
 }
 
 body.app-dashboard-active:not(.light) #appPage .page-card.sched-selected,
@@ -1632,13 +1629,13 @@ body.light.app-dashboard-active #appPage .pages-empty p {
 
 body.app-dashboard-active:not(.light) #appPage .sidebar-tips,
 html[data-theme='dark'] body.app-dashboard-active #appPage .sidebar-tips {
-  background: rgba(8, 12, 28, 0.65) !important;
+  background: var(--sched-surface) !important;
   border-top-color: var(--sched-edge) !important;
 }
 
 html[data-theme='light'] body.app-dashboard-active #appPage .sidebar-tips,
 body.light.app-dashboard-active #appPage .sidebar-tips {
-  background: var(--sched-surface-2) !important;
+  background: var(--sched-surface) !important;
   border-top-color: var(--sched-edge) !important;
 }
 
@@ -1669,6 +1666,25 @@ body.light.app-dashboard-active #appPage .stip-item strong {
 body.app-dashboard-active:not(.light) #appPage .sidebar-pages,
 html[data-theme='dark'] body.app-dashboard-active #appPage .sidebar-pages {
   background: transparent !important;
+  padding: 8px 10px !important;
+}
+
+html[data-theme='light'] body.app-dashboard-active #appPage .sidebar-pages,
+body.light.app-dashboard-active #appPage .sidebar-pages {
+  background: transparent !important;
+  padding: 8px 10px !important;
+}
+
+body.app-dashboard-active:not(.light) #appPage .sidebar-footer,
+html[data-theme='dark'] body.app-dashboard-active #appPage .sidebar-footer {
+  background: var(--sched-surface) !important;
+  border-top-color: var(--sched-edge) !important;
+}
+
+html[data-theme='light'] body.app-dashboard-active #appPage .sidebar-footer,
+body.light.app-dashboard-active #appPage .sidebar-footer {
+  background: var(--sched-surface) !important;
+  border-top-color: var(--sched-edge) !important;
 }
 
 html[data-theme='light'] body.app-dashboard-active #appPage,
@@ -1690,14 +1706,14 @@ body.light.app-dashboard-active #appPage .nav-contact-label {
   color: var(--sched-text-2) !important;
 }
 
-/* Selected page in sidebar (Broadcast, etc.) */
+/* Selected page in sidebar (Broadcast, etc.) — match Messenger .msng-page-item.active */
 body.app-dashboard-active:not(.light) #appPage .page-card.active,
 body.app-dashboard-active:not(.light) #appPage .page-card.selected,
 html[data-theme='dark'] body.app-dashboard-active #appPage .page-card.active,
 html[data-theme='dark'] body.app-dashboard-active #appPage .page-card.selected {
-  background: linear-gradient(135deg, rgba(99, 102, 241, 0.16), rgba(139, 92, 246, 0.08)) !important;
-  border-color: rgba(139, 92, 246, 0.38) !important;
-  box-shadow: inset 3px 0 0 #8b5cf6, 0 2px 12px rgba(139, 92, 246, 0.12) !important;
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.14), rgba(99, 102, 241, 0.06)) !important;
+  border-color: rgba(99, 102, 241, 0.28) !important;
+  box-shadow: inset 3px 0 0 var(--sched-accent), 0 2px 12px rgba(99, 102, 241, 0.12) !important;
 }
 
 body.app-dashboard-active:not(.light) #appPage .page-card.active .page-name,
@@ -2236,9 +2252,9 @@ body.app-dashboard-active .msng-layout-pro .msng-page-item.active .msng-page-nam
 }
 
 body.app-dashboard-active .msng-layout-pro .msng-page-item.active {
-  background: linear-gradient(135deg, rgba(99, 102, 241, 0.16), rgba(139, 92, 246, 0.08)) !important;
-  border-color: rgba(139, 92, 246, 0.38) !important;
-  box-shadow: inset 3px 0 0 #8b5cf6, 0 2px 12px rgba(139, 92, 246, 0.12) !important;
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.14), rgba(99, 102, 241, 0.06)) !important;
+  border-color: rgba(99, 102, 241, 0.28) !important;
+  box-shadow: inset 3px 0 0 var(--sched-accent), 0 2px 12px rgba(99, 102, 241, 0.12) !important;
 }
 
 body.app-dashboard-active #view-analytics .pro-view__scroll,
