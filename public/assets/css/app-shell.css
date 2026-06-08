@@ -111,56 +111,19 @@ body.app-dashboard-active #appPage {
   opacity: 0.6;
 }
 
-/* ─── Sidebar columns — consistent left-rail layout (flex sections) ─── */
+/* ─── Sidebar columns — in-flow expand pushes content, no overlap ─── */
 #appPage > .app-body {
-  position: relative;
   flex-direction: row;
   flex-wrap: nowrap;
   align-items: stretch;
 }
 
-/* Reserve 72px for the nav rail; the rail expands as an overlay on hover */
-#appPage > .app-body::before {
-  content: '';
-  display: block;
-  width: var(--ds-nav-width, 72px);
-  min-width: var(--ds-nav-width, 72px);
-  flex-shrink: 0;
-  order: -1;
-}
-
-body.shell-broadcast #appPage > .app-body::before {
-  display: none;
-}
-
-#appPage .nav-sidebar {
-  position: absolute;
-  top: 12px;
-  bottom: 12px;
-  left: 12px;
-  z-index: 40;
-  align-self: auto;
-  flex-shrink: 0;
-  min-height: 0;
-  overflow: hidden;
-}
-
-#appPage .nav-sidebar:hover {
-  z-index: 50;
-  box-shadow: 4px 0 28px rgba(0, 0, 0, 0.32) !important;
-}
-
-body.shell-scheduling #appPage .nav-sidebar,
-body.shell-broadcast #appPage .nav-sidebar {
-  top: 0;
-  bottom: 0;
-  left: 0;
-}
-
+#appPage .nav-sidebar,
 #appPage .sidebar {
   flex-shrink: 0;
   align-self: stretch;
   min-height: 0;
+  overflow: hidden;
 }
 
 /* ─── Main content views ─── */
@@ -462,7 +425,6 @@ body.shell-messenger .nav-sidebar { display: flex !important; }
 /* ─── Responsive ─── */
 @media (max-width: 900px) {
   .nav-sidebar { display: none !important; }
-  #appPage > .app-body::before { display: none !important; }
   .app-topbar { padding: 0 var(--ds-space-4, 16px); }
   #appPage {
     flex-direction: column;

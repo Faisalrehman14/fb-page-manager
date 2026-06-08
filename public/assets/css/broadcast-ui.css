@@ -517,12 +517,12 @@ body.light .bcast-page-msg__input {
   .broadcast-col.bcast-panel-v2 { flex: 0 0 300px; }
 }
 
-/* ═══ Broadcast workspace — stable 5-column grid ═══ */
+/* ═══ Broadcast workspace — 5-column grid reflows when nav expands ═══ */
 body.shell-broadcast #appPage > .app-body {
-  position: relative;
+  --bcast-nav-active: var(--bcast-nav-w, 72px);
   display: grid !important;
   grid-template-columns:
-    var(--bcast-nav-w, 72px)
+    var(--bcast-nav-active)
     var(--bcast-sidebar-w, 220px)
     minmax(0, 1fr)
     var(--bcast-control-w, 340px)
@@ -533,25 +533,22 @@ body.shell-broadcast #appPage > .app-body {
   overflow: hidden !important;
   align-items: stretch !important;
   min-width: 0 !important;
+  transition: grid-template-columns var(--ds-duration-slow, 0.35s) var(--ds-ease, ease);
+}
+
+body.shell-broadcast #appPage > .app-body:has(.nav-sidebar:hover) {
+  --bcast-nav-active: var(--ds-nav-width-expanded, 200px);
 }
 
 body.shell-broadcast #appPage .nav-sidebar {
   grid-column: 1;
   grid-row: 1;
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
   align-self: stretch;
-  width: var(--bcast-nav-w, 72px) !important;
-  min-width: var(--bcast-nav-w, 72px) !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: none !important;
   border-radius: 0 !important;
-  z-index: 40;
   overflow: hidden;
-  transition:
-    width var(--ds-duration-slow, 0.35s) var(--ds-ease, ease),
-    min-width var(--ds-duration-slow, 0.35s) var(--ds-ease, ease),
-    box-shadow 0.25s ease !important;
 }
 
 body.shell-broadcast #appPage .sidebar {
@@ -600,14 +597,6 @@ body.shell-broadcast #appPage .stats-panel {
   border-radius: 0 !important;
 }
 
-/* Nav hover — smooth expand as overlay; grid column 1 stays 72px */
-body.shell-broadcast #appPage .nav-sidebar:hover {
-  width: var(--ds-nav-width-expanded, 200px) !important;
-  min-width: var(--ds-nav-width-expanded, 200px) !important;
-  z-index: 50 !important;
-  box-shadow: 4px 0 28px rgba(0, 0, 0, 0.35) !important;
-}
-
 @media (max-width: 1380px) {
   body.shell-broadcast {
     --bcast-control-w: 300px;
@@ -624,7 +613,7 @@ body.shell-broadcast #appPage .nav-sidebar:hover {
 @media (max-width: 1080px) {
   body.shell-broadcast #appPage > .app-body {
     grid-template-columns:
-      var(--bcast-nav-w, 72px)
+      var(--bcast-nav-active)
       var(--bcast-sidebar-w, 200px)
       minmax(0, 1fr)
       minmax(240px, 1fr);
@@ -646,7 +635,7 @@ body.shell-broadcast #appPage .nav-sidebar:hover {
 
 @media (max-width: 960px) {
   body.shell-broadcast #appPage > .app-body {
-    grid-template-columns: var(--bcast-nav-w, 72px) minmax(0, 1fr);
+    grid-template-columns: var(--bcast-nav-active) minmax(0, 1fr);
   }
 
   body.shell-broadcast #appPage .sidebar,
