@@ -168,8 +168,19 @@
     if (!nav) return;
     nav.classList.add('nav-sidebar--locked');
     if (nav._navLockLeave) return;
-    nav._navLockLeave = () => nav.classList.remove('nav-sidebar--locked');
+    nav._navLockLeave = () => {
+      nav.classList.remove('nav-sidebar--locked');
+    };
     nav.addEventListener('mouseleave', nav._navLockLeave);
+  }
+
+  function prepareMessengerLayout() {
+    const sidebar = document.querySelector('#appPage .sidebar');
+    if (sidebar) sidebar.style.display = 'none';
+    ['view-home', 'view-broadcast'].forEach((id) => {
+      const el = document.getElementById(id);
+      if (el) el.style.display = 'none';
+    });
   }
 
   function showTopView(name, display) {
@@ -216,16 +227,19 @@
 
     if (prev && prev.onLeave) prev.onLeave();
     document.body.classList.remove('shell-scheduling', 'shell-messenger', 'shell-broadcast', 'shell-home', 'in-messenger');
+
+    /* Layout-affecting updates before paint */
+    const sidebar = document.querySelector('.sidebar');
+    if (sidebar) sidebar.style.display = next.hideSidebar ? 'none' : '';
+
+    if (view === 'messenger') prepareMessengerLayout();
+
     if (next.bodyClass) document.body.classList.add(next.bodyClass);
     if (view === 'messenger') document.body.classList.add('in-messenger');
 
     currentView = view;
     setNavActive(view);
     setBreadcrumb(view);
-
-    /* Hide/show pages column before swapping views to avoid horizontal reflow */
-    const sidebar = document.querySelector('.sidebar');
-    if (sidebar) sidebar.style.display = next.hideSidebar ? 'none' : '';
 
     const topSections = ['home', 'messenger', 'broadcast'];
     topSections.forEach((s) => showTopView(s, false));
