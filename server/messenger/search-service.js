@@ -24,35 +24,12 @@ function mapConversation(c) {
     };
 }
 
-function mergeConversations(dbList, fbList) {
-    const byPsid = new Map();
-    for (const c of dbList) {
-        byPsid.set(String(c.participantId), c);
-    }
-    for (const c of fbList) {
-        const key = String(c.participantId);
-        const existing = byPsid.get(key);
-        if (!existing) {
-            byPsid.set(key, c);
-            continue;
-        }
-        const dbName = (existing.participantName || '').trim();
-        const fbName = (c.participantName || '').trim();
-        if ((!dbName || dbName === 'User') && fbName && fbName !== 'User') {
-            byPsid.set(key, { ...existing, participantName: fbName, snippet: c.snippet || existing.snippet });
-        }
-    }
-    return [...byPsid.values()].sort(
-        (a, b) => new Date(b.updatedTime || 0) - new Date(a.updatedTime || 0)
-    );
-}
-
 class SearchService {
     constructor({ db }) {
         this.db = db;
     }
 
-    async search({ pageId, q, dbConnected, pageToken, fetchFn }) {
+    async search({ pageId, q, dbConnected }) {
         const term = String(q || '').trim();
         if (!dbConnected) {
             return { conversations: [], messages: [], hint: 'Database not ready' };
@@ -71,13 +48,11 @@ class SearchService {
             return { ...hit.data, cached: true };
         }
 
-        const dbPromise = this.db.searchInbox(pageId, term);
-        const fbPromise = (pageToken && fetchFn)
-            ? this.db.searchConversationsFromFacebook(pageId, pageToken, fetchFn, term).catch(() => [])
-            : Promise.resolve([]);
-
-        const [dbData, fbConvs] = await Promise.all([dbPromise, fbPromise]);
-        const merged = mergeConversations(dbData.conversations || [], fbConvs || []);
+        // DB-only search — fast and covers every synced conversation in the inbox.
+        // Facebook Graph pagination (12×100 requests) was the main source of latency
+        // and still missed threads beyond the scan window.
+        const dbData = await this.db.searchInbox(pageId, term);
+        const merged = dbData.conversations || [];
 
         const result = {
             conversations: merged.map(mapConversation),
@@ -92,7 +67,7 @@ class SearchService {
                 conversation_id: m.conversation_id
             })),
             query: term,
-            searched_facebook: !!(pageToken && fetchFn)
+            searched_facebook: false
         };
 
         searchCache.set(key, { data: result, ts: Date.now() });

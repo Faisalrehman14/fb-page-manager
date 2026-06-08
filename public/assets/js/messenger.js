@@ -70,6 +70,7 @@
     _lastConvRenderSig: '',
     _lastConvOrderSig: '',
     _convOrder: [],       // Meta order: updated_at DESC from API
+    _searchHaystack: new Map(), // psid → lowercase haystack for instant local search
     _renderConvsRaf: 0,
     _readLocked: new Set(),
     _readLockAt: new Map(),     // psid → ms when marked read locally
@@ -94,7 +95,7 @@
   /** Full list merge from API — Meta order only, not every poll (keeps list stable). */
   const CONV_LIST_META_ORDER_MS = 20_000;
   const SEARCH_MIN_CHARS = 1;
-  const SEARCH_DEBOUNCE_MS = 400;
+  const SEARCH_DEBOUNCE_MS = 150;
   const SEARCH_CACHE_MS = 15_000;
   const _convListCache = new Map();
 
@@ -329,6 +330,38 @@
     M._convByPsid = new Map(
       M.convs.map(c => [convKey(c.page_id || M.activePageId, c.psid), c])
     );
+    rebuildSearchIndex();
+  }
+
+  /** All loaded conversations in display order (respects unread filter). */
+  function getSearchableConvs() {
+    const seen = new Set();
+    const list = [];
+    for (const psid of M._convOrder) {
+      const c = getConv(M.activePageId, psid);
+      if (c && !seen.has(String(c.psid))) {
+        seen.add(String(c.psid));
+        list.push(c);
+      }
+    }
+    for (const c of M.convs) {
+      if (!seen.has(String(c.psid))) list.push(c);
+    }
+    if (M.convFilter === 'unread') return list.filter(c => (c.unread || 0) > 0);
+    return list;
+  }
+
+  function rebuildSearchIndex() {
+    const next = new Map();
+    for (const c of M.convs) {
+      const key = convKey(c.page_id || M.activePageId, c.psid);
+      next.set(key, [
+        c.name || c.user_name || '',
+        c.psid || c.fb_user_id || '',
+        c.lastMsg || c.snippet || ''
+      ].join('\n').toLowerCase());
+    }
+    M._searchHaystack = next;
   }
 
   function invalidateConvListRender() {
@@ -2176,21 +2209,28 @@
     const ql = String(q || '').trim().toLowerCase();
     if (!ql) return [];
     const words = ql.split(/\s+/).filter(Boolean);
-    return M.convs.filter(c => {
-      const name = String(c.name || c.user_name || 'User').toLowerCase();
-      const psid = String(c.psid || c.fb_user_id || '');
-      const last = String(c.lastMsg || c.snippet || '').toLowerCase();
-      return words.every(w => name.includes(w) || psid.includes(w) || last.includes(w));
+    return getSearchableConvs().filter(c => {
+      const key = convKey(c.page_id || M.activePageId, c.psid);
+      const hay = M._searchHaystack.get(key)
+        || [c.name || c.user_name || '', c.psid || c.fb_user_id || '', c.lastMsg || c.snippet || '']
+          .join('\n').toLowerCase();
+      return words.every(w => hay.includes(w));
     });
+  }
+
+  function renderSearchPending(q) {
+    const listEl = $('msngConvList');
+    if (!listEl) return;
+    listEl.innerHTML = `<div class="msng-empty msng-search-hint">
+      <i class="fa-solid fa-magnifying-glass fa-bounce"></i>
+      <p>Searching for "<strong>${esc(q)}</strong>"…</p>
+    </div>`;
   }
 
   function renderLocalSearchResults(q, list) {
     const listEl = $('msngConvList');
     if (!listEl) return;
-    if (!list.length) {
-      showSearchHint(`No names matching "<strong>${esc(q)}</strong>" on this page`);
-      return;
-    }
+    if (!list.length) return;
     let html = `<div class="msng-search-meta">${list.length} match(es) in loaded chats</div>`;
     list.forEach(c => { html += convItemHtml(c, M.activePsid); });
     listEl.innerHTML = html;
@@ -2213,7 +2253,7 @@
       listEl.innerHTML = `<div class="msng-empty">
         <i class="fa-solid fa-magnifying-glass"></i>
         <p>No results for "<strong>${esc(q)}</strong>"</p>
-        <p class="msng-search-sub">Try the full name, or wait a moment — we also search Facebook</p>
+        <p class="msng-search-sub">Try a different spelling or search by message text</p>
       </div>`;
       return;
     }
@@ -2226,7 +2266,7 @@
       msgByPsid[psid].msgs.push(m);
     });
 
-    const convPsids = new Set(convMatches.map(c => c.fb_user_id));
+    const convPsids = new Set(convMatches.map(c => String(c.fb_user_id || '')));
     let html = `<div class="msng-search-meta">${convMatches.length + Object.keys(msgByPsid).length} result(s)</div>`;
 
     convMatches.forEach(c => {
@@ -2236,7 +2276,7 @@
     });
 
     Object.entries(msgByPsid).forEach(([psid, info]) => {
-      if (convPsids.has(psid)) return;
+      if (convPsids.has(String(psid))) return;
       const preview = info.msgs.slice(0, 2).map(m => {
         const prefix = m.from_me == 1 ? 'You: ' : '';
         return `<span class="msng-search-match">${prefix}${highlight(m.message || '', q)}</span>`;
@@ -2268,10 +2308,8 @@
 
     if (localMatches.length) {
       renderLocalSearchResults(q, localMatches);
-    } else {
-      listEl.innerHTML = `<div class="msng-empty">
-        <i class="fa-solid fa-magnifying-glass fa-bounce"></i><p>Searching Facebook &amp; inbox…</p>
-      </div>`;
+    } else if (!cached) {
+      renderSearchPending(q);
     }
 
     try {
@@ -3533,7 +3571,12 @@
     }
 
     M.search.active = true;
-    renderLocalSearchResults(q, filterLocalConvs(q));
+    const localMatches = filterLocalConvs(q);
+    if (localMatches.length) {
+      renderLocalSearchResults(q, localMatches);
+    } else {
+      renderSearchPending(q);
+    }
 
     M.search.timer = setTimeout(() => doSearch(q), SEARCH_DEBOUNCE_MS);
   };

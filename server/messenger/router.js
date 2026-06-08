@@ -254,19 +254,10 @@ function createMessengerRouter(deps) {
                     case 'search': {
                         const q = (req.query.q || '').trim();
                         if (!pageId) return res.status(400).json({ error: 'page_id required' });
-                        const pageToken = await resolvePageToken({
-                            pageId,
-                            session: req.session,
-                            db,
-                            dbConnected,
-                            fetchFn
-                        });
                         const result = await searchService.search({
                             pageId,
                             q,
-                            dbConnected,
-                            pageToken,
-                            fetchFn
+                            dbConnected
                         });
                         res.set('Cache-Control', 'private, max-age=5');
                         return res.json(result);

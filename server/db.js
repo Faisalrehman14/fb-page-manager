@@ -772,7 +772,7 @@ async function searchConversations(pageId, query, limit = 50) {
             SELECT c.id, c.page_id, c.fb_user_id AS participant_id, c.user_name AS participant_name,
                    c.user_picture AS participant_picture, c.snippet, c.updated_at AS updated_time, c.is_unread
             FROM messenger_conversations c
-            WHERE ${_searchWhere('c')} AND (${clause})
+            WHERE ${_inboxWhere('c')} AND (${clause})
             ORDER BY c.updated_at DESC
             LIMIT ?
         `, [..._inboxParams(pageId), ...nameParams, limit]);
@@ -2321,21 +2321,33 @@ async function getTotalUnread(pageId) {
     }
 }
 
+function _searchMessageSql(term) {
+    const words = String(term || '').trim().toLowerCase().split(/\s+/).filter(Boolean);
+    if (!words.length) return { clause: '0', params: [] };
+    const parts = [];
+    const params = [];
+    for (const w of words) {
+        parts.push(`LOWER(COALESCE(m.message, '')) LIKE ?`);
+        params.push(`%${w}%`);
+    }
+    return { clause: parts.join(' AND '), params };
+}
+
 async function searchMessages(pageId, query, limit = 40) {
     if (!pool) return [];
     const term = String(query || '').trim();
     if (term.length < 1) return [];
-    const likeLower = `%${term.toLowerCase()}%`;
+    const { clause, params: msgParams } = _searchMessageSql(term);
     try {
         const [rows] = await pool.query(
             `SELECT m.message_id, m.message, m.from_me, m.created_at, m.user_id,
                     c.fb_user_id AS senderId, c.user_name, c.user_picture, c.id AS conversation_id
              FROM messenger_messages m
              INNER JOIN messenger_conversations c ON m.conversation_id = c.id
-             WHERE m.page_id = ? AND LOWER(COALESCE(m.message, '')) LIKE ?
+             WHERE m.page_id = ? AND COALESCE(c.archived, 0) = 0 AND (${clause})
              ORDER BY m.created_at DESC
              LIMIT ?`,
-            [pageId, likeLower, limit]
+            [pageId, ...msgParams, limit]
         );
         return rows;
     } catch (err) {
