@@ -403,27 +403,6 @@ body.shell-multi-broadcast .page-card.multi-selected .page-indicator::after {
 
 body.shell-messenger .nav-sidebar { display: flex !important; }
 
-html[data-theme='light'] body.shell-scheduling .sidebar-hdr-toolbar,
-body.light.shell-scheduling .sidebar-hdr-toolbar {
-  background: linear-gradient(135deg, rgba(139, 92, 246, 0.08), rgba(99, 102, 241, 0.04));
-  border-color: rgba(139, 92, 246, 0.2);
-}
-
-html[data-theme='light'] body.shell-scheduling .sidebar-hdr-toolbar-info,
-body.light.shell-scheduling .sidebar-hdr-toolbar-info {
-  color: #64748b;
-}
-
-html[data-theme='light'] body.shell-scheduling .sidebar-hdr-subtitle[data-mode="scheduling"],
-body.light.shell-scheduling .sidebar-hdr-subtitle[data-mode="scheduling"] {
-  color: #7c3aed;
-}
-
-html[data-theme='light'] body.shell-scheduling .sidebar-sched-selection,
-body.light.shell-scheduling .sidebar-sched-selection {
-  color: #6d28d9;
-}
-
 /* ─── Responsive ─── */
 @media (max-width: 900px) {
   .nav-sidebar { display: none !important; }

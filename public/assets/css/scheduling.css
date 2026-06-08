@@ -1361,3 +1361,102 @@ body.light #view-scheduling .sv2-chip {
   border-color: #e2e8f0 !important;
   color: #475569 !important;
 }
+
+html[data-theme='light'] #view-scheduling .sv2-list-panel,
+body.light #view-scheduling .sv2-list-panel {
+  background: rgba(255, 255, 255, 0.65) !important;
+}
+
+html[data-theme='light'] #view-scheduling .sv2-compose,
+body.light #view-scheduling .sv2-compose {
+  background: rgba(255, 255, 255, 0.75) !important;
+  border-right-color: #e2e8f0 !important;
+}
+
+html[data-theme='light'] #view-scheduling .sv2-topbar-sub,
+html[data-theme='light'] #view-scheduling .sv2-hero-sub,
+html[data-theme='light'] #view-scheduling .sv2-list-sub,
+html[data-theme='light'] #view-scheduling .sv2-card-msg,
+html[data-theme='light'] #view-scheduling .sv2-card-meta,
+html[data-theme='light'] #view-scheduling .sv2-empty-sub,
+html[data-theme='light'] #view-scheduling .sv2-hint,
+html[data-theme='light'] #view-scheduling .sv2-section-label,
+html[data-theme='light'] #view-scheduling .sv2-note,
+html[data-theme='light'] #view-scheduling .sv2-charcount,
+html[data-theme='light'] #view-scheduling .sv2-stat-lbl,
+html[data-theme='light'] #view-scheduling .sv2-opt,
+body.light #view-scheduling .sv2-topbar-sub,
+body.light #view-scheduling .sv2-hero-sub,
+body.light #view-scheduling .sv2-list-sub,
+body.light #view-scheduling .sv2-card-msg,
+body.light #view-scheduling .sv2-card-meta,
+body.light #view-scheduling .sv2-empty-sub,
+body.light #view-scheduling .sv2-hint,
+body.light #view-scheduling .sv2-section-label,
+body.light #view-scheduling .sv2-note,
+body.light #view-scheduling .sv2-charcount,
+body.light #view-scheduling .sv2-stat-lbl,
+body.light #view-scheduling .sv2-opt {
+  color: #475569 !important;
+}
+
+html[data-theme='light'] #view-scheduling .sv2-section-label i,
+html[data-theme='light'] #view-scheduling .sv2-note i,
+body.light #view-scheduling .sv2-section-label i,
+body.light #view-scheduling .sv2-note i {
+  color: #6366f1 !important;
+}
+
+html[data-theme='light'] #view-scheduling .sv2-img-zone,
+html[data-theme='light'] #view-scheduling .sv2-img-placeholder,
+body.light #view-scheduling .sv2-img-zone,
+body.light #view-scheduling .sv2-img-placeholder {
+  background: #f8fafc !important;
+  border-color: #e2e8f0 !important;
+  color: #64748b !important;
+}
+
+html[data-theme='light'] #view-scheduling .sv2-img-placeholder span,
+body.light #view-scheduling .sv2-img-placeholder span {
+  color: #475569 !important;
+}
+
+html[data-theme='light'] #view-scheduling .sv2-textarea::placeholder,
+html[data-theme='light'] #view-scheduling .sv2-input::placeholder,
+body.light #view-scheduling .sv2-textarea::placeholder,
+body.light #view-scheduling .sv2-input::placeholder {
+  color: #64748b !important;
+}
+
+html[data-theme='light'] #view-scheduling .sv2-refresh-btn:hover,
+html[data-theme='light'] #view-scheduling .sv2-chip:hover,
+body.light #view-scheduling .sv2-refresh-btn:hover,
+body.light #view-scheduling .sv2-chip:hover {
+  background: #eef2ff !important;
+  border-color: rgba(99, 102, 241, 0.28) !important;
+  color: #4338ca !important;
+}
+
+html[data-theme='light'] #view-scheduling .sv2-note,
+body.light #view-scheduling .sv2-note {
+  background: rgba(99, 102, 241, 0.06) !important;
+  border-color: rgba(99, 102, 241, 0.18) !important;
+}
+
+html[data-theme='light'] #view-scheduling .sv2-list-hdr,
+body.light #view-scheduling .sv2-list-hdr {
+  background: rgba(255, 255, 255, 0.85) !important;
+  border-bottom-color: #e2e8f0 !important;
+}
+
+html[data-theme='light'] #view-scheduling .sv2-badge,
+body.light #view-scheduling .sv2-badge {
+  background: rgba(16, 185, 129, 0.1) !important;
+  color: #047857 !important;
+  border-color: rgba(16, 185, 129, 0.25) !important;
+}
+
+html[data-theme='light'] #view-scheduling .sv2-input-wrap .sv2-input-icon,
+body.light #view-scheduling .sv2-input-wrap .sv2-input-icon {
+  color: #64748b !important;
+}
