@@ -517,9 +517,15 @@ body.light .bcast-page-msg__input {
   .broadcast-col.bcast-panel-v2 { flex: 0 0 300px; }
 }
 
+@property --bcast-nav-active {
+  syntax: '<length>';
+  inherits: false;
+  initial-value: 72px;
+}
+
 /* ═══ Broadcast workspace — 5-column grid reflows when nav expands ═══ */
 body.shell-broadcast #appPage > .app-body {
-  --bcast-nav-active: var(--bcast-nav-w, 72px);
+  --bcast-nav-active: var(--ds-nav-width, 72px);
   display: grid !important;
   grid-template-columns:
     var(--bcast-nav-active)
@@ -533,6 +539,9 @@ body.shell-broadcast #appPage > .app-body {
   overflow: hidden !important;
   align-items: stretch !important;
   min-width: 0 !important;
+  transition:
+    grid-template-columns var(--ds-duration-slow, 0.35s) var(--ds-ease, ease),
+    --bcast-nav-active var(--ds-duration-slow, 0.35s) var(--ds-ease, ease);
 }
 
 body.shell-broadcast #appPage > .app-body:has(.nav-sidebar:hover) {
@@ -548,6 +557,10 @@ body.shell-broadcast #appPage .nav-sidebar {
   max-width: none !important;
   border-radius: 0 !important;
   overflow: hidden;
+  transition:
+    width var(--ds-duration-slow, 0.35s) var(--ds-ease, ease),
+    min-width var(--ds-duration-slow, 0.35s) var(--ds-ease, ease),
+    box-shadow 0.25s ease !important;
 }
 
 body.shell-broadcast #appPage .sidebar {
