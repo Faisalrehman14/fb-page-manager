@@ -906,66 +906,66 @@ html[data-theme='dark'] #view-broadcast {
   background: transparent !important;
 }
 
-/* ── Sidebar nav: no purple gradient pill ── */
-body:not(.light) #appPage .nav-side-item.active,
-html[data-theme='dark'] #appPage .nav-side-item.active {
+/* ── Sidebar nav: no purple gradient pill (non-dashboard only) ── */
+body:not(.light):not(.app-dashboard-active) #appPage .nav-side-item.active,
+html[data-theme='dark'] body:not(.app-dashboard-active) #appPage .nav-side-item.active {
   background: var(--pro-accent-muted) !important;
   color: #93c5fd !important;
   border-color: rgba(8, 102, 255, 0.22) !important;
   box-shadow: inset 0 0 0 1px rgba(8, 102, 255, 0.12) !important;
 }
 
-body:not(.light) #appPage .nav-side-item.active::before,
-html[data-theme='dark'] #appPage .nav-side-item.active::before {
+body:not(.light):not(.app-dashboard-active) #appPage .nav-side-item.active::before,
+html[data-theme='dark'] body:not(.app-dashboard-active) #appPage .nav-side-item.active::before {
   background: var(--pro-accent) !important;
   height: 55% !important;
 }
 
-body:not(.light) #appPage .nav-side-item.active i,
-html[data-theme='dark'] #appPage .nav-side-item.active i {
+body:not(.light):not(.app-dashboard-active) #appPage .nav-side-item.active i,
+html[data-theme='dark'] body:not(.app-dashboard-active) #appPage .nav-side-item.active i {
   color: #60a5fa !important;
   filter: none !important;
 }
 
 /* AI Assistant — subtle blue, not purple */
-body:not(.light) #appPage .nav-ai-btn,
-html[data-theme='dark'] #appPage .nav-ai-btn {
+body:not(.light):not(.app-dashboard-active) #appPage .nav-ai-btn,
+html[data-theme='dark'] body:not(.app-dashboard-active) #appPage .nav-ai-btn {
   background: var(--pro-accent-subtle) !important;
   border: 1px solid var(--pro-accent-border) !important;
   color: var(--pro-text) !important;
   box-shadow: none !important;
 }
 
-body:not(.light) #appPage .nav-ai-btn:hover,
-html[data-theme='dark'] #appPage .nav-ai-btn:hover {
+body:not(.light):not(.app-dashboard-active) #appPage .nav-ai-btn:hover,
+html[data-theme='dark'] body:not(.app-dashboard-active) #appPage .nav-ai-btn:hover {
   background: var(--pro-accent-muted) !important;
   border-color: rgba(8, 102, 255, 0.4) !important;
   box-shadow: var(--pro-shadow-sm) !important;
 }
 
-body:not(.light) #appPage .nav-ai-btn i,
-html[data-theme='dark'] #appPage .nav-ai-btn i {
+body:not(.light):not(.app-dashboard-active) #appPage .nav-ai-btn i,
+html[data-theme='dark'] body:not(.app-dashboard-active) #appPage .nav-ai-btn i {
   color: #60a5fa !important;
   filter: none !important;
 }
 
-body:not(.light) #appPage .nav-ai-tag,
-html[data-theme='dark'] #appPage .nav-ai-tag {
+body:not(.light):not(.app-dashboard-active) #appPage .nav-ai-tag,
+html[data-theme='dark'] body:not(.app-dashboard-active) #appPage .nav-ai-tag {
   background: var(--pro-accent) !important;
   color: #fff !important;
 }
 
 /* ── Broadcast columns: flat pro surfaces (sidebars use dashboard indigo shell) ── */
-body:not(.light) #appPage .compose-col,
-body:not(.light) #appPage .compose,
-body:not(.light) #appPage .broadcast-col,
-body:not(.light) #appPage .stats-panel,
-body:not(.light) #appPage .analytics-panel,
-html[data-theme='dark'] #appPage .compose-col,
-html[data-theme='dark'] #appPage .compose,
-html[data-theme='dark'] #appPage .broadcast-col,
-html[data-theme='dark'] #appPage .stats-panel,
-html[data-theme='dark'] #appPage .analytics-panel {
+body:not(.light):not(.app-dashboard-active) #appPage .compose-col,
+body:not(.light):not(.app-dashboard-active) #appPage .compose,
+body:not(.light):not(.app-dashboard-active) #appPage .broadcast-col,
+body:not(.light):not(.app-dashboard-active) #appPage .stats-panel,
+body:not(.light):not(.app-dashboard-active) #appPage .analytics-panel,
+html[data-theme='dark'] body:not(.app-dashboard-active) #appPage .compose-col,
+html[data-theme='dark'] body:not(.app-dashboard-active) #appPage .compose,
+html[data-theme='dark'] body:not(.app-dashboard-active) #appPage .broadcast-col,
+html[data-theme='dark'] body:not(.app-dashboard-active) #appPage .stats-panel,
+html[data-theme='dark'] body:not(.app-dashboard-active) #appPage .analytics-panel {
   background: var(--pro-surface) !important;
   border: 1px solid var(--pro-border) !important;
   border-radius: var(--pro-radius-lg) !important;
@@ -1212,6 +1212,21 @@ body.app-dashboard-active {
   --sched-text: #f1f5f9;
   --sched-text-2: #94a3b8;
   --sched-text-3: #94a3b8;
+  /* Alias legacy dashboard tokens → sidebar indigo shell */
+  --bg: var(--sched-bg);
+  --bg2: var(--sched-surface-2);
+  --bg3: var(--sched-surface);
+  --surface: var(--sched-surface);
+  --surface2: var(--sched-surface-2);
+  --surface3: var(--sched-surface-2);
+  --border: var(--sched-edge);
+  --border2: var(--sched-edge);
+  --text: var(--sched-text);
+  --text2: var(--sched-text-2);
+  --text3: var(--sched-text-3);
+  --primary: var(--sched-accent);
+  --primary-light: #a5b4fc;
+  --gradient-brand: linear-gradient(135deg, #6366f1 0%, #4f46e5 52%, #7c3aed 100%);
 }
 
 html[data-theme='light'] body.app-dashboard-active,
@@ -1225,6 +1240,20 @@ body.light.app-dashboard-active {
   --sched-text: #0f172a;
   --sched-text-2: #475569;
   --sched-text-3: #64748b;
+  --bg: var(--sched-bg);
+  --bg2: var(--sched-surface-2);
+  --bg3: var(--sched-surface);
+  --surface: var(--sched-surface);
+  --surface2: var(--sched-surface-2);
+  --surface3: var(--sched-surface-2);
+  --border: var(--sched-edge);
+  --border2: var(--sched-edge);
+  --text: var(--sched-text);
+  --text2: var(--sched-text-2);
+  --text3: var(--sched-text-3);
+  --primary: var(--sched-accent);
+  --primary-light: #6366f1;
+  --gradient-brand: linear-gradient(135deg, #6366f1 0%, #4f46e5 52%, #7c3aed 100%);
 }
 
 body.shell-scheduling #appPage > .app-body,
@@ -1717,6 +1746,7 @@ body.app-dashboard-active #appPage {
   --pro-accent-hover: #4f46e5;
   --pro-gradient-brand: linear-gradient(135deg, #6366f1 0%, #4f46e5 52%, #7c3aed 100%);
   --pro-shadow-focus: 0 0 0 3px rgba(99, 102, 241, 0.22);
+  background: var(--sched-bg) !important;
 }
 
 /* ── Shared panels, cards, headers ── */
@@ -2085,6 +2115,212 @@ body.light.app-dashboard-active .msng-layout-pro {
 
 html[data-theme='light'] body.app-dashboard-active #appPage .stat-box.s-total .stat-val,
 body.light.app-dashboard-active #appPage .stat-box.s-total .stat-val {
+  color: #5b21b6 !important;
+}
+
+/* ── Extended panel coverage (Home · Broadcast · Messenger · Analytics · Settings) ── */
+body.app-dashboard-active #view-home .hv-kpi,
+body.app-dashboard-active #view-home .hv-panel,
+body.app-dashboard-active #view-home .hv-hero-sched-card,
+body.app-dashboard-active #view-home .hv-quick-card,
+body.app-dashboard-active #view-home .hv-recent-card,
+body.app-dashboard-active #view-home .hv-plan-card,
+body.app-dashboard-active #view-home .hv-lifetime-card {
+  background: var(--sched-surface) !important;
+  border-color: var(--sched-edge) !important;
+  box-shadow: none !important;
+}
+
+body.app-dashboard-active #view-home .hv-kpi:hover,
+body.app-dashboard-active #view-home .hv-panel:hover {
+  border-color: rgba(99, 102, 241, 0.28) !important;
+  box-shadow: 0 12px 32px rgba(99, 102, 241, 0.1) !important;
+}
+
+body.app-dashboard-active #view-home .hv-metrics-eyebrow,
+body.app-dashboard-active #view-home .hv-panel-eyebrow {
+  color: #a5b4fc !important;
+}
+
+body.app-dashboard-active #view-home .hv-metrics-title,
+body.app-dashboard-active #view-home .hv-panel-title,
+body.app-dashboard-active #view-home .hv-kpi-val {
+  color: var(--sched-text) !important;
+}
+
+body.app-dashboard-active #view-home .hv-kpi-lbl,
+body.app-dashboard-active #view-home .hv-panel-sub {
+  color: var(--sched-text-2) !important;
+}
+
+body.app-dashboard-active #view-home .hv-hero-cta2,
+body.app-dashboard-active #view-home .hv-sync-refresh {
+  background: rgba(255, 255, 255, 0.04) !important;
+  border-color: var(--sched-edge) !important;
+  color: var(--sched-text) !important;
+}
+
+body.app-dashboard-active #view-home .hv-hero-cta2:hover,
+body.app-dashboard-active #view-home .hv-sync-refresh:hover {
+  background: var(--sched-accent-soft) !important;
+  border-color: rgba(99, 102, 241, 0.35) !important;
+}
+
+body.app-dashboard-active #appPage .bcast-panel-v2__section,
+body.app-dashboard-active #appPage .bcast-panel-v2__status,
+body.app-dashboard-active #appPage .bcast-panel-v2__modes,
+body.app-dashboard-active #appPage .bcast-panel-v2 .bcast-mode-switch,
+body.app-dashboard-active #appPage .panel-section,
+body.app-dashboard-active #appPage .quick-stat-card,
+body.app-dashboard-active #appPage .intel-card,
+body.app-dashboard-active #appPage .bcast-mini-stat,
+body.app-dashboard-active #appPage .tpl-item {
+  background: var(--sched-surface-2) !important;
+  border-color: var(--sched-edge) !important;
+}
+
+body.app-dashboard-active #appPage .bcast-panel-v2__head {
+  background: linear-gradient(180deg, rgba(16, 22, 48, 0.98) 0%, rgba(8, 12, 28, 0.96) 100%) !important;
+}
+
+body.app-dashboard-active #appPage .bcast-panel-v2__title i,
+body.app-dashboard-active #appPage .bcast-panel-v2__label i,
+body.app-dashboard-active #appPage .compose-hdr-icon,
+body.app-dashboard-active #appPage .tpl-icon--greet {
+  color: var(--sched-accent) !important;
+  background: var(--sched-accent-soft) !important;
+}
+
+body.app-dashboard-active #appPage .bcast-panel-v2 .mode-pill.active {
+  background: var(--sched-accent-soft) !important;
+  border-color: rgba(99, 102, 241, 0.35) !important;
+  color: #c4b5fd !important;
+}
+
+body.app-dashboard-active #appPage .qs-audience i {
+  background: var(--sched-accent-soft) !important;
+  color: #a5b4fc !important;
+}
+
+body.app-dashboard-active #appPage .qs-audience {
+  border-left-color: rgba(99, 102, 241, 0.4) !important;
+}
+
+body.app-dashboard-active .msng-layout-pro .msng-convs,
+body.app-dashboard-active .msng-layout-pro .msng-chat,
+body.app-dashboard-active .msng-layout-pro .msng-msgs,
+body.app-dashboard-active .msng-layout-pro .msng-input-bar {
+  background: var(--sched-surface) !important;
+  border-color: var(--sched-edge) !important;
+}
+
+body.app-dashboard-active .msng-layout-pro .msng-conv-item:hover {
+  background: rgba(99, 102, 241, 0.08) !important;
+}
+
+body.app-dashboard-active .msng-layout-pro .msng-conv-item.active {
+  background: var(--sched-accent-soft) !important;
+  border-color: rgba(99, 102, 241, 0.28) !important;
+}
+
+body.app-dashboard-active .msng-layout-pro .msng-search-input,
+body.app-dashboard-active .msng-layout-pro .msng-composer textarea,
+body.app-dashboard-active .msng-layout-pro .msng-composer input {
+  background: var(--sched-surface-2) !important;
+  border-color: var(--sched-edge) !important;
+  color: var(--sched-text) !important;
+}
+
+body.app-dashboard-active .msng-layout-pro .msng-page-item.active .msng-page-name {
+  color: #c4b5fd !important;
+}
+
+body.app-dashboard-active .msng-layout-pro .msng-page-item.active {
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.16), rgba(139, 92, 246, 0.08)) !important;
+  border-color: rgba(139, 92, 246, 0.38) !important;
+  box-shadow: inset 3px 0 0 #8b5cf6, 0 2px 12px rgba(139, 92, 246, 0.12) !important;
+}
+
+body.app-dashboard-active #view-analytics .pro-view__scroll,
+body.app-dashboard-active #view-settings .pro-view__scroll {
+  background: var(--sched-bg) !important;
+}
+
+body.app-dashboard-active #view-analytics .akpi-val,
+body.app-dashboard-active #view-analytics .akpi-lbl,
+body.app-dashboard-active #view-settings .settings-profile-name,
+body.app-dashboard-active #view-settings .settings-profile-meta {
+  color: var(--sched-text) !important;
+}
+
+body.app-dashboard-active #view-analytics .akpi-lbl,
+body.app-dashboard-active #view-settings .saas-billing-card__sub {
+  color: var(--sched-text-2) !important;
+}
+
+body.app-dashboard-active #view-analytics .akpi-blue .akpi-icon,
+body.app-dashboard-active #view-analytics .akpi-purple .akpi-icon {
+  background: var(--sched-accent-soft) !important;
+  color: #a5b4fc !important;
+}
+
+body.app-dashboard-active #view-settings .settings-section,
+body.app-dashboard-active #view-settings .settings-header {
+  background: transparent !important;
+  border-color: var(--sched-edge) !important;
+}
+
+body.app-dashboard-active #view-settings .saas-plan-badge,
+body.app-dashboard-active #appPage .saas-plan-badge {
+  background: var(--sched-accent-soft) !important;
+  border-color: rgba(99, 102, 241, 0.28) !important;
+  color: #c4b5fd !important;
+}
+
+html[data-theme='light'] body.app-dashboard-active #view-home .hv-kpi,
+html[data-theme='light'] body.app-dashboard-active #view-home .hv-panel,
+html[data-theme='light'] body.app-dashboard-active #view-home .hv-hero-sched-card,
+body.light.app-dashboard-active #view-home .hv-kpi,
+body.light.app-dashboard-active #view-home .hv-panel,
+body.light.app-dashboard-active #view-home .hv-hero-sched-card {
+  background: var(--sched-surface) !important;
+  border-color: var(--sched-edge) !important;
+}
+
+html[data-theme='light'] body.app-dashboard-active #view-home .hv-metrics-title,
+html[data-theme='light'] body.app-dashboard-active #view-home .hv-kpi-val,
+body.light.app-dashboard-active #view-home .hv-metrics-title,
+body.light.app-dashboard-active #view-home .hv-kpi-val {
+  color: var(--sched-text) !important;
+}
+
+html[data-theme='light'] body.app-dashboard-active #view-home .hv-metrics-eyebrow,
+body.light.app-dashboard-active #view-home .hv-metrics-eyebrow {
+  color: #6366f1 !important;
+}
+
+html[data-theme='light'] body.app-dashboard-active #appPage .bcast-panel-v2__head,
+body.light.app-dashboard-active #appPage .bcast-panel-v2__head {
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%) !important;
+}
+
+html[data-theme='light'] body.app-dashboard-active .msng-layout-pro .msng-page-item.active .msng-page-name,
+body.light.app-dashboard-active .msng-layout-pro .msng-page-item.active .msng-page-name {
+  color: #5b21b6 !important;
+}
+
+html[data-theme='light'] body.app-dashboard-active .msng-layout-pro .msng-page-item.active,
+body.light.app-dashboard-active .msng-layout-pro .msng-page-item.active {
+  background: #eef2ff !important;
+  border-color: rgba(99, 102, 241, 0.28) !important;
+  box-shadow: inset 3px 0 0 #6366f1, 0 2px 10px rgba(99, 102, 241, 0.08) !important;
+}
+
+html[data-theme='light'] body.app-dashboard-active #view-settings .saas-plan-badge,
+html[data-theme='light'] body.app-dashboard-active #appPage .saas-plan-badge,
+body.light.app-dashboard-active #view-settings .saas-plan-badge,
+body.light.app-dashboard-active #appPage .saas-plan-badge {
+  background: var(--sched-accent-soft) !important;
   color: #5b21b6 !important;
 }
 
