@@ -29,10 +29,10 @@ body:not(.light) {
   --t-border-soft:  rgba(255, 255, 255, 0.06);
   --t-divider:      rgba(255, 255, 255, 0.08);
 
-  --t-accent:       #6366f1;
-  --t-accent-2:     #a855f7;
-  --t-accent-soft:  rgba(99, 102, 241, 0.14);
-  --t-accent-glow:  rgba(99, 102, 241, 0.35);
+  --t-accent:       #0866ff;
+  --t-accent-2:     #1877f2;
+  --t-accent-soft:  rgba(8, 102, 255, 0.14);
+  --t-accent-glow:  rgba(8, 102, 255, 0.35);
 
   --t-success:      #34d399;
   --t-warning:      #fbbf24;
@@ -79,10 +79,10 @@ body.light {
   --t-border-soft:  rgba(15, 23, 42, 0.06);
   --t-divider:      rgba(15, 23, 42, 0.08);
 
-  --t-accent:       #6366f1;
-  --t-accent-2:     #8b5cf6;
-  --t-accent-soft:  rgba(99, 102, 241, 0.08);
-  --t-accent-glow:  rgba(99, 102, 241, 0.25);
+  --t-accent:       #0866ff;
+  --t-accent-2:     #1877f2;
+  --t-accent-soft:  rgba(8, 102, 255, 0.08);
+  --t-accent-glow:  rgba(8, 102, 255, 0.25);
 
   --t-success:      #059669;
   --t-warning:      #d97706;

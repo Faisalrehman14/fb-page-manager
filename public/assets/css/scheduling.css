@@ -3,10 +3,10 @@
  */
 
 #view-scheduling {
-  --sv-accent: #6366f1;
-  --sv-accent-deep: #4f46e5;
-  --sv-accent-soft: rgba(99, 102, 241, 0.12);
-  --sv-accent-glow: rgba(99, 102, 241, 0.35);
+  --sv-accent: #0866ff;
+  --sv-accent-deep: #1877f2;
+  --sv-accent-soft: rgba(8, 102, 255, 0.12);
+  --sv-accent-glow: rgba(8, 102, 255, 0.35);
   --sv-surface: rgba(14, 22, 48, 0.92);
   --sv-surface-2: rgba(20, 31, 69, 0.88);
   --sv-edge: rgba(139, 156, 255, 0.14);

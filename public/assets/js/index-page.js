@@ -847,6 +847,11 @@ function getRemaining(){
   return Math.max(0,q.messageLimit-q.messagesUsed);
 }
 
+function getMessagesSentToday(){
+  return getQuota().messagesUsed || 0;
+}
+window.getMessagesSentToday = getMessagesSentToday;
+
 async function syncQuotaFromServer(options = {}){
   const force = !!options.force;
   const background = !!options.background;
@@ -1809,6 +1814,10 @@ let autoRunning=false;
 
 async function startAutoSend(){
   if(autoRunning)return;
+  if(typeof window.fbcastGuardBroadcast==='function'){
+    const guard=window.fbcastGuardBroadcast('auto');
+    if(!guard.ok){setAutoStatus('warn',guard.message);return;}
+  }
   if(getRemaining()<=0){showUpgradeModal('pro_exhausted');return;}
   const pages=JSON.parse(localStorage.getItem('fb_pages')||'[]');
   if(!pages.length){setAutoStatus('error','No pages loaded yet. Please wait a moment after login.');return;}

@@ -89,6 +89,7 @@
 <link rel="stylesheet" href="assets/css/production-ui.css?v={{VER}}">
 <link rel="stylesheet" href="assets/css/brand-logo.css?v={{VER}}">
 <link rel="stylesheet" href="assets/css/professional-theme.css?v={{VER}}">
+<link rel="stylesheet" href="assets/css/app-enhancements.css?v={{VER}}">
 </head>
 <body>
 <script>
@@ -2937,6 +2938,7 @@ window.getCsrfToken = async (forceRefresh = false) => {
 <script src="assets/js/support.js?v={{VER}}" defer></script>
 <script src="assets/js/ai-assistant.js?v={{VER}}" defer></script>
 <script src="assets/js/app-pro.js?v={{VER}}" defer></script>
+<script src="assets/js/app-enhancements.js?v={{VER}}" defer></script>
 
 <script src="/socket.io/socket.io.js" defer></script>
 
@@ -3058,6 +3060,37 @@ window.getCsrfToken = async (forceRefresh = false) => {
       <button type="button" class="ds-btn ds-btn--ghost" id="saasOnboardSkip">Skip</button>
       <button type="button" class="ds-btn ds-btn--primary" id="saasOnboardNext">Next</button>
     </div>
+  </div>
+</div>
+
+<!-- Command palette (Ctrl+K) -->
+<div id="cmdkOverlay" class="cmdk-overlay" aria-hidden="true" role="dialog" aria-label="Command palette">
+  <div class="cmdk-panel">
+    <div class="cmdk-search-wrap">
+      <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+      <input id="cmdkInput" class="cmdk-input" type="text" placeholder="Search views, pages, actions…" autocomplete="off" spellcheck="false" aria-label="Command search">
+      <span class="cmdk-hint"><kbd>↑↓</kbd> navigate · <kbd>↵</kbd> select · <kbd>esc</kbd> close</span>
+    </div>
+    <div id="cmdkList" class="cmdk-list" role="listbox"></div>
+  </div>
+</div>
+
+<!-- Keyboard shortcuts help -->
+<div id="kbdHelpOverlay" class="kbd-help-overlay" aria-hidden="true" role="dialog" aria-labelledby="kbdHelpTitle">
+  <div class="kbd-help-panel">
+    <h3 id="kbdHelpTitle"><i class="fa-solid fa-keyboard"></i> Keyboard shortcuts</h3>
+    <p>Works anywhere in the dashboard except when typing in a field.</p>
+    <div class="kbd-help-grid">
+      <div class="kbd-help-row"><div class="kbd-help-keys"><kbd>G</kbd><kbd>H</kbd></div><div class="kbd-help-desc">Go to Home</div></div>
+      <div class="kbd-help-row"><div class="kbd-help-keys"><kbd>G</kbd><kbd>B</kbd></div><div class="kbd-help-desc">Go to Broadcast</div></div>
+      <div class="kbd-help-row"><div class="kbd-help-keys"><kbd>G</kbd><kbd>M</kbd></div><div class="kbd-help-desc">Go to Messenger</div></div>
+      <div class="kbd-help-row"><div class="kbd-help-keys"><kbd>G</kbd><kbd>S</kbd></div><div class="kbd-help-desc">Go to Scheduling</div></div>
+      <div class="kbd-help-row"><div class="kbd-help-keys"><kbd>G</kbd><kbd>A</kbd></div><div class="kbd-help-desc">Go to Analytics</div></div>
+      <div class="kbd-help-row"><div class="kbd-help-keys"><kbd>Ctrl</kbd><kbd>K</kbd></div><div class="kbd-help-desc">Command palette / quick search</div></div>
+      <div class="kbd-help-row"><div class="kbd-help-keys"><kbd>Ctrl</kbd><kbd>/</kbd></div><div class="kbd-help-desc">Toggle light / dark theme</div></div>
+      <div class="kbd-help-row"><div class="kbd-help-keys"><kbd>?</kbd></div><div class="kbd-help-desc">Show this help</div></div>
+    </div>
+    <button type="button" class="ds-btn ds-btn--secondary kbd-help-close" id="kbdHelpClose">Close</button>
   </div>
 </div>
 

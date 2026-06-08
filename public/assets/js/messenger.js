@@ -3776,7 +3776,7 @@
             <i class="fa-brands fa-facebook"></i>
             <h4>No pages connected</h4>
             <p>Connect a Facebook Page from Settings to use Messenger.</p>
-            <button type="button" class="msng-no-page-btn" onclick="typeof showView==='function'&&showView('settings')">Open Settings</button>
+            <button type="button" class="msng-no-page-btn" onclick="typeof switchDashboardView==='function'&&switchDashboardView('settings')">Open Settings</button>
           </div>`;
       return;
     }

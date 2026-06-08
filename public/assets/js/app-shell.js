@@ -264,9 +264,6 @@
       });
     });
 
-    if (view !== 'broadcast' && typeof showStatus === 'function') {
-      showStatus('Viewing ' + next.label + '…', 'info');
-    }
   }
 
   function closeMobileMore() {

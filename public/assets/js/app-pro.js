@@ -56,8 +56,12 @@
     });
 
     global.getNotifPrefs = function () {
+      if (global.fbcastSettings) {
+        const n = global.fbcastSettings.get().notify;
+        return { notif_broadcast: n.broadcast !== false, notif_failed: n.failed !== false, notif_desktop: !!n.desktop, notif_sound: !!n.sound };
+      }
       if (global.fbcastUserData) return global.fbcastUserData.getPreferences();
-      return { notif_broadcast: true, notif_failed: true };
+      return { notif_broadcast: true, notif_failed: true, notif_desktop: false, notif_sound: false };
     };
 
     global.maybeNotifyBroadcast = function (type, message) {
@@ -65,10 +69,13 @@
       if (type === 'complete' && !p.notif_broadcast) return;
       if (type === 'failed' && !p.notif_failed) return;
       if (typeof global.showToast === 'function') global.showToast(message, type === 'failed' ? 'warning' : 'success');
-      if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+      if (p.notif_desktop && typeof Notification !== 'undefined' && Notification.permission === 'granted') {
         try {
           new Notification('FBCast Pro', { body: message, icon: '/images/logo-64.png' });
         } catch (_) {}
+      }
+      if (p.notif_sound && type === 'complete' && typeof global.playNotifySound === 'function') {
+        try { global.playNotifySound(); } catch (_) {}
       }
     };
 

@@ -484,6 +484,10 @@
     if (periodDays) currentPeriod = periodDays;
     setPeriodActive(currentPeriod);
 
+    const view = $('view-analytics');
+    view?.classList.add('analytics-loading');
+
+    try {
     const fetchDays = currentPeriod * 2;
     const [dbHistory, schedules] = await Promise.all([
       fetchDbHistory(fetchDays),
@@ -516,6 +520,9 @@
     renderHeatmap(filtered);
     renderBreakdown(filtered);
     renderHistory(filtered);
+    } finally {
+      view?.classList.remove('analytics-loading');
+    }
   }
 
   function bindPeriodButtons() {

@@ -1,0 +1,422 @@
+/**
+ * FBCast Pro — App-wide UX enhancements
+ * Command palette, keyboard help, skeleton loaders, density, polish.
+ */
+
+/* ── Command palette ── */
+.cmdk-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10050;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: min(12vh, 96px) 16px 24px;
+  background: rgba(3, 5, 8, 0.62);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.18s ease, visibility 0.18s ease;
+}
+
+.cmdk-overlay.is-open {
+  opacity: 1;
+  visibility: visible;
+}
+
+.cmdk-panel {
+  width: min(560px, 100%);
+  background: var(--pro-surface, var(--t-surface, #151b26));
+  border: 1px solid var(--pro-border-strong, var(--t-border, rgba(148, 163, 184, 0.22)));
+  border-radius: 14px;
+  box-shadow: var(--pro-shadow-lg, 0 24px 64px rgba(0, 0, 0, 0.45));
+  overflow: hidden;
+  transform: translateY(-8px) scale(0.98);
+  transition: transform 0.2s ease;
+}
+
+.cmdk-overlay.is-open .cmdk-panel {
+  transform: translateY(0) scale(1);
+}
+
+.cmdk-search-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--pro-divider, var(--t-divider, rgba(255, 255, 255, 0.06)));
+}
+
+.cmdk-search-wrap i {
+  color: var(--pro-text-muted, var(--t-text-muted, #64748b));
+  font-size: 14px;
+}
+
+.cmdk-input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  color: var(--pro-text, var(--t-text, #f1f5f9));
+  font: 600 15px/1.4 'Plus Jakarta Sans', system-ui, sans-serif;
+  outline: none;
+}
+
+.cmdk-input::placeholder {
+  color: var(--pro-text-muted, var(--t-text-muted, #64748b));
+  font-weight: 500;
+}
+
+.cmdk-hint {
+  font-size: 11px;
+  color: var(--pro-text-muted, var(--t-text-muted, #64748b));
+  white-space: nowrap;
+}
+
+.cmdk-hint kbd {
+  display: inline-block;
+  padding: 2px 6px;
+  border-radius: 5px;
+  border: 1px solid var(--pro-border, var(--t-border));
+  background: var(--pro-bg-elevated, rgba(0, 0, 0, 0.2));
+  font: 600 10px/1.2 'JetBrains Mono', monospace;
+}
+
+.cmdk-list {
+  max-height: min(52vh, 420px);
+  overflow-y: auto;
+  padding: 8px;
+}
+
+.cmdk-group-label {
+  padding: 8px 10px 4px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--pro-text-muted, var(--t-text-muted, #64748b));
+}
+
+.cmdk-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 10px 12px;
+  border: none;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--pro-text, var(--t-text, #f1f5f9));
+  font: 600 13px/1.3 'Plus Jakarta Sans', system-ui, sans-serif;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.12s ease;
+}
+
+.cmdk-item:hover,
+.cmdk-item.is-active {
+  background: var(--pro-accent-muted, rgba(8, 102, 255, 0.14));
+}
+
+.cmdk-item i {
+  width: 18px;
+  text-align: center;
+  color: var(--pro-accent, #0866ff);
+  font-size: 13px;
+}
+
+.cmdk-item-meta {
+  margin-left: auto;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--pro-text-muted, var(--t-text-muted, #64748b));
+}
+
+.cmdk-empty {
+  padding: 24px 16px;
+  text-align: center;
+  color: var(--pro-text-muted, var(--t-text-muted, #64748b));
+  font-size: 13px;
+}
+
+/* ── Keyboard shortcuts modal ── */
+.kbd-help-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10040;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
+  background: rgba(3, 5, 8, 0.62);
+  backdrop-filter: blur(6px);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.18s ease, visibility 0.18s ease;
+}
+
+.kbd-help-overlay.is-open {
+  opacity: 1;
+  visibility: visible;
+}
+
+.kbd-help-panel {
+  width: min(520px, 100%);
+  max-height: min(80vh, 640px);
+  overflow-y: auto;
+  background: var(--pro-surface, #151b26);
+  border: 1px solid var(--pro-border-strong, rgba(148, 163, 184, 0.22));
+  border-radius: 14px;
+  box-shadow: var(--pro-shadow-lg, 0 24px 64px rgba(0, 0, 0, 0.45));
+  padding: 20px 22px 24px;
+}
+
+.kbd-help-panel h3 {
+  margin: 0 0 6px;
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--pro-text, #f1f5f9);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.kbd-help-panel h3 i {
+  color: var(--pro-accent, #0866ff);
+}
+
+.kbd-help-panel > p {
+  margin: 0 0 16px;
+  font-size: 13px;
+  color: var(--pro-text-secondary, #94a3b8);
+}
+
+.kbd-help-grid {
+  display: grid;
+  gap: 8px;
+}
+
+.kbd-help-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: var(--pro-bg-elevated, rgba(0, 0, 0, 0.2));
+}
+
+.kbd-help-keys {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.kbd-help-keys kbd {
+  display: inline-block;
+  min-width: 24px;
+  padding: 4px 7px;
+  border-radius: 6px;
+  border: 1px solid var(--pro-border, rgba(148, 163, 184, 0.22));
+  background: var(--pro-surface-raised, #1c2432);
+  font: 600 11px/1 'JetBrains Mono', monospace;
+  color: var(--pro-text, #f1f5f9);
+  text-align: center;
+}
+
+.kbd-help-desc {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--pro-text-secondary, #94a3b8);
+}
+
+.kbd-help-close {
+  margin-top: 16px;
+  width: 100%;
+}
+
+html[data-theme='light'] .cmdk-panel,
+body.light .cmdk-panel,
+html[data-theme='light'] .kbd-help-panel,
+body.light .kbd-help-panel {
+  background: #ffffff;
+  border-color: #e2e8f0;
+  box-shadow: 0 24px 64px rgba(15, 23, 42, 0.12);
+}
+
+html[data-theme='light'] .cmdk-input,
+body.light .cmdk-input,
+html[data-theme='light'] .cmdk-item,
+body.light .cmdk-item,
+html[data-theme='light'] .kbd-help-panel h3,
+body.light .kbd-help-panel h3 {
+  color: #0f172a;
+}
+
+html[data-theme='light'] .cmdk-item:hover,
+html[data-theme='light'] .cmdk-item.is-active,
+body.light .cmdk-item:hover,
+body.light .cmdk-item.is-active {
+  background: rgba(8, 102, 255, 0.08);
+}
+
+html[data-theme='light'] .kbd-help-row,
+body.light .kbd-help-row {
+  background: #f8fafc;
+}
+
+html[data-theme='light'] .kbd-help-keys kbd,
+body.light .kbd-help-keys kbd {
+  background: #ffffff;
+  border-color: #cbd5e1;
+  color: #0f172a;
+}
+
+/* ── Settings duplicate header ── */
+#view-settings .settings-header {
+  display: none !important;
+}
+
+/* ── Skeleton loaders ── */
+.fb-skeleton {
+  position: relative;
+  overflow: hidden;
+  background: var(--pro-bg-elevated, rgba(255, 255, 255, 0.06));
+  border-radius: 8px;
+}
+
+.fb-skeleton::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.06),
+    transparent
+  );
+  animation: fb-skeleton-shimmer 1.4s ease-in-out infinite;
+}
+
+html[data-theme='light'] .fb-skeleton::after,
+body.light .fb-skeleton::after {
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.7), transparent);
+}
+
+@keyframes fb-skeleton-shimmer {
+  100% { transform: translateX(100%); }
+}
+
+.analytics-loading .analytics-kpi-val {
+  color: transparent !important;
+  min-height: 28px;
+  border-radius: 6px;
+}
+
+.analytics-loading .analytics-kpi-val::after {
+  content: '';
+  display: block;
+  width: 72px;
+  height: 28px;
+  border-radius: 6px;
+  background: var(--pro-bg-elevated, rgba(255, 255, 255, 0.08));
+  animation: fb-skeleton-shimmer 1.4s ease-in-out infinite;
+}
+
+/* ── Compact density (extended) ── */
+body.density-compact .msng-layout-pro .msng-convs-hdr {
+  padding-top: 10px !important;
+  padding-bottom: 10px !important;
+}
+
+body.density-compact .msng-layout-pro .msng-conv-item {
+  padding-top: 8px !important;
+  padding-bottom: 8px !important;
+}
+
+body.density-compact .msng-layout-pro .msng-page-select {
+  padding-top: 6px !important;
+  padding-bottom: 6px !important;
+}
+
+body.density-compact .bcast-panel-v2__head {
+  padding-top: 12px !important;
+  padding-bottom: 12px !important;
+}
+
+body.density-compact #view-analytics .analytics-kpi {
+  padding: 12px 14px !important;
+}
+
+body.density-compact .settings-card {
+  padding: 14px 16px !important;
+}
+
+/* ── Empty states (shared) ── */
+.fb-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 32px 20px;
+  text-align: center;
+  color: var(--pro-text-secondary, var(--t-text-2, #94a3b8));
+}
+
+.fb-empty-state i {
+  font-size: 28px;
+  opacity: 0.45;
+  color: var(--pro-accent, #0866ff);
+}
+
+.fb-empty-state p {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  max-width: 320px;
+  line-height: 1.5;
+}
+
+.fb-empty-state-hint {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--pro-text-muted, var(--t-text-muted, #64748b));
+}
+
+/* ── Focus visibility ── */
+.cmdk-item:focus-visible,
+.kbd-help-close:focus-visible {
+  outline: 2px solid var(--pro-accent, #0866ff);
+  outline-offset: 2px;
+}
+
+@media (max-width: 640px) {
+  .cmdk-overlay {
+    padding-top: 8vh;
+    align-items: flex-start;
+  }
+
+  .cmdk-hint {
+    display: none;
+  }
+}
+
+/* Hide placeholder messenger actions until implemented */
+.msng-chat-hdr-btns .msng-icon-btn[title="Labels"],
+.msng-chat-hdr-btns .msng-icon-btn[title="Page / group"] {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cmdk-overlay,
+  .cmdk-panel,
+  .kbd-help-overlay,
+  .fb-skeleton::after,
+  .analytics-loading .analytics-kpi-val::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}

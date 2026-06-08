@@ -894,6 +894,10 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   btnStart?.addEventListener('click', async () => {
+    if (typeof window.fbcastGuardBroadcast === 'function') {
+      const guard = window.fbcastGuardBroadcast('manual');
+      if (!guard.ok) return showStatus(guard.message, 'warning');
+    }
     const pageId = $('pageSelect')?.value, text = messageText?.value.trim(), delay = Math.max(25, parseInt(delayMs?.value, 10) || 400);
     if (!pageId) return showStatus('Select a page first.', 'warning');
     if (!text && !currentImageUrl) return showStatus('Enter a message or attach an image.', 'warning');
