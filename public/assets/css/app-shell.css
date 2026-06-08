@@ -107,6 +107,20 @@ body.app-dashboard-active #appPage {
   opacity: 0.6;
 }
 
+/* ─── Sidebar columns — consistent left-rail layout (flex sections) ─── */
+#appPage > .app-body {
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: stretch;
+}
+
+#appPage .nav-sidebar,
+#appPage .sidebar {
+  flex-shrink: 0;
+  align-self: stretch;
+  min-height: 0;
+}
+
 /* ─── Main content views ─── */
 .app-view {
   flex: 1;

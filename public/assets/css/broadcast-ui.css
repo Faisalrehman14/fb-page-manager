@@ -519,6 +519,7 @@ body.light .bcast-page-msg__input {
 
 /* ═══ Broadcast workspace — stable 5-column grid ═══ */
 body.shell-broadcast #appPage > .app-body {
+  position: relative;
   display: grid !important;
   grid-template-columns:
     var(--bcast-nav-w, 72px)
@@ -537,9 +538,13 @@ body.shell-broadcast #appPage > .app-body {
 body.shell-broadcast #appPage .nav-sidebar {
   grid-column: 1;
   grid-row: 1;
+  align-self: stretch;
   min-width: 0 !important;
+  max-width: var(--bcast-nav-w, 72px) !important;
   width: var(--bcast-nav-w, 72px) !important;
   border-radius: 0 !important;
+  z-index: 40;
+  overflow: hidden;
 }
 
 body.shell-broadcast #appPage .sidebar {
@@ -588,49 +593,17 @@ body.shell-broadcast #appPage .stats-panel {
   border-radius: 0 !important;
 }
 
-/* Nav hover expands as overlay — does not steal grid space */
+/* Nav hover — full expand as overlay so the grid columns stay fixed */
 body.shell-broadcast #appPage .nav-sidebar:hover {
-  width: var(--bcast-nav-w, 72px) !important;
-  min-width: var(--bcast-nav-w, 72px) !important;
-  margin-right: 0 !important;
-  z-index: 40 !important;
-  overflow: visible !important;
-}
-
-body.shell-broadcast #appPage .nav-sidebar .nav-side-item span,
-body.shell-broadcast #appPage .nav-sidebar .nav-user-details,
-body.shell-broadcast #appPage .nav-sidebar .nav-sidebar-hdr span,
-body.shell-broadcast #appPage .nav-sidebar .nav-ai-label,
-body.shell-broadcast #appPage .nav-sidebar .nav-contact-label,
-body.shell-broadcast #appPage .nav-sidebar .nav-ai-tag,
-body.shell-broadcast #appPage .nav-sidebar .nav-contact-tag {
-  opacity: 0 !important;
-  max-width: 0 !important;
-  overflow: hidden !important;
-}
-
-body.shell-broadcast #appPage .nav-sidebar:hover .nav-side-item span,
-body.shell-broadcast #appPage .nav-sidebar:hover .nav-user-details,
-body.shell-broadcast #appPage .nav-sidebar:hover .nav-sidebar-hdr span,
-body.shell-broadcast #appPage .nav-sidebar:hover .nav-ai-label,
-body.shell-broadcast #appPage .nav-sidebar:hover .nav-contact-label,
-body.shell-broadcast #appPage .nav-sidebar:hover .nav-ai-tag,
-body.shell-broadcast #appPage .nav-sidebar:hover .nav-contact-tag {
   position: absolute;
-  left: calc(100% + 10px);
-  opacity: 1 !important;
-  max-width: 160px !important;
-  white-space: nowrap;
-  background: var(--surface, #0f172a);
-  border: 1px solid var(--border, rgba(148, 163, 184, 0.18));
-  border-radius: 8px;
-  padding: 5px 10px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
-  z-index: 50;
-  pointer-events: none;
-}
-
-body.shell-broadcast #appPage .nav-sidebar:hover {
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: var(--ds-nav-width-expanded, 200px) !important;
+  min-width: var(--ds-nav-width-expanded, 200px) !important;
+  max-width: var(--ds-nav-width-expanded, 200px) !important;
+  overflow: hidden;
+  z-index: 50 !important;
   box-shadow: 4px 0 28px rgba(0, 0, 0, 0.35) !important;
 }
 
