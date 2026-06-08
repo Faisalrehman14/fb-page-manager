@@ -149,24 +149,7 @@ body.app-dashboard-active #appPage {
 .app-view.is-active { display: flex; }
 
 .shell-view-enter {
-  animation: shellViewIn 0.26s cubic-bezier(0.16, 1, 0.3, 1) both;
-}
-
-@keyframes shellViewIn {
-  from {
-    opacity: 0;
-    transform: translateY(6px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .shell-view-enter {
-    animation: none !important;
-  }
+  animation: none !important;
 }
 
 /* Sub-views inside broadcast container */
