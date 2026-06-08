@@ -270,12 +270,18 @@ function renderPages(pages, opts) {
 
   const pgCount = document.getElementById('sidebarPageCount');
   if (!pages || pages.length === 0) {
-    container.innerHTML = `<div class="pages-empty"><i class="fa-brands fa-facebook"></i><p>No pages found.</p></div>`;
-    if (pgCount) pgCount.style.display = 'none';
+    const sched = document.body.classList.contains('shell-scheduling');
+    const emptyIcon = sched ? 'fa-solid fa-clock' : 'fa-brands fa-facebook';
+    const emptyMsg = sched
+      ? 'No Facebook pages yet. Sync your account to start scheduling broadcasts.'
+      : 'No pages found.';
+    container.innerHTML = `<div class="pages-empty"><i class="${emptyIcon}"></i><p>${emptyMsg}</p></div>`;
+    if (pgCount) pgCount.hidden = true;
     window.loadedPages = [];
+    if (typeof svUpdateSidebarPageCount === 'function') svUpdateSidebarPageCount();
     return;
   }
-  if (pgCount) { pgCount.textContent = pages.length; pgCount.style.display = ''; }
+  if (pgCount) { pgCount.textContent = pages.length; pgCount.hidden = false; }
   window.loadedPages = pages;
 
   pages.forEach(p => {
@@ -368,16 +374,34 @@ function svGetSchedulePagesFromSidebar() {
 }
 
 window.svUpdateSidebarPageCount = function () {
-  const el = $('svSidebarPageCount');
-  if (!el) return;
   const n = document.querySelectorAll('#pageCards .page-card.sched-selected').length;
   const total = (window.loadedPages || []).length;
+  let label;
   if (n === 0) {
-    el.textContent = total > 0 ? 'No pages selected' : '0 selected';
+    label = total > 0 ? 'No pages selected' : '0 selected';
   } else if (n === total && total > 0) {
-    el.textContent = `All ${n} pages selected`;
+    label = `All ${n} pages selected`;
   } else {
-    el.textContent = `${n} selected`;
+    label = `${n} of ${total} selected`;
+  }
+
+  const composeEl = $('svSidebarPageCount');
+  if (composeEl) composeEl.textContent = label;
+
+  const sidebarEl = $('sidebarSchedSelection');
+  if (sidebarEl) sidebarEl.textContent = label;
+
+  const hintEl = $('sidebarSchedHint');
+  if (hintEl) {
+    if (total === 0) {
+      hintEl.textContent = 'Connect Facebook to load your pages';
+    } else if (n === 0) {
+      hintEl.textContent = 'Click pages below to include in this broadcast';
+    } else if (n === total) {
+      hintEl.textContent = 'All pages selected — ready to schedule';
+    } else {
+      hintEl.textContent = 'Selected pages will receive this broadcast';
+    }
   }
 };
 

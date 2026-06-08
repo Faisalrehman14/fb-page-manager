@@ -84,11 +84,16 @@
       hideSidebar: false,
       bodyClass: 'shell-scheduling',
       onEnter() {
+        const bar = document.getElementById('sidebarSchedBar');
+        if (bar) bar.setAttribute('aria-hidden', 'false');
         if (typeof svInitSchedulingPageSelection === 'function') svInitSchedulingPageSelection();
+        if (typeof svUpdateSidebarPageCount === 'function') svUpdateSidebarPageCount();
         if (typeof svSetMinDatetime === 'function') svSetMinDatetime();
         if (typeof svLoadSchedules === 'function') svLoadSchedules();
       },
       onLeave() {
+        const bar = document.getElementById('sidebarSchedBar');
+        if (bar) bar.setAttribute('aria-hidden', 'true');
         if (typeof svClearSchedulingPageSelection === 'function') svClearSchedulingPageSelection();
       }
     },

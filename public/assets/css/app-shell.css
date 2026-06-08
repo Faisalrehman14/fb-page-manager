@@ -184,32 +184,34 @@ body.shell-scheduling #view-scheduling {
   inset: auto;
 }
 
-body.shell-scheduling .sidebar-sched-actions {
-  display: inline-flex !important;
-  gap: 4px;
-  align-items: center;
+body.shell-scheduling .sidebar-hdr-subtitle[data-mode="scheduling"] {
+  display: block;
 }
 
-body.shell-scheduling .sidebar-hdr-label-left span::after {
-  content: ' · Schedule';
-  font-weight: 600;
-  color: #a78bfa;
-  font-size: 10px;
-  letter-spacing: 0.02em;
+body.shell-scheduling .sidebar-hdr-toolbar {
+  display: flex;
+}
+
+body.shell-scheduling .sidebar-sched-actions {
+  display: inline-flex !important;
+  gap: 5px;
+  align-items: center;
+  flex-wrap: wrap;
 }
 
 .sidebar-sched-actions { display: none; }
 
 .sidebar-sched-chip {
-  padding: 3px 8px;
+  padding: 4px 10px;
   font-size: 10px;
   font-weight: 700;
-  border-radius: 6px;
+  border-radius: 7px;
   border: 1px solid rgba(139, 92, 246, 0.35);
   background: rgba(139, 92, 246, 0.12);
   color: #c4b5fd;
   cursor: pointer;
-  transition: background 0.15s, border-color 0.15s;
+  line-height: 1.2;
+  transition: background 0.15s, border-color 0.15s, transform 0.12s;
 }
 
 .sidebar-sched-chip:hover {
@@ -251,18 +253,30 @@ body.shell-scheduling .page-card.sched-selected .page-indicator::after {
 }
 
 /* ─── Multi broadcast — per-page messages, parallel send ─── */
-body.shell-multi-broadcast .sidebar-sched-actions {
-  display: inline-flex !important;
-  gap: 4px;
-  align-items: center;
+body.shell-multi-broadcast .sidebar-hdr-subtitle[data-mode="multi-broadcast"] {
+  display: block;
+  color: #34d399;
 }
 
-body.shell-multi-broadcast .sidebar-hdr-label-left span::after {
-  content: ' · Multi';
-  font-weight: 600;
+body.shell-multi-broadcast .sidebar-hdr-toolbar {
+  display: flex;
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(5, 150, 105, 0.05));
+  border-color: rgba(16, 185, 129, 0.25);
+}
+
+body.shell-multi-broadcast .sidebar-hdr-toolbar-info > i {
   color: #34d399;
-  font-size: 10px;
-  letter-spacing: 0.02em;
+}
+
+body.shell-multi-broadcast .sidebar-sched-selection {
+  color: #6ee7b7;
+}
+
+body.shell-multi-broadcast .sidebar-sched-actions {
+  display: inline-flex !important;
+  gap: 5px;
+  align-items: center;
+  flex-wrap: wrap;
 }
 
 body.shell-multi-broadcast .page-card.multi-selected {
@@ -388,6 +402,27 @@ body.shell-multi-broadcast .page-card.multi-selected .page-indicator::after {
 }
 
 body.shell-messenger .nav-sidebar { display: flex !important; }
+
+html[data-theme='light'] body.shell-scheduling .sidebar-hdr-toolbar,
+body.light.shell-scheduling .sidebar-hdr-toolbar {
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.08), rgba(99, 102, 241, 0.04));
+  border-color: rgba(139, 92, 246, 0.2);
+}
+
+html[data-theme='light'] body.shell-scheduling .sidebar-hdr-toolbar-info,
+body.light.shell-scheduling .sidebar-hdr-toolbar-info {
+  color: #64748b;
+}
+
+html[data-theme='light'] body.shell-scheduling .sidebar-hdr-subtitle[data-mode="scheduling"],
+body.light.shell-scheduling .sidebar-hdr-subtitle[data-mode="scheduling"] {
+  color: #7c3aed;
+}
+
+html[data-theme='light'] body.shell-scheduling .sidebar-sched-selection,
+body.light.shell-scheduling .sidebar-sched-selection {
+  color: #6d28d9;
+}
 
 /* ─── Responsive ─── */
 @media (max-width: 900px) {

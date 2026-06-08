@@ -31,13 +31,31 @@
   }
 
   function updateMultiPageCount() {
-    const el = document.getElementById('multiPageCount');
-    if (!el) return;
     const n = document.querySelectorAll('#pageCards .page-card.multi-selected').length;
     const total = getPages().length;
-    if (!n) el.textContent = 'No pages selected — click pages in the sidebar';
-    else if (n === total && total > 0) el.textContent = `All ${n} pages selected`;
-    else el.textContent = `${n} page${n === 1 ? '' : 's'} selected`;
+    let label;
+    if (!n) label = 'No pages selected';
+    else if (n === total && total > 0) label = `All ${n} pages selected`;
+    else label = `${n} of ${total} selected`;
+
+    const el = document.getElementById('multiPageCount');
+    if (el) {
+      el.textContent = !n
+        ? 'No pages selected — click pages in the sidebar'
+        : (n === total && total > 0 ? `All ${n} pages selected` : `${n} page${n === 1 ? '' : 's'} selected`);
+    }
+
+    const sidebarEl = document.getElementById('sidebarSchedSelection');
+    if (sidebarEl) sidebarEl.textContent = label;
+
+    const hintEl = document.getElementById('sidebarSchedHint');
+    if (hintEl) {
+      if (!total) hintEl.textContent = 'Connect Facebook to load your pages';
+      else if (!n) hintEl.textContent = 'Click pages below to set per-page messages';
+      else if (n === total) hintEl.textContent = 'All pages selected — ready to broadcast';
+      else hintEl.textContent = 'Selected pages will receive custom messages';
+    }
+
     updateMultiStartButton();
   }
 

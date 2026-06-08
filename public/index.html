@@ -1160,20 +1160,33 @@ window.getCsrfToken = async (forceRefresh = false) => {
     <!-- COL 1: SIDEBAR / PAGES -->
     <div class="sidebar">
       <div class="sidebar-hdr">
-        <div class="sidebar-hdr-label">
-          <div class="sidebar-hdr-label-left">
-            <i class="fa-solid fa-flag"></i>
-            <span>Pages</span>
+        <div class="sidebar-hdr-main">
+          <div class="sidebar-hdr-brand">
+            <i class="fa-solid fa-flag" aria-hidden="true"></i>
+            <div class="sidebar-hdr-titles">
+              <span class="sidebar-hdr-title">Pages</span>
+              <span class="sidebar-hdr-subtitle" data-mode="scheduling">Schedule</span>
+              <span class="sidebar-hdr-subtitle" data-mode="multi-broadcast">Multi Broadcast</span>
+            </div>
           </div>
-          <div style="display:flex;align-items:center;gap:6px;">
-            <span class="sidebar-page-count" id="sidebarPageCount" style="display:none">0</span>
-            <div class="sidebar-sched-actions" id="sidebarSchedActions" aria-hidden="true">
+          <div class="sidebar-hdr-util">
+            <span class="sidebar-page-count" id="sidebarPageCount" hidden>0</span>
+            <button id="btnFetchPages" class="sidebar-sync-btn" title="Sync pages from Facebook" type="button">
+              <i class="fa-solid fa-rotate" aria-hidden="true"></i>
+            </button>
+          </div>
+        </div>
+        <div class="sidebar-hdr-toolbar" id="sidebarSchedBar" aria-hidden="true">
+          <div class="sidebar-hdr-toolbar-info">
+            <i class="fa-solid fa-hand-pointer" aria-hidden="true"></i>
+            <span id="sidebarSchedHint">Click pages below to include in this broadcast</span>
+          </div>
+          <div class="sidebar-hdr-toolbar-row">
+            <div class="sidebar-sched-actions" id="sidebarSchedActions">
               <button type="button" class="sidebar-sched-chip" onclick="svSelectAllPages()" title="Select all pages">All</button>
               <button type="button" class="sidebar-sched-chip" onclick="svSelectNonePages()" title="Clear selection">None</button>
             </div>
-            <button id="btnFetchPages" class="sidebar-sync-btn" title="Sync pages from Facebook">
-              <i class="fa-solid fa-rotate"></i>
-            </button>
+            <span class="sidebar-sched-selection" id="sidebarSchedSelection">0 selected</span>
           </div>
         </div>
       </div>
