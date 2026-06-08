@@ -162,16 +162,17 @@
     document.documentElement.classList.toggle('shell-no-motion', on);
   }
 
-  /** Collapse nav rail instantly after click (hover expand was shifting main content). */
+  /** Collapse nav rail during route change (prevents expand while switching views). */
   function collapseNavRail() {
     const nav = document.querySelector('#appPage .nav-sidebar');
     if (!nav) return;
     nav.classList.add('nav-sidebar--locked');
-    if (nav._navLockLeave) return;
-    nav._navLockLeave = () => {
-      nav.classList.remove('nav-sidebar--locked');
-    };
-    nav.addEventListener('mouseleave', nav._navLockLeave);
+  }
+
+  function releaseNavRailLock() {
+    const nav = document.querySelector('#appPage .nav-sidebar');
+    if (!nav) return;
+    nav.classList.remove('nav-sidebar--locked');
   }
 
   function prepareMessengerLayout() {
@@ -257,7 +258,10 @@
     if (next.onEnter) next.onEnter();
 
     queueMicrotask(() => {
-      requestAnimationFrame(() => setShellNoMotion(false));
+      requestAnimationFrame(() => {
+        setShellNoMotion(false);
+        releaseNavRailLock();
+      });
     });
 
     if (view !== 'broadcast' && typeof showStatus === 'function') {
