@@ -1597,32 +1597,32 @@ function _syncThemeToggleUi(isLight) {
   }
 }
 
-function _applyThemeDom(isLight, options) {
-  const opts = options || {};
+function _updateMetaThemeColor(isLight) {
+  const metaTheme = document.querySelector('meta[name="theme-color"]:not([media])');
+  if (metaTheme) metaTheme.setAttribute('content', isLight ? '#eef2ff' : '#060a16');
+}
+
+function _applyThemeDom(isLight) {
   const target = isLight ? 'light' : 'dark';
-  document.documentElement.classList.add('theme-switching');
   document.body.classList.toggle('light', isLight);
   document.documentElement.setAttribute('data-theme', target);
   document.documentElement.style.colorScheme = target;
   document.documentElement.classList.toggle('theme-dark', !isLight);
   document.documentElement.classList.toggle('theme-light', isLight);
   localStorage.setItem('promo_theme', target);
-  const metaTheme = document.querySelector('meta[name="theme-color"]:not([media])');
-  if (metaTheme) metaTheme.setAttribute('content', isLight ? '#eef2ff' : '#060a16');
   _syncThemeToggleUi(isLight);
-  const clearSwitching = function () {
-    document.documentElement.classList.remove('theme-switching');
-  };
-  if (opts.instant) {
-    clearSwitching();
-  } else {
-    requestAnimationFrame(function () {
-      requestAnimationFrame(clearSwitching);
-    });
-  }
 }
 
-function _themeCrossfadeFallback(applyFn, isLight) {
+function _beginThemeSwitch() {
+  document.documentElement.classList.add('theme-switching');
+}
+
+function _endThemeSwitch(isLight) {
+  document.documentElement.classList.remove('theme-switching');
+  _updateMetaThemeColor(isLight);
+}
+
+function _themeCrossfadeFallback(applyFn) {
   const reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   if (reduced) {
     applyFn();
@@ -1631,27 +1631,34 @@ function _themeCrossfadeFallback(applyFn, isLight) {
   const overlay = document.createElement('div');
   overlay.className = 'theme-crossfade-overlay';
   overlay.setAttribute('aria-hidden', 'true');
-  overlay.style.background = isLight ? '#f5f7ff' : '#030508';
+  const curBg = getComputedStyle(document.documentElement).getPropertyValue('--t-bg').trim();
+  overlay.style.background = curBg || '#030508';
   document.body.appendChild(overlay);
   return new Promise(function (resolve) {
+    let done = false;
+    const finish = function () {
+      if (done) return;
+      done = true;
+      if (overlay.parentNode) overlay.remove();
+      resolve();
+    };
     requestAnimationFrame(function () {
       overlay.classList.add('is-active');
-      setTimeout(function () {
+      requestAnimationFrame(function () {
         applyFn();
         requestAnimationFrame(function () {
           overlay.classList.remove('is-active');
-          setTimeout(function () {
-            overlay.remove();
-            resolve();
-          }, 220);
+          overlay.addEventListener('transitionend', finish, { once: true });
+          setTimeout(finish, 400);
         });
-      }, 16);
+      });
     });
   });
 }
 
 function setAppTheme(isLight, options) {
   const opts = options || {};
+  const instant = opts.instant === true;
   const target = isLight ? 'light' : 'dark';
   const current = document.documentElement.getAttribute('data-theme');
   const bodyLight = document.body.classList.contains('light');
@@ -1660,25 +1667,42 @@ function setAppTheme(isLight, options) {
     return Promise.resolve();
   }
 
-  const apply = function () { _applyThemeDom(isLight, opts); };
+  const apply = function () { _applyThemeDom(isLight); };
 
-  if (opts.instant) {
+  if (instant) {
+    _beginThemeSwitch();
     apply();
+    _updateMetaThemeColor(isLight);
+    requestAnimationFrame(function () {
+      document.documentElement.classList.remove('theme-switching');
+    });
     return Promise.resolve();
   }
 
   const reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  if (!reduced && typeof document.startViewTransition === 'function') {
-    try {
-      const vt = document.startViewTransition(apply);
-      return vt.finished.catch(function () { apply(); });
-    } catch (_) {
-      apply();
-      return Promise.resolve();
-    }
+  if (reduced) {
+    apply();
+    _updateMetaThemeColor(isLight);
+    return Promise.resolve();
   }
 
-  return _themeCrossfadeFallback(apply, isLight);
+  _beginThemeSwitch();
+
+  if (typeof document.startViewTransition === 'function') {
+    try {
+      const vt = document.startViewTransition(apply);
+      return vt.finished
+        .then(function () { _endThemeSwitch(isLight); })
+        .catch(function () {
+          apply();
+          _endThemeSwitch(isLight);
+        });
+    } catch (_) { /* fall through to crossfade */ }
+  }
+
+  return _themeCrossfadeFallback(apply).then(function () {
+    _endThemeSwitch(isLight);
+  });
 }
 
 window.setAppTheme = setAppTheme;
@@ -1686,7 +1710,7 @@ window.persistAppearanceTheme = persistAppearanceTheme;
 window.readAppearanceTheme = readAppearanceTheme;
 window.toggleAppTheme = function () {
   const nextLight = document.documentElement.getAttribute('data-theme') !== 'light';
-  setAppTheme(nextLight, { instant: true });
+  setAppTheme(nextLight);
   persistAppearanceTheme(nextLight ? 'light' : 'dark');
 };
 
@@ -1714,7 +1738,7 @@ window.applyTheme = applyTheme;
   if (topToggle) {
     topToggle.addEventListener('change', function () {
       const wantLight = !this.checked;
-      setAppTheme(wantLight, { instant: true });
+      setAppTheme(wantLight);
       persistAppearanceTheme(wantLight ? 'light' : 'dark');
     });
   }

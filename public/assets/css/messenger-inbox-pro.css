@@ -269,15 +269,120 @@ body:not(.light) .msng-layout-pro {
 
 .msng-layout-pro .msng-page-select {
   width: 100%;
-  padding: 8px 12px;
+  padding: 8px 32px 8px 12px;
   border-radius: 10px;
   border: 1px solid var(--msng-border-light);
-  background: var(--msng-bg-subtle);
+  background-color: var(--msng-bg-subtle);
   color: var(--msng-text-primary);
   font-size: 12px;
   font-weight: 600;
   font-family: inherit;
   cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  color-scheme: light;
+  transition: border-color 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease;
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  background-size: 14px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23475569' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+}
+
+.msng-layout-pro .msng-page-select:hover {
+  border-color: #cbd5e1;
+  background-color: #e4e6eb;
+}
+
+.msng-layout-pro .msng-page-select:focus {
+  outline: none;
+  border-color: var(--msng-accent);
+  box-shadow: 0 0 0 3px rgba(8, 102, 255, 0.18);
+}
+
+.msng-layout-pro .msng-page-select option {
+  background-color: #ffffff;
+  color: #050505;
+}
+
+.msng-layout-pro .msng-page-select option:checked {
+  background-color: rgba(8, 102, 255, 0.12);
+  color: #0866ff;
+}
+
+/* Pages dropdown — dark theme (native list + closed field) */
+html[data-theme='dark'] #view-messenger .msng-layout-pro .msng-page-select,
+body:not(.light) #view-messenger .msng-layout-pro .msng-page-select {
+  color-scheme: dark !important;
+  color: var(--msng-text-primary) !important;
+  border-color: var(--msng-border-light) !important;
+  background-color: var(--msng-bg-subtle) !important;
+  background-repeat: no-repeat !important;
+  background-position: right 10px center !important;
+  background-size: 14px !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E") !important;
+}
+
+html[data-theme='dark'] #view-messenger .msng-layout-pro .msng-page-select option,
+body:not(.light) #view-messenger .msng-layout-pro .msng-page-select option {
+  background-color: var(--msng-bg-panel) !important;
+  color: var(--msng-text-primary) !important;
+}
+
+html[data-theme='dark'] #view-messenger .msng-layout-pro .msng-page-select option:checked,
+body:not(.light) #view-messenger .msng-layout-pro .msng-page-select option:checked {
+  background-color: rgba(8, 102, 255, 0.35) !important;
+  color: #dbeafe !important;
+}
+
+html[data-theme='dark'] #view-messenger .msng-layout-pro .msng-page-select:hover,
+body:not(.light) #view-messenger .msng-layout-pro .msng-page-select:hover {
+  border-color: rgba(148, 163, 184, 0.28) !important;
+  background-color: #1c2432 !important;
+}
+
+html[data-theme='dark'] #view-messenger .msng-layout-pro .msng-page-select:focus,
+body:not(.light) #view-messenger .msng-layout-pro .msng-page-select:focus {
+  border-color: rgba(8, 102, 255, 0.55) !important;
+  box-shadow: 0 0 0 3px rgba(8, 102, 255, 0.22) !important;
+  outline: none;
+}
+
+/* Pages dropdown — light theme (override global form resets) */
+html[data-theme='light'] #view-messenger .msng-layout-pro .msng-page-select,
+body.light #view-messenger .msng-layout-pro .msng-page-select {
+  color-scheme: light !important;
+  color: var(--msng-text-primary) !important;
+  border-color: var(--msng-border-light) !important;
+  background-color: var(--msng-bg-subtle) !important;
+  background-repeat: no-repeat !important;
+  background-position: right 10px center !important;
+  background-size: 14px !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23475569' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E") !important;
+}
+
+html[data-theme='light'] #view-messenger .msng-layout-pro .msng-page-select:hover,
+body.light #view-messenger .msng-layout-pro .msng-page-select:hover {
+  border-color: #cbd5e1 !important;
+  background-color: #e4e6eb !important;
+}
+
+html[data-theme='light'] #view-messenger .msng-layout-pro .msng-page-select:focus,
+body.light #view-messenger .msng-layout-pro .msng-page-select:focus {
+  border-color: var(--msng-accent) !important;
+  box-shadow: 0 0 0 3px rgba(8, 102, 255, 0.18) !important;
+  outline: none;
+}
+
+html[data-theme='light'] #view-messenger .msng-layout-pro .msng-page-select option,
+body.light #view-messenger .msng-layout-pro .msng-page-select option {
+  background-color: #ffffff !important;
+  color: #050505 !important;
+}
+
+html[data-theme='light'] #view-messenger .msng-layout-pro .msng-page-select option:checked,
+body.light #view-messenger .msng-layout-pro .msng-page-select option:checked {
+  background-color: rgba(8, 102, 255, 0.12) !important;
+  color: #0866ff !important;
 }
 
 .msng-layout-pro .msng-search-wrap {

@@ -268,7 +268,7 @@
       if (typeof global.persistAppearanceTheme === 'function') {
         if (v === 'light' || v === 'dark') global.persistAppearanceTheme(v);
       }
-      applyTheme(v, { instant: true });
+      applyTheme(v);
     });
 
     document.addEventListener('fbcast:theme-change', (e) => {
