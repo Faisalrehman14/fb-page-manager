@@ -192,6 +192,39 @@
     });
   }
 
+  function getActiveViewEl(view, cfg) {
+    if (view === 'broadcast') return $('view-broadcast');
+    if (cfg.broadcastSub) return $('view-' + cfg.broadcastSub);
+    return $('view-' + view);
+  }
+
+  /** Replay enter transition every time a section becomes visible. */
+  function playViewEnter(el) {
+    if (!el) return;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+    if (el._shellViewEnterEnd) {
+      el.removeEventListener('animationend', el._shellViewEnterEnd);
+      el._shellViewEnterEnd = null;
+    }
+
+    el.classList.remove('shell-view-enter');
+    void el.offsetWidth;
+
+    requestAnimationFrame(() => {
+      el.classList.add('shell-view-enter');
+    });
+
+    const onEnd = (e) => {
+      if (e.target !== el || e.animationName !== 'shellViewIn') return;
+      el.classList.remove('shell-view-enter');
+      el.removeEventListener('animationend', onEnd);
+      el._shellViewEnterEnd = null;
+    };
+    el._shellViewEnterEnd = onEnd;
+    el.addEventListener('animationend', onEnd);
+  }
+
   function navigate(view) {
     if (!VIEWS[view]) view = 'home';
     closeMobileMore();
@@ -222,6 +255,8 @@
     if (sidebar) sidebar.style.display = next.hideSidebar ? 'none' : '';
 
     if (next.onEnter) next.onEnter();
+
+    playViewEnter(getActiveViewEl(view, next));
 
     if (view !== 'broadcast' && typeof showStatus === 'function') {
       showStatus('Viewing ' + next.label + '…', 'info');
