@@ -68,7 +68,6 @@ body.app-dashboard-active #appPage {
 .nav-sidebar {
   width: var(--ds-nav-width, 72px) !important;
   min-width: var(--ds-nav-width, 72px) !important;
-  background: linear-gradient(180deg, var(--bg2, #060F22) 0%, var(--bg, #030C1A) 100%) !important;
   border-right: 1px solid var(--ds-border) !important;
   transition:
     width var(--ds-duration-slow, 0.35s) var(--ds-ease, ease),

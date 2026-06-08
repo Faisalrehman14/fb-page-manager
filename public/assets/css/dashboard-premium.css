@@ -69,12 +69,9 @@
   letter-spacing: 0.05em !important;
 }
 
-/* Sidebar */
+/* Sidebar — colors from dashboard indigo shell (professional-theme.css) */
 #appPage .nav-sidebar {
-  background: linear-gradient(180deg, #121a32 0%, #0c1020 100%) !important;
-  box-shadow:
-    1px 0 0 rgba(255, 255, 255, 0.06),
-    4px 0 32px rgba(0, 0, 0, 0.45) !important;
+  box-shadow: none !important;
 }
 
 #appPage .nav-side-item {
@@ -82,11 +79,8 @@
   letter-spacing: -0.01em;
 }
 
-#appPage .nav-side-item.active {
-  background: linear-gradient(135deg, rgba(59, 130, 246, 0.22), rgba(124, 58, 237, 0.16)) !important;
-  box-shadow:
-    var(--prem-inset),
-    inset 0 0 0 1px rgba(168, 85, 247, 0.35) !important;
+body.app-dashboard-active #appPage .nav-side-item.active {
+  box-shadow: inset 0 0 0 1px rgba(139, 156, 255, 0.18) !important;
 }
 
 /* ═══════════════════════════════════════

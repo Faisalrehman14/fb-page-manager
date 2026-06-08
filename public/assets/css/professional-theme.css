@@ -332,51 +332,10 @@ body.light .app-topbar {
   color: var(--pro-text-secondary) !important;
 }
 
-/* Sidebar */
+/* Sidebar — dashboard indigo shell in professional-theme.css (app-dashboard-active) */
 .nav-sidebar {
-  background: var(--pro-gradient-surface) !important;
   border-right: 1px solid var(--pro-divider) !important;
   box-shadow: none !important;
-}
-
-html[data-theme='light'] .nav-sidebar,
-body.light .nav-sidebar {
-  background: var(--pro-bg-elevated) !important;
-  border-right-color: var(--pro-border) !important;
-}
-
-.nav-side-item {
-  color: var(--pro-text-secondary) !important;
-  font-weight: 600;
-}
-
-.nav-side-item:hover:not(.active) {
-  background: var(--pro-accent-subtle) !important;
-  color: var(--pro-text) !important;
-}
-
-.nav-side-item.active {
-  background: var(--pro-accent-muted) !important;
-  color: #60a5fa !important;
-  box-shadow: none !important;
-}
-
-.nav-side-item.active::before {
-  background: var(--pro-accent) !important;
-}
-
-html[data-theme='light'] .nav-side-item.active,
-body.light .nav-side-item.active {
-  color: var(--pro-accent) !important;
-  background: var(--pro-accent-muted) !important;
-}
-
-/* Pages panel / secondary sidebar */
-.sidebar,
-.pages-panel,
-.col-sidebar {
-  background: var(--pro-surface) !important;
-  border-color: var(--pro-divider) !important;
 }
 
 html[data-theme='light'] .sidebar,
@@ -996,16 +955,12 @@ html[data-theme='dark'] #appPage .nav-ai-tag {
   color: #fff !important;
 }
 
-/* ── All broadcast columns: flat pro surfaces (no purple glass) ── */
-body:not(.light) #appPage .nav-sidebar,
-body:not(.light) #appPage .sidebar,
+/* ── Broadcast columns: flat pro surfaces (sidebars use dashboard indigo shell) ── */
 body:not(.light) #appPage .compose-col,
 body:not(.light) #appPage .compose,
 body:not(.light) #appPage .broadcast-col,
 body:not(.light) #appPage .stats-panel,
 body:not(.light) #appPage .analytics-panel,
-html[data-theme='dark'] #appPage .nav-sidebar,
-html[data-theme='dark'] #appPage .sidebar,
 html[data-theme='dark'] #appPage .compose-col,
 html[data-theme='dark'] #appPage .compose,
 html[data-theme='dark'] #appPage .broadcast-col,
@@ -1019,29 +974,29 @@ html[data-theme='dark'] #appPage .analytics-panel {
   -webkit-backdrop-filter: none !important;
 }
 
-body:not(.light) #appPage .sidebar-hdr,
-html[data-theme='dark'] #appPage .sidebar-hdr {
+body:not(.light):not(.app-dashboard-active) #appPage .sidebar-hdr,
+html[data-theme='dark'] body:not(.app-dashboard-active) #appPage .sidebar-hdr {
   background: var(--pro-surface-raised) !important;
   border-bottom-color: var(--pro-divider) !important;
 }
 
-body:not(.light) #appPage .sidebar-tips,
-html[data-theme='dark'] #appPage .sidebar-tips {
+body:not(.light):not(.app-dashboard-active) #appPage .sidebar-tips,
+html[data-theme='dark'] body:not(.app-dashboard-active) #appPage .sidebar-tips {
   background: var(--pro-bg-subtle) !important;
   border-top-color: var(--pro-divider) !important;
 }
 
 /* Pages list */
-body:not(.light) #appPage .page-card:hover,
-html[data-theme='dark'] #appPage .page-card:hover {
+body:not(.light):not(.app-dashboard-active) #appPage .page-card:hover,
+html[data-theme='dark'] body:not(.app-dashboard-active) #appPage .page-card:hover {
   background: var(--pro-surface-hover) !important;
   border-color: var(--pro-border) !important;
 }
 
-body:not(.light) #appPage .page-card.active,
-body:not(.light) #appPage .page-card.selected,
-html[data-theme='dark'] #appPage .page-card.active,
-html[data-theme='dark'] #appPage .page-card.selected {
+body:not(.light):not(.app-dashboard-active) #appPage .page-card.active,
+body:not(.light):not(.app-dashboard-active) #appPage .page-card.selected,
+html[data-theme='dark'] body:not(.app-dashboard-active) #appPage .page-card.active,
+html[data-theme='dark'] body:not(.app-dashboard-active) #appPage .page-card.selected {
   background: var(--pro-accent-muted) !important;
   border-color: rgba(8, 102, 255, 0.35) !important;
   box-shadow: inset 3px 0 0 var(--pro-accent), var(--pro-shadow-sm) !important;
@@ -1244,10 +1199,10 @@ html[data-theme='dark'] #appPage .akpi-purple {
 }
 
 /* ═══════════════════════════════════════════════════════════
-   SCHEDULING — unified indigo shell (nav + pages + main panel)
+   DASHBOARD — unified indigo shell (nav + pages sidebar, all sections)
 ═══════════════════════════════════════════════════════════ */
 
-body.shell-scheduling {
+body.app-dashboard-active {
   --sched-bg: #030508;
   --sched-surface: rgba(14, 22, 48, 0.96);
   --sched-surface-2: rgba(6, 10, 24, 0.94);
@@ -1259,8 +1214,8 @@ body.shell-scheduling {
   --sched-text-3: #94a3b8;
 }
 
-html[data-theme='light'] body.shell-scheduling,
-body.light.shell-scheduling {
+html[data-theme='light'] body.app-dashboard-active,
+body.light.app-dashboard-active {
   --sched-bg: #eef2ff;
   --sched-surface: #ffffff;
   --sched-surface-2: #f8fafc;
@@ -1273,15 +1228,16 @@ body.light.shell-scheduling {
 }
 
 body.shell-scheduling #appPage > .app-body,
-body.shell-scheduling .app-body {
+body.shell-broadcast #appPage > .app-body,
+body.shell-messenger #appPage > .app-body {
   gap: 0 !important;
   padding: 0 !important;
   background: var(--sched-bg) !important;
 }
 
 /* Nav rail */
-body.shell-scheduling:not(.light) #appPage .nav-sidebar,
-html[data-theme='dark'] body.shell-scheduling #appPage .nav-sidebar {
+body.app-dashboard-active:not(.light) #appPage .nav-sidebar,
+html[data-theme='dark'] body.app-dashboard-active #appPage .nav-sidebar {
   background: linear-gradient(180deg, rgba(14, 22, 48, 0.98) 0%, rgba(4, 8, 20, 0.96) 100%) !important;
   border: none !important;
   border-right: 1px solid var(--sched-edge) !important;
@@ -1289,8 +1245,8 @@ html[data-theme='dark'] body.shell-scheduling #appPage .nav-sidebar {
   box-shadow: none !important;
 }
 
-html[data-theme='light'] body.shell-scheduling #appPage .nav-sidebar,
-body.light.shell-scheduling #appPage .nav-sidebar {
+html[data-theme='light'] body.app-dashboard-active #appPage .nav-sidebar,
+body.light.app-dashboard-active #appPage .nav-sidebar {
   background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%) !important;
   border: none !important;
   border-right: 1px solid var(--sched-edge) !important;
@@ -1298,109 +1254,109 @@ body.light.shell-scheduling #appPage .nav-sidebar {
   box-shadow: none !important;
 }
 
-body.shell-scheduling:not(.light) #appPage .nav-side-item,
-html[data-theme='dark'] body.shell-scheduling #appPage .nav-side-item {
+body.app-dashboard-active:not(.light) #appPage .nav-side-item,
+html[data-theme='dark'] body.app-dashboard-active #appPage .nav-side-item {
   color: var(--sched-text-2) !important;
 }
 
-body.shell-scheduling:not(.light) #appPage .nav-side-item:hover:not(.active),
-html[data-theme='dark'] body.shell-scheduling #appPage .nav-side-item:hover:not(.active) {
+body.app-dashboard-active:not(.light) #appPage .nav-side-item:hover:not(.active),
+html[data-theme='dark'] body.app-dashboard-active #appPage .nav-side-item:hover:not(.active) {
   background: rgba(99, 102, 241, 0.1) !important;
   color: var(--sched-text) !important;
 }
 
-body.shell-scheduling:not(.light) #appPage .nav-side-item.active,
-html[data-theme='dark'] body.shell-scheduling #appPage .nav-side-item.active {
+body.app-dashboard-active:not(.light) #appPage .nav-side-item.active,
+html[data-theme='dark'] body.app-dashboard-active #appPage .nav-side-item.active {
   background: var(--sched-accent-soft) !important;
   color: #c4b5fd !important;
   box-shadow: inset 0 0 0 1px rgba(139, 156, 255, 0.18) !important;
 }
 
-body.shell-scheduling:not(.light) #appPage .nav-side-item.active::before,
-html[data-theme='dark'] body.shell-scheduling #appPage .nav-side-item.active::before {
+body.app-dashboard-active:not(.light) #appPage .nav-side-item.active::before,
+html[data-theme='dark'] body.app-dashboard-active #appPage .nav-side-item.active::before {
   background: #8b5cf6 !important;
 }
 
-html[data-theme='light'] body.shell-scheduling #appPage .nav-side-item,
-body.light.shell-scheduling #appPage .nav-side-item {
+html[data-theme='light'] body.app-dashboard-active #appPage .nav-side-item,
+body.light.app-dashboard-active #appPage .nav-side-item {
   color: var(--sched-text-3) !important;
 }
 
-html[data-theme='light'] body.shell-scheduling #appPage .nav-side-item:hover:not(.active),
-body.light.shell-scheduling #appPage .nav-side-item:hover:not(.active) {
+html[data-theme='light'] body.app-dashboard-active #appPage .nav-side-item:hover:not(.active),
+body.light.app-dashboard-active #appPage .nav-side-item:hover:not(.active) {
   background: #f1f5f9 !important;
   color: var(--sched-text-2) !important;
 }
 
-html[data-theme='light'] body.shell-scheduling #appPage .nav-side-item.active,
-body.light.shell-scheduling #appPage .nav-side-item.active {
+html[data-theme='light'] body.app-dashboard-active #appPage .nav-side-item.active,
+body.light.app-dashboard-active #appPage .nav-side-item.active {
   background: var(--sched-accent-soft) !important;
   color: #5b21b6 !important;
   box-shadow: inset 0 0 0 1px rgba(99, 102, 241, 0.2) !important;
 }
 
-html[data-theme='light'] body.shell-scheduling #appPage .nav-side-item.active::before,
-body.light.shell-scheduling #appPage .nav-side-item.active::before {
+html[data-theme='light'] body.app-dashboard-active #appPage .nav-side-item.active::before,
+body.light.app-dashboard-active #appPage .nav-side-item.active::before {
   background: #6366f1 !important;
 }
 
-body.shell-scheduling:not(.light) #appPage .nav-sidebar-hdr,
-html[data-theme='dark'] body.shell-scheduling #appPage .nav-sidebar-hdr {
+body.app-dashboard-active:not(.light) #appPage .nav-sidebar-hdr,
+html[data-theme='dark'] body.app-dashboard-active #appPage .nav-sidebar-hdr {
   border-bottom-color: var(--sched-edge) !important;
 }
 
-html[data-theme='light'] body.shell-scheduling #appPage .nav-sidebar-hdr,
-body.light.shell-scheduling #appPage .nav-sidebar-hdr {
+html[data-theme='light'] body.app-dashboard-active #appPage .nav-sidebar-hdr,
+body.light.app-dashboard-active #appPage .nav-sidebar-hdr {
   border-bottom-color: var(--sched-edge) !important;
 }
 
-body.shell-scheduling:not(.light) #appPage .nav-sidebar-hdr span,
-html[data-theme='dark'] body.shell-scheduling #appPage .nav-sidebar-hdr span {
+body.app-dashboard-active:not(.light) #appPage .nav-sidebar-hdr span,
+html[data-theme='dark'] body.app-dashboard-active #appPage .nav-sidebar-hdr span {
   color: var(--sched-text-2) !important;
 }
 
-html[data-theme='light'] body.shell-scheduling #appPage .nav-sidebar-hdr span,
-body.light.shell-scheduling #appPage .nav-sidebar-hdr span {
+html[data-theme='light'] body.app-dashboard-active #appPage .nav-sidebar-hdr span,
+body.light.app-dashboard-active #appPage .nav-sidebar-hdr span {
   color: var(--sched-text-2) !important;
 }
 
-body.shell-scheduling:not(.light) #appPage .nav-sidebar-footer,
-body.shell-scheduling:not(.light) #appPage .nav-sidebar-contact,
-html[data-theme='dark'] body.shell-scheduling #appPage .nav-sidebar-footer,
-html[data-theme='dark'] body.shell-scheduling #appPage .nav-sidebar-contact {
+body.app-dashboard-active:not(.light) #appPage .nav-sidebar-footer,
+body.app-dashboard-active:not(.light) #appPage .nav-sidebar-contact,
+html[data-theme='dark'] body.app-dashboard-active #appPage .nav-sidebar-footer,
+html[data-theme='dark'] body.app-dashboard-active #appPage .nav-sidebar-contact {
   border-top-color: var(--sched-edge) !important;
 }
 
-html[data-theme='light'] body.shell-scheduling #appPage .nav-sidebar-footer,
-html[data-theme='light'] body.shell-scheduling #appPage .nav-sidebar-contact,
-body.light.shell-scheduling #appPage .nav-sidebar-footer,
-body.light.shell-scheduling #appPage .nav-sidebar-contact {
+html[data-theme='light'] body.app-dashboard-active #appPage .nav-sidebar-footer,
+html[data-theme='light'] body.app-dashboard-active #appPage .nav-sidebar-contact,
+body.light.app-dashboard-active #appPage .nav-sidebar-footer,
+body.light.app-dashboard-active #appPage .nav-sidebar-contact {
   border-top-color: var(--sched-edge) !important;
 }
 
-body.shell-scheduling:not(.light) #appPage .nav-user-name,
-html[data-theme='dark'] body.shell-scheduling #appPage .nav-user-name {
+body.app-dashboard-active:not(.light) #appPage .nav-user-name,
+html[data-theme='dark'] body.app-dashboard-active #appPage .nav-user-name {
   color: var(--sched-text) !important;
 }
 
-body.shell-scheduling:not(.light) #appPage .nav-user-plan,
-html[data-theme='dark'] body.shell-scheduling #appPage .nav-user-plan {
+body.app-dashboard-active:not(.light) #appPage .nav-user-plan,
+html[data-theme='dark'] body.app-dashboard-active #appPage .nav-user-plan {
   color: var(--sched-text-2) !important;
 }
 
-html[data-theme='light'] body.shell-scheduling #appPage .nav-user-name,
-body.light.shell-scheduling #appPage .nav-user-name {
+html[data-theme='light'] body.app-dashboard-active #appPage .nav-user-name,
+body.light.app-dashboard-active #appPage .nav-user-name {
   color: var(--sched-text) !important;
 }
 
-html[data-theme='light'] body.shell-scheduling #appPage .nav-user-plan,
-body.light.shell-scheduling #appPage .nav-user-plan {
+html[data-theme='light'] body.app-dashboard-active #appPage .nav-user-plan,
+body.light.app-dashboard-active #appPage .nav-user-plan {
   color: var(--sched-text-3) !important;
 }
 
 /* Pages column */
-body.shell-scheduling:not(.light) #appPage .sidebar,
-html[data-theme='dark'] body.shell-scheduling #appPage .sidebar {
+body.app-dashboard-active:not(.light) #appPage .sidebar,
+html[data-theme='dark'] body.app-dashboard-active #appPage .sidebar {
   background: var(--sched-surface-2) !important;
   border: none !important;
   border-right: 1px solid var(--sched-edge) !important;
@@ -1408,8 +1364,8 @@ html[data-theme='dark'] body.shell-scheduling #appPage .sidebar {
   box-shadow: none !important;
 }
 
-html[data-theme='light'] body.shell-scheduling #appPage .sidebar,
-body.light.shell-scheduling #appPage .sidebar {
+html[data-theme='light'] body.app-dashboard-active #appPage .sidebar,
+body.light.app-dashboard-active #appPage .sidebar {
   background: var(--sched-surface) !important;
   border: none !important;
   border-right: 1px solid var(--sched-edge) !important;
@@ -1417,289 +1373,322 @@ body.light.shell-scheduling #appPage .sidebar {
   box-shadow: none !important;
 }
 
-body.shell-scheduling:not(.light) #appPage .sidebar-hdr,
-html[data-theme='dark'] body.shell-scheduling #appPage .sidebar-hdr {
+body.app-dashboard-active:not(.light) #appPage .sidebar-hdr,
+html[data-theme='dark'] body.app-dashboard-active #appPage .sidebar-hdr {
   background: linear-gradient(180deg, rgba(16, 22, 48, 0.98) 0%, rgba(8, 12, 28, 0.96) 100%) !important;
   border-bottom-color: var(--sched-edge) !important;
 }
 
-html[data-theme='light'] body.shell-scheduling #appPage .sidebar-hdr,
-body.light.shell-scheduling #appPage .sidebar-hdr {
+html[data-theme='light'] body.app-dashboard-active #appPage .sidebar-hdr,
+body.light.app-dashboard-active #appPage .sidebar-hdr {
   background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%) !important;
   border-bottom-color: var(--sched-edge) !important;
 }
 
-body.shell-scheduling:not(.light) #appPage .sidebar-hdr-title,
-html[data-theme='dark'] body.shell-scheduling #appPage .sidebar-hdr-title {
+body.app-dashboard-active:not(.light) #appPage .sidebar-hdr-title,
+html[data-theme='dark'] body.app-dashboard-active #appPage .sidebar-hdr-title {
   color: var(--sched-text-2) !important;
 }
 
-body.shell-scheduling:not(.light) #appPage .sidebar-hdr-subtitle[data-mode="scheduling"],
-html[data-theme='dark'] body.shell-scheduling #appPage .sidebar-hdr-subtitle[data-mode="scheduling"] {
+body.app-dashboard-active:not(.light) #appPage .sidebar-hdr-subtitle[data-mode="scheduling"],
+html[data-theme='dark'] body.app-dashboard-active #appPage .sidebar-hdr-subtitle[data-mode="scheduling"] {
   color: #a78bfa !important;
 }
 
-html[data-theme='light'] body.shell-scheduling #appPage .sidebar-hdr-title,
-body.light.shell-scheduling #appPage .sidebar-hdr-title {
+html[data-theme='light'] body.app-dashboard-active #appPage .sidebar-hdr-title,
+body.light.app-dashboard-active #appPage .sidebar-hdr-title {
   color: var(--sched-text-2) !important;
 }
 
-html[data-theme='light'] body.shell-scheduling #appPage .sidebar-hdr-subtitle[data-mode="scheduling"],
-body.light.shell-scheduling #appPage .sidebar-hdr-subtitle[data-mode="scheduling"] {
+html[data-theme='light'] body.app-dashboard-active #appPage .sidebar-hdr-subtitle[data-mode="scheduling"],
+body.light.app-dashboard-active #appPage .sidebar-hdr-subtitle[data-mode="scheduling"] {
   color: #6d28d9 !important;
 }
 
-body.shell-scheduling:not(.light) #appPage .sidebar-hdr-brand > i,
-html[data-theme='dark'] body.shell-scheduling #appPage .sidebar-hdr-brand > i {
+body.app-dashboard-active:not(.light) #appPage .sidebar-hdr-brand > i,
+html[data-theme='dark'] body.app-dashboard-active #appPage .sidebar-hdr-brand > i {
   color: #a5b4fc !important;
 }
 
-html[data-theme='light'] body.shell-scheduling #appPage .sidebar-hdr-brand > i,
-body.light.shell-scheduling #appPage .sidebar-hdr-brand > i {
+html[data-theme='light'] body.app-dashboard-active #appPage .sidebar-hdr-brand > i,
+body.light.app-dashboard-active #appPage .sidebar-hdr-brand > i {
   color: #6366f1 !important;
 }
 
-body.shell-scheduling:not(.light) #appPage .sidebar-page-count,
-html[data-theme='dark'] body.shell-scheduling #appPage .sidebar-page-count {
+body.app-dashboard-active:not(.light) #appPage .sidebar-page-count,
+html[data-theme='dark'] body.app-dashboard-active #appPage .sidebar-page-count {
   background: var(--sched-accent-soft) !important;
   color: #c4b5fd !important;
   border-color: rgba(139, 156, 255, 0.25) !important;
 }
 
-html[data-theme='light'] body.shell-scheduling #appPage .sidebar-page-count,
-body.light.shell-scheduling #appPage .sidebar-page-count {
+html[data-theme='light'] body.app-dashboard-active #appPage .sidebar-page-count,
+body.light.app-dashboard-active #appPage .sidebar-page-count {
   background: #eef2ff !important;
   color: #5b21b6 !important;
   border-color: rgba(99, 102, 241, 0.22) !important;
 }
 
-body.shell-scheduling:not(.light) #appPage .sidebar-sync-btn,
-html[data-theme='dark'] body.shell-scheduling #appPage .sidebar-sync-btn {
+body.app-dashboard-active:not(.light) #appPage .sidebar-sync-btn,
+html[data-theme='dark'] body.app-dashboard-active #appPage .sidebar-sync-btn {
   background: rgba(14, 22, 48, 0.9) !important;
   border-color: rgba(139, 156, 255, 0.22) !important;
   color: var(--sched-text-2) !important;
 }
 
-body.shell-scheduling:not(.light) #appPage .sidebar-sync-btn:hover:not(:disabled),
-html[data-theme='dark'] body.shell-scheduling #appPage .sidebar-sync-btn:hover:not(:disabled) {
+body.app-dashboard-active:not(.light) #appPage .sidebar-sync-btn:hover:not(:disabled),
+html[data-theme='dark'] body.app-dashboard-active #appPage .sidebar-sync-btn:hover:not(:disabled) {
   background: rgba(99, 102, 241, 0.2) !important;
   border-color: rgba(139, 156, 255, 0.35) !important;
   color: #c4b5fd !important;
 }
 
-html[data-theme='light'] body.shell-scheduling #appPage .sidebar-sync-btn,
-body.light.shell-scheduling #appPage .sidebar-sync-btn {
+html[data-theme='light'] body.app-dashboard-active #appPage .sidebar-sync-btn,
+body.light.app-dashboard-active #appPage .sidebar-sync-btn {
   background: #f8fafc !important;
   border-color: #e2e8f0 !important;
   color: var(--sched-text-3) !important;
 }
 
-html[data-theme='light'] body.shell-scheduling #appPage .sidebar-sync-btn:hover:not(:disabled),
-body.light.shell-scheduling #appPage .sidebar-sync-btn:hover:not(:disabled) {
+html[data-theme='light'] body.app-dashboard-active #appPage .sidebar-sync-btn:hover:not(:disabled),
+body.light.app-dashboard-active #appPage .sidebar-sync-btn:hover:not(:disabled) {
   background: #eef2ff !important;
   border-color: rgba(99, 102, 241, 0.28) !important;
   color: #5b21b6 !important;
 }
 
-body.shell-scheduling:not(.light) #appPage .sidebar-hdr-toolbar,
-html[data-theme='dark'] body.shell-scheduling #appPage .sidebar-hdr-toolbar {
+body.app-dashboard-active:not(.light) #appPage .sidebar-hdr-toolbar,
+html[data-theme='dark'] body.app-dashboard-active #appPage .sidebar-hdr-toolbar {
   background: linear-gradient(135deg, rgba(99, 102, 241, 0.14), rgba(14, 22, 48, 0.96)) !important;
   border-color: rgba(139, 92, 246, 0.28) !important;
 }
 
-html[data-theme='light'] body.shell-scheduling #appPage .sidebar-hdr-toolbar,
-body.light.shell-scheduling #appPage .sidebar-hdr-toolbar {
+html[data-theme='light'] body.app-dashboard-active #appPage .sidebar-hdr-toolbar,
+body.light.app-dashboard-active #appPage .sidebar-hdr-toolbar {
   background: linear-gradient(135deg, rgba(99, 102, 241, 0.08), rgba(238, 242, 255, 0.9)) !important;
   border-color: rgba(99, 102, 241, 0.18) !important;
 }
 
-body.shell-scheduling:not(.light) #appPage .sidebar-hdr-toolbar-info,
-html[data-theme='dark'] body.shell-scheduling #appPage .sidebar-hdr-toolbar-info {
+body.app-dashboard-active:not(.light) #appPage .sidebar-hdr-toolbar-info,
+html[data-theme='dark'] body.app-dashboard-active #appPage .sidebar-hdr-toolbar-info {
   color: var(--sched-text-2) !important;
 }
 
-html[data-theme='light'] body.shell-scheduling #appPage .sidebar-hdr-toolbar-info,
-body.light.shell-scheduling #appPage .sidebar-hdr-toolbar-info {
+html[data-theme='light'] body.app-dashboard-active #appPage .sidebar-hdr-toolbar-info,
+body.light.app-dashboard-active #appPage .sidebar-hdr-toolbar-info {
   color: var(--sched-text-2) !important;
 }
 
-body.shell-scheduling:not(.light) #appPage .sidebar-hdr-toolbar-info > i,
-html[data-theme='dark'] body.shell-scheduling #appPage .sidebar-hdr-toolbar-info > i {
+body.app-dashboard-active:not(.light) #appPage .sidebar-hdr-toolbar-info > i,
+html[data-theme='dark'] body.app-dashboard-active #appPage .sidebar-hdr-toolbar-info > i {
   color: #a78bfa !important;
 }
 
-html[data-theme='light'] body.shell-scheduling #appPage .sidebar-hdr-toolbar-info > i,
-body.light.shell-scheduling #appPage .sidebar-hdr-toolbar-info > i {
+html[data-theme='light'] body.app-dashboard-active #appPage .sidebar-hdr-toolbar-info > i,
+body.light.app-dashboard-active #appPage .sidebar-hdr-toolbar-info > i {
   color: #6366f1 !important;
 }
 
-body.shell-scheduling:not(.light) #appPage .sidebar-sched-selection,
-html[data-theme='dark'] body.shell-scheduling #appPage .sidebar-sched-selection {
+body.app-dashboard-active:not(.light) #appPage .sidebar-sched-selection,
+html[data-theme='dark'] body.app-dashboard-active #appPage .sidebar-sched-selection {
   color: #c4b5fd !important;
 }
 
-html[data-theme='light'] body.shell-scheduling #appPage .sidebar-sched-selection,
-body.light.shell-scheduling #appPage .sidebar-sched-selection {
+html[data-theme='light'] body.app-dashboard-active #appPage .sidebar-sched-selection,
+body.light.app-dashboard-active #appPage .sidebar-sched-selection {
   color: #5b21b6 !important;
 }
 
-body.shell-scheduling:not(.light) #appPage .sidebar-sched-chip,
-html[data-theme='dark'] body.shell-scheduling #appPage .sidebar-sched-chip {
+body.app-dashboard-active:not(.light) #appPage .sidebar-sched-chip,
+html[data-theme='dark'] body.app-dashboard-active #appPage .sidebar-sched-chip {
   background: rgba(99, 102, 241, 0.14) !important;
   border-color: rgba(139, 156, 255, 0.28) !important;
   color: #c4b5fd !important;
 }
 
-body.shell-scheduling:not(.light) #appPage .sidebar-sched-chip:hover,
-html[data-theme='dark'] body.shell-scheduling #appPage .sidebar-sched-chip:hover {
+body.app-dashboard-active:not(.light) #appPage .sidebar-sched-chip:hover,
+html[data-theme='dark'] body.app-dashboard-active #appPage .sidebar-sched-chip:hover {
   background: rgba(99, 102, 241, 0.24) !important;
   border-color: rgba(139, 156, 255, 0.4) !important;
   color: #e9d5ff !important;
 }
 
-html[data-theme='light'] body.shell-scheduling #appPage .sidebar-sched-chip,
-body.light.shell-scheduling #appPage .sidebar-sched-chip {
+html[data-theme='light'] body.app-dashboard-active #appPage .sidebar-sched-chip,
+body.light.app-dashboard-active #appPage .sidebar-sched-chip {
   background: #eef2ff !important;
   border-color: rgba(99, 102, 241, 0.22) !important;
   color: #5b21b6 !important;
 }
 
-html[data-theme='light'] body.shell-scheduling #appPage .sidebar-sched-chip:hover,
-body.light.shell-scheduling #appPage .sidebar-sched-chip:hover {
+html[data-theme='light'] body.app-dashboard-active #appPage .sidebar-sched-chip:hover,
+body.light.app-dashboard-active #appPage .sidebar-sched-chip:hover {
   background: #e0e7ff !important;
   border-color: rgba(99, 102, 241, 0.32) !important;
   color: #4c1d95 !important;
 }
 
-body.shell-scheduling:not(.light) #appPage .page-name,
-html[data-theme='dark'] body.shell-scheduling #appPage .page-name {
+body.app-dashboard-active:not(.light) #appPage .page-name,
+html[data-theme='dark'] body.app-dashboard-active #appPage .page-name {
   color: #e2e8f0 !important;
 }
 
-body.shell-scheduling:not(.light) #appPage .page-category,
-html[data-theme='dark'] body.shell-scheduling #appPage .page-category {
+body.app-dashboard-active:not(.light) #appPage .page-category,
+html[data-theme='dark'] body.app-dashboard-active #appPage .page-category {
   color: var(--sched-text-2) !important;
 }
 
-html[data-theme='light'] body.shell-scheduling #appPage .page-name,
-body.light.shell-scheduling #appPage .page-name {
+html[data-theme='light'] body.app-dashboard-active #appPage .page-name,
+body.light.app-dashboard-active #appPage .page-name {
   color: var(--sched-text) !important;
 }
 
-html[data-theme='light'] body.shell-scheduling #appPage .page-category,
-body.light.shell-scheduling #appPage .page-category {
+html[data-theme='light'] body.app-dashboard-active #appPage .page-category,
+body.light.app-dashboard-active #appPage .page-category {
   color: var(--sched-text-3) !important;
 }
 
-body.shell-scheduling:not(.light) #appPage .page-card:hover,
-html[data-theme='dark'] body.shell-scheduling #appPage .page-card:hover {
+body.app-dashboard-active:not(.light) #appPage .page-card:hover,
+html[data-theme='dark'] body.app-dashboard-active #appPage .page-card:hover {
   background: rgba(99, 102, 241, 0.08) !important;
   border-color: rgba(139, 156, 255, 0.18) !important;
 }
 
-html[data-theme='light'] body.shell-scheduling #appPage .page-card,
-body.light.shell-scheduling #appPage .page-card {
+html[data-theme='light'] body.app-dashboard-active #appPage .page-card,
+body.light.app-dashboard-active #appPage .page-card {
   background: transparent !important;
   border-color: transparent !important;
 }
 
-html[data-theme='light'] body.shell-scheduling #appPage .page-card:hover,
-body.light.shell-scheduling #appPage .page-card:hover {
+html[data-theme='light'] body.app-dashboard-active #appPage .page-card:hover,
+body.light.app-dashboard-active #appPage .page-card:hover {
   background: rgba(99, 102, 241, 0.06) !important;
   border-color: rgba(99, 102, 241, 0.14) !important;
 }
 
-body.shell-scheduling:not(.light) #appPage .page-card.sched-selected,
-html[data-theme='dark'] body.shell-scheduling #appPage .page-card.sched-selected {
+body.app-dashboard-active:not(.light) #appPage .page-card.sched-selected,
+html[data-theme='dark'] body.app-dashboard-active #appPage .page-card.sched-selected {
   background: linear-gradient(135deg, rgba(99, 102, 241, 0.16), rgba(139, 92, 246, 0.08)) !important;
   border-color: rgba(139, 92, 246, 0.38) !important;
   box-shadow: inset 3px 0 0 #8b5cf6, 0 2px 12px rgba(139, 92, 246, 0.12) !important;
 }
 
-body.shell-scheduling:not(.light) #appPage .page-card.sched-selected .page-name,
-html[data-theme='dark'] body.shell-scheduling #appPage .page-card.sched-selected .page-name {
+body.app-dashboard-active:not(.light) #appPage .page-card.sched-selected .page-name,
+html[data-theme='dark'] body.app-dashboard-active #appPage .page-card.sched-selected .page-name {
   color: #c4b5fd !important;
 }
 
-html[data-theme='light'] body.shell-scheduling #appPage .page-card.sched-selected,
-body.light.shell-scheduling #appPage .page-card.sched-selected {
+html[data-theme='light'] body.app-dashboard-active #appPage .page-card.sched-selected,
+body.light.app-dashboard-active #appPage .page-card.sched-selected {
   background: #eef2ff !important;
   border-color: rgba(99, 102, 241, 0.28) !important;
   box-shadow: inset 3px 0 0 #6366f1, 0 2px 10px rgba(99, 102, 241, 0.08) !important;
 }
 
-html[data-theme='light'] body.shell-scheduling #appPage .page-card.sched-selected .page-name,
-body.light.shell-scheduling #appPage .page-card.sched-selected .page-name {
+html[data-theme='light'] body.app-dashboard-active #appPage .page-card.sched-selected .page-name,
+body.light.app-dashboard-active #appPage .page-card.sched-selected .page-name {
   color: #5b21b6 !important;
 }
 
-body.shell-scheduling:not(.light) #appPage .pages-empty p,
-html[data-theme='dark'] body.shell-scheduling #appPage .pages-empty p {
+body.app-dashboard-active:not(.light) #appPage .pages-empty p,
+html[data-theme='dark'] body.app-dashboard-active #appPage .pages-empty p {
   color: var(--sched-text-2) !important;
 }
 
-html[data-theme='light'] body.shell-scheduling #appPage .pages-empty p,
-body.light.shell-scheduling #appPage .pages-empty p {
+html[data-theme='light'] body.app-dashboard-active #appPage .pages-empty p,
+body.light.app-dashboard-active #appPage .pages-empty p {
   color: var(--sched-text-3) !important;
 }
 
-body.shell-scheduling:not(.light) #appPage .sidebar-tips,
-html[data-theme='dark'] body.shell-scheduling #appPage .sidebar-tips {
+body.app-dashboard-active:not(.light) #appPage .sidebar-tips,
+html[data-theme='dark'] body.app-dashboard-active #appPage .sidebar-tips {
   background: rgba(8, 12, 28, 0.65) !important;
   border-top-color: var(--sched-edge) !important;
 }
 
-html[data-theme='light'] body.shell-scheduling #appPage .sidebar-tips,
-body.light.shell-scheduling #appPage .sidebar-tips {
+html[data-theme='light'] body.app-dashboard-active #appPage .sidebar-tips,
+body.light.app-dashboard-active #appPage .sidebar-tips {
   background: var(--sched-surface-2) !important;
   border-top-color: var(--sched-edge) !important;
 }
 
-body.shell-scheduling:not(.light) #appPage .sidebar-tips-hdr,
-body.shell-scheduling:not(.light) #appPage .stip-item,
-html[data-theme='dark'] body.shell-scheduling #appPage .sidebar-tips-hdr,
-html[data-theme='dark'] body.shell-scheduling #appPage .stip-item {
+body.app-dashboard-active:not(.light) #appPage .sidebar-tips-hdr,
+body.app-dashboard-active:not(.light) #appPage .stip-item,
+html[data-theme='dark'] body.app-dashboard-active #appPage .sidebar-tips-hdr,
+html[data-theme='dark'] body.app-dashboard-active #appPage .stip-item {
   color: var(--sched-text-2) !important;
 }
 
-body.shell-scheduling:not(.light) #appPage .stip-item strong,
-html[data-theme='dark'] body.shell-scheduling #appPage .stip-item strong {
+body.app-dashboard-active:not(.light) #appPage .stip-item strong,
+html[data-theme='dark'] body.app-dashboard-active #appPage .stip-item strong {
   color: var(--sched-text) !important;
 }
 
-html[data-theme='light'] body.shell-scheduling #appPage .sidebar-tips-hdr,
-html[data-theme='light'] body.shell-scheduling #appPage .stip-item,
-body.light.shell-scheduling #appPage .sidebar-tips-hdr,
-body.light.shell-scheduling #appPage .stip-item {
+html[data-theme='light'] body.app-dashboard-active #appPage .sidebar-tips-hdr,
+html[data-theme='light'] body.app-dashboard-active #appPage .stip-item,
+body.light.app-dashboard-active #appPage .sidebar-tips-hdr,
+body.light.app-dashboard-active #appPage .stip-item {
   color: var(--sched-text-3) !important;
 }
 
-html[data-theme='light'] body.shell-scheduling #appPage .stip-item strong,
-body.light.shell-scheduling #appPage .stip-item strong {
+html[data-theme='light'] body.app-dashboard-active #appPage .stip-item strong,
+body.light.app-dashboard-active #appPage .stip-item strong {
   color: var(--sched-text-2) !important;
 }
 
-body.shell-scheduling:not(.light) #appPage .sidebar-pages,
-html[data-theme='dark'] body.shell-scheduling #appPage .sidebar-pages {
+body.app-dashboard-active:not(.light) #appPage .sidebar-pages,
+html[data-theme='dark'] body.app-dashboard-active #appPage .sidebar-pages {
   background: transparent !important;
 }
 
-html[data-theme='light'] body.shell-scheduling #appPage,
-body.light.shell-scheduling #appPage {
+html[data-theme='light'] body.app-dashboard-active #appPage,
+body.light.app-dashboard-active #appPage {
   background: var(--sched-bg) !important;
 }
 
-body.shell-scheduling:not(.light) #appPage .nav-ai-btn,
-body.shell-scheduling:not(.light) #appPage .nav-contact-btn,
-html[data-theme='dark'] body.shell-scheduling #appPage .nav-ai-btn,
-html[data-theme='dark'] body.shell-scheduling #appPage .nav-contact-btn {
+body.app-dashboard-active:not(.light) #appPage .nav-ai-btn,
+body.app-dashboard-active:not(.light) #appPage .nav-contact-btn,
+html[data-theme='dark'] body.app-dashboard-active #appPage .nav-ai-btn,
+html[data-theme='dark'] body.app-dashboard-active #appPage .nav-contact-btn {
   border-color: var(--sched-edge) !important;
 }
 
-html[data-theme='light'] body.shell-scheduling #appPage .nav-ai-label,
-html[data-theme='light'] body.shell-scheduling #appPage .nav-contact-label,
-body.light.shell-scheduling #appPage .nav-ai-label,
-body.light.shell-scheduling #appPage .nav-contact-label {
+html[data-theme='light'] body.app-dashboard-active #appPage .nav-ai-label,
+html[data-theme='light'] body.app-dashboard-active #appPage .nav-contact-label,
+body.light.app-dashboard-active #appPage .nav-ai-label,
+body.light.app-dashboard-active #appPage .nav-contact-label {
   color: var(--sched-text-2) !important;
+}
+
+/* Selected page in sidebar (Broadcast, etc.) */
+body.app-dashboard-active:not(.light) #appPage .page-card.active,
+body.app-dashboard-active:not(.light) #appPage .page-card.selected,
+html[data-theme='dark'] body.app-dashboard-active #appPage .page-card.active,
+html[data-theme='dark'] body.app-dashboard-active #appPage .page-card.selected {
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.16), rgba(139, 92, 246, 0.08)) !important;
+  border-color: rgba(139, 92, 246, 0.38) !important;
+  box-shadow: inset 3px 0 0 #8b5cf6, 0 2px 12px rgba(139, 92, 246, 0.12) !important;
+}
+
+body.app-dashboard-active:not(.light) #appPage .page-card.active .page-name,
+body.app-dashboard-active:not(.light) #appPage .page-card.selected .page-name,
+html[data-theme='dark'] body.app-dashboard-active #appPage .page-card.active .page-name,
+html[data-theme='dark'] body.app-dashboard-active #appPage .page-card.selected .page-name {
+  color: #c4b5fd !important;
+}
+
+html[data-theme='light'] body.app-dashboard-active #appPage .page-card.active,
+html[data-theme='light'] body.app-dashboard-active #appPage .page-card.selected,
+body.light.app-dashboard-active #appPage .page-card.active,
+body.light.app-dashboard-active #appPage .page-card.selected {
+  background: #eef2ff !important;
+  border-color: rgba(99, 102, 241, 0.28) !important;
+  box-shadow: inset 3px 0 0 #6366f1, 0 2px 10px rgba(99, 102, 241, 0.08) !important;
+}
+
+html[data-theme='light'] body.app-dashboard-active #appPage .page-card.active .page-name,
+html[data-theme='light'] body.app-dashboard-active #appPage .page-card.selected .page-name,
+body.light.app-dashboard-active #appPage .page-card.active .page-name,
+body.light.app-dashboard-active #appPage .page-card.selected .page-name {
+  color: #5b21b6 !important;
 }
 
