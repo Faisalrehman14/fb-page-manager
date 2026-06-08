@@ -53,7 +53,8 @@
       icon: 'fa-bullhorn',
       top: 'broadcast',
       broadcastSub: 'broadcast',
-      hideSidebar: false
+      hideSidebar: false,
+      bodyClass: 'shell-broadcast'
     },
     messenger: {
       label: 'Messenger',
@@ -198,7 +199,7 @@
     const next = VIEWS[view];
 
     if (prev && prev.onLeave) prev.onLeave();
-    document.body.classList.remove('shell-scheduling', 'shell-messenger', 'shell-home', 'in-messenger');
+    document.body.classList.remove('shell-scheduling', 'shell-messenger', 'shell-broadcast', 'shell-home', 'in-messenger');
     if (next.bodyClass) document.body.classList.add(next.bodyClass);
 
     currentView = view;
@@ -392,7 +393,7 @@
       landing.removeAttribute('aria-hidden');
     }
     document.body.style.overflow = '';
-    document.body.classList.remove('app-dashboard-active', 'shell-scheduling', 'shell-messenger', 'in-messenger');
+    document.body.classList.remove('app-dashboard-active', 'shell-scheduling', 'shell-messenger', 'shell-broadcast', 'in-messenger');
 
     if (global.homeDashboard && typeof global.homeDashboard.stop === 'function') {
       global.homeDashboard.stop();

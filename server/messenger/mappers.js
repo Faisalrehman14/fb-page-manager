@@ -73,7 +73,8 @@ function mapPollConvUpdate(r) {
         snippet: normalizeSnippetForList(r.snippet || ''),
         updated_at: r.updated_at,
         is_unread: r.is_unread || 0,
-        last_from_me: r.last_from_me
+        last_from_me: r.last_from_me,
+        can_reply: r.can_reply != null ? (r.can_reply !== 0 ? 1 : 0) : 1
     };
 }
 

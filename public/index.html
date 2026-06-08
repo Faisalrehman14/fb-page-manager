@@ -1746,6 +1746,10 @@ window.getCsrfToken = async (forceRefresh = false) => {
                   <button type="button" class="msng-image-preview-remove" onclick="msngClearPendingImage()" aria-label="Remove image"><i class="fa-solid fa-xmark"></i></button>
                 </div>
               </div>
+              <div id="msngBlockedBanner" class="msng-blocked-banner" style="display:none" role="status">
+                <i class="fa-solid fa-ban" aria-hidden="true"></i>
+                <span>You can't reply to this conversation. The customer may have blocked messages from your Page.</span>
+              </div>
               <footer class="msng-input-bar">
                 <button type="button" class="msng-input-btn" title="Attach image" onclick="document.getElementById('msngFileInput').click()"><i class="fa-solid fa-paperclip"></i></button>
                 <div class="msng-input-wrap">

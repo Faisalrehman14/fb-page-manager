@@ -58,7 +58,7 @@ function buildListResult(convs, safeLimit, safeOffset, extra = {}) {
         offset: safeOffset,
         limit: safeLimit,
         message_retention_days: MESSAGE_RETENTION_DAYS,
-        filters: { can_reply: true, messages_within_days: MESSAGE_RETENTION_DAYS },
+        filters: { include_blocked: true, messages_within_days: MESSAGE_RETENTION_DAYS },
         ...extra
     };
 }

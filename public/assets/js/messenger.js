@@ -618,7 +618,8 @@
         if (patch.lastMsg != null) patch.lastMsg = normalizePreviewText(patch.lastMsg);
         patch.unread = resolveConvUnread(key, patch.unread, patch.lastMsgAt, patch.lastFromMe);
         if (ex.unread !== patch.unread || ex.lastMsg !== patch.lastMsg
-            || ex.name !== patch.name || ex.lastFromMe !== patch.lastFromMe) {
+            || ex.name !== patch.name || ex.lastFromMe !== patch.lastFromMe
+            || ex.canReply !== patch.canReply) {
           Object.assign(ex, patch);
           changed = true;
         } else if (patch.lastMsgAt && String(ex.lastMsgAt) !== String(patch.lastMsgAt)) {
@@ -673,6 +674,14 @@
           existing.lastMsgAt = newAt;
           rowChanged = true;
         }
+        if (uc.can_reply != null) {
+          const canReply = uc.can_reply !== 0 && uc.can_reply !== false;
+          if (existing.canReply !== canReply) {
+            existing.canReply = canReply;
+            existing.can_reply = canReply ? 1 : 0;
+            rowChanged = true;
+          }
+        }
         if (rowChanged) dirty = true;
       } else {
         const row = {
@@ -688,6 +697,8 @@
             uc.last_from_me == 1
           ),
           page_id: M.activePageId,
+          canReply: uc.can_reply == null ? true : (uc.can_reply !== 0 && uc.can_reply !== false),
+          can_reply: uc.can_reply == null ? 1 : (uc.can_reply !== 0 && uc.can_reply !== false ? 1 : 0),
         };
         M.convs.push(row);
         M._convByPsid.set(key, row);
@@ -813,9 +824,18 @@
     return (M.pages.find(p => p.id === M.activePageId) || {}).name || '';
   }
 
+  function isConvBlocked(c) {
+    return c && (c.canReply === false || c.can_reply === 0 || c.can_reply === false);
+  }
+
+  function convBlockedBadge() {
+    return '<span class="msng-ci-blocked" title="You can\'t reply to this conversation">Blocked</span>';
+  }
+
   function convItemHtml(c, activePsid) {
     const isActive = c.psid === activePsid;
     const isUnread = c.unread > 0;
+    const blocked  = isConvBlocked(c);
     const preview  = formatConvPreview(c);
     const short    = preview.length > 42 ? preview.slice(0, 42) + '…' : preview;
     const badge    = isUnread ? `<span class="msng-ci-badge">${c.unread > 9 ? '9+' : c.unread}</span>` : '';
@@ -824,15 +844,17 @@
       ? `<div class="msng-ci-page">${esc(pageLbl)}</div>`
       : '';
 
-    return `<div class="msng-conv-item ${isActive ? 'active' : ''} ${isUnread ? 'unread' : ''}"
+    return `<div class="msng-conv-item ${isActive ? 'active' : ''} ${isUnread ? 'unread' : ''} ${blocked ? 'blocked' : ''}"
                  data-psid="${esc(c.psid)}"
                  data-name="${esc(c.name)}"
                  data-pic="${esc(c.picture || '')}"
-                 data-page="${esc(c.page_id || M.activePageId)}">
+                 data-page="${esc(c.page_id || M.activePageId)}"
+                 data-blocked="${blocked ? '1' : '0'}">
       <div class="msng-ci-avatar">${avatarHtml(c.picture, c.name, 'msng-ci-avatar-img')}</div>
       <div class="msng-ci-body">
         <div class="msng-ci-row1">
           <span class="msng-ci-name">${esc(c.name)}</span>
+          ${blocked ? convBlockedBadge() : ''}
           <span class="msng-ci-time">${esc(fmtTime(c.lastMsgAt))}</span>
         </div>
         ${pageRow}
@@ -1735,13 +1757,47 @@
     if (toggle) toggle.setAttribute('aria-expanded', panel.classList.contains('is-open') ? 'true' : 'false');
   }
 
+  function updateBlockedComposerState() {
+    const conv = getConv(M.activePageId, M.activePsid);
+    const blocked = isConvBlocked(conv);
+    const bar = document.querySelector('#view-messenger .msng-input-bar');
+    const ta = $('msngMsgTextarea');
+    const sendBtn = $('msngSendBtn');
+    const likeBtn = $('msngLikeBtn');
+    const attachBtn = document.querySelector('#view-messenger .msng-input-btn[title="Attach image"]');
+    const banner = $('msngBlockedBanner');
+
+    if (bar) bar.classList.toggle('is-blocked', blocked);
+    if (ta) {
+      ta.disabled = blocked;
+      ta.placeholder = blocked
+        ? "You can't reply to this conversation"
+        : 'Type a message…';
+    }
+    [sendBtn, likeBtn, attachBtn].forEach(el => { if (el) el.disabled = blocked; });
+    const cannedBtn = $('msngCannedBtn');
+    if (cannedBtn) cannedBtn.disabled = blocked;
+
+    if (banner) {
+      banner.style.display = blocked ? 'flex' : 'none';
+    }
+  }
+
   function showChatWindow(name, picture) {
     $('msngChatEmpty').style.display  = 'none';
     $('msngChatWindow').style.display = 'flex';
     $('msngChatHdrName').textContent  = name || 'User';
-    $('msngChatHdrSub').innerHTML = `<span class="msng-online-dot"></span> Facebook Messenger`;
+    const conv = getConv(M.activePageId, M.activePsid);
+    const blocked = isConvBlocked(conv);
+    const hdrSub = $('msngChatHdrSub');
+    if (hdrSub) {
+      hdrSub.innerHTML = blocked
+        ? '<span class="msng-hdr-blocked"><i class="fa-solid fa-ban"></i> Blocked</span>'
+        : '<span class="msng-online-dot"></span> Facebook Messenger';
+    }
     const wrap = $('msngChatHdrAvatar');
     if (wrap) wrap.innerHTML = avatarHtml(picture, name, 'msng-hdr-avatar');
+    updateBlockedComposerState();
     updateContactPanel();
     const panel = $('msngContactPanel');
     if (panel && window.innerWidth > 1200) {
@@ -2623,6 +2679,8 @@
       lastMsgAt:  c.last_msg_at  || c.updated_at,
       unread:     resolveConvUnread(c.fb_user_id, c.is_unread, c.updated_at || c.updated_time, c.last_from_me == 1),
       page_id:    c.page_id,
+      canReply:   c.can_reply !== 0 && c.can_reply !== false,
+      can_reply:  c.can_reply,
     }));
   }
 
@@ -3001,6 +3059,10 @@
   };
 
   window.msngSend = async function () {
+    if (isConvBlocked(getConv(M.activePageId, M.activePsid))) {
+      showToast("You can't reply to this conversation", 'warning', 2400);
+      return;
+    }
     const ta = $('msngMsgTextarea');
     const text = ta ? ta.value.trim() : '';
     const pending = M.pendingImage;
@@ -3388,6 +3450,10 @@
   }
 
   window.msngSendLike = async function () {
+    if (isConvBlocked(getConv(M.activePageId, M.activePsid))) {
+      showToast("You can't reply to this conversation", 'warning', 2400);
+      return;
+    }
     if (M.ui.sending || !M.activePsid || !M.activePageId || !M.activeToken) {
       showToast('Select a conversation first', 'warning');
       return;

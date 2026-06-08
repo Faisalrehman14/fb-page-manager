@@ -570,13 +570,12 @@ async function getPageToken(pageId) {
 // Conversation Operations
 // =============================================================================
 
-/** Inbox list: replyable, non-archived threads (conversations are never auto-deleted). */
+/** Inbox list: all non-archived threads (includes blocked / cannot-reply). */
 function _inboxWhere(alias = 'c', archived = false) {
     if (archived) {
         return `${alias}.page_id = ? AND COALESCE(${alias}.archived, 0) = 1`;
     }
-    return `${alias}.page_id = ? AND COALESCE(${alias}.archived, 0) = 0` +
-        ` AND COALESCE(${alias}.can_reply, 1) = 1`;
+    return `${alias}.page_id = ? AND COALESCE(${alias}.archived, 0) = 0`;
 }
 
 function _inboxParams(pageId) {
@@ -1664,10 +1663,8 @@ async function syncConversationsAll(pageId, pageToken, fetchFn, since = null, op
                 addDbError(`syncConversationsAll: skipping conv ${conv.id} — participants=${JSON.stringify(participants)}`);
                 return [];
             }
-            if (conv.can_reply === false) {
-                blockedPsids.push(String(participant.id));
-                return [];
-            }
+            const isBlocked = conv.can_reply === false;
+            if (isBlocked) blockedPsids.push(String(participant.id));
             const fbCount = conv.unread_count || 0;
             const { normalizeSnippetForList, snippetIndicatesFromPage } = require('./messenger/message-content');
             const rawSnip = (conv.snippet || '').substring(0, 200);
@@ -1683,7 +1680,7 @@ async function syncConversationsAll(pageId, pageToken, fetchFn, since = null, op
                 updatedTime: conv.updated_time,
                 isRead: unreadCount === 0,
                 unreadCount,
-                canReply: true,
+                canReply: !isBlocked,
                 lastFromMe
             }];
         });
@@ -2185,10 +2182,9 @@ async function pollInboxUpdates(pageId, psid, since, maxConvs = 40) {
         const [updatedConvsResult, unreadResult] = await Promise.all([
             conn.query(
                 `SELECT id, page_id, fb_user_id, user_name, user_picture, snippet,
-                        updated_at, is_unread, last_from_me
+                        updated_at, is_unread, last_from_me, can_reply
                  FROM messenger_conversations
-                 WHERE page_id = ? AND updated_at > ?
-                   AND COALESCE(can_reply, 1) = 1${convExclude}
+                 WHERE page_id = ? AND updated_at > ?${convExclude}
                  ORDER BY updated_at DESC LIMIT ${cap}`,
                 convParams
             ),
@@ -2207,7 +2203,8 @@ async function pollInboxUpdates(pageId, psid, since, maxConvs = 40) {
             user_name: r.user_name, user_picture: r.user_picture,
             snippet: r.snippet, updated_at: r.updated_at,
             is_unread: (r.last_from_me === 1 ? 0 : (r.is_unread || 0)),
-            last_from_me: r.last_from_me
+            last_from_me: r.last_from_me,
+            can_reply: r.can_reply
         }));
         const totalUnread = Number(unreadResult[0]?.[0]?.total || 0);
 
@@ -2280,10 +2277,9 @@ async function getUpdatedConvsSince(pageId, since, limit = 50) {
         const sinceDate = since instanceof Date ? since : new Date(since);
         const cap = Math.min(Math.max(parseInt(limit, 10) || 50, 1), 100);
         const [rows] = await pool.query(
-            `SELECT id, page_id, fb_user_id, user_name, user_picture, snippet, updated_at, is_unread, last_from_me
+            `SELECT id, page_id, fb_user_id, user_name, user_picture, snippet, updated_at, is_unread, last_from_me, can_reply
              FROM messenger_conversations
              WHERE page_id = ? AND updated_at > ?
-               AND COALESCE(can_reply, 1) = 1
              ORDER BY updated_at DESC
              LIMIT ${cap}`,
             [pageId, sinceDate]
@@ -2297,7 +2293,8 @@ async function getUpdatedConvsSince(pageId, since, limit = 50) {
             snippet: r.snippet,
             updated_at: r.updated_at,
             is_unread: r.is_unread || 0,
-            last_from_me: r.last_from_me
+            last_from_me: r.last_from_me,
+            can_reply: r.can_reply
         }));
     } catch (err) {
         addDbError(`getUpdatedConvsSince: ${err.message}`);
