@@ -676,14 +676,16 @@ function initImagePanel() {
 
   function showPreview(url, label) {
     currentImageUrl = url;
+    window._imgAttachLabel = label || 'Image ready to send';
     if (previewImg) previewImg.src = url;
-    if (previewLbl) previewLbl.textContent = label || 'Image ready to send';
+    if (previewLbl) previewLbl.textContent = window._imgAttachLabel;
     if (previewWrap) previewWrap.style.display = '';
     if (badge) badge.style.display = '';
     if (urlArea) urlArea.style.display = 'none';
     if (uploadArea) uploadArea.style.display = 'none';
     updateImageOnlyPaceHint();
     if (typeof window.updateMultiStartButton === 'function') window.updateMultiStartButton();
+    if (typeof window.updateMultiImageAttach === 'function') window.updateMultiImageAttach();
     window.dispatchEvent(new CustomEvent('fbc:image-attached', { detail: { url } }));
   }
 
@@ -695,6 +697,7 @@ function initImagePanel() {
 
   function clearImage() {
     currentImageUrl = '';
+    window._imgAttachLabel = '';
     if (previewImg) previewImg.src = '';
     if (previewWrap) previewWrap.style.display = 'none';
     if (badge) badge.style.display = 'none';
@@ -706,6 +709,7 @@ function initImagePanel() {
     if (uploadArea) uploadArea.style.display = isUpload ? '' : 'none';
     updateImageOnlyPaceHint();
     if (typeof window.updateMultiStartButton === 'function') window.updateMultiStartButton();
+    if (typeof window.updateMultiImageAttach === 'function') window.updateMultiImageAttach();
     window.dispatchEvent(new CustomEvent('fbc:image-cleared'));
   }
 
@@ -721,10 +725,15 @@ function initImagePanel() {
     const isUpload = tab === 'upload';
     if (tabUrl)    { tabUrl.classList.toggle('active', !isUpload); tabUrl.setAttribute('aria-selected', String(!isUpload)); }
     if (tabUpload) { tabUpload.classList.toggle('active', isUpload); tabUpload.setAttribute('aria-selected', String(isUpload)); }
+    if (currentImageUrl) {
+      if (previewWrap) previewWrap.style.display = '';
+      if (urlArea) urlArea.style.display = 'none';
+      if (uploadArea) uploadArea.style.display = 'none';
+      return;
+    }
     if (urlArea)    urlArea.style.display    = isUpload ? 'none' : '';
     if (uploadArea) uploadArea.style.display = isUpload ? '' : 'none';
     if (previewWrap) previewWrap.style.display = 'none';
-    clearImage();
   }
   tabUrl?.addEventListener('click', () => switchTab('url'));
   tabUpload?.addEventListener('click', () => switchTab('upload'));
@@ -1070,7 +1079,11 @@ window.updateHomeViewStats = updateHomeViewStats;
 function getBroadcastImageUrl() {
   return currentImageUrl || '';
 }
+function getBroadcastImageLabel() {
+  return window._imgAttachLabel || '';
+}
 window.getBroadcastImageUrl = getBroadcastImageUrl;
+window.getBroadcastImageLabel = getBroadcastImageLabel;
 Object.defineProperty(window, '_imgAttachUrl', { get: () => currentImageUrl, configurable: true });
 
 // ── Scheduling View ───────────────────────────────────────────────────────────

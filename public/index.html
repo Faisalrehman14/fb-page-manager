@@ -1990,12 +1990,22 @@ window.getCsrfToken = async (forceRefresh = false) => {
               <i class="fa-solid fa-copy"></i> Copy from main
             </button>
           </div>
+          <div class="bcast-multi-attach" id="multiImageAttach" hidden>
+            <div class="bcast-multi-attach__thumb-wrap">
+              <img id="multiImageThumb" class="bcast-multi-attach__thumb" src="" alt="">
+            </div>
+            <div class="bcast-multi-attach__body">
+              <span class="bcast-multi-attach__title"><i class="fa-solid fa-image"></i> Shared image</span>
+              <span class="bcast-multi-attach__name" id="multiImageName">—</span>
+              <span class="bcast-multi-attach__note">Sent with every selected page · optional caption per page below</span>
+            </div>
+          </div>
           <div id="multiPageMessages" class="bcast-page-msgs">
             <p class="bcast-page-msgs__empty">Click pages in the sidebar to set per-page messages.</p>
           </div>
           <p class="bcast-multi-img-hint" id="multiImageHint" style="display:none" aria-live="polite"></p>
           <p class="bcast-live-status" id="multiStatusText" aria-live="polite"></p>
-          <button type="button" id="btnMultiStart" class="bcast-cta bcast-cta--primary">
+          <button type="button" id="btnMultiStart" class="bcast-cta bcast-cta--primary" data-label-idle="Start parallel broadcast" data-label-run="Broadcasting…">
             <i class="fa-solid fa-play"></i> Start parallel broadcast
           </button>
         </div>

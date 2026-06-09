@@ -75,15 +75,20 @@
       return;
     }
     const mainMsg = document.getElementById('messageText')?.value?.trim() || '';
+    const imgUrl = getMultiImageUrl();
+    const placeholder = imgUrl
+      ? 'Optional caption with image (leave blank for image-only)…'
+      : 'Message for this page…';
     wrap.innerHTML = selected
       .map((p) => {
         const val = existing[p.id] !== undefined ? existing[p.id] : mainMsg;
         return `<div class="bcast-page-msg" data-page-id="${esc(p.id)}">
           <label class="bcast-page-msg__label" for="multi-msg-${esc(p.id)}">${esc(p.name || p.id)}</label>
-          <textarea id="multi-msg-${esc(p.id)}" class="bcast-page-msg__input" rows="3" maxlength="2000" placeholder="Message for this page…">${escTextarea(val)}</textarea>
+          <textarea id="multi-msg-${esc(p.id)}" class="bcast-page-msg__input" rows="3" maxlength="2000" placeholder="${esc(placeholder)}">${escTextarea(val)}</textarea>
         </div>`;
       })
       .join('');
+    updateMultiImageAttach();
   }
 
   function getPerPageMessages() {
@@ -104,15 +109,33 @@
     return window._imgAttachUrl || '';
   }
 
-  function updateMultiImageHint() {
+  function updateMultiImageAttach() {
+    const card = document.getElementById('multiImageAttach');
+    const thumb = document.getElementById('multiImageThumb');
+    const nameEl = document.getElementById('multiImageName');
     const hint = document.getElementById('multiImageHint');
-    if (!hint) return;
     const imgUrl = getMultiImageUrl();
-    hint.style.display = imgUrl ? '' : 'none';
-    if (imgUrl) {
-      const name = imgUrl.split('/').pop()?.split('?')[0] || 'image';
-      hint.innerHTML = '<i class="fa-solid fa-image"></i> Shared image attached — sent with each page\'s message (<span class="bcast-multi-img-name">' + esc(name.slice(0, 48)) + '</span>)';
+    const show = !!imgUrl && document.body.classList.contains('shell-multi-broadcast');
+
+    if (card) card.hidden = !show;
+    if (hint) hint.style.display = 'none';
+
+    if (!show) return;
+
+    const label =
+      (typeof window.getBroadcastImageLabel === 'function' && window.getBroadcastImageLabel()) ||
+      imgUrl.split('/').pop()?.split('?')[0] ||
+      'Attached image';
+
+    if (thumb) {
+      thumb.src = imgUrl;
+      thumb.alt = label;
     }
+    if (nameEl) nameEl.textContent = label.length > 42 ? label.slice(0, 40) + '…' : label;
+  }
+
+  function updateMultiImageHint() {
+    updateMultiImageAttach();
   }
 
   function hasMultiBroadcastReady() {
@@ -137,14 +160,21 @@
 
   function applyMainMessageToAll() {
     const main = document.getElementById('messageText')?.value?.trim() || '';
-    if (!main) {
-      if (typeof window.showToast === 'function') window.showToast('Write a message in the main box first.', 'warning');
+    const imgUrl = getMultiImageUrl();
+    if (!main && !imgUrl) {
+      if (typeof window.showToast === 'function') {
+        window.showToast('Write a message in the main box or attach an image first.', 'warning');
+      }
       return;
     }
     document.querySelectorAll('#multiPageMessages .bcast-page-msg__input').forEach((ta) => {
       ta.value = main;
     });
-    if (typeof window.showToast === 'function') window.showToast('Applied to all selected pages', 'success');
+    const msg = main
+      ? 'Applied message to all selected pages'
+      : 'Cleared per-page captions — image-only send for all pages';
+    if (typeof window.showToast === 'function') window.showToast(msg, 'success');
+    updateMultiStartButton();
   }
 
   function multiSelectAllPages() {
@@ -165,15 +195,31 @@
     multiSelectNonePages();
   }
 
+  function setMultiStartButtonRunning(running) {
+    const start = document.getElementById('btnMultiStart');
+    if (!start) return;
+    const idleLabel = start.dataset.labelIdle || 'Start parallel broadcast';
+    const runLabel = start.dataset.labelRun || 'Broadcasting…';
+    if (running) {
+      start.disabled = true;
+      start.classList.add('is-running');
+      start.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> ' + runLabel;
+    } else {
+      start.classList.remove('is-running');
+      start.innerHTML = '<i class="fa-solid fa-play"></i> ' + idleLabel;
+    }
+  }
+
   function setMultiButtons(state) {
     const pause = document.getElementById('btnPause');
     const resume = document.getElementById('btnResume');
     const stop = document.getElementById('btnStop');
     const idle = state === 'idle';
-    if (idle) updateMultiStartButton();
-    else {
-      const start = document.getElementById('btnMultiStart');
-      if (start) start.disabled = true;
+    if (idle) {
+      setMultiStartButtonRunning(false);
+      updateMultiStartButton();
+    } else {
+      setMultiStartButtonRunning(true);
     }
     if (pause) pause.disabled = idle;
     if (resume) resume.disabled = state !== 'paused';
@@ -216,6 +262,7 @@
       updateMultiPageCount();
       setMultiButtons('idle');
       updateMultiStartButton();
+      updateMultiImageAttach();
     }
     window.__broadcastMode = mode;
   }
@@ -464,6 +511,10 @@
       if (document.body.classList.contains('shell-multi-broadcast')) updateMultiStartButton();
     });
 
+    document.getElementById('multiPageMessages')?.addEventListener('input', (e) => {
+      if (e.target.matches('.bcast-page-msg__input')) updateMultiStartButton();
+    });
+
     window.addEventListener('fbc:image-attached', () => {
       if (document.body.classList.contains('shell-multi-broadcast')) updateMultiStartButton();
     });
@@ -489,4 +540,5 @@
   window.setBroadcastMode = setBroadcastMode;
   window.startMultiParallelSend = startMultiParallelSend;
   window.updateMultiStartButton = updateMultiStartButton;
+  window.updateMultiImageAttach = updateMultiImageAttach;
 })();
