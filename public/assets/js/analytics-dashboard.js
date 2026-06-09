@@ -322,8 +322,11 @@
     }
     const totalSent = top.reduce((s, p) => s + p.sent, 0);
     const totalAll = top.reduce((s, p) => s + p.sent + p.failed, 0);
-    if (sub) sub.textContent = `${top.length} page${top.length === 1 ? '' : 's'} · ${totalSent.toLocaleString()} sent`;
-    if (caption) caption.textContent = `${Math.round((totalSent / Math.max(1, totalAll)) * 100)}% overall delivery success in this period`;
+    if (sub) {
+      const successPct = Math.round((totalSent / Math.max(1, totalAll)) * 100);
+      sub.textContent = `${top.length} page${top.length === 1 ? '' : 's'} · ${totalSent.toLocaleString()} sent · ${successPct}% success`;
+    }
+    if (caption) caption.textContent = 'Ranked by messages delivered in this period';
     const max = Math.max(1, ...top.map((p) => p.sent));
     const thead = `<div class="ad-leader-thead" aria-hidden="true">
       <span class="ad-leader-th ad-leader-th--rank">#</span>
@@ -439,7 +442,8 @@
     grid.innerHTML = buckets
       .map((v, h) => {
         const lvl = heatLevel(v, max);
-        const pct = max > 0 ? Math.max(v > 0 ? 12 : 4, Math.round((v / max) * 100)) : 4;
+        const ratio = max > 0 ? v / max : 0;
+        const pct = v > 0 ? Math.round(14 + Math.sqrt(ratio) * 76) : 6;
         const isPeak = h === peakHour && v > 0;
         const label = h % 6 === 0 ? formatHour12(h).replace(':00', '') : '';
         return `<div class="ad-heat-col${isPeak ? ' ad-heat-col--peak' : ''}" title="${formatHour12(h)} — ${v.toLocaleString()} messages sent">

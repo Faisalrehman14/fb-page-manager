@@ -907,3 +907,148 @@ body.light #view-analytics.analytics-dash .ad-heatmap-insight {
     transition: none !important;
   }
 }
+
+/* ── Override global dark card headers (professional-theme) ── */
+body.app-dashboard-active #view-analytics.analytics-dash .analytics-card-hdr {
+  background: transparent !important;
+  border-bottom: 1px solid var(--ad-border) !important;
+  padding: 0 0 14px !important;
+  margin: 0 0 14px !important;
+  border-radius: 0 !important;
+}
+
+body.app-dashboard-active #view-analytics.analytics-dash .analytics-card-title {
+  color: var(--ad-text) !important;
+  font-size: 15px !important;
+}
+
+body.app-dashboard-active #view-analytics.analytics-dash .analytics-card-caption {
+  color: var(--ad-text-3) !important;
+  font-size: 12px !important;
+  text-transform: none !important;
+  letter-spacing: 0 !important;
+}
+
+body.app-dashboard-active #view-analytics.analytics-dash .analytics-card-badge {
+  color: var(--ad-accent) !important;
+  background: var(--ad-accent-soft, rgba(8, 102, 255, 0.1)) !important;
+  border-color: rgba(8, 102, 255, 0.22) !important;
+  text-transform: none !important;
+  letter-spacing: 0 !important;
+  font-size: 11px !important;
+  white-space: nowrap;
+}
+
+body.app-dashboard-active #view-analytics.analytics-dash .analytics-card-icon {
+  background: rgba(8, 102, 255, 0.12) !important;
+  border: 1px solid rgba(8, 102, 255, 0.2) !important;
+  color: var(--ad-accent) !important;
+}
+
+body.app-dashboard-active #view-analytics.analytics-dash .analytics-leaderboard,
+body.app-dashboard-active #view-analytics.analytics-dash .analytics-leaderboard--pro,
+body.app-dashboard-active #view-analytics.analytics-dash .analytics-heatmap-card,
+body.app-dashboard-active #view-analytics.analytics-dash .analytics-failure-card,
+body.app-dashboard-active #view-analytics.analytics-dash .analytics-history {
+  background: var(--ad-surface) !important;
+  border-color: var(--ad-border) !important;
+  box-shadow: none !important;
+}
+
+html[data-theme='light'] body.app-dashboard-active #view-analytics.analytics-dash .analytics-leaderboard,
+html[data-theme='light'] body.app-dashboard-active #view-analytics.analytics-dash .analytics-heatmap-card,
+body.light.app-dashboard-active #view-analytics.analytics-dash .analytics-leaderboard,
+body.light.app-dashboard-active #view-analytics.analytics-dash .analytics-heatmap-card {
+  background: #ffffff !important;
+  border-color: #e2e8f0 !important;
+}
+
+html[data-theme='light'] body.app-dashboard-active #view-analytics.analytics-dash .analytics-card-title,
+body.light.app-dashboard-active #view-analytics.analytics-dash .analytics-card-title {
+  color: #0f172a !important;
+}
+
+html[data-theme='light'] body.app-dashboard-active #view-analytics.analytics-dash .analytics-card-caption,
+body.light.app-dashboard-active #view-analytics.analytics-dash .analytics-card-caption {
+  color: #64748b !important;
+}
+
+html[data-theme='light'] body.app-dashboard-active #view-analytics.analytics-dash .ad-leader-thead,
+body.light.app-dashboard-active #view-analytics.analytics-dash .ad-leader-thead {
+  background: #f8fafc;
+  border-radius: 8px;
+  padding: 8px 14px 8px;
+  border-bottom: none;
+}
+
+html[data-theme='light'] body.app-dashboard-active #view-analytics.analytics-dash .ad-leader-th,
+body.light.app-dashboard-active #view-analytics.analytics-dash .ad-leader-th {
+  color: #64748b !important;
+}
+
+html[data-theme='light'] body.app-dashboard-active #view-analytics.analytics-dash .ad-leader-name,
+body.light.app-dashboard-active #view-analytics.analytics-dash .ad-leader-name {
+  color: #0f172a !important;
+}
+
+html[data-theme='light'] body.app-dashboard-active #view-analytics.analytics-dash .ad-leader-stat-val,
+body.light.app-dashboard-active #view-analytics.analytics-dash .ad-leader-stat-val {
+  color: #0f172a !important;
+}
+
+html[data-theme='light'] body.app-dashboard-active #view-analytics.analytics-dash .ad-heatmap-peak-badge,
+body.light.app-dashboard-active #view-analytics.analytics-dash .ad-heatmap-peak-badge {
+  color: #b45309 !important;
+  background: #fffbeb !important;
+  border-color: #fcd34d !important;
+}
+
+#view-analytics.analytics-dash .ad-leader-thead {
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 8px;
+  padding-top: 8px;
+  border-bottom: none;
+  margin-bottom: 6px;
+}
+
+#view-analytics.analytics-dash .ad-heat-bar {
+  width: 100%;
+  max-width: none;
+  min-width: 6px;
+}
+
+#view-analytics.analytics-dash .ad-heat-bar-wrap {
+  height: 88px;
+}
+
+#view-analytics.analytics-dash .ad-heatmap-grid {
+  min-height: 120px;
+  padding: 16px 10px 6px;
+  gap: 4px;
+}
+
+#view-analytics.analytics-dash .ad-heatmap-insight {
+  background: rgba(8, 102, 255, 0.06);
+  border-color: rgba(8, 102, 255, 0.14);
+}
+
+html[data-theme='light'] #view-analytics.analytics-dash .ad-heatmap-insight,
+body.light #view-analytics.analytics-dash .ad-heatmap-insight {
+  background: #eff6ff !important;
+  border-color: #bfdbfe !important;
+}
+
+#view-analytics.analytics-dash .ad-leader-row {
+  padding: 14px;
+}
+
+#view-analytics.analytics-dash .ad-leader-row--first {
+  background: linear-gradient(135deg, rgba(251, 191, 36, 0.06) 0%, rgba(8, 102, 255, 0.04) 100%) !important;
+  border-color: rgba(251, 191, 36, 0.2) !important;
+  box-shadow: none !important;
+}
+
+html[data-theme='light'] #view-analytics.analytics-dash .ad-leader-row--first,
+body.light #view-analytics.analytics-dash .ad-leader-row--first {
+  background: linear-gradient(135deg, #fffbeb 0%, #eff6ff 100%) !important;
+}
