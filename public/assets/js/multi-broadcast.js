@@ -5,6 +5,42 @@
   'use strict';
 
   let multiRunning = false;
+  /** @type {Record<string, { url: string, label?: string }>} */
+  const multiPageImages = {};
+
+  function toDisplayUrl(url) {
+    if (!url) return '';
+    if (/^https?:\/\//i.test(url) || url.startsWith('data:')) return url;
+    if (url.startsWith('/')) return window.location.origin + url;
+    return url;
+  }
+
+  function imageLabelFromUrl(url, fallback) {
+    if (fallback) return fallback;
+    return (url || '').split('/').pop()?.split('?')[0] || 'Image';
+  }
+
+  function setPageImage(pageId, url, label) {
+    if (!pageId || !url) return;
+    multiPageImages[String(pageId)] = {
+      url,
+      label: label || imageLabelFromUrl(url)
+    };
+  }
+
+  function clearPageImage(pageId) {
+    delete multiPageImages[String(pageId)];
+  }
+
+  function getPageImage(pageId) {
+    return multiPageImages[String(pageId)] || null;
+  }
+
+  function resolvePageImageUrl(pageId) {
+    const custom = getPageImage(pageId);
+    if (custom?.url) return custom.url;
+    return getMultiImageUrl();
+  }
 
   function esc(s) {
     return String(s ?? '')
@@ -51,7 +87,7 @@
     const hintEl = document.getElementById('sidebarSchedHint');
     if (hintEl) {
       if (!total) hintEl.textContent = 'Connect Facebook to load your pages';
-      else if (!n) hintEl.textContent = 'Click pages below to set per-page messages';
+      else if (!n) hintEl.textContent = 'Click pages below to set per-page messages & images';
       else if (n === total) hintEl.textContent = 'All pages selected — ready to broadcast';
       else hintEl.textContent = 'Selected pages will receive custom messages';
     }
@@ -63,32 +99,60 @@
     const wrap = document.getElementById('multiPageMessages');
     if (!wrap) return;
     const selected = getMultiSelectedPages();
-    const existing = {};
+    const existingMsg = {};
+    const existingUrl = {};
     wrap.querySelectorAll('[data-page-id]').forEach((row) => {
       const id = row.getAttribute('data-page-id');
       const ta = row.querySelector('textarea');
-      if (id && ta) existing[id] = ta.value;
+      const urlInput = row.querySelector('.bcast-page-msg__url');
+      if (id && ta) existingMsg[id] = ta.value;
+      if (id && urlInput) existingUrl[id] = urlInput.value;
     });
     if (!selected.length) {
       wrap.innerHTML =
-        '<p class="bcast-page-msgs__empty">Click pages in the sidebar to set per-page messages.</p>';
+        '<p class="bcast-page-msgs__empty">Click pages in the sidebar to set per-page messages and images.</p>';
+      updateMultiImageAttach();
       return;
     }
     const mainMsg = document.getElementById('messageText')?.value?.trim() || '';
-    const imgUrl = getMultiImageUrl();
-    const placeholder = imgUrl
-      ? 'Optional caption with image (leave blank for image-only)…'
-      : 'Message for this page…';
+    const sharedImg = getMultiImageUrl();
+    const hasMainImg = !!sharedImg;
     wrap.innerHTML = selected
       .map((p) => {
-        const val = existing[p.id] !== undefined ? existing[p.id] : mainMsg;
+        const val = existingMsg[p.id] !== undefined ? existingMsg[p.id] : mainMsg;
+        const pageImg = getPageImage(p.id);
+        const imgUrl = pageImg?.url || '';
+        const urlField = existingUrl[p.id] !== undefined ? existingUrl[p.id] : '';
+        const placeholder = imgUrl || sharedImg
+          ? 'Optional caption (leave blank for image-only)…'
+          : 'Message for this page…';
+        const preview = imgUrl
+          ? `<div class="bcast-page-msg__img-preview">
+              <img src="${esc(toDisplayUrl(imgUrl))}" alt="${esc(pageImg.label || '')}">
+              <button type="button" class="bcast-page-msg__img-clear" data-action="clear-img" data-page-id="${esc(p.id)}" title="Remove image"><i class="fa-solid fa-xmark"></i></button>
+            </div>`
+          : '';
+        const useMainBtn = hasMainImg
+          ? `<button type="button" class="bcast-page-msg__mini-btn" data-action="use-main" data-page-id="${esc(p.id)}"><i class="fa-solid fa-link"></i> Main image</button>`
+          : '';
         return `<div class="bcast-page-msg" data-page-id="${esc(p.id)}">
           <label class="bcast-page-msg__label" for="multi-msg-${esc(p.id)}">${esc(p.name || p.id)}</label>
           <textarea id="multi-msg-${esc(p.id)}" class="bcast-page-msg__input" rows="3" maxlength="2000" placeholder="${esc(placeholder)}">${escTextarea(val)}</textarea>
+          ${preview}
+          <div class="bcast-page-msg__img-row">
+            <label class="bcast-page-msg__upload-btn">
+              <i class="fa-solid fa-cloud-arrow-up"></i> Upload
+              <input type="file" class="bcast-page-msg__file" accept="image/jpeg,image/png,image/gif,image/webp" data-page-id="${esc(p.id)}" hidden>
+            </label>
+            <input type="url" class="bcast-page-msg__url" placeholder="Image URL…" data-page-id="${esc(p.id)}" value="${esc(urlField)}">
+            <button type="button" class="bcast-page-msg__mini-btn" data-action="load-url" data-page-id="${esc(p.id)}">Load</button>
+            ${useMainBtn}
+          </div>
         </div>`;
       })
       .join('');
     updateMultiImageAttach();
+    updateMultiStartButton();
   }
 
   function getPerPageMessages() {
@@ -128,7 +192,7 @@
       'Attached image';
 
     if (thumb) {
-      thumb.src = imgUrl;
+      thumb.src = toDisplayUrl(imgUrl);
       thumb.alt = label;
     }
     if (nameEl) nameEl.textContent = label.length > 42 ? label.slice(0, 40) + '…' : label;
@@ -143,9 +207,11 @@
     if (!selected.length) return false;
     const perPage = getPerPageMessages();
     const mainMsg = document.getElementById('messageText')?.value?.trim() || '';
-    const imgUrl = getMultiImageUrl();
-    if (imgUrl) return true;
-    return selected.every((p) => (perPage[p.id] || mainMsg).trim().length > 0);
+    return selected.every((p) => {
+      const msg = (perPage[p.id] || mainMsg).trim();
+      const img = resolvePageImageUrl(p.id);
+      return msg.length > 0 || !!img;
+    });
   }
 
   function updateMultiStartButton() {
@@ -156,6 +222,119 @@
     const canStart = hasMultiBroadcastReady();
     start.disabled = !canStart;
     start.setAttribute('aria-disabled', canStart ? 'false' : 'true');
+  }
+
+  function applyMainImageToAll() {
+    const url = getMultiImageUrl();
+    const label =
+      (typeof window.getBroadcastImageLabel === 'function' && window.getBroadcastImageLabel()) || '';
+    if (!url) {
+      if (typeof window.showToast === 'function') {
+        window.showToast('Attach an image in the compose area first.', 'warning');
+      }
+      return;
+    }
+    getMultiSelectedPages().forEach((p) => setPageImage(p.id, url, label));
+    rebuildMultiPageMessages();
+    if (typeof window.showToast === 'function') {
+      window.showToast('Main image applied to all selected pages', 'success');
+    }
+  }
+
+  async function uploadPageImage(pageId, file) {
+    const allowed = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+    if (!allowed.includes(file.type)) {
+      if (typeof window.showToast === 'function') {
+        window.showToast('Only JPEG, PNG, GIF, WebP allowed.', 'error');
+      }
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      if (typeof window.showToast === 'function') {
+        window.showToast('File too large. Max 5 MB.', 'error');
+      }
+      return;
+    }
+    try {
+      const csrfToken = typeof window.getCsrfToken === 'function' ? await window.getCsrfToken() : '';
+      const formData = new FormData();
+      formData.append('image', file);
+      const res = await fetch('/api/upload-image', {
+        method: 'POST',
+        headers: csrfToken ? { 'X-CSRF-Token': csrfToken } : {},
+        body: formData
+      });
+      const data = await res.json();
+      if (data.success && data.url) {
+        setPageImage(pageId, data.url, file.name);
+        rebuildMultiPageMessages();
+        if (typeof window.showToast === 'function') {
+          window.showToast('Image uploaded for page', 'success');
+        }
+      } else {
+        throw new Error(data.error || 'Upload failed');
+      }
+    } catch (e) {
+      if (typeof window.showToast === 'function') {
+        window.showToast(e.message || 'Upload failed', 'error');
+      }
+    }
+  }
+
+  function loadPageImageFromUrl(pageId) {
+    const input = document.querySelector(`.bcast-page-msg__url[data-page-id="${pageId}"]`);
+    const url = (input?.value || '').trim();
+    if (!url) {
+      if (typeof window.showToast === 'function') window.showToast('Enter an image URL.', 'warning');
+      return;
+    }
+    const img = new Image();
+    img.onload = () => {
+      setPageImage(pageId, url, imageLabelFromUrl(url));
+      rebuildMultiPageMessages();
+      if (typeof window.showToast === 'function') window.showToast('Image loaded for page', 'success');
+    };
+    img.onerror = () => {
+      if (typeof window.showToast === 'function') {
+        window.showToast('Could not load image from URL.', 'error');
+      }
+    };
+    img.src = url;
+  }
+
+  function handleMultiPageMediaClick(e) {
+    const btn = e.target.closest('[data-action]');
+    if (!btn) return;
+    const pageId = btn.getAttribute('data-page-id');
+    const action = btn.getAttribute('data-action');
+    if (!pageId) return;
+    if (action === 'clear-img') {
+      clearPageImage(pageId);
+      rebuildMultiPageMessages();
+      return;
+    }
+    if (action === 'use-main') {
+      const url = getMultiImageUrl();
+      if (!url) {
+        if (typeof window.showToast === 'function') {
+          window.showToast('No main compose image attached.', 'warning');
+        }
+        return;
+      }
+      setPageImage(pageId, url, window.getBroadcastImageLabel?.() || '');
+      rebuildMultiPageMessages();
+      return;
+    }
+    if (action === 'load-url') loadPageImageFromUrl(pageId);
+  }
+
+  function syncMultiSelectionFromManual() {
+    const cards = document.querySelectorAll('#pageCards .page-card');
+    const multiSelected = document.querySelectorAll('#pageCards .page-card.multi-selected');
+    if (multiSelected.length) return;
+    const manualSelected = document.querySelector('#pageCards .page-card.selected');
+    if (manualSelected) manualSelected.classList.add('multi-selected');
+    else if (cards.length === 1) cards[0].classList.add('multi-selected');
   }
 
   function applyMainMessageToAll() {
@@ -243,7 +422,7 @@
     if (multi) multi.style.display = mode === 'multi' ? '' : 'none';
     const hint = document.getElementById('sendHint');
     if (hint) {
-      if (mode === 'multi') hint.textContent = 'Select pages, set each message (or attach a shared image), then start';
+      if (mode === 'multi') hint.textContent = 'Select pages, set each message/image, then start';
       else if (mode === 'auto') hint.textContent = 'Same message to all pages, one after another';
       else hint.textContent = 'Select a page, write message, then start broadcast';
     }
@@ -258,6 +437,7 @@
     if (mode !== 'multi') {
       clearMultiSelection();
     } else {
+      syncMultiSelectionFromManual();
       rebuildMultiPageMessages();
       updateMultiPageCount();
       setMultiButtons('idle');
@@ -305,15 +485,15 @@
 
     const perPage = getPerPageMessages();
     const mainMsg = document.getElementById('messageText')?.value?.trim() || '';
-    const imgUrl = getMultiImageUrl();
     const delay = Math.max(25, parseInt(document.getElementById('delayMs')?.value, 10) || 400);
 
     const jobs = selected.map((page) => ({
       page,
-      message: (perPage[page.id] || mainMsg || '').trim()
+      message: (perPage[page.id] || mainMsg || '').trim(),
+      imageUrl: resolvePageImageUrl(page.id) || ''
     }));
 
-    const missing = jobs.filter((j) => !j.message && !imgUrl);
+    const missing = jobs.filter((j) => !j.message && !j.imageUrl);
     if (missing.length) {
       if (typeof window.showToast === 'function') {
         window.showToast(
@@ -376,7 +556,7 @@
     setStatus(`Starting parallel broadcast on ${jobs.length} page(s)…`);
 
     const runPageJob = async (job, index, total) => {
-      const { page, message } = job;
+      const { page, message, imageUrl } = job;
       const rt =
         typeof window.createIsolatedBroadcastRuntime === 'function'
           ? window.createIsolatedBroadcastRuntime()
@@ -419,7 +599,7 @@
         window.enqueueAndSendUtility({
           pageId: page.id,
           messageText: message,
-          imageUrl: imgUrl,
+          imageUrl: imageUrl,
           recipientIds: psids,
           delayMs: delay,
           fbUserId,
@@ -507,6 +687,17 @@
       applyMainMessageToAll();
       updateMultiStartButton();
     });
+    document.getElementById('btnMultiApplyMainImage')?.addEventListener('click', applyMainImageToAll);
+
+    const multiMsgs = document.getElementById('multiPageMessages');
+    multiMsgs?.addEventListener('click', handleMultiPageMediaClick);
+    multiMsgs?.addEventListener('change', (e) => {
+      const input = e.target.closest('.bcast-page-msg__file');
+      if (!input?.files?.[0]) return;
+      const pageId = input.getAttribute('data-page-id');
+      if (pageId) uploadPageImage(pageId, input.files[0]);
+      input.value = '';
+    });
     document.getElementById('messageText')?.addEventListener('input', () => {
       if (document.body.classList.contains('shell-multi-broadcast')) updateMultiStartButton();
     });
@@ -516,10 +707,16 @@
     });
 
     window.addEventListener('fbc:image-attached', () => {
-      if (document.body.classList.contains('shell-multi-broadcast')) updateMultiStartButton();
+      if (document.body.classList.contains('shell-multi-broadcast')) {
+        rebuildMultiPageMessages();
+        updateMultiStartButton();
+      }
     });
     window.addEventListener('fbc:image-cleared', () => {
-      if (document.body.classList.contains('shell-multi-broadcast')) updateMultiStartButton();
+      if (document.body.classList.contains('shell-multi-broadcast')) {
+        rebuildMultiPageMessages();
+        updateMultiStartButton();
+      }
     });
 
     window.addEventListener('fbc:broadcast-state', (e) => {

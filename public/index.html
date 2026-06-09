@@ -1987,7 +1987,10 @@ window.getCsrfToken = async (forceRefresh = false) => {
           <div class="bcast-multi-bar">
             <span class="bcast-multi-count" id="multiPageCount">No pages selected</span>
             <button type="button" class="bcast-link-btn" id="btnMultiApplyMain">
-              <i class="fa-solid fa-copy"></i> Copy from main
+              <i class="fa-solid fa-copy"></i> Copy message
+            </button>
+            <button type="button" class="bcast-link-btn" id="btnMultiApplyMainImage">
+              <i class="fa-solid fa-image"></i> Copy main image
             </button>
           </div>
           <div class="bcast-multi-attach" id="multiImageAttach" hidden>
@@ -1995,13 +1998,13 @@ window.getCsrfToken = async (forceRefresh = false) => {
               <img id="multiImageThumb" class="bcast-multi-attach__thumb" src="" alt="">
             </div>
             <div class="bcast-multi-attach__body">
-              <span class="bcast-multi-attach__title"><i class="fa-solid fa-image"></i> Shared image</span>
+              <span class="bcast-multi-attach__title"><i class="fa-solid fa-image"></i> Default image (compose)</span>
               <span class="bcast-multi-attach__name" id="multiImageName">—</span>
-              <span class="bcast-multi-attach__note">Sent with every selected page · optional caption per page below</span>
+              <span class="bcast-multi-attach__note">Used for pages without their own image · override each page below</span>
             </div>
           </div>
           <div id="multiPageMessages" class="bcast-page-msgs">
-            <p class="bcast-page-msgs__empty">Click pages in the sidebar to set per-page messages.</p>
+            <p class="bcast-page-msgs__empty">Click pages in the sidebar to set per-page messages and images.</p>
           </div>
           <p class="bcast-multi-img-hint" id="multiImageHint" style="display:none" aria-live="polite"></p>
           <p class="bcast-live-status" id="multiStatusText" aria-live="polite"></p>
