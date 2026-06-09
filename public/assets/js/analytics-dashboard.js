@@ -97,33 +97,46 @@
         '<div class="analytics-empty"><i class="fa-solid fa-chart-line"></i><p>No delivery data in this period. Run a broadcast to see trends.</p></div>';
       return;
     }
-    const w = 600;
-    const h = 180;
-    const pad = { t: 12, r: 12, b: 28, l: 12 };
+    const w = 640;
+    const h = 220;
+    const pad = { t: 16, r: 16, b: 32, l: 44 };
     const chartW = w - pad.l - pad.r;
     const chartH = h - pad.t - pad.b;
-    const barW = chartW / buckets.length - 6;
+    const barGap = 4;
+    const barW = Math.max(8, chartW / buckets.length - barGap);
+    const ySteps = 4;
+    const gridLines = [];
+    for (let i = 0; i <= ySteps; i++) {
+      const y = pad.t + (chartH / ySteps) * i;
+      const val = Math.round(max - (max / ySteps) * i);
+      gridLines.push(
+        `<line x1="${pad.l}" y1="${y}" x2="${w - pad.r}" y2="${y}" class="ad-chart-grid-line"/>` +
+        `<text x="${pad.l - 8}" y="${y + 4}" text-anchor="end" class="ad-chart-axis">${val >= 1000 ? (val / 1000).toFixed(1) + 'k' : val}</text>`
+      );
+    }
     const bars = buckets
       .map((b, i) => {
-        const bh = Math.max(4, (b.sent / max) * chartH);
-        const x = pad.l + i * (chartW / buckets.length) + 3;
+        const bh = Math.max(b.sent > 0 ? 6 : 0, (b.sent / max) * chartH);
+        const x = pad.l + i * (chartW / buckets.length) + barGap / 2;
         const y = pad.t + chartH - bh;
-        return `<rect class="pro-chart-bar" x="${x}" y="${y}" width="${barW}" height="${bh}" rx="4"><title>${b.label}: ${b.sent.toLocaleString()} sent</title></rect>`;
+        return `<rect class="ad-chart-bar" x="${x}" y="${y}" width="${barW}" height="${bh}" rx="5"><title>${b.label}: ${b.sent.toLocaleString()} sent</title></rect>`;
       })
       .join('');
     const labels = buckets
       .map((b, i) => {
-        const x = pad.l + i * (chartW / buckets.length) + barW / 2 + 3;
-        return `<text x="${x}" y="${h - 6}" fill="rgba(136,150,180,0.8)" font-size="9" text-anchor="middle" font-family="Plus Jakarta Sans,sans-serif">${b.label}</text>`;
+        if (buckets.length > 14 && i % 2 !== 0) return '';
+        const x = pad.l + i * (chartW / buckets.length) + barW / 2 + barGap / 2;
+        return `<text x="${x}" y="${h - 10}" text-anchor="middle" class="ad-chart-axis">${b.label}</text>`;
       })
       .join('');
-    box.innerHTML = `<svg class="pro-chart-svg" viewBox="0 0 ${w} ${h}" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Delivery trend chart">
+    box.innerHTML = `<svg class="ad-chart-svg" viewBox="0 0 ${w} ${h}" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Delivery trend chart">
       <defs>
-        <linearGradient id="proChartGrad" x1="0" y1="0" x2="0" y2="1">
+        <linearGradient id="adChartGrad" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stop-color="#60a5fa"/>
           <stop offset="100%" stop-color="#0866ff"/>
         </linearGradient>
       </defs>
+      <g class="ad-chart-grid">${gridLines.join('')}</g>
       ${bars}
       ${labels}
     </svg>`;
@@ -314,6 +327,7 @@
         const rankCls = leaderRankClass(i);
         const rateCls =
           p.rate >= 90 ? 'leader-chip--good' : p.rate >= 70 ? 'leader-chip--ok' : 'leader-chip--warn';
+        const failNote = p.failed > 0 ? `<span class="leader-chip leader-chip--warn"><i class="fa-solid fa-circle-xmark"></i>${p.failed.toLocaleString()} failed</span>` : '';
         return `<article class="leader-row leader-row--pro" data-rank="${i + 1}">
           <div class="leader-rank ${rankCls}" aria-label="Rank ${i + 1}">${i + 1}</div>
           ${leaderAvatarHtml(p)}
@@ -329,6 +343,7 @@
               <span class="leader-chip"><i class="fa-solid fa-paper-plane"></i>${p.sent.toLocaleString()} sent</span>
               <span class="leader-chip"><i class="fa-solid fa-repeat"></i>${p.runs} run${p.runs === 1 ? '' : 's'}</span>
               <span class="leader-chip ${rateCls}"><i class="fa-solid fa-circle-check"></i>${p.rate}% success</span>
+              ${failNote}
             </div>
             <div class="leader-bar-wrap">
               <div class="leader-bar" role="presentation">
@@ -464,6 +479,20 @@
     }, 0);
   }
 
+  function updatePeriodSummary(days, agg) {
+    const el = $('analyticsPeriodSummary');
+    if (!el) return;
+    const end = new Date();
+    const start = new Date();
+    start.setDate(start.getDate() - days);
+    const fmt = (d) => d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+    const total = (agg.sent + agg.failed).toLocaleString();
+    el.innerHTML =
+      '<i class="fa-solid fa-calendar-days"></i>' +
+      '<span>Period: <strong>' + fmt(start) + ' – ' + fmt(end) + '</strong>' +
+      ' · ' + days + ' days · <strong>' + total + '</strong> total attempts</span>';
+  }
+
   function setPeriodActive(days) {
     document.querySelectorAll('#view-analytics .period-btn').forEach((btn) => {
       const d = parseInt(btn.dataset.period, 10);
@@ -509,6 +538,7 @@
     const aggPrev = aggregate(previous);
 
     setKpis(agg);
+    updatePeriodSummary(currentPeriod, agg);
     setDelta('analyticsTotalSentDelta', agg.sent, aggPrev.sent, false, false);
     setDelta('analyticsDeliveredDelta', agg.sent, aggPrev.sent, false, false);
     setDelta('analyticsFailedDelta', agg.failed, aggPrev.failed, false, true);

@@ -683,6 +683,8 @@ function initImagePanel() {
     if (urlArea) urlArea.style.display = 'none';
     if (uploadArea) uploadArea.style.display = 'none';
     updateImageOnlyPaceHint();
+    if (typeof window.updateMultiStartButton === 'function') window.updateMultiStartButton();
+    window.dispatchEvent(new CustomEvent('fbc:image-attached', { detail: { url } }));
   }
 
   function resetUploadZoneUi() {
@@ -703,6 +705,8 @@ function initImagePanel() {
     if (urlArea) urlArea.style.display = isUpload ? 'none' : '';
     if (uploadArea) uploadArea.style.display = isUpload ? '' : 'none';
     updateImageOnlyPaceHint();
+    if (typeof window.updateMultiStartButton === 'function') window.updateMultiStartButton();
+    window.dispatchEvent(new CustomEvent('fbc:image-cleared'));
   }
 
   // Toggle panel open/close
@@ -1062,7 +1066,11 @@ window.buildFilterOptions = buildFilterOptions;
 window.allRecipients = allRecipients;
 // switchDashboardView is defined in assets/js/app-shell.js (do not assign here)
 window.updateHomeViewStats = updateHomeViewStats;
-// Image URL getter for auto-send (index-page.js)
+// Image URL getter for auto-send / multi-broadcast
+function getBroadcastImageUrl() {
+  return currentImageUrl || '';
+}
+window.getBroadcastImageUrl = getBroadcastImageUrl;
 Object.defineProperty(window, '_imgAttachUrl', { get: () => currentImageUrl, configurable: true });
 
 // ── Scheduling View ───────────────────────────────────────────────────────────

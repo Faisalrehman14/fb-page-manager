@@ -96,22 +96,39 @@
     return map;
   }
 
+  function getMultiImageUrl() {
+    if (typeof window.getBroadcastImageUrl === 'function') {
+      const url = window.getBroadcastImageUrl();
+      if (url) return url;
+    }
+    return window._imgAttachUrl || '';
+  }
+
+  function updateMultiImageHint() {
+    const hint = document.getElementById('multiImageHint');
+    if (!hint) return;
+    const imgUrl = getMultiImageUrl();
+    hint.style.display = imgUrl ? '' : 'none';
+    if (imgUrl) {
+      const name = imgUrl.split('/').pop()?.split('?')[0] || 'image';
+      hint.innerHTML = '<i class="fa-solid fa-image"></i> Shared image attached — sent with each page\'s message (<span class="bcast-multi-img-name">' + esc(name.slice(0, 48)) + '</span>)';
+    }
+  }
+
   function hasMultiBroadcastReady() {
     const selected = getMultiSelectedPages();
     if (!selected.length) return false;
     const perPage = getPerPageMessages();
     const mainMsg = document.getElementById('messageText')?.value?.trim() || '';
-    const imgUrl =
-      (typeof currentImageUrl !== 'undefined' ? currentImageUrl : '') || window._imgAttachUrl || '';
-    if (imgUrl && !selected.some((p) => !(perPage[p.id] || '').trim() && !mainMsg)) {
-      return true;
-    }
+    const imgUrl = getMultiImageUrl();
+    if (imgUrl) return true;
     return selected.every((p) => (perPage[p.id] || mainMsg).trim().length > 0);
   }
 
   function updateMultiStartButton() {
     const start = document.getElementById('btnMultiStart');
     if (!start || !document.body.classList.contains('shell-multi-broadcast')) return;
+    updateMultiImageHint();
     if (multiRunning) return;
     const canStart = hasMultiBroadcastReady();
     start.disabled = !canStart;
@@ -180,7 +197,7 @@
     if (multi) multi.style.display = mode === 'multi' ? '' : 'none';
     const hint = document.getElementById('sendHint');
     if (hint) {
-      if (mode === 'multi') hint.textContent = 'Select pages, set each message, then start parallel broadcast';
+      if (mode === 'multi') hint.textContent = 'Select pages, set each message (or attach a shared image), then start';
       else if (mode === 'auto') hint.textContent = 'Same message to all pages, one after another';
       else hint.textContent = 'Select a page, write message, then start broadcast';
     }
@@ -221,6 +238,13 @@
 
   async function startMultiParallelSend() {
     if (multiRunning) return;
+    if (typeof window.fbcastGuardBroadcast === 'function') {
+      const guard = window.fbcastGuardBroadcast('multi');
+      if (!guard.ok) {
+        if (typeof window.showToast === 'function') window.showToast(guard.message, 'warning');
+        return;
+      }
+    }
     if (typeof window.getRemaining === 'function' && window.getRemaining() <= 0) {
       if (typeof window.showUpgradeModal === 'function') window.showUpgradeModal('pro_exhausted');
       return;
@@ -233,13 +257,13 @@
     }
 
     const perPage = getPerPageMessages();
-    const imgUrl =
-      (typeof currentImageUrl !== 'undefined' ? currentImageUrl : '') || window._imgAttachUrl || '';
+    const mainMsg = document.getElementById('messageText')?.value?.trim() || '';
+    const imgUrl = getMultiImageUrl();
     const delay = Math.max(25, parseInt(document.getElementById('delayMs')?.value, 10) || 400);
 
     const jobs = selected.map((page) => ({
       page,
-      message: perPage[page.id] || ''
+      message: (perPage[page.id] || mainMsg || '').trim()
     }));
 
     const missing = jobs.filter((j) => !j.message && !imgUrl);
@@ -437,6 +461,13 @@
       updateMultiStartButton();
     });
     document.getElementById('messageText')?.addEventListener('input', () => {
+      if (document.body.classList.contains('shell-multi-broadcast')) updateMultiStartButton();
+    });
+
+    window.addEventListener('fbc:image-attached', () => {
+      if (document.body.classList.contains('shell-multi-broadcast')) updateMultiStartButton();
+    });
+    window.addEventListener('fbc:image-cleared', () => {
       if (document.body.classList.contains('shell-multi-broadcast')) updateMultiStartButton();
     });
 
