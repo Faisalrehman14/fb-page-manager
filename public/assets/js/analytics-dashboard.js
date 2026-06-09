@@ -286,27 +286,28 @@
       .slice(0, limit || 5);
   }
 
-  function leaderRankClass(i) {
-    if (i === 0) return 'leader-rank--gold';
-    if (i === 1) return 'leader-rank--silver';
-    if (i === 2) return 'leader-rank--bronze';
-    return '';
+  function leaderRankIcon(i) {
+    if (i === 0) return '<i class="fa-solid fa-crown ad-leader-medal ad-leader-medal--gold"></i>';
+    if (i === 1) return '<i class="fa-solid fa-medal ad-leader-medal ad-leader-medal--silver"></i>';
+    if (i === 2) return '<i class="fa-solid fa-medal ad-leader-medal ad-leader-medal--bronze"></i>';
+    return String(i + 1);
   }
 
   function leaderAvatarHtml(p) {
     const initial = (p.name || '?').trim().charAt(0).toUpperCase();
     if (p.picture) {
-      return `<div class="leader-avatar leader-avatar--img">
-        <img src="${escapeHtml(p.picture)}" alt="" loading="lazy" onerror="this.remove();this.parentElement.classList.remove('leader-avatar--img');this.parentElement.querySelector('.leader-avatar-fb').style.display=''">
-        <span class="leader-avatar-fb" style="display:none">${escapeHtml(initial)}</span>
+      return `<div class="ad-leader-avatar ad-leader-avatar--img">
+        <img src="${escapeHtml(p.picture)}" alt="" loading="lazy" onerror="this.remove();this.parentElement.classList.remove('ad-leader-avatar--img');this.parentElement.querySelector('.ad-leader-avatar-fb').style.display=''">
+        <span class="ad-leader-avatar-fb" style="display:none">${escapeHtml(initial)}</span>
       </div>`;
     }
-    return `<div class="leader-avatar"><span class="leader-avatar-fb">${escapeHtml(initial)}</span></div>`;
+    return `<div class="ad-leader-avatar"><span class="ad-leader-avatar-fb">${escapeHtml(initial)}</span></div>`;
   }
 
   function renderTopPages(items) {
     const list = $('analyticsTopPagesList');
     const sub = $('analyticsTopPagesSub');
+    const caption = $('analyticsTopPagesCaption');
     if (!list) return;
     const top = topPages(items, 5);
     if (!top.length || top[0].sent === 0) {
@@ -316,41 +317,45 @@
         <span class="analytics-empty-hint">Broadcast from connected pages to build rankings.</span>
       </div>`;
       if (sub) sub.textContent = '—';
+      if (caption) caption.textContent = 'Ranked by messages delivered';
       return;
     }
     const totalSent = top.reduce((s, p) => s + p.sent, 0);
+    const totalAll = top.reduce((s, p) => s + p.sent + p.failed, 0);
     if (sub) sub.textContent = `${top.length} page${top.length === 1 ? '' : 's'} · ${totalSent.toLocaleString()} sent`;
+    if (caption) caption.textContent = `${Math.round((totalSent / Math.max(1, totalAll)) * 100)}% overall delivery success in this period`;
     const max = Math.max(1, ...top.map((p) => p.sent));
-    list.innerHTML = top
+    const thead = `<div class="ad-leader-thead" aria-hidden="true">
+      <span class="ad-leader-th ad-leader-th--rank">#</span>
+      <span class="ad-leader-th ad-leader-th--page">Page</span>
+      <span class="ad-leader-th ad-leader-th--stat">Delivered</span>
+      <span class="ad-leader-th ad-leader-th--stat">Success</span>
+    </div>`;
+    list.innerHTML = thead + top
       .map((p, i) => {
-        const pct = Math.round((p.sent / max) * 100);
-        const rankCls = leaderRankClass(i);
-        const rateCls =
-          p.rate >= 90 ? 'leader-chip--good' : p.rate >= 70 ? 'leader-chip--ok' : 'leader-chip--warn';
-        const failNote = p.failed > 0 ? `<span class="leader-chip leader-chip--warn"><i class="fa-solid fa-circle-xmark"></i>${p.failed.toLocaleString()} failed</span>` : '';
-        return `<article class="leader-row leader-row--pro" data-rank="${i + 1}">
-          <div class="leader-rank ${rankCls}" aria-label="Rank ${i + 1}">${i + 1}</div>
+        const share = Math.round((p.sent / max) * 100);
+        const rateCls = p.rate >= 90 ? 'ad-leader-rate--good' : p.rate >= 70 ? 'ad-leader-rate--ok' : 'ad-leader-rate--warn';
+        const rankTier = i === 0 ? 'ad-leader-row--first' : i === 1 ? 'ad-leader-row--second' : i === 2 ? 'ad-leader-row--third' : '';
+        return `<article class="ad-leader-row ${rankTier}" data-rank="${i + 1}">
+          <div class="ad-leader-rank" aria-label="Rank ${i + 1}">${leaderRankIcon(i)}</div>
           ${leaderAvatarHtml(p)}
-          <div class="leader-body">
-            <div class="leader-head">
-              <div class="leader-name" title="${escapeHtml(p.name)}">${escapeHtml(p.name)}</div>
-              <div class="leader-score">
-                <span class="leader-score-val">${p.sent.toLocaleString()}</span>
-                <span class="leader-score-lbl">sent</span>
-              </div>
+          <div class="ad-leader-info">
+            <div class="ad-leader-name" title="${escapeHtml(p.name)}">${escapeHtml(p.name)}</div>
+            <div class="ad-leader-meta">
+              <span><i class="fa-solid fa-repeat"></i>${p.runs} campaign${p.runs === 1 ? '' : 's'}</span>
+              ${p.failed > 0 ? `<span class="ad-leader-meta--warn"><i class="fa-solid fa-circle-xmark"></i>${p.failed.toLocaleString()} failed</span>` : ''}
             </div>
-            <div class="leader-chips">
-              <span class="leader-chip"><i class="fa-solid fa-paper-plane"></i>${p.sent.toLocaleString()} sent</span>
-              <span class="leader-chip"><i class="fa-solid fa-repeat"></i>${p.runs} run${p.runs === 1 ? '' : 's'}</span>
-              <span class="leader-chip ${rateCls}"><i class="fa-solid fa-circle-check"></i>${p.rate}% success</span>
-              ${failNote}
+            <div class="ad-leader-bar" role="presentation" aria-hidden="true">
+              <div class="ad-leader-bar-fill" style="width:${share}%"></div>
             </div>
-            <div class="leader-bar-wrap">
-              <div class="leader-bar" role="presentation">
-                <div class="leader-bar-fill" style="width:${pct}%"></div>
-              </div>
-              <span class="leader-bar-pct">${pct}%</span>
-            </div>
+          </div>
+          <div class="ad-leader-stat ad-leader-stat--sent">
+            <span class="ad-leader-stat-val">${p.sent.toLocaleString()}</span>
+            <span class="ad-leader-stat-lbl">sent</span>
+          </div>
+          <div class="ad-leader-stat ad-leader-stat--rate">
+            <span class="ad-leader-stat-val ${rateCls}">${p.rate}%</span>
+            <span class="ad-leader-stat-lbl">success</span>
           </div>
         </article>`;
       })
@@ -378,32 +383,70 @@
     return 5;
   }
 
+  function formatHour12(h) {
+    const ampm = h >= 12 ? 'PM' : 'AM';
+    const h12 = h % 12 || 12;
+    return `${h12}:00 ${ampm}`;
+  }
+
+  function hourPeriod(h) {
+    if (h >= 5 && h < 12) return 'Morning';
+    if (h >= 12 && h < 17) return 'Afternoon';
+    if (h >= 17 && h < 21) return 'Evening';
+    return 'Night';
+  }
+
   function renderHeatmap(items) {
     const grid = $('analyticsHeatmap');
     const peak = $('analyticsHeatPeak');
+    const insight = $('analyticsHeatInsight');
     if (!grid) return;
     const buckets = buildHourBuckets(items);
     const max = Math.max(...buckets);
     if (max === 0) {
-      grid.innerHTML = '<div class="analytics-empty"><p>No timing data yet.</p></div>';
+      grid.innerHTML = '<div class="analytics-empty ad-heatmap-empty"><i class="fa-solid fa-clock"></i><p>No timing data yet.</p><span class="analytics-empty-hint">Complete broadcasts to discover optimal send windows.</span></div>';
       if (peak) peak.textContent = '—';
+      if (insight) insight.hidden = true;
       return;
     }
     const peakHour = buckets.indexOf(max);
+    const sortedHours = buckets
+      .map((v, h) => ({ h, v }))
+      .filter((x) => x.v > 0)
+      .sort((a, b) => b.v - a.v);
+    const top3 = sortedHours.slice(0, 3);
+
     if (peak) {
-      const ampm = peakHour >= 12 ? 'PM' : 'AM';
-      const h12 = peakHour % 12 || 12;
-      peak.textContent = `Peak: ${h12}:00 ${ampm}`;
+      peak.innerHTML = `<i class="fa-solid fa-bolt"></i> Peak ${formatHour12(peakHour)}`;
     }
+    if (insight) {
+      insight.hidden = false;
+      const period = hourPeriod(peakHour);
+      const topList = top3
+        .map((x) => `<span class="ad-heatmap-top-slot"><strong>${formatHour12(x.h)}</strong> · ${x.v.toLocaleString()} sent</span>`)
+        .join('');
+      insight.innerHTML =
+        `<div class="ad-heatmap-insight-main">
+          <i class="fa-solid fa-lightbulb"></i>
+          <div>
+            <strong>${period} performs best</strong>
+            <span>Schedule campaigns around ${formatHour12(peakHour)} for highest delivery volume.</span>
+          </div>
+        </div>
+        <div class="ad-heatmap-top-hours">${topList}</div>`;
+    }
+
     grid.innerHTML = buckets
       .map((v, h) => {
         const lvl = heatLevel(v, max);
-        const ampm = h >= 12 ? 'PM' : 'AM';
-        const h12 = h % 12 || 12;
-        const showLabel = h % 3 === 0;
-        return `<div class="heat-col" title="${h12}:00 ${ampm} — ${v.toLocaleString()} sent">
-          <div class="heat-cell heat-${lvl}"></div>
-          <div class="heat-label">${showLabel ? h12 + (h === 0 ? 'a' : ampm === 'PM' ? 'p' : 'a') : ''}</div>
+        const pct = max > 0 ? Math.max(v > 0 ? 12 : 4, Math.round((v / max) * 100)) : 4;
+        const isPeak = h === peakHour && v > 0;
+        const label = h % 6 === 0 ? formatHour12(h).replace(':00', '') : '';
+        return `<div class="ad-heat-col${isPeak ? ' ad-heat-col--peak' : ''}" title="${formatHour12(h)} — ${v.toLocaleString()} messages sent">
+          <div class="ad-heat-bar-wrap">
+            <div class="ad-heat-bar ad-heat-${lvl}" style="height:${pct}%"></div>
+          </div>
+          <div class="ad-heat-label">${label}</div>
         </div>`;
       })
       .join('');

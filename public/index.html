@@ -2362,7 +2362,7 @@ window.getCsrfToken = async (forceRefresh = false) => {
                 </div>
                 <span class="analytics-card-badge" id="analyticsTopPagesSub">—</span>
               </div>
-              <div id="analyticsTopPagesList" class="analytics-top-pages-list">
+              <div id="analyticsTopPagesList" class="analytics-top-pages-list ad-leader-list">
                 <div class="analytics-empty analytics-empty--leader">
                   <i class="fa-solid fa-chart-simple" aria-hidden="true"></i>
                   <p>No page data yet</p>
@@ -2371,22 +2371,36 @@ window.getCsrfToken = async (forceRefresh = false) => {
               </div>
             </div>
 
-            <div class="pro-card analytics-heatmap-card">
-              <div class="analytics-card-hdr">
-                <span><i class="fa-solid fa-clock"></i> Best send times</span>
-                <span class="analytics-card-sub" id="analyticsHeatPeak">—</span>
+            <div class="pro-card analytics-heatmap-card ad-heatmap-card">
+              <div class="analytics-card-hdr ad-heatmap-hdr">
+                <div class="analytics-card-hdr-left">
+                  <span class="analytics-card-icon" aria-hidden="true"><i class="fa-solid fa-clock"></i></span>
+                  <div class="analytics-card-hdr-text">
+                    <span class="analytics-card-title">Best send times</span>
+                    <span class="analytics-card-caption">When your messages get delivered most</span>
+                  </div>
+                </div>
+                <span class="analytics-card-badge ad-heatmap-peak-badge" id="analyticsHeatPeak">—</span>
               </div>
-              <div class="analytics-heatmap" id="analyticsHeatmap">
-                <div class="analytics-empty"><p>No timing data yet.</p></div>
+              <div class="ad-heatmap-insight" id="analyticsHeatInsight" hidden></div>
+              <div class="ad-heatmap-body">
+                <div class="analytics-heatmap ad-heatmap-grid" id="analyticsHeatmap" role="img" aria-label="Send volume by hour">
+                  <div class="analytics-empty ad-heatmap-empty"><i class="fa-solid fa-clock"></i><p>No timing data yet.</p><span class="analytics-empty-hint">Complete broadcasts to discover optimal send windows.</span></div>
+                </div>
               </div>
-              <div class="analytics-heatmap-legend">
-                <span>Less</span>
-                <span class="heat-cell heat-1"></span>
-                <span class="heat-cell heat-2"></span>
-                <span class="heat-cell heat-3"></span>
-                <span class="heat-cell heat-4"></span>
-                <span class="heat-cell heat-5"></span>
-                <span>More</span>
+              <div class="ad-heatmap-footer">
+                <div class="ad-heatmap-periods" aria-hidden="true">
+                  <span>Night</span><span>Morning</span><span>Afternoon</span><span>Evening</span>
+                </div>
+                <div class="analytics-heatmap-legend ad-heatmap-legend">
+                  <span>Low activity</span>
+                  <span class="ad-heat-swatch ad-heat-1"></span>
+                  <span class="ad-heat-swatch ad-heat-2"></span>
+                  <span class="ad-heat-swatch ad-heat-3"></span>
+                  <span class="ad-heat-swatch ad-heat-4"></span>
+                  <span class="ad-heat-swatch ad-heat-5"></span>
+                  <span>High activity</span>
+                </div>
               </div>
             </div>
           </div>
