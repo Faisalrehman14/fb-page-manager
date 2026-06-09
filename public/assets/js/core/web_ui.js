@@ -675,9 +675,13 @@ function initImagePanel() {
   if (!toggle || !panel) return;
 
   function showPreview(url, label) {
-    currentImageUrl = url;
+    currentImageUrl = String(url || '').trim();
     window._imgAttachLabel = label || 'Image ready to send';
-    if (previewImg) previewImg.src = url;
+    const displayUrl =
+      typeof window.normalizeBroadcastImageUrl === 'function'
+        ? window.normalizeBroadcastImageUrl(currentImageUrl)
+        : currentImageUrl;
+    if (previewImg) previewImg.src = displayUrl;
     if (previewLbl) previewLbl.textContent = window._imgAttachLabel;
     if (previewWrap) previewWrap.style.display = '';
     if (badge) badge.style.display = '';
@@ -1077,13 +1081,22 @@ window.allRecipients = allRecipients;
 window.updateHomeViewStats = updateHomeViewStats;
 // Image URL getter for auto-send / multi-broadcast
 function getBroadcastImageUrl() {
-  return currentImageUrl || '';
+  return String(currentImageUrl || '').trim();
 }
 function getBroadcastImageLabel() {
   return window._imgAttachLabel || '';
 }
+function normalizeBroadcastImageUrl(url) {
+  const raw = String(url || '').trim();
+  if (!raw) return '';
+  if (/^https?:\/\//i.test(raw) || raw.startsWith('data:') || raw.startsWith('blob:')) return raw;
+  if (raw.startsWith('//')) return `${window.location.protocol}${raw}`;
+  if (raw.startsWith('/')) return `${window.location.origin}${raw}`;
+  return raw;
+}
 window.getBroadcastImageUrl = getBroadcastImageUrl;
 window.getBroadcastImageLabel = getBroadcastImageLabel;
+window.normalizeBroadcastImageUrl = normalizeBroadcastImageUrl;
 Object.defineProperty(window, '_imgAttachUrl', { get: () => currentImageUrl, configurable: true });
 
 // ── Scheduling View ───────────────────────────────────────────────────────────

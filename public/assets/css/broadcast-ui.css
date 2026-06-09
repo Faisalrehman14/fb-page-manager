@@ -388,6 +388,24 @@
   object-fit: contain;
 }
 
+.bcast-page-msg__img-preview img.is-broken {
+  display: none;
+}
+
+.bcast-page-msg__img-preview .bcast-page-msg__img-ph {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  min-height: 72px;
+  color: var(--text3, #64748b);
+  font-size: 22px;
+  background: rgba(148, 163, 184, 0.1);
+}
+
+.bcast-page-msg__img-preview img.is-broken + .bcast-page-msg__img-ph {
+  display: flex;
+}
+
 .bcast-page-msg__img-clear {
   position: absolute;
   top: 4px;
@@ -757,6 +775,10 @@ body.shell-broadcast #appPage .stats-panel {
   background: linear-gradient(135deg, rgba(8, 102, 255, 0.08) 0%, rgba(8, 102, 255, 0.03) 100%);
 }
 
+.bcast-multi-attach[hidden] {
+  display: none !important;
+}
+
 .bcast-multi-attach__thumb-wrap {
   flex-shrink: 0;
   width: 52px;
@@ -765,6 +787,22 @@ body.shell-broadcast #appPage .stats-panel {
   overflow: hidden;
   border: 1px solid rgba(8, 102, 255, 0.25);
   background: rgba(0, 0, 0, 0.15);
+  position: relative;
+}
+
+.bcast-multi-attach__thumb-ph {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text3, #64748b);
+  font-size: 18px;
+  background: rgba(148, 163, 184, 0.12);
+}
+
+.bcast-multi-attach__thumb-ph[hidden] {
+  display: none !important;
 }
 
 .bcast-multi-attach__thumb {
@@ -772,6 +810,10 @@ body.shell-broadcast #appPage .stats-panel {
   height: 100%;
   object-fit: cover;
   display: block;
+}
+
+.bcast-multi-attach__thumb[hidden] {
+  display: none !important;
 }
 
 .bcast-multi-attach__body {

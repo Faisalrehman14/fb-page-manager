@@ -9,8 +9,11 @@
   const multiPageImages = {};
 
   function toDisplayUrl(url) {
+    if (typeof window.normalizeBroadcastImageUrl === 'function') {
+      return window.normalizeBroadcastImageUrl(url);
+    }
     if (!url) return '';
-    if (/^https?:\/\//i.test(url) || url.startsWith('data:')) return url;
+    if (/^https?:\/\//i.test(url) || url.startsWith('data:') || url.startsWith('blob:')) return url;
     if (url.startsWith('/')) return window.location.origin + url;
     return url;
   }
@@ -128,7 +131,8 @@
           : 'Message for this page…';
         const preview = imgUrl
           ? `<div class="bcast-page-msg__img-preview">
-              <img src="${esc(toDisplayUrl(imgUrl))}" alt="${esc(pageImg.label || '')}">
+              <img src="${esc(toDisplayUrl(imgUrl))}" alt="${esc(pageImg.label || '')}" onerror="this.classList.add('is-broken')">
+              <span class="bcast-page-msg__img-ph" aria-hidden="true"><i class="fa-solid fa-image"></i></span>
               <button type="button" class="bcast-page-msg__img-clear" data-action="clear-img" data-page-id="${esc(p.id)}" title="Remove image"><i class="fa-solid fa-xmark"></i></button>
             </div>`
           : '';
@@ -166,11 +170,27 @@
   }
 
   function getMultiImageUrl() {
+    let url = '';
     if (typeof window.getBroadcastImageUrl === 'function') {
-      const url = window.getBroadcastImageUrl();
-      if (url) return url;
+      url = window.getBroadcastImageUrl() || '';
     }
-    return window._imgAttachUrl || '';
+    if (!url) url = window._imgAttachUrl || '';
+    return String(url).trim();
+  }
+
+  function setMultiThumbState(state) {
+    const thumb = document.getElementById('multiImageThumb');
+    const ph = document.getElementById('multiImageThumbPh');
+    if (thumb) thumb.hidden = state !== 'loaded';
+    if (ph) ph.hidden = state !== 'placeholder';
+  }
+
+  function bindMultiThumbLoad(thumb, displayUrl) {
+    if (!thumb) return;
+    thumb.onload = () => setMultiThumbState('loaded');
+    thumb.onerror = () => setMultiThumbState('placeholder');
+    setMultiThumbState('placeholder');
+    thumb.src = displayUrl;
   }
 
   function updateMultiImageAttach() {
@@ -184,17 +204,24 @@
     if (card) card.hidden = !show;
     if (hint) hint.style.display = 'none';
 
-    if (!show) return;
+    if (!show) {
+      if (thumb) {
+        thumb.removeAttribute('src');
+        thumb.hidden = true;
+      }
+      const ph = document.getElementById('multiImageThumbPh');
+      if (ph) ph.hidden = true;
+      if (nameEl) nameEl.textContent = '—';
+      return;
+    }
 
     const label =
       (typeof window.getBroadcastImageLabel === 'function' && window.getBroadcastImageLabel()) ||
       imgUrl.split('/').pop()?.split('?')[0] ||
       'Attached image';
 
-    if (thumb) {
-      thumb.src = toDisplayUrl(imgUrl);
-      thumb.alt = label;
-    }
+    bindMultiThumbLoad(thumb, toDisplayUrl(imgUrl));
+    if (thumb) thumb.alt = label;
     if (nameEl) nameEl.textContent = label.length > 42 ? label.slice(0, 40) + '…' : label;
   }
 

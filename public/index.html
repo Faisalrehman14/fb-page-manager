@@ -1995,7 +1995,10 @@ window.getCsrfToken = async (forceRefresh = false) => {
           </div>
           <div class="bcast-multi-attach" id="multiImageAttach" hidden>
             <div class="bcast-multi-attach__thumb-wrap">
-              <img id="multiImageThumb" class="bcast-multi-attach__thumb" src="" alt="">
+              <img id="multiImageThumb" class="bcast-multi-attach__thumb" hidden src="" alt="">
+              <span class="bcast-multi-attach__thumb-ph" id="multiImageThumbPh" hidden aria-hidden="true">
+                <i class="fa-solid fa-image"></i>
+              </span>
             </div>
             <div class="bcast-multi-attach__body">
               <span class="bcast-multi-attach__title"><i class="fa-solid fa-image"></i> Default image (compose)</span>
