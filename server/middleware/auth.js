@@ -5,8 +5,24 @@ function requireAppAccount(req, res, next) {
     next();
 }
 
-function requireAuth(req, res, next) {
-    if (req.session.accessToken) return next();
+function requireAdminAuth(req, res, next) {
+    if (req.session?.isAdmin) return next();
+    res.status(401).json({ error: 'Unauthorized', redirect: '/admin' });
+}
+
+async function requireAuth(req, res, next) {
+    if (req.session.accessToken) {
+        if (req.session.userId) {
+            try {
+                const db = require('../db');
+                const status = await db.getUserAccountStatus(req.session.userId);
+                if (status === 'suspended') {
+                    return res.status(403).json({ error: 'Your account has been suspended. Contact support.', code: 'ACCOUNT_SUSPENDED' });
+                }
+            } catch (_) {}
+        }
+        return next();
+    }
     if (req.session.appAccountId) {
         return res.status(401).json({
             error: 'Connect your Facebook account to continue',
@@ -15,11 +31,6 @@ function requireAuth(req, res, next) {
         });
     }
     return res.status(401).json({ error: 'Please sign in', redirect: '/login' });
-}
-
-function requireAdminAuth(req, res, next) {
-    if (req.session?.isAdmin) return next();
-    res.status(401).json({ error: 'Unauthorized', redirect: '/admin' });
 }
 
 function restoreSessionFromCookies(req, res, next) {

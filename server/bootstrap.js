@@ -35,6 +35,14 @@ function startServer(httpServer, { startBroadcastScheduler, io }) {
             }
             transactionalEmail.startTrialReminderScheduler(logError);
             emailService.initEmailOnStartup((msg) => console.warn(msg)).catch(() => {});
+            const adminEmail = (process.env.ADMIN_EMAIL || '').trim().toLowerCase();
+            const adminPass = process.env.ADMIN_PASSWORD || '';
+            if (adminEmail && adminPass && adminPass.length >= 8) {
+                const { hashPassword } = require('./services/admin-auth.service');
+                db.ensureDefaultAdminUser(adminEmail, hashPassword(adminPass), 'Super Admin').then((id) => {
+                    if (id) console.log(`✅ Default super admin seeded: ${adminEmail}`);
+                }).catch(() => {});
+            }
             setInterval(() => {
                 db.checkExpiredSubscriptions?.().catch(() => {});
             }, 60 * 60 * 1000);

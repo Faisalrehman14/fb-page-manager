@@ -27,7 +27,13 @@
       <p>Enterprise admin · secure access</p>
     </div>
     <div class="login-field">
-      <label>Admin Password</label>
+      <label>Email <span style="font-weight:400;text-transform:none;color:var(--muted)">(optional — legacy password-only still works)</span></label>
+      <div class="login-input-wrap">
+        <input type="email" id="loginEmail" placeholder="admin@yourcompany.com" autocomplete="username"/>
+      </div>
+    </div>
+    <div class="login-field">
+      <label>Password</label>
       <div class="login-input-wrap">
         <input type="password" id="loginPass" placeholder="Enter your password" autocomplete="current-password"/>
         <button class="login-eye" onclick="togglePass()" title="Show/hide">
@@ -69,6 +75,11 @@
           <span class="sb-badge" id="liveIndicator">LIVE</span>
         </div>
 
+        <div class="sb-item" id="nav-analytics" onclick="App.switchView('analytics')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+          Analytics
+        </div>
+
         <div class="sb-section">Management</div>
         <div class="sb-item" id="nav-users" onclick="App.switchView('users')">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
@@ -78,6 +89,10 @@
         <div class="sb-item" id="nav-activity" onclick="App.switchView('activity')">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
           Activity Log
+        </div>
+        <div class="sb-item" id="nav-audit" onclick="App.switchView('audit')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+          Admin Audit
         </div>
         <div class="sb-item" id="nav-announcements" onclick="App.switchView('announcements')">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l18-8v18l-18-8zM11 11v9"/></svg>
@@ -89,6 +104,14 @@
           <span class="sb-badge" id="navSupportBadge" style="display:none;background:#ef4444;color:#fff">0</span>
         </div>
         <div class="sb-section">System</div>
+        <div class="sb-item" id="nav-settings" onclick="App.switchView('settings')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+          Settings
+        </div>
+        <div class="sb-item" id="nav-access" onclick="App.switchView('access')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+          Access Control
+        </div>
         <div class="sb-item" id="nav-database" onclick="App.switchView('database')">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
           Database
@@ -301,6 +324,20 @@
           </div>
         </div>
 
+        <!-- ── ANALYTICS VIEW ── -->
+        <div class="view" id="view-analytics">
+          <div class="admin-page-hero">
+            <div>
+              <h2>Platform analytics</h2>
+              <p>Registrations, engagement, broadcasts, and retention across the last 30 days.</p>
+            </div>
+            <button class="btn btn-ghost btn-sm" onclick="App.analytics.load()">Refresh</button>
+          </div>
+          <div id="analyticsRoot">
+            <div class="loading-center"><span class="spinner spinner-lg"></span></div>
+          </div>
+        </div>
+
         <!-- ── USERS VIEW ── -->
         <div class="view" id="view-users">
           <div class="admin-page-hero">
@@ -395,6 +432,40 @@
             <div class="pagination" id="actPagination" style="display:none">
               <div class="pg-info" id="actPgInfo"></div>
               <div class="pg-btns" id="actPgBtns"></div>
+            </div>
+          </div>
+        </div>
+
+
+        <!-- ── ADMIN AUDIT VIEW ── -->
+        <div class="view" id="view-audit">
+          <div class="admin-page-hero">
+            <div>
+              <h2>Admin audit trail</h2>
+              <p>Who changed settings, managed users, and performed admin actions.</p>
+            </div>
+          </div>
+          <div class="panel">
+            <div class="panel-head">
+              <div class="panel-title">Admin actions</div>
+              <div style="display:flex;gap:8px">
+                <select id="auditFilter" onchange="App.audit.load(1)" class="form-input" style="height:34px;padding:0 10px;width:auto">
+                  <option value="">All actions</option>
+                  <option value="login">Login</option>
+                  <option value="settings_update">Settings</option>
+                  <option value="admin_create">Admin create</option>
+                  <option value="user_suspend">User suspend</option>
+                  <option value="user_activate">User activate</option>
+                </select>
+                <button class="btn btn-ghost btn-sm" onclick="App.audit.load()">Refresh</button>
+              </div>
+            </div>
+            <div class="activity-list" id="auditList">
+              <div class="loading-center"><span class="spinner spinner-lg"></span></div>
+            </div>
+            <div class="pagination" id="auditPagination" style="display:none">
+              <div class="pg-info" id="auditPgInfo"></div>
+              <div class="pg-btns" id="auditPgBtns"></div>
             </div>
           </div>
         </div>
@@ -533,6 +604,34 @@
                 <div class="support-admin__empty-sub">Pick a chat on the left to read and reply.</div>
               </div>
             </section>
+          </div>
+        </div>
+
+        <!-- ── SETTINGS VIEW ── -->
+        <div class="view" id="view-settings">
+          <div class="admin-page-hero">
+            <div>
+              <h2>Site settings</h2>
+              <p>Maintenance mode, signups, defaults, and platform configuration.</p>
+            </div>
+            <button class="btn btn-ghost btn-sm" onclick="App.settings.load()">Refresh</button>
+          </div>
+          <div id="settingsRoot">
+            <div class="loading-center"><span class="spinner spinner-lg"></span></div>
+          </div>
+        </div>
+
+        <!-- ── ACCESS CONTROL VIEW ── -->
+        <div class="view" id="view-access">
+          <div class="admin-page-hero">
+            <div>
+              <h2>Access control</h2>
+              <p>Manage admin accounts, roles, and permissions (super admin only).</p>
+            </div>
+            <button class="btn btn-ghost btn-sm" onclick="App.access.load()">Refresh</button>
+          </div>
+          <div id="accessRoot">
+            <div class="loading-center"><span class="spinner spinner-lg"></span></div>
           </div>
         </div>
 
@@ -858,8 +957,8 @@ const App = {
     document.querySelectorAll('.sb-item').forEach(el => el.classList.remove('active'));
     $('view-'+v).classList.add('active');
     $('nav-'+v)?.classList.add('active');
-    const titles = { dashboard:'Dashboard', users:'User Management', activity:'Activity Log', announcements:'Announcements & Updates', support:'Support Inbox', database:'Database Health' };
-    const crumbs = { dashboard:'Overview', users:'Management', activity:'Audit', announcements:'Engagement', support:'Conversations', database:'System' };
+    const titles = { dashboard:'Dashboard', analytics:'Analytics', users:'User Management', activity:'Activity Log', audit:'Admin Audit', announcements:'Announcements & Updates', support:'Support Inbox', settings:'Settings', access:'Access Control', database:'Database Health' };
+    const crumbs = { dashboard:'Overview', analytics:'Insights', users:'Management', activity:'Audit', audit:'Security', announcements:'Engagement', support:'Conversations', settings:'Configuration', access:'RBAC', database:'System' };
     $('topbarTitle').textContent = titles[v] || v;
     if($('topbarCrumb')) $('topbarCrumb').textContent = crumbs[v] || 'Admin';
     $('globalSearch').style.display = v==='users' ? 'flex' : 'none';
@@ -1566,6 +1665,7 @@ const App = {
         '<div class="ua-badges"><span class="' + planBadgeClass(u) + '">' + esc(planAdminLabel(u)) + '</span>',
         u.stripe_subscription_id ? '<span class="ua-pill ok">Stripe active</span>' : '<span class="ua-pill">No Stripe</span>',
         u.has_fb_token ? '<span class="ua-pill ok">FB token</span>' : '<span class="ua-pill warn">No token</span>',
+        (u.account_status === 'suspended') ? '<span class="ua-pill warn">Suspended</span>' : '<span class="ua-pill ok">Active</span>',
         '</div></div></div>',
 
         '<div class="ua-kpi-grid">',
@@ -1615,6 +1715,9 @@ const App = {
         '<div class="detail-actions">',
         '<button type="button" class="btn btn-primary btn-md" id="detailEditBtn">Edit plan</button>',
         '<button type="button" class="btn btn-ghost btn-md" onclick="App.users.resetQuota(\'' + esc(uid) + '\')">Reset quota</button>',
+        (u.account_status === 'suspended'
+          ? '<button type="button" class="btn btn-success btn-md" onclick="App.users.setAccountStatus(\'' + esc(uid) + '\',\'active\')">Activate account</button>'
+          : '<button type="button" class="btn btn-amber btn-md" onclick="App.users.setAccountStatus(\'' + esc(uid) + '\',\'suspended\')">Suspend account</button>'),
         '<button type="button" class="btn btn-ghost btn-md" onclick="App.users.exportUserReport(\'' + esc(uid) + '\')">Export JSON report</button>',
         '</div>'
       ].join('');
@@ -2445,6 +2548,7 @@ function togglePass() {
 $('loginPass').addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); });
 
 async function doLogin() {
+  const email = $('loginEmail')?.value?.trim() || '';
   const pass = $('loginPass').value.trim();
   if(!pass) return;
   const btn = $('loginBtn');
@@ -2452,11 +2556,11 @@ async function doLogin() {
   btn.disabled = true;
   $('loginErr').style.display = 'none';
   try {
-    const r = await fetch('/api/admin/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:pass})});
+    const r = await fetch('/api/admin/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email, password:pass})});
     if(r.ok){
       $('loginScreen').style.display = 'none';
       $('adminApp').style.display = 'block';
-      App.init();
+      await App.init();
     } else {
       $('loginErr').style.display = 'block';
     }
@@ -2471,13 +2575,14 @@ async function doLogout() {
 }
 
 // Auto-check session
-fetch('/api/admin/stats').then(r => {
+fetch('/api/admin/me').then(async r => {
   if(r.ok){
     $('loginScreen').style.display = 'none';
     $('adminApp').style.display = 'block';
-    App.init();
+    await App.init();
   }
 }).catch(()=>{});
 </script>
+<script src="assets/js/admin-extensions.js"></script>
 </body>
 </html>

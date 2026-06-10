@@ -221,7 +221,8 @@ async function initDatabase() {
             "ALTER TABLE users ADD COLUMN plan_activated_at DATETIME NULL",
             "ALTER TABLE app_accounts ADD COLUMN welcome_email_sent_at DATETIME NULL",
             "ALTER TABLE users ADD COLUMN free_trial_email_sent_at DATETIME NULL",
-            "ALTER TABLE users ADD COLUMN trial_reminder_email_sent_at DATETIME NULL"
+            "ALTER TABLE users ADD COLUMN trial_reminder_email_sent_at DATETIME NULL",
+            "ALTER TABLE users ADD COLUMN account_status ENUM('active','suspended') NOT NULL DEFAULT 'active'"
         ];
         for (const sql of migrations) {
             try { await connection.query(sql); } catch (_) { /* column already exists */ }
@@ -415,6 +416,40 @@ async function initDatabase() {
                 setting_key VARCHAR(120) NOT NULL PRIMARY KEY,
                 setting_value TEXT,
                 updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        `);
+
+        await tryCreate(`
+            CREATE TABLE IF NOT EXISTS admin_users (
+                id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                email VARCHAR(255) NOT NULL UNIQUE,
+                password_hash VARCHAR(255) NOT NULL,
+                name VARCHAR(120) NOT NULL DEFAULT '',
+                role ENUM('super_admin','admin','support','analyst') NOT NULL DEFAULT 'admin',
+                is_active TINYINT(1) NOT NULL DEFAULT 1,
+                last_login_at DATETIME NULL,
+                last_login_ip VARCHAR(45) NULL,
+                created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                INDEX idx_admin_role (role),
+                INDEX idx_admin_active (is_active)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        `);
+
+        await tryCreate(`
+            CREATE TABLE IF NOT EXISTS admin_audit_log (
+                id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                admin_id BIGINT UNSIGNED NULL,
+                admin_email VARCHAR(255) NOT NULL DEFAULT '',
+                action VARCHAR(80) NOT NULL,
+                target_type VARCHAR(40) NULL,
+                target_id VARCHAR(120) NULL,
+                detail TEXT NULL,
+                ip_address VARCHAR(45) NULL,
+                created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                INDEX idx_audit_created (created_at DESC),
+                INDEX idx_audit_admin (admin_id),
+                INDEX idx_audit_action (action)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
         `);
 
@@ -3532,6 +3567,234 @@ async function getAdminExpiringUsers(days = 7, limit = 20) {
     }
 }
 
+// ── Admin RBAC & audit ───────────────────────────────────────────────────────
+
+async function ensureDefaultAdminUser(email, passwordHash, name = 'Super Admin') {
+    if (!pool || !email || !passwordHash) return null;
+    try {
+        const [existing] = await pool.query('SELECT id FROM admin_users LIMIT 1');
+        if (existing.length) return null;
+        const [r] = await pool.query(
+            `INSERT INTO admin_users (email, password_hash, name, role, is_active)
+             VALUES (?, ?, ?, 'super_admin', 1)`,
+            [String(email).toLowerCase(), passwordHash, name.slice(0, 120)]
+        );
+        return r.insertId;
+    } catch (_) {
+        return null;
+    }
+}
+
+async function getAdminUserByEmail(email) {
+    if (!pool) return null;
+    try {
+        const [rows] = await pool.query(
+            'SELECT * FROM admin_users WHERE email = ? LIMIT 1',
+            [String(email || '').trim().toLowerCase()]
+        );
+        return rows[0] || null;
+    } catch (_) {
+        return null;
+    }
+}
+
+async function getAdminUserById(id) {
+    if (!pool) return null;
+    try {
+        const [rows] = await pool.query('SELECT * FROM admin_users WHERE id = ? LIMIT 1', [id]);
+        return rows[0] || null;
+    } catch (_) {
+        return null;
+    }
+}
+
+async function listAdminUsers() {
+    if (!pool) return [];
+    try {
+        const [rows] = await pool.query(
+            `SELECT id, email, name, role, is_active, last_login_at, last_login_ip, created_at, updated_at
+             FROM admin_users ORDER BY created_at ASC`
+        );
+        return rows;
+    } catch (_) {
+        return [];
+    }
+}
+
+async function createAdminUser({ email, password_hash, name, role }) {
+    if (!pool) throw new Error('Database unavailable');
+    const [r] = await pool.query(
+        `INSERT INTO admin_users (email, password_hash, name, role, is_active)
+         VALUES (?, ?, ?, ?, 1)`,
+        [String(email).toLowerCase(), password_hash, String(name || '').slice(0, 120), role || 'admin']
+    );
+    return r.insertId;
+}
+
+async function updateAdminUser(id, { name, role, is_active, password_hash }) {
+    if (!pool) throw new Error('Database unavailable');
+    const sets = [];
+    const vals = [];
+    if (name !== undefined) { sets.push('name = ?'); vals.push(String(name).slice(0, 120)); }
+    if (role !== undefined) { sets.push('role = ?'); vals.push(role); }
+    if (is_active !== undefined) { sets.push('is_active = ?'); vals.push(is_active ? 1 : 0); }
+    if (password_hash) { sets.push('password_hash = ?'); vals.push(password_hash); }
+    if (!sets.length) return false;
+    vals.push(id);
+    await pool.query(`UPDATE admin_users SET ${sets.join(', ')} WHERE id = ?`, vals);
+    return true;
+}
+
+async function deleteAdminUser(id) {
+    if (!pool) return false;
+    const [r] = await pool.query('DELETE FROM admin_users WHERE id = ?', [id]);
+    return r.affectedRows > 0;
+}
+
+async function updateAdminLastLogin(id, ip) {
+    if (!pool || !id) return;
+    try {
+        await pool.query(
+            'UPDATE admin_users SET last_login_at = NOW(), last_login_ip = ? WHERE id = ?',
+            [String(ip || '').slice(0, 45), id]
+        );
+    } catch (_) {}
+}
+
+async function logAdminAudit({ admin_id, admin_email, action, target_type, target_id, detail, ip_address }) {
+    if (!pool) return;
+    try {
+        await pool.query(
+            `INSERT INTO admin_audit_log (admin_id, admin_email, action, target_type, target_id, detail, ip_address)
+             VALUES (?, ?, ?, ?, ?, ?, ?)`,
+            [
+                admin_id || null,
+                String(admin_email || 'admin').slice(0, 255),
+                String(action || 'action').slice(0, 80),
+                target_type ? String(target_type).slice(0, 40) : null,
+                target_id ? String(target_id).slice(0, 120) : null,
+                detail ? String(detail).slice(0, 4000) : null,
+                ip_address ? String(ip_address).slice(0, 45) : null
+            ]
+        );
+    } catch (_) {}
+}
+
+async function listAdminAuditLog({ page = 1, limit = 50, action = '' } = {}) {
+    if (!pool) return { logs: [], total: 0, page, pages: 1 };
+    const offset = (Math.max(1, page) - 1) * limit;
+    const where = action ? 'WHERE action = ?' : '';
+    const params = action ? [action, limit, offset] : [limit, offset];
+    const countParams = action ? [action] : [];
+    try {
+        const [[{ total }]] = await pool.query(
+            `SELECT COUNT(*) AS total FROM admin_audit_log ${where}`,
+            countParams
+        );
+        const [logs] = await pool.query(
+            `SELECT * FROM admin_audit_log ${where} ORDER BY created_at DESC LIMIT ? OFFSET ?`,
+            params
+        );
+        return { logs, total: Number(total) || 0, page, pages: Math.max(1, Math.ceil((total || 0) / limit)) };
+    } catch (_) {
+        return { logs: [], total: 0, page, pages: 1 };
+    }
+}
+
+async function getAllSettingsMap() {
+    if (!pool) return {};
+    try {
+        const [rows] = await pool.query('SELECT setting_key, setting_value, updated_at FROM settings ORDER BY setting_key');
+        const map = {};
+        for (const r of rows) map[r.setting_key] = { value: r.setting_value ?? '', updated_at: r.updated_at };
+        return map;
+    } catch (_) {
+        return {};
+    }
+}
+
+async function getUserAccountStatus(fbUserId) {
+    if (!pool || !fbUserId) return 'active';
+    try {
+        const [rows] = await pool.query(
+            'SELECT account_status FROM users WHERE fb_user_id = ? LIMIT 1',
+            [fbUserId]
+        );
+        return rows[0]?.account_status || 'active';
+    } catch (_) {
+        return 'active';
+    }
+}
+
+async function setUserAccountStatus(fbUserId, status) {
+    if (!pool) return false;
+    const s = status === 'suspended' ? 'suspended' : 'active';
+    await pool.query('UPDATE users SET account_status = ? WHERE fb_user_id = ?', [s, fbUserId]);
+    return true;
+}
+
+async function getAdminAnalyticsExtended() {
+    if (!pool) {
+        return {
+            registrations: [], logins: [], messages: [], broadcasts: [],
+            planDistribution: {}, retention: { active7d: 0, active30d: 0, total: 0 }
+        };
+    }
+    try {
+        const [regRows] = await pool.query(
+            `SELECT DATE(created_at) AS date, COUNT(*) AS count
+             FROM users WHERE created_at >= DATE_SUB(CURDATE(), INTERVAL 29 DAY)
+             GROUP BY DATE(created_at) ORDER BY date ASC`
+        ).catch(() => [[]]);
+        const [loginRows] = await pool.query(
+            `SELECT DATE(created_at) AS date, COUNT(*) AS count
+             FROM activity_log WHERE action = 'login' AND created_at >= DATE_SUB(CURDATE(), INTERVAL 29 DAY)
+             GROUP BY DATE(created_at) ORDER BY date ASC`
+        ).catch(() => [[]]);
+        const [msgRows] = await pool.query(
+            `SELECT DATE(created_at) AS date, COUNT(*) AS count
+             FROM activity_log WHERE action = 'send' AND created_at >= DATE_SUB(CURDATE(), INTERVAL 29 DAY)
+             GROUP BY DATE(created_at) ORDER BY date ASC`
+        ).catch(() => [[]]);
+        const [bcastRows] = await pool.query(
+            `SELECT DATE(created_at) AS date, COUNT(*) AS count
+             FROM broadcast_history WHERE created_at >= DATE_SUB(CURDATE(), INTERVAL 29 DAY)
+             GROUP BY DATE(created_at) ORDER BY date ASC`
+        ).catch(() => [[]]);
+        const [planRows] = await pool.query('SELECT plan, COUNT(*) AS count FROM users GROUP BY plan').catch(() => [[]]);
+        const [[ret]] = await pool.query(
+            `SELECT
+               COUNT(*) AS total,
+               SUM(CASE WHEN last_login_at >= DATE_SUB(NOW(), INTERVAL 7 DAY) THEN 1 ELSE 0 END) AS active7d,
+               SUM(CASE WHEN last_login_at >= DATE_SUB(NOW(), INTERVAL 30 DAY) THEN 1 ELSE 0 END) AS active30d,
+               SUM(CASE WHEN account_status = 'suspended' THEN 1 ELSE 0 END) AS suspended
+             FROM users`
+        ).catch(() => [[{ total: 0, active7d: 0, active30d: 0, suspended: 0 }]]);
+        const [[appAccounts]] = await pool.query('SELECT COUNT(*) AS c FROM app_accounts').catch(() => [[{ c: 0 }]]);
+        const planDistribution = {};
+        for (const r of planRows) planDistribution[r.plan] = Number(r.count);
+        return {
+            registrations: regRows.map((r) => ({ date: r.date, count: Number(r.count) })),
+            logins: loginRows.map((r) => ({ date: r.date, count: Number(r.count) })),
+            messages: msgRows.map((r) => ({ date: r.date, count: Number(r.count) })),
+            broadcasts: bcastRows.map((r) => ({ date: r.date, count: Number(r.count) })),
+            planDistribution,
+            retention: {
+                total: Number(ret.total) || 0,
+                active7d: Number(ret.active7d) || 0,
+                active30d: Number(ret.active30d) || 0,
+                suspended: Number(ret.suspended) || 0,
+                emailAccounts: Number(appAccounts.c) || 0
+            }
+        };
+    } catch (_) {
+        return {
+            registrations: [], logins: [], messages: [], broadcasts: [],
+            planDistribution: {}, retention: { active7d: 0, active30d: 0, total: 0 }
+        };
+    }
+}
+
 async function getSetting(key, defaultValue = '') {
     if (!pool) return defaultValue;
     try {
@@ -4414,6 +4677,20 @@ const dbModule = {
     syncUserPagesFromFacebook,
     getAdminExpiringUsers,
     getAdminDatabaseHealth,
+    ensureDefaultAdminUser,
+    getAdminUserByEmail,
+    getAdminUserById,
+    listAdminUsers,
+    createAdminUser,
+    updateAdminUser,
+    deleteAdminUser,
+    updateAdminLastLogin,
+    logAdminAudit,
+    listAdminAuditLog,
+    getAllSettingsMap,
+    getUserAccountStatus,
+    setUserAccountStatus,
+    getAdminAnalyticsExtended,
     fbPageUrl,
     getSetting,
     getAnnouncementPayload,

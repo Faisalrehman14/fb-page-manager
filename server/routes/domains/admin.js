@@ -19,20 +19,58 @@ app.get('/admin', (req, res) => {
     res.sendFile(paths.publicPath('admin2.html'));
 });
 
-// Admin login
-app.post('/api/admin/login', (req, res) => {
-    const { password } = req.body;
-    if (!password || password !== ADMIN_PASSWORD) {
-        return res.status(401).json({ error: 'Invalid password' });
+// Admin login — email+password (RBAC) or legacy password-only
+app.post('/api/admin/login', async (req, res) => {
+    const adminAuth = require('../../services/admin-auth.service');
+    const { listRolesForAdmin } = require('../../config/admin-roles');
+    const { email, password } = req.body || {};
+    const pass = String(password || '').trim();
+    const emailNorm = String(email || '').trim().toLowerCase();
+
+    if (emailNorm && pass) {
+        const admin = await db.getAdminUserByEmail(emailNorm);
+        if (!admin || !admin.is_active) {
+            return res.status(401).json({ error: 'Invalid email or password' });
+        }
+        if (!adminAuth.verifyPassword(pass, admin.password_hash)) {
+            return res.status(401).json({ error: 'Invalid email or password' });
+        }
+        adminAuth.setAdminSession(req, admin);
+        await db.updateAdminLastLogin(admin.id, getClientIp(req));
+        await db.logAdminAudit({
+            admin_id: admin.id,
+            admin_email: admin.email,
+            action: 'login',
+            ip_address: getClientIp(req)
+        });
+        return res.json({ success: true, admin: adminAuth.sessionAdminPayload(req), roles: listRolesForAdmin() });
     }
-    req.session.isAdmin = true;
-    res.json({ success: true });
+
+    if (!emailNorm && pass && pass === ADMIN_PASSWORD) {
+        adminAuth.setLegacyAdminSession(req);
+        await db.logAdminAudit({
+            admin_email: 'legacy',
+            action: 'login',
+            detail: 'Legacy password login',
+            ip_address: getClientIp(req)
+        });
+        return res.json({ success: true, admin: adminAuth.sessionAdminPayload(req), roles: listRolesForAdmin() });
+    }
+
+    return res.status(401).json({ error: 'Invalid credentials' });
 });
 
 // Admin logout
 app.post('/api/admin/logout', (req, res) => {
-    req.session.isAdmin = false;
+    const adminAuth = require('../../services/admin-auth.service');
+    adminAuth.clearAdminSession(req);
     res.json({ success: true });
+});
+
+app.get('/api/admin/me', requireAdminAuth, (req, res) => {
+    const adminAuth = require('../../services/admin-auth.service');
+    const { listRolesForAdmin } = require('../../config/admin-roles');
+    res.json({ admin: adminAuth.sessionAdminPayload(req), roles: listRolesForAdmin() });
 });
 
 // Email diagnostic (no secrets returned)
@@ -189,6 +227,7 @@ app.get('/api/admin/users', requireAdminAuth, async (req, res) => {
         const listParams = [...countParams, limit, offset];
         const [users] = await pool.query(
             `SELECT u.*,
+              COALESCE(u.account_status, 'active') AS account_status,
               (SELECT COUNT(*) FROM user_fb_pages p WHERE p.fb_user_id = u.fb_user_id) AS page_count,
               GREATEST(0, COALESCE(u.messenger_messages_limit,0) - COALESCE(u.messenger_messages_used,0)) AS messages_remaining,
               (SELECT COALESCE(SUM(amount_cents),0) FROM payment_history ph
@@ -324,6 +363,203 @@ app.get('/api/admin/charts', requireAdminAuth, async (req, res) => {
             topUsers: stripUserTokens(topUsers)
         });
     } catch(e) { res.json({ userGrowth: [], planDistribution: {}, dailyActivity: [], topUsers: [] }); }
+});
+
+// ── Analytics (extended) ─────────────────────────────────────────────────────
+app.get('/api/admin/analytics', requireAdminAuth, async (req, res) => {
+    try {
+        const data = await db.getAdminAnalyticsExtended();
+        res.json(data);
+    } catch (e) {
+        res.status(500).json({ error: e.message || 'Analytics unavailable' });
+    }
+});
+
+// ── Settings ─────────────────────────────────────────────────────────────────
+const SITE_SETTING_KEYS = [
+    'maintenance_mode', 'maintenance_message', 'signup_enabled',
+    'site_name', 'default_message_limit', 'free_trial_days'
+];
+
+app.get('/api/admin/settings', requireAdminAuth, async (req, res) => {
+    try {
+        const all = await db.getAllSettingsMap();
+        const settings = {};
+        for (const key of SITE_SETTING_KEYS) {
+            settings[key] = all[key]?.value ?? '';
+        }
+        settings.support_email = all.support_email?.value ?? '';
+        settings.support_page_name = all.support_page_name?.value ?? '';
+        res.json({ settings, raw: all });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+app.put('/api/admin/settings', requireAdminAuth, async (req, res) => {
+    const adminAuth = require('../../services/admin-auth.service');
+    const role = req.session.adminRole || 'super_admin';
+    if (!adminAuth.hasPermission(role, 'settings.write') && !adminAuth.hasPermission(role, '*')) {
+        return res.status(403).json({ error: 'Insufficient permissions' });
+    }
+    try {
+        const body = req.body?.settings || req.body || {};
+        const allowed = [...SITE_SETTING_KEYS, 'support_email'];
+        for (const key of allowed) {
+            if (body[key] !== undefined) await db.setSetting(key, body[key]);
+        }
+        await db.logAdminAudit({
+            admin_id: req.session.adminId,
+            admin_email: req.session.adminEmail || 'admin',
+            action: 'settings_update',
+            detail: Object.keys(body).join(', '),
+            ip_address: getClientIp(req)
+        });
+        res.json({ success: true });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// ── Admin users (RBAC) ───────────────────────────────────────────────────────
+app.get('/api/admin/admins', requireAdminAuth, async (req, res) => {
+    if ((req.session.adminRole || '') !== 'super_admin') {
+        return res.status(403).json({ error: 'Super admin only' });
+    }
+    try {
+        res.json({ admins: await db.listAdminUsers() });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+app.post('/api/admin/admins', requireAdminAuth, async (req, res) => {
+    const adminAuth = require('../../services/admin-auth.service');
+    const { ROLES } = require('../../config/admin-roles');
+    if ((req.session.adminRole || '') !== 'super_admin') {
+        return res.status(403).json({ error: 'Super admin only' });
+    }
+    try {
+        const { email, password, name, role } = req.body || {};
+        const emailNorm = adminAuth.validateEmail(email);
+        if (!emailNorm) return res.status(400).json({ error: 'Valid email required' });
+        const passErr = adminAuth.validatePassword(password);
+        if (passErr) return res.status(400).json({ error: passErr });
+        if (!ROLES[role]) return res.status(400).json({ error: 'Invalid role' });
+        if (await db.getAdminUserByEmail(emailNorm)) {
+            return res.status(409).json({ error: 'Email already registered' });
+        }
+        const id = await db.createAdminUser({
+            email: emailNorm,
+            password_hash: adminAuth.hashPassword(password),
+            name: name || emailNorm.split('@')[0],
+            role
+        });
+        await db.logAdminAudit({
+            admin_id: req.session.adminId,
+            admin_email: req.session.adminEmail || 'admin',
+            action: 'admin_create',
+            target_type: 'admin_user',
+            target_id: String(id),
+            detail: `${emailNorm} (${role})`,
+            ip_address: getClientIp(req)
+        });
+        res.json({ success: true, id });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+app.put('/api/admin/admins/:id', requireAdminAuth, async (req, res) => {
+    const adminAuth = require('../../services/admin-auth.service');
+    const { ROLES } = require('../../config/admin-roles');
+    if ((req.session.adminRole || '') !== 'super_admin') {
+        return res.status(403).json({ error: 'Super admin only' });
+    }
+    try {
+        const id = parseInt(req.params.id, 10);
+        if (!(await db.getAdminUserById(id))) return res.status(404).json({ error: 'Admin not found' });
+        const { name, role, is_active, password } = req.body || {};
+        const patch = {};
+        if (name !== undefined) patch.name = name;
+        if (role !== undefined) {
+            if (!ROLES[role]) return res.status(400).json({ error: 'Invalid role' });
+            patch.role = role;
+        }
+        if (is_active !== undefined) patch.is_active = !!is_active;
+        if (password) {
+            const passErr = adminAuth.validatePassword(password);
+            if (passErr) return res.status(400).json({ error: passErr });
+            patch.password_hash = adminAuth.hashPassword(password);
+        }
+        await db.updateAdminUser(id, patch);
+        await db.logAdminAudit({
+            admin_id: req.session.adminId,
+            admin_email: req.session.adminEmail || 'admin',
+            action: 'admin_update',
+            target_type: 'admin_user',
+            target_id: String(id),
+            ip_address: getClientIp(req)
+        });
+        res.json({ success: true });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+app.delete('/api/admin/admins/:id', requireAdminAuth, async (req, res) => {
+    if ((req.session.adminRole || '') !== 'super_admin') {
+        return res.status(403).json({ error: 'Super admin only' });
+    }
+    try {
+        const id = parseInt(req.params.id, 10);
+        if (id === req.session.adminId) return res.status(400).json({ error: 'Cannot delete your own account' });
+        if (!(await db.deleteAdminUser(id))) return res.status(404).json({ error: 'Admin not found' });
+        await db.logAdminAudit({
+            admin_id: req.session.adminId,
+            admin_email: req.session.adminEmail || 'admin',
+            action: 'admin_delete',
+            target_type: 'admin_user',
+            target_id: String(id),
+            ip_address: getClientIp(req)
+        });
+        res.json({ success: true });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+app.get('/api/admin/roles', requireAdminAuth, (req, res) => {
+    const { listRolesForAdmin } = require('../../config/admin-roles');
+    res.json({ roles: listRolesForAdmin() });
+});
+
+app.get('/api/admin/audit', requireAdminAuth, async (req, res) => {
+    try {
+        const page = Math.max(1, parseInt(req.query.p, 10) || 1);
+        const action = req.query.action || '';
+        res.json(await db.listAdminAuditLog({ page, limit: 50, action }));
+    } catch (e) {
+        res.json({ logs: [], total: 0, page: 1, pages: 1 });
+    }
+});
+
+app.post('/api/admin/users/:id/status', requireAdminAuth, async (req, res) => {
+    try {
+        const status = req.body?.status === 'suspended' ? 'suspended' : 'active';
+        await db.setUserAccountStatus(req.params.id, status);
+        await db.logAdminAudit({
+            admin_id: req.session.adminId,
+            admin_email: req.session.adminEmail || 'admin',
+            action: status === 'suspended' ? 'user_suspend' : 'user_activate',
+            target_type: 'user',
+            target_id: req.params.id,
+            ip_address: getClientIp(req)
+        });
+        res.json({ success: true, status });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
 });
 
 
