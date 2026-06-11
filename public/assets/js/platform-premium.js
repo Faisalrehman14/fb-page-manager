@@ -483,6 +483,7 @@
 
   /* ── Landing competitive section ── */
   function injectLandingAdvantages() {
+    if (document.getElementById('landingPage')?.classList.contains('landing-enterprise')) return;
     if ($('ppAdvantageSection') || !document.getElementById('compare')) return;
     const section = document.createElement('section');
     section.id = 'ppAdvantageSection';

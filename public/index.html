@@ -34,7 +34,7 @@
 </script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>FBCast Pro — Facebook Broadcast Platform</title>
-<meta name="description" content="Broadcast messages to all your Facebook Page followers instantly. Real-time tracking, ISP bypass, built for businesses worldwide.">
+<meta name="description" content="Enterprise-grade Facebook Messenger broadcast platform. AI-assisted campaigns, unified inbox, real-time analytics, and 98% delivery for professional teams.">
 <meta name="robots" content="index, follow">
 <meta property="og:title" content="FBCast Pro — Facebook Broadcast Platform">
 <meta property="og:description" content="Send personalized messages to thousands of Facebook followers in minutes.">
@@ -63,6 +63,7 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
 <link rel="stylesheet" href="assets/css/index.css?v={{VER}}">
+<link rel="stylesheet" href="assets/css/landing-enterprise.css?v={{VER}}">
 <link rel="stylesheet" href="assets/css/fbc-theme.css?v={{VER}}">
 <link rel="stylesheet" href="assets/css/ui-components.css?v={{VER}}">
 
@@ -138,7 +139,7 @@ window.getCsrfToken = async (forceRefresh = false) => {
 </script>
 
 <!-- ═══ LANDING PAGE ═══ -->
-<div id="landingPage">
+<div id="landingPage" class="landing-enterprise">
 
   <!-- NAV -->
   <nav class="nav">
@@ -151,6 +152,7 @@ window.getCsrfToken = async (forceRefresh = false) => {
       <a href="#how-it-works">How It Works</a>
       <a href="#compare">Why Us</a>
       <a href="#pricing">Pricing</a>
+      <span class="le-nav-badge"><i class="fa-solid fa-shield-halved"></i> Enterprise</span>
     </div>
     <button type="button" class="nav-theme-btn" id="landingThemeToggle" aria-label="Toggle light or dark mode" title="Toggle theme">
       <i class="fa-solid fa-sun" id="landingThemeIcon" aria-hidden="true"></i>
@@ -180,75 +182,130 @@ window.getCsrfToken = async (forceRefresh = false) => {
   </div>
   <!-- HERO -->
   <main id="landingMain">
-  <section class="hero" tabindex="-1">
+  <section class="hero hero--enterprise" tabindex="-1">
     <div class="hero-noise"></div>
     <div class="hero-grid"></div>
     <div class="hero-glow"></div>
     <div class="hero-glow-2"></div>
-    <!-- Aurora orbs for cinematic depth -->
     <div class="hero-aurora">
       <div class="aurora-orb aurora-orb-1"></div>
       <div class="aurora-orb aurora-orb-2"></div>
       <div class="aurora-orb aurora-orb-3"></div>
     </div>
 
-    <!-- Live activity ticker -->
-    <div class="activity-ticker">
-      <span class="ticker-pulse"></span>
-      <span class="ticker-text" id="activityTickerText">12 businesses sent broadcasts in the last hour</span>
-    </div>
-
-    <div class="hero-badge">
-      <i class="fab fa-facebook-messenger" style="font-size:12px;color:#4F9FFF;"></i>
-      2,000 Free Messages — No Credit Card
-    </div>
-
-    <h1 class="hero-h1">
-      Reach Every Follower<br>on <span class="grad">Facebook</span> Instantly
-    </h1>
-    <p class="hero-sub">
-      Broadcast personalized messages to all users who've messaged your Facebook Pages.
-      Fast, reliable, built for businesses worldwide.
-    </p>
-
-    <div class="hero-actions">
-      <a class="btn-hero" id="heroConnectBtn" href="/signup" style="text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:8px;">
-        Start Free Trial →
-      </a>
-      <a class="btn-hero-secondary" href="/login" style="margin-left:12px;text-decoration:none;display:inline-flex;align-items:center;padding:14px 24px;border-radius:12px;border:1px solid rgba(255,255,255,.25);color:#fff;font-weight:600;">Sign In</a>
-      <div class="hero-social-proof">
-        <div class="avatars">
-          <img class="avatar hero-avatar avatar-1" data-hero-avatar="0" src="pics/p1.jpg" alt="Customer profile" loading="lazy" decoding="async">
-          <img class="avatar hero-avatar avatar-2" data-hero-avatar="1" src="pics/p2.webp" alt="Customer profile" loading="lazy" decoding="async">
-          <img class="avatar hero-avatar avatar-3" data-hero-avatar="2" src="pics/p3.jpeg" alt="Customer profile" loading="lazy" decoding="async">
-          <img class="avatar hero-avatar avatar-4" data-hero-avatar="3" src="pics/p4.webp" alt="Customer profile" loading="lazy" decoding="async">
+    <div class="hero-enterprise-grid">
+      <div class="hero-enterprise-copy">
+        <div class="activity-ticker le-fade-in">
+          <span class="ticker-pulse"></span>
+          <span class="ticker-text" id="activityTickerText">12 businesses sent broadcasts in the last hour</span>
         </div>
-        Trusted by 500+ businesses worldwide
+
+        <div class="hero-enterprise-eyebrow le-fade-in le-fade-in--2">
+          <i class="fa-solid fa-building"></i> Enterprise Messenger Platform
+        </div>
+
+        <h1 class="hero-h1 le-fade-in le-fade-in--2">
+          The professional way to<br><span class="grad">broadcast at scale</span>
+        </h1>
+        <p class="hero-sub le-fade-in le-fade-in--3">
+          FBCast Pro is the enterprise-grade platform for Facebook Messenger marketing — unified inbox, AI-assisted campaigns, real-time analytics, and 98% inbox delivery for teams worldwide.
+        </p>
+
+        <div class="hero-actions le-fade-in le-fade-in--3">
+          <div class="hero-enterprise-ctas">
+            <a class="btn-hero" id="heroConnectBtn" href="/signup" style="text-decoration:none;">
+              Start free trial <i class="fa-solid fa-arrow-right"></i>
+            </a>
+            <a class="btn-hero-secondary" href="/login" style="text-decoration:none;">Sign in</a>
+            <a class="btn-hero-demo" href="#features" id="heroWatchDemo"><i class="fa-solid fa-play"></i> See platform</a>
+          </div>
+          <div class="hero-social-proof">
+            <div class="avatars">
+              <img class="avatar hero-avatar avatar-1" data-hero-avatar="0" src="pics/p1.jpg" alt="" loading="lazy" decoding="async">
+              <img class="avatar hero-avatar avatar-2" data-hero-avatar="1" src="pics/p2.webp" alt="" loading="lazy" decoding="async">
+              <img class="avatar hero-avatar avatar-3" data-hero-avatar="2" src="pics/p3.jpeg" alt="" loading="lazy" decoding="async">
+              <img class="avatar hero-avatar avatar-4" data-hero-avatar="3" src="pics/p4.webp" alt="" loading="lazy" decoding="async">
+            </div>
+            Trusted by 500+ businesses · 30+ countries
+          </div>
+        </div>
+
+        <div class="hero-enterprise-badges le-fade-in le-fade-in--4">
+          <span class="le-trust-chip"><i class="fa-solid fa-lock"></i> 256-bit SSL</span>
+          <span class="le-trust-chip"><i class="fa-brands fa-stripe"></i> Stripe billing</span>
+          <span class="le-trust-chip"><i class="fa-brands fa-meta"></i> Official Meta OAuth</span>
+          <span class="le-trust-chip"><i class="fa-solid fa-server"></i> 99.9% uptime</span>
+        </div>
+      </div>
+
+      <div class="hero-enterprise-visual le-fade-in le-fade-in--4">
+        <div class="le-mockup-glow"></div>
+        <div class="le-mockup" role="img" aria-label="FBCast Pro dashboard preview">
+          <div class="le-mockup-bar">
+            <span class="le-mockup-dot le-mockup-dot--r"></span>
+            <span class="le-mockup-dot le-mockup-dot--y"></span>
+            <span class="le-mockup-dot le-mockup-dot--g"></span>
+            <span class="le-mockup-url">app.fbcastpro.com/dashboard</span>
+          </div>
+          <div class="le-mockup-body">
+            <div class="le-mockup-side">
+              <span class="le-mockup-nav-item is-active"><i class="fa-solid fa-house"></i></span>
+              <span class="le-mockup-nav-item"><i class="fa-solid fa-bullhorn"></i></span>
+              <span class="le-mockup-nav-item"><i class="fa-brands fa-facebook-messenger"></i></span>
+              <span class="le-mockup-nav-item"><i class="fa-solid fa-chart-line"></i></span>
+              <span class="le-mockup-nav-item"><i class="fa-solid fa-gear"></i></span>
+            </div>
+            <div class="le-mockup-main">
+              <div class="le-mockup-kpis">
+                <div class="le-mockup-kpi">
+                  <div class="le-mockup-kpi-val">2.4K</div>
+                  <div class="le-mockup-kpi-lbl">Sent today</div>
+                </div>
+                <div class="le-mockup-kpi">
+                  <div class="le-mockup-kpi-val" style="color:#4ade80">98%</div>
+                  <div class="le-mockup-kpi-lbl">Delivered</div>
+                </div>
+                <div class="le-mockup-kpi">
+                  <div class="le-mockup-kpi-val">12</div>
+                  <div class="le-mockup-kpi-lbl">Pages</div>
+                </div>
+              </div>
+              <div class="le-mockup-chart" aria-hidden="true">
+                <div class="le-mockup-bar-col"></div>
+                <div class="le-mockup-bar-col"></div>
+                <div class="le-mockup-bar-col"></div>
+                <div class="le-mockup-bar-col"></div>
+                <div class="le-mockup-bar-col"></div>
+                <div class="le-mockup-bar-col"></div>
+                <div class="le-mockup-bar-col"></div>
+              </div>
+              <div class="le-mockup-live">
+                <span><span class="le-mockup-live-dot"></span> Live broadcast — 3,847 / 4,100 sent</span>
+                <span>94%</span>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
-    <div class="hero-metrics">
-      <div class="metric">
+    <div class="hero-enterprise-metrics">
+      <div class="le-metric-card">
         <div class="metric-val"><span class="counter-num" data-target="2000" data-suffix="">2,000</span></div>
-        <div class="metric-lbl">Free Messages</div>
+        <div class="metric-lbl">Free messages to start</div>
       </div>
-      <div class="metric">
+      <div class="le-metric-card">
         <div class="metric-val">&lt;60s</div>
-        <div class="metric-lbl">Setup Time</div>
+        <div class="metric-lbl">Time to first broadcast</div>
       </div>
-      <div class="metric">
+      <div class="le-metric-card">
         <div class="metric-val">98%</div>
-        <div class="metric-lbl">Delivery Rate</div>
+        <div class="metric-lbl">Messenger delivery rate</div>
       </div>
-      <div class="metric">
-        <div class="metric-val" style="font-size:16px;padding-top:2px;"><i class="fas fa-lock" style="color:var(--blue);"></i> SSL</div>
-        <div class="metric-lbl">Stripe Secured</div>
+      <div class="le-metric-card">
+        <div class="metric-val">50M+</div>
+        <div class="metric-lbl">Messages delivered</div>
       </div>
-    </div>
-
-    <!-- Hero product preview -->
-    <div class="hero-preview">
-      <img src="images/nono.png" alt="FBCast Pro Dashboard" class="hero-preview-img">
     </div>
   </section>
 
@@ -279,6 +336,25 @@ window.getCsrfToken = async (forceRefresh = false) => {
     </div>
   </div>
 
+
+  <!-- ENTERPRISE PLATFORM -->
+  <div class="le-platform-strip" id="platform">
+    <article class="le-platform-card">
+      <i class="fa-solid fa-wand-magic-sparkles"></i>
+      <h3>AI-powered workflows</h3>
+      <p>Built-in assistant for campaign copy, onboarding tours, and smart recommendations — fewer clicks, faster results.</p>
+    </article>
+    <article class="le-platform-card">
+      <i class="fa-solid fa-users-gear"></i>
+      <h3>Built for teams</h3>
+      <p>Role-based collaboration, unified inbox, multi-page broadcasts, and enterprise-grade security controls.</p>
+    </article>
+    <article class="le-platform-card">
+      <i class="fa-solid fa-chart-line"></i>
+      <h3>Analytics that convert</h3>
+      <p>Real-time delivery tracking, performance dashboards, CSV exports, and actionable insights for every campaign.</p>
+    </article>
+  </div>
 
   <!-- TRUSTED BY -->
   <section class="pro-logo-cloud" aria-label="Trusted by businesses">
@@ -2967,6 +3043,7 @@ window.getCsrfToken = async (forceRefresh = false) => {
 <script src="assets/js/user-data.js?v={{VER}}" defer></script>
 <script src="assets/js/brand-logo.js?v={{VER}}" defer></script>
 <script src="assets/js/multi-broadcast.js?v={{VER}}" defer></script>
+<script src="assets/js/landing-enterprise.js?v={{VER}}" defer></script>
 <script src="assets/js/index-page.js?v={{VER}}" defer></script>
 <script src="assets/js/ui-components.js?v={{VER}}" defer></script>
 <script src="assets/js/app-shell.js?v={{VER}}" defer></script>
