@@ -58,6 +58,31 @@
     });
   }
 
+  function syncCompareHighlight() {
+    const wrap = document.querySelector('.cmp-premium__table-wrap');
+    const table = wrap?.querySelector('.cmp-premium__table');
+    const highlight = wrap?.querySelector('.cmp-premium__col-highlight');
+    const proCol = table?.querySelector('colgroup .cmp-premium__col--pro');
+    if (!wrap || !table || !highlight) return;
+
+    function position() {
+      const proCell = table.querySelector('.cmp-premium__th--pro') || table.querySelector('.cmp-premium__td--pro');
+      if (!proCell) return;
+      const wrapRect = wrap.getBoundingClientRect();
+      const cellRect = proCell.getBoundingClientRect();
+      highlight.style.left = (cellRect.left - wrapRect.left) + 'px';
+      highlight.style.width = cellRect.width + 'px';
+    }
+
+    position();
+    if (typeof ResizeObserver !== 'undefined') {
+      const ro = new ResizeObserver(position);
+      ro.observe(table);
+      if (proCol) ro.observe(proCol);
+    }
+    window.addEventListener('resize', position, { passive: true });
+  }
+
   function initCompareReveal() {
     const section = document.querySelector('.cmp-premium');
     if (!section || typeof IntersectionObserver === 'undefined') {
@@ -93,6 +118,7 @@
     initSmoothAnchors();
     initDemoScroll();
     initCompareReveal();
+    syncCompareHighlight();
   }
 
   if (document.readyState === 'loading') {

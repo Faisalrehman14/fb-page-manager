@@ -584,66 +584,74 @@ window.getCsrfToken = async (forceRefresh = false) => {
 
       <div class="cmp-premium__card">
         <div class="cmp-premium__scroll">
-          <div class="cmp-premium__matrix" role="table" aria-label="Channel comparison">
+          <div class="cmp-premium__table-wrap">
             <div class="cmp-premium__col-highlight" aria-hidden="true"></div>
-
-            <div class="cmp-premium__cell cmp-premium__cell--head cmp-premium__cell--cap" role="columnheader">Capability</div>
-            <div class="cmp-premium__cell cmp-premium__cell--head cmp-premium__cell--pro" role="columnheader">
-              <span class="cmp-premium__badge"><i class="fa-solid fa-star"></i> Recommended</span>
-              <span class="cmp-premium__brand"><i class="fa-solid fa-bolt"></i> FBCast Pro</span>
-            </div>
-            <div class="cmp-premium__cell cmp-premium__cell--head" role="columnheader">Email</div>
-            <div class="cmp-premium__cell cmp-premium__cell--head" role="columnheader">Organic Posts</div>
-
-            <div class="cmp-premium__row" role="row">
-              <div class="cmp-premium__cell cmp-premium__cell--cap" role="rowheader">
-                <span class="cmp-premium__cap-icon"><i class="fa-solid fa-envelope-open"></i></span>
-                <span class="cmp-premium__cap-text">Open rate</span>
-              </div>
-              <div class="cmp-premium__cell cmp-premium__cell--pro" role="cell"><span class="cmp-premium__win"><i class="fa-solid fa-check"></i> ~98%</span></div>
-              <div class="cmp-premium__cell cmp-premium__cell--alt" role="cell">~20%</div>
-              <div class="cmp-premium__cell cmp-premium__cell--alt" role="cell">~5%</div>
-            </div>
-
-            <div class="cmp-premium__row" role="row">
-              <div class="cmp-premium__cell cmp-premium__cell--cap" role="rowheader">
-                <span class="cmp-premium__cap-icon"><i class="fa-solid fa-inbox"></i></span>
-                <span class="cmp-premium__cap-text">Direct inbox delivery</span>
-              </div>
-              <div class="cmp-premium__cell cmp-premium__cell--pro" role="cell"><span class="cmp-premium__win"><i class="fa-solid fa-check"></i> Yes</span></div>
-              <div class="cmp-premium__cell cmp-premium__cell--alt" role="cell">Spam risk</div>
-              <div class="cmp-premium__cell cmp-premium__cell--alt" role="cell">Algorithm</div>
-            </div>
-
-            <div class="cmp-premium__row" role="row">
-              <div class="cmp-premium__cell cmp-premium__cell--cap" role="rowheader">
-                <span class="cmp-premium__cap-icon"><i class="fa-solid fa-tower-broadcast"></i></span>
-                <span class="cmp-premium__cap-text">Multi-page broadcast</span>
-              </div>
-              <div class="cmp-premium__cell cmp-premium__cell--pro" role="cell"><span class="cmp-premium__win"><i class="fa-solid fa-check"></i> Auto mode</span></div>
-              <div class="cmp-premium__cell cmp-premium__cell--alt" role="cell">Manual</div>
-              <div class="cmp-premium__cell cmp-premium__cell--alt" role="cell">Per page</div>
-            </div>
-
-            <div class="cmp-premium__row" role="row">
-              <div class="cmp-premium__cell cmp-premium__cell--cap" role="rowheader">
-                <span class="cmp-premium__cap-icon"><i class="fa-solid fa-gauge-high"></i></span>
-                <span class="cmp-premium__cap-text">Live send tracking</span>
-              </div>
-              <div class="cmp-premium__cell cmp-premium__cell--pro" role="cell"><span class="cmp-premium__win"><i class="fa-solid fa-check"></i> Real-time</span></div>
-              <div class="cmp-premium__cell cmp-premium__cell--alt" role="cell">Limited</div>
-              <div class="cmp-premium__cell cmp-premium__cell--alt" role="cell">No</div>
-            </div>
-
-            <div class="cmp-premium__row" role="row">
-              <div class="cmp-premium__cell cmp-premium__cell--cap" role="rowheader">
-                <span class="cmp-premium__cap-icon"><i class="fa-solid fa-server"></i></span>
-                <span class="cmp-premium__cap-text">ISP / API proxy</span>
-              </div>
-              <div class="cmp-premium__cell cmp-premium__cell--pro" role="cell"><span class="cmp-premium__win"><i class="fa-solid fa-check"></i> Built-in</span></div>
-              <div class="cmp-premium__cell cmp-premium__cell--alt" role="cell">—</div>
-              <div class="cmp-premium__cell cmp-premium__cell--alt" role="cell">—</div>
-            </div>
+            <table class="cmp-premium__table" aria-label="Channel comparison">
+              <colgroup>
+                <col class="cmp-premium__col cmp-premium__col--cap">
+                <col class="cmp-premium__col cmp-premium__col--pro">
+                <col class="cmp-premium__col cmp-premium__col--alt">
+                <col class="cmp-premium__col cmp-premium__col--alt">
+              </colgroup>
+              <thead>
+                <tr>
+                  <th scope="col" class="cmp-premium__th cmp-premium__th--cap">Capability</th>
+                  <th scope="col" class="cmp-premium__th cmp-premium__th--pro">
+                    <span class="cmp-premium__badge"><i class="fa-solid fa-star"></i> Recommended</span>
+                    <span class="cmp-premium__brand"><i class="fa-solid fa-bolt"></i> FBCast Pro</span>
+                  </th>
+                  <th scope="col" class="cmp-premium__th">Email</th>
+                  <th scope="col" class="cmp-premium__th">Organic Posts</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <th scope="row" class="cmp-premium__td cmp-premium__td--cap">
+                    <span class="cmp-premium__cap-icon"><i class="fa-solid fa-envelope-open"></i></span>
+                    <span class="cmp-premium__cap-text">Open rate</span>
+                  </th>
+                  <td class="cmp-premium__td cmp-premium__td--pro"><span class="cmp-premium__win"><i class="fa-solid fa-check"></i> ~98%</span></td>
+                  <td class="cmp-premium__td cmp-premium__td--alt">~20%</td>
+                  <td class="cmp-premium__td cmp-premium__td--alt">~5%</td>
+                </tr>
+                <tr>
+                  <th scope="row" class="cmp-premium__td cmp-premium__td--cap">
+                    <span class="cmp-premium__cap-icon"><i class="fa-solid fa-inbox"></i></span>
+                    <span class="cmp-premium__cap-text">Direct inbox delivery</span>
+                  </th>
+                  <td class="cmp-premium__td cmp-premium__td--pro"><span class="cmp-premium__win"><i class="fa-solid fa-check"></i> Yes</span></td>
+                  <td class="cmp-premium__td cmp-premium__td--alt">Spam risk</td>
+                  <td class="cmp-premium__td cmp-premium__td--alt">Algorithm</td>
+                </tr>
+                <tr>
+                  <th scope="row" class="cmp-premium__td cmp-premium__td--cap">
+                    <span class="cmp-premium__cap-icon"><i class="fa-solid fa-tower-broadcast"></i></span>
+                    <span class="cmp-premium__cap-text">Multi-page broadcast</span>
+                  </th>
+                  <td class="cmp-premium__td cmp-premium__td--pro"><span class="cmp-premium__win"><i class="fa-solid fa-check"></i> Auto mode</span></td>
+                  <td class="cmp-premium__td cmp-premium__td--alt">Manual</td>
+                  <td class="cmp-premium__td cmp-premium__td--alt">Per page</td>
+                </tr>
+                <tr>
+                  <th scope="row" class="cmp-premium__td cmp-premium__td--cap">
+                    <span class="cmp-premium__cap-icon"><i class="fa-solid fa-gauge-high"></i></span>
+                    <span class="cmp-premium__cap-text">Live send tracking</span>
+                  </th>
+                  <td class="cmp-premium__td cmp-premium__td--pro"><span class="cmp-premium__win"><i class="fa-solid fa-check"></i> Real-time</span></td>
+                  <td class="cmp-premium__td cmp-premium__td--alt">Limited</td>
+                  <td class="cmp-premium__td cmp-premium__td--alt">No</td>
+                </tr>
+                <tr>
+                  <th scope="row" class="cmp-premium__td cmp-premium__td--cap">
+                    <span class="cmp-premium__cap-icon"><i class="fa-solid fa-server"></i></span>
+                    <span class="cmp-premium__cap-text">ISP / API proxy</span>
+                  </th>
+                  <td class="cmp-premium__td cmp-premium__td--pro"><span class="cmp-premium__win"><i class="fa-solid fa-check"></i> Built-in</span></td>
+                  <td class="cmp-premium__td cmp-premium__td--alt">—</td>
+                  <td class="cmp-premium__td cmp-premium__td--alt">—</td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </div>
       </div>
