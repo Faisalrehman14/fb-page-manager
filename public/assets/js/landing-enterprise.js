@@ -58,12 +58,41 @@
     });
   }
 
+  function initCompareReveal() {
+    const section = document.querySelector('.cmp-premium');
+    if (!section || typeof IntersectionObserver === 'undefined') {
+      document.querySelectorAll('.cmp-premium__stat, .cmp-premium__card, .cmp-premium__trust').forEach((el) => {
+        el.classList.add('is-visible');
+      });
+      return;
+    }
+    const stats = section.querySelectorAll('.cmp-premium__stat');
+    const card = section.querySelector('.cmp-premium__card');
+    const trust = section.querySelector('.cmp-premium__trust');
+    const obs = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (!entry.isIntersecting) return;
+        const t = entry.target;
+        if (t.classList.contains('cmp-premium__stat')) {
+          const i = Array.prototype.indexOf.call(stats, t);
+          t.style.transitionDelay = (i * 0.08) + 's';
+        }
+        t.classList.add('is-visible');
+        obs.unobserve(t);
+      });
+    }, { threshold: 0.15, rootMargin: '0px 0px -40px 0px' });
+    stats.forEach((s) => obs.observe(s));
+    if (card) obs.observe(card);
+    if (trust) obs.observe(trust);
+  }
+
   function init() {
     if (!document.getElementById('landingPage')?.classList.contains('landing-enterprise')) return;
     initNavScroll();
     initTicker();
     initSmoothAnchors();
     initDemoScroll();
+    initCompareReveal();
   }
 
   if (document.readyState === 'loading') {

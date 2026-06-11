@@ -676,15 +676,6 @@ body.light #landingPage.landing-enterprise .le-metric-card .metric-val {
 #landingPage.landing-enterprise .step p {
   color: var(--text2);
 }
-#landingPage.landing-enterprise .pro-compare__table {
-  background: var(--le-surface-elevated);
-  border-color: var(--le-border);
-}
-#landingPage.landing-enterprise .pro-compare__table th,
-#landingPage.landing-enterprise .pro-compare__table td {
-  color: var(--text2);
-  border-color: var(--le-border);
-}
 #landingPage.landing-enterprise .price-card {
   background: var(--le-surface-elevated);
   border-color: var(--le-border);

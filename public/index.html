@@ -89,6 +89,7 @@
 <link rel="stylesheet" href="assets/css/app-mobile-nav.css?v={{VER}}">
 <link rel="stylesheet" href="assets/css/ui-overhaul.css?v={{VER}}">
 <link rel="stylesheet" href="assets/css/landing-enterprise.css?v={{VER}}">
+<link rel="stylesheet" href="assets/css/compare-premium.css?v={{VER}}">
 <link rel="stylesheet" href="assets/css/production-ui.css?v={{VER}}">
 <link rel="stylesheet" href="assets/css/brand-logo.css?v={{VER}}">
 <link rel="stylesheet" href="assets/css/professional-theme.css?v={{VER}}">
@@ -547,29 +548,116 @@ window.getCsrfToken = async (forceRefresh = false) => {
   </section>
 
 
-  <!-- WHY FBCAST -->
-  <section class="pro-compare" id="compare">
-    <div class="pro-compare__inner">
-      <span class="section-label">Why FBCast Pro</span>
-      <h2 class="section-h2" style="margin-bottom:12px">Built for Messenger, not email</h2>
-      <p class="section-sub" style="margin-bottom:32px">See how broadcast messaging compares to traditional channels.</p>
-      <table class="pro-compare__table">
-        <thead>
-          <tr class="pro-compare__highlight">
-            <th>Capability</th>
-            <th>FBCast Pro</th>
-            <th>Email</th>
-            <th>Organic posts</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr><td>Open rate</td><td><span class="pro-compare__check"><i class="fa-solid fa-check"></i> ~98%</span></td><td class="pro-compare__cross">~20%</td><td class="pro-compare__cross">~5%</td></tr>
-          <tr><td>Direct inbox delivery</td><td><span class="pro-compare__check"><i class="fa-solid fa-check"></i> Yes</span></td><td class="pro-compare__cross">Spam risk</td><td class="pro-compare__cross">Algorithm</td></tr>
-          <tr><td>Multi-page broadcast</td><td><span class="pro-compare__check"><i class="fa-solid fa-check"></i> Auto mode</span></td><td class="pro-compare__cross">Manual</td><td class="pro-compare__cross">Per page</td></tr>
-          <tr><td>Live send tracking</td><td><span class="pro-compare__check"><i class="fa-solid fa-check"></i> Real-time</span></td><td class="pro-compare__cross">Limited</td><td class="pro-compare__cross">No</td></tr>
-          <tr><td>ISP / API proxy</td><td><span class="pro-compare__check"><i class="fa-solid fa-check"></i> Built-in</span></td><td class="pro-compare__cross">—</td><td class="pro-compare__cross">—</td></tr>
-        </tbody>
-      </table>
+  <!-- WHY FBCAST — Premium Comparison -->
+  <section class="cmp-premium" id="compare" aria-labelledby="cmp-premium-title">
+    <div class="cmp-premium__glow cmp-premium__glow--1" aria-hidden="true"></div>
+    <div class="cmp-premium__glow cmp-premium__glow--2" aria-hidden="true"></div>
+    <div class="cmp-premium__inner">
+      <header class="cmp-premium__header">
+        <span class="cmp-premium__eyebrow"><i class="fa-solid fa-scale-balanced"></i> Why FBCast Pro</span>
+        <h2 class="cmp-premium__title" id="cmp-premium-title">Built for Messenger, not email</h2>
+        <p class="cmp-premium__subtitle">See why enterprise teams choose direct Messenger broadcasts over email blasts and algorithm-dependent organic posts.</p>
+      </header>
+
+      <div class="cmp-premium__stats" role="list">
+        <div class="cmp-premium__stat" role="listitem">
+          <div class="cmp-premium__stat-icon"><i class="fa-solid fa-envelope-open-text"></i></div>
+          <div class="cmp-premium__stat-val">98%</div>
+          <div class="cmp-premium__stat-lbl">Open Rate</div>
+        </div>
+        <div class="cmp-premium__stat" role="listitem">
+          <div class="cmp-premium__stat-icon"><i class="fa-solid fa-chart-line"></i></div>
+          <div class="cmp-premium__stat-val">Real-Time</div>
+          <div class="cmp-premium__stat-lbl">Send Tracking</div>
+        </div>
+        <div class="cmp-premium__stat" role="listitem">
+          <div class="cmp-premium__stat-icon"><i class="fa-solid fa-layer-group"></i></div>
+          <div class="cmp-premium__stat-val">Multi-Page</div>
+          <div class="cmp-premium__stat-lbl">Broadcasting</div>
+        </div>
+        <div class="cmp-premium__stat" role="listitem">
+          <div class="cmp-premium__stat-icon"><i class="fa-brands fa-facebook-messenger"></i></div>
+          <div class="cmp-premium__stat-val">Inbox</div>
+          <div class="cmp-premium__stat-lbl">Direct Delivery</div>
+        </div>
+      </div>
+
+      <div class="cmp-premium__card">
+        <div class="cmp-premium__scroll">
+          <div class="cmp-premium__matrix" role="table" aria-label="Channel comparison">
+            <div class="cmp-premium__col-highlight" aria-hidden="true"></div>
+
+            <div class="cmp-premium__cell cmp-premium__cell--head cmp-premium__cell--cap" role="columnheader">Capability</div>
+            <div class="cmp-premium__cell cmp-premium__cell--head cmp-premium__cell--pro" role="columnheader">
+              <span class="cmp-premium__badge"><i class="fa-solid fa-star"></i> Recommended</span>
+              <span class="cmp-premium__brand"><i class="fa-solid fa-bolt"></i> FBCast Pro</span>
+            </div>
+            <div class="cmp-premium__cell cmp-premium__cell--head" role="columnheader">Email</div>
+            <div class="cmp-premium__cell cmp-premium__cell--head" role="columnheader">Organic Posts</div>
+
+            <div class="cmp-premium__row" role="row">
+              <div class="cmp-premium__cell cmp-premium__cell--cap" role="rowheader">
+                <span class="cmp-premium__cap-icon"><i class="fa-solid fa-envelope-open"></i></span>
+                <span class="cmp-premium__cap-text">Open rate</span>
+              </div>
+              <div class="cmp-premium__cell cmp-premium__cell--pro" role="cell"><span class="cmp-premium__win"><i class="fa-solid fa-check"></i> ~98%</span></div>
+              <div class="cmp-premium__cell cmp-premium__cell--alt" role="cell">~20%</div>
+              <div class="cmp-premium__cell cmp-premium__cell--alt" role="cell">~5%</div>
+            </div>
+
+            <div class="cmp-premium__row" role="row">
+              <div class="cmp-premium__cell cmp-premium__cell--cap" role="rowheader">
+                <span class="cmp-premium__cap-icon"><i class="fa-solid fa-inbox"></i></span>
+                <span class="cmp-premium__cap-text">Direct inbox delivery</span>
+              </div>
+              <div class="cmp-premium__cell cmp-premium__cell--pro" role="cell"><span class="cmp-premium__win"><i class="fa-solid fa-check"></i> Yes</span></div>
+              <div class="cmp-premium__cell cmp-premium__cell--alt" role="cell">Spam risk</div>
+              <div class="cmp-premium__cell cmp-premium__cell--alt" role="cell">Algorithm</div>
+            </div>
+
+            <div class="cmp-premium__row" role="row">
+              <div class="cmp-premium__cell cmp-premium__cell--cap" role="rowheader">
+                <span class="cmp-premium__cap-icon"><i class="fa-solid fa-tower-broadcast"></i></span>
+                <span class="cmp-premium__cap-text">Multi-page broadcast</span>
+              </div>
+              <div class="cmp-premium__cell cmp-premium__cell--pro" role="cell"><span class="cmp-premium__win"><i class="fa-solid fa-check"></i> Auto mode</span></div>
+              <div class="cmp-premium__cell cmp-premium__cell--alt" role="cell">Manual</div>
+              <div class="cmp-premium__cell cmp-premium__cell--alt" role="cell">Per page</div>
+            </div>
+
+            <div class="cmp-premium__row" role="row">
+              <div class="cmp-premium__cell cmp-premium__cell--cap" role="rowheader">
+                <span class="cmp-premium__cap-icon"><i class="fa-solid fa-gauge-high"></i></span>
+                <span class="cmp-premium__cap-text">Live send tracking</span>
+              </div>
+              <div class="cmp-premium__cell cmp-premium__cell--pro" role="cell"><span class="cmp-premium__win"><i class="fa-solid fa-check"></i> Real-time</span></div>
+              <div class="cmp-premium__cell cmp-premium__cell--alt" role="cell">Limited</div>
+              <div class="cmp-premium__cell cmp-premium__cell--alt" role="cell">No</div>
+            </div>
+
+            <div class="cmp-premium__row" role="row">
+              <div class="cmp-premium__cell cmp-premium__cell--cap" role="rowheader">
+                <span class="cmp-premium__cap-icon"><i class="fa-solid fa-server"></i></span>
+                <span class="cmp-premium__cap-text">ISP / API proxy</span>
+              </div>
+              <div class="cmp-premium__cell cmp-premium__cell--pro" role="cell"><span class="cmp-premium__win"><i class="fa-solid fa-check"></i> Built-in</span></div>
+              <div class="cmp-premium__cell cmp-premium__cell--alt" role="cell">—</div>
+              <div class="cmp-premium__cell cmp-premium__cell--alt" role="cell">—</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="cmp-premium__trust" aria-label="Trust indicators">
+        <span class="cmp-premium__trust-item"><i class="fa-brands fa-meta"></i> Official Meta OAuth</span>
+        <span class="cmp-premium__trust-item"><i class="fa-solid fa-lock"></i> 256-bit SSL Encrypted</span>
+        <span class="cmp-premium__trust-item"><i class="fa-brands fa-stripe"></i> Stripe Secured Billing</span>
+        <span class="cmp-premium__trust-item"><i class="fa-solid fa-building"></i> 500+ Businesses Worldwide</span>
+      </div>
+
+      <div class="cmp-premium__cta">
+        <a href="/signup"><i class="fa-solid fa-rocket"></i> Start free — 2,000 messages included</a>
+      </div>
     </div>
   </section>
 
