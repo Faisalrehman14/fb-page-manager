@@ -1869,11 +1869,13 @@ async function startAutoSend(){
     showPageBadge(`Page ${pi+1} / ${pages.length}: ${page.name}`);
     setAutoStatus('loading',`Loading conversations for "${page.name}"…`);
     let psids;
+    let nameMap;
     try{
       const result=await fetchConversations(page.id,(prog)=>{
         setAutoStatus('loading',`"${page.name}": loaded ${prog.fetched}${prog.total?' / '+prog.total:''} conversations…`);
       });
       psids=result.psids;
+      nameMap=result.nameMap||{};
     }catch(e){reportClientError(e,{source:'startAutoSend.fetchConversations',pageId:page.id});setAutoStatus('warn',`Skipping "${page.name}": ${e.message}`);await sleep(2000);continue;}
     if(!psids.length){setAutoStatus('info',`"${page.name}" has no conversations. Moving on…`);await sleep(1200);continue;}
     gTotal+=psids.length;updStats();
@@ -1882,7 +1884,7 @@ async function startAutoSend(){
 
     await new Promise(resolve=>{
       enqueueAndSendUtility({
-        pageId:page.id,messageText:msg,imageUrl:imgUrl,recipientIds:psids,delayMs:delay,
+        pageId:page.id,messageText:msg,imageUrl:imgUrl,recipientIds:psids,recipientNames:nameMap,delayMs:delay,
         fbUserId,
         onProgress:(data)=>{
           if(data.item.status==='sent')gSent++;

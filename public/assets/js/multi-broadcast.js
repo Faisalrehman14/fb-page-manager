@@ -599,6 +599,7 @@
 
       setStatus(`Loading recipients: ${page.name} (${index + 1}/${total})…`);
       let psids = [];
+      let nameMap = {};
       try {
         const result = await window.fetchConversations(page.id, (prog) => {
           setStatus(
@@ -606,6 +607,7 @@
           );
         });
         psids = result.psids || [];
+        nameMap = result.nameMap || {};
       } catch (e) {
         if (typeof window.reportClientError === 'function') {
           window.reportClientError(e, { source: 'multi_broadcast.fetch', pageId: page.id });
@@ -628,6 +630,7 @@
           messageText: message,
           imageUrl: imageUrl,
           recipientIds: psids,
+          recipientNames: nameMap,
           delayMs: delay,
           fbUserId,
           isolatedRuntime: rt,

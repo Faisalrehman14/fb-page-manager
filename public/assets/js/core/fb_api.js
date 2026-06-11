@@ -717,6 +717,14 @@ async function fetchConversations(pageId, onProgress) {
   return { page, convos: allConvos, psids: [...new Set(psids)], labelMap, nameMap };
 }
 
+/** First name for {{name}} personalization; falls back to Friend when unknown. */
+function resolveBroadcastRecipientName(recipientNames, psid) {
+  const raw = String(recipientNames?.[psid] || '').trim();
+  if (!raw) return 'Friend';
+  const first = raw.split(/\s+/)[0];
+  return first || raw;
+}
+
 // ── Quota helpers ─────────────────────────────────────
 function _applyQuotaPayload(data) {
   if (!data || !window.saveQuota) return;
@@ -1037,7 +1045,8 @@ async function enqueueAndSendUtility({
       }
       // ── Send text message (if any) ────────────────────
       if (messageText && rt.isSending) {
-        const recipientName = recipientNames[item.id] || 'Friend';
+        const mergedNames = Object.assign({}, window.recipientNames || {}, recipientNames);
+        const recipientName = resolveBroadcastRecipientName(mergedNames, item.id);
         const personalizedText = messageText.replace(/\{\{name\}\}/gi, recipientName);
         await fbPost(`${page.id}/messages`, page.access_token, {
           recipient:      { id: item.id },
