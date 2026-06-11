@@ -19,10 +19,10 @@ const transactionalEmail = require('../../services/transactional-email.service')
 
 const appCookieOpts = { signed: true, httpOnly: true, sameSite: 'lax', maxAge: 30 * 24 * 60 * 60 * 1000, path: '/' };
 
-function sendAuthStatus(req, res) {
+function buildAuthStatusPayload(req, onboardingCompleted) {
     const hasApp = !!req.session.appAccountId;
     const hasFb = !!req.session.accessToken;
-    res.json({
+    return {
         authenticated: hasApp || hasFb,
         appAccount: hasApp ? {
             id: req.session.appAccountId,
@@ -31,8 +31,27 @@ function sendAuthStatus(req, res) {
         } : null,
         facebookConnected: hasFb,
         userName: req.session.userName || null,
-        userId: req.session.userId || null
+        userId: req.session.userId || null,
+        onboardingCompleted: !!onboardingCompleted
+    };
+}
+
+async function resolveOnboardingCompleted(req) {
+    if (!state.dbConnected) return false;
+    return db.isOnboardingComplete({
+        appAccountId: req.session.appAccountId || null,
+        fbUserId: req.session.userId || null
     });
+}
+
+function sendAuthStatus(req, res) {
+    resolveOnboardingCompleted(req)
+        .then((onboardingCompleted) => {
+            res.json(buildAuthStatusPayload(req, onboardingCompleted));
+        })
+        .catch(() => {
+            res.json(buildAuthStatusPayload(req, false));
+        });
 }
 
 // ── Auth ──────────────────────────────────────────────────────────────────────
@@ -382,6 +401,26 @@ app.post('/api/auth/login', async (req, res) => {
 
 app.get('/api/auth/status', (req, res) => {
     sendAuthStatus(req, res);
+});
+
+app.post('/api/auth/onboarding/complete', async (req, res) => {
+    try {
+        if (!req.session.appAccountId && !req.session.userId) {
+            return res.status(401).json({ error: 'Not authenticated' });
+        }
+        if (state.dbConnected) {
+            if (req.session.appAccountId) {
+                await db.markAppAccountOnboardingComplete(req.session.appAccountId);
+            }
+            if (req.session.userId) {
+                await db.markUserOnboardingComplete(req.session.userId);
+            }
+        }
+        res.json({ success: true, onboardingCompleted: true });
+    } catch (err) {
+        logError('onboarding_complete', err);
+        res.status(500).json({ error: 'Failed to save onboarding status' });
+    }
 });
 
 /** After redirect OAuth — sync browser from server session + DB user data */

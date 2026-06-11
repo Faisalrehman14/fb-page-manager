@@ -71,6 +71,7 @@
 <link rel="stylesheet" href="assets/css/messenger-inbox-pro.css?v={{VER}}">
 <link rel="stylesheet" href="assets/css/design-system.css?v={{VER}}">
 <link rel="stylesheet" href="assets/css/app-shell.css?v={{VER}}">
+<link rel="stylesheet" href="assets/css/onboarding-tour.css?v={{VER}}">
 <link rel="stylesheet" href="assets/css/saas.css?v={{VER}}">
 <link rel="stylesheet" href="assets/css/saas-topbar.css?v={{VER}}">
 <link rel="stylesheet" href="assets/css/saas-premium.css?v={{VER}}">
@@ -2624,6 +2625,9 @@ window.getCsrfToken = async (forceRefresh = false) => {
             <h2 class="pro-view__title">Help Center</h2>
             <p class="pro-view__sub">Quick answers for broadcasts, billing, and Messenger inbox.</p>
           </div>
+          <button type="button" class="ds-btn ds-btn--secondary" id="helpRestartTourBtn" onclick="if(window.FBCastTour)window.FBCastTour.restart()">
+            <i class="fa-solid fa-route"></i> Take the tour again
+          </button>
         </header>
       <div class="help-panel">
         <div class="help-header">
@@ -2965,6 +2969,7 @@ window.getCsrfToken = async (forceRefresh = false) => {
 <script src="assets/js/index-page.js?v={{VER}}" defer></script>
 <script src="assets/js/ui-components.js?v={{VER}}" defer></script>
 <script src="assets/js/app-shell.js?v={{VER}}" defer></script>
+<script src="assets/js/onboarding-tour.js?v={{VER}}" defer></script>
 <script src="assets/js/billing-status.js?v={{VER}}" defer></script>
 <script src="assets/js/billing.js?v={{VER}}" defer></script>
 <script src="assets/js/core/fb_api.js?v={{VER}}" defer></script>

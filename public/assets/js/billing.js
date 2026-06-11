@@ -143,6 +143,10 @@
   }
 
   function showOnboarding() {
+    if (global.FBCastTour && typeof global.FBCastTour.tryStart === 'function') {
+      global.FBCastTour.tryStart();
+      return;
+    }
     if (localStorage.getItem(ONBOARDING_KEY) === '1') return;
     if (!localStorage.getItem('fb_user_token')) return;
 
@@ -211,7 +215,7 @@
       setTimeout(() => {
         refreshBillingUI().catch(() => {});
         try { showOnboarding(); } catch (_) {}
-      }, 400);
+      }, 650);
     };
   }
 })(window);

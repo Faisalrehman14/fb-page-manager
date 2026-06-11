@@ -228,6 +228,10 @@
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Registration failed');
       setSignupStep('done');
+      try {
+        sessionStorage.setItem('fbcast_just_logged_in', '1');
+        sessionStorage.setItem('fbcast_show_onboarding', '1');
+      } catch (_) {}
       window.location.href = data.redirect || '/';
     } catch (err) {
       showError(err.message || 'Registration failed');

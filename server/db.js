@@ -220,6 +220,8 @@ async function initDatabase() {
             "ALTER TABLE users ADD COLUMN last_login_at DATETIME NULL",
             "ALTER TABLE users ADD COLUMN plan_activated_at DATETIME NULL",
             "ALTER TABLE app_accounts ADD COLUMN welcome_email_sent_at DATETIME NULL",
+            "ALTER TABLE app_accounts ADD COLUMN onboarding_completed_at DATETIME NULL",
+            "ALTER TABLE users ADD COLUMN onboarding_completed_at DATETIME NULL",
             "ALTER TABLE users ADD COLUMN free_trial_email_sent_at DATETIME NULL",
             "ALTER TABLE users ADD COLUMN trial_reminder_email_sent_at DATETIME NULL",
             "ALTER TABLE users ADD COLUMN account_status ENUM('active','suspended') NOT NULL DEFAULT 'active'"
@@ -2435,10 +2437,44 @@ async function updateAppAccountPassword(email, passwordHash) {
 async function getAppAccountById(id) {
     if (!pool) return null;
     const [rows] = await pool.query(
-        'SELECT id, email, first_name, last_name, referral_name, linked_fb_user_id, created_at FROM app_accounts WHERE id = ? LIMIT 1',
+        'SELECT id, email, first_name, last_name, referral_name, linked_fb_user_id, created_at, onboarding_completed_at FROM app_accounts WHERE id = ? LIMIT 1',
         [id]
     );
     return rows[0] || null;
+}
+
+async function markAppAccountOnboardingComplete(id) {
+    if (!pool || !id) return false;
+    const [result] = await pool.query(
+        'UPDATE app_accounts SET onboarding_completed_at = NOW() WHERE id = ? AND onboarding_completed_at IS NULL',
+        [id]
+    );
+    return result.affectedRows > 0;
+}
+
+async function markUserOnboardingComplete(fb_user_id) {
+    if (!pool || !fb_user_id) return false;
+    const [result] = await pool.query(
+        'UPDATE users SET onboarding_completed_at = NOW() WHERE fb_user_id = ? AND onboarding_completed_at IS NULL',
+        [fb_user_id]
+    );
+    return result.affectedRows > 0;
+}
+
+async function isOnboardingComplete({ appAccountId, fbUserId } = {}) {
+    if (!pool) return false;
+    if (appAccountId) {
+        const acc = await getAppAccountById(appAccountId);
+        if (acc?.onboarding_completed_at) return true;
+    }
+    if (fbUserId) {
+        const [rows] = await pool.query(
+            'SELECT onboarding_completed_at FROM users WHERE fb_user_id = ? LIMIT 1',
+            [fbUserId]
+        );
+        if (rows[0]?.onboarding_completed_at) return true;
+    }
+    return false;
 }
 
 async function saveEmailOtp({ email, purpose, otpHash, ttlMs }) {
@@ -4603,6 +4639,9 @@ const dbModule = {
     getAppAccountByEmail,
     updateAppAccountPassword,
     getAppAccountById,
+    markAppAccountOnboardingComplete,
+    markUserOnboardingComplete,
+    isOnboardingComplete,
     saveEmailOtp,
     getEmailOtpRow,
     getEmailOtpCooldownRemaining,
