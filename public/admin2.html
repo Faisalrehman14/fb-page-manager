@@ -1121,12 +1121,12 @@ const App = {
         const r = await fetch('/api/admin/stats');
         if(!r.ok) throw new Error();
         const d = await r.json();
-        animateNumber($('sTotal'),  d.registeredAccounts ?? d.users || 0);
+        animateNumber($('sTotal'),  d.registeredAccounts ?? d.users ?? 0);
         animateNumber($('sPaid'),   d.paidPlan || 0);
         animateNumber($('sFree'),   d.freePlan || 0);
         animateNumber($('sLogins'), d.todayLogins || 0);
         animateNumber($('sMsgs'),   d.totalMessages || 0);
-        const regTotal = d.registeredAccounts ?? d.users || 0;
+        const regTotal = d.registeredAccounts ?? d.users ?? 0;
         $('navUserCount').textContent = fmt(regTotal);
         $('navUserCount').style.display = regTotal ? '' : 'none';
         if ($('sRegisteredSub')) {
