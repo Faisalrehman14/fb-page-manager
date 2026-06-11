@@ -2143,8 +2143,49 @@ body.app-dashboard-active #view-home .hv-recent-card,
 body.app-dashboard-active #view-home .hv-plan-card,
 body.app-dashboard-active #view-home .hv-lifetime-card {
   background: var(--sched-surface) !important;
-  border-color: var(--sched-edge) !important;
+  border-color: rgba(139, 156, 255, 0.18) !important;
   box-shadow: none !important;
+}
+
+body.app-dashboard-active #view-home .hv-lifetime-bg {
+  background: linear-gradient(165deg, rgba(26, 16, 64, 0.55) 0%, rgba(18, 26, 69, 0.45) 45%, rgba(12, 18, 40, 0.35) 100%) !important;
+}
+
+body.app-dashboard-active #view-home .hv-lifetime-bg::before {
+  background:
+    radial-gradient(ellipse at 90% 10%, rgba(168, 85, 247, 0.16), transparent 55%),
+    radial-gradient(ellipse at 10% 90%, rgba(59, 130, 246, 0.1), transparent 50%) !important;
+}
+
+body.app-dashboard-active #view-home .hv-lifetime-icon {
+  background: linear-gradient(135deg, #7c3aed, #3b82f6) !important;
+  color: #fff !important;
+  box-shadow: 0 4px 14px rgba(124, 58, 237, 0.32) !important;
+}
+
+body.app-dashboard-active #view-home .hv-lifetime-title {
+  color: var(--sched-text) !important;
+}
+
+body.app-dashboard-active #view-home .hv-lifetime-desc {
+  color: var(--sched-text-2) !important;
+}
+
+body.app-dashboard-active #view-home .hv-lifetime-btn {
+  background: rgba(99, 102, 241, 0.12) !important;
+  border: 1px solid rgba(139, 156, 255, 0.22) !important;
+  color: #c7d2fe !important;
+  box-shadow: none !important;
+}
+
+body.app-dashboard-active #view-home .hv-lifetime-btn i {
+  color: #a5b4fc !important;
+}
+
+body.app-dashboard-active #view-home .hv-lifetime-btn:hover {
+  background: rgba(99, 102, 241, 0.22) !important;
+  border-color: rgba(139, 156, 255, 0.35) !important;
+  color: #fff !important;
 }
 
 body.app-dashboard-active #view-home .hv-kpi:hover,

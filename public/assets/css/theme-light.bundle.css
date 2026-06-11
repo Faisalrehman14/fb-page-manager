@@ -347,12 +347,20 @@ body.light #view-home .hv-plan-bar {
 
 html[data-theme='light'] #view-home .hv-lifetime-card,
 body.light #view-home .hv-lifetime-card {
-  border-color: rgba(245, 158, 11, 0.35) !important;
+  border-color: rgba(124, 58, 237, 0.24) !important;
+  box-shadow: 0 8px 32px rgba(99, 102, 241, 0.08) !important;
 }
 
 html[data-theme='light'] #view-home .hv-lifetime-bg,
 body.light #view-home .hv-lifetime-bg {
-  background: linear-gradient(135deg, #fffbeb, #fef3c7) !important;
+  background: linear-gradient(165deg, #faf5ff 0%, #ffffff 55%, #f8fafc 100%) !important;
+}
+
+html[data-theme='light'] #view-home .hv-lifetime-bg::before,
+body.light #view-home .hv-lifetime-bg::before {
+  background:
+    radial-gradient(ellipse at 90% 10%, rgba(168, 85, 247, 0.1), transparent 55%),
+    radial-gradient(ellipse at 10% 90%, rgba(59, 130, 246, 0.08), transparent 50%) !important;
 }
 
 html[data-theme='light'] #view-home .hv-lifetime-title,
@@ -360,11 +368,35 @@ body.light #view-home .hv-lifetime-title {
   color: #0f172a !important;
 }
 
+html[data-theme='light'] #view-home .hv-lifetime-desc,
+body.light #view-home .hv-lifetime-desc {
+  color: #64748b !important;
+}
+
+html[data-theme='light'] #view-home .hv-lifetime-icon,
+body.light #view-home .hv-lifetime-icon {
+  background: linear-gradient(135deg, #7c3aed, #2563eb) !important;
+  color: #fff !important;
+  box-shadow: 0 4px 14px rgba(124, 58, 237, 0.25) !important;
+}
+
 html[data-theme='light'] #view-home .hv-lifetime-btn,
 body.light #view-home .hv-lifetime-btn {
-  color: #1e3a8a !important;
-  background: #fff !important;
-  border-color: #e2e8f0 !important;
+  color: #4338ca !important;
+  background: rgba(99, 102, 241, 0.08) !important;
+  border: 1px solid rgba(124, 58, 237, 0.2) !important;
+}
+
+html[data-theme='light'] #view-home .hv-lifetime-btn i,
+body.light #view-home .hv-lifetime-btn i {
+  color: #6366f1 !important;
+}
+
+html[data-theme='light'] #view-home .hv-lifetime-btn:hover,
+body.light #view-home .hv-lifetime-btn:hover {
+  color: #312e81 !important;
+  background: rgba(99, 102, 241, 0.14) !important;
+  border-color: rgba(124, 58, 237, 0.32) !important;
 }
 
 html[data-theme='light'] #view-home .hv-pstatus-name,
@@ -1409,7 +1441,7 @@ body.light #appPage #view-home .hv-plan-bar {
 
 html[data-theme='light'] #appPage #view-home .hv-lifetime-bg,
 body.light #appPage #view-home .hv-lifetime-bg {
-  background: linear-gradient(135deg, #fffbeb, #fef3c7) !important;
+  background: linear-gradient(165deg, #faf5ff 0%, #ffffff 55%, #f8fafc 100%) !important;
 }
 
 html[data-theme='light'] #appPage #view-home .hv-green,

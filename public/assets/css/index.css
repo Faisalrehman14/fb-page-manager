@@ -3356,46 +3356,52 @@ body.annual .price-billing-annual{display:block}
 /* ── Lifetime Deal Card ──────────────────────── */
 .hv-lifetime-card {
   position: relative; overflow: hidden;
-  border-radius: 16px; margin-top: 14px;
-  border: 1px solid rgba(245,158,11,.3);
+  border-radius: 18px; margin-top: 14px;
+  border: 1px solid rgba(168, 85, 247, 0.28);
 }
 .hv-lifetime-bg {
   position: absolute; inset: 0;
-  background: linear-gradient(135deg, #1a0f00 0%, #120a00 50%, #0d0800 100%);
+  background: linear-gradient(165deg, #1a1040 0%, #121a45 45%, #0c1228 100%);
 }
 .hv-lifetime-bg::before {
   content: '';
   position: absolute; inset: 0;
-  background: radial-gradient(ellipse at 20% 50%, rgba(245,158,11,.18) 0%, transparent 60%),
-              radial-gradient(ellipse at 90% 20%, rgba(251,191,36,.10) 0%, transparent 55%);
+  background: radial-gradient(ellipse at 88% 12%, rgba(168, 85, 247, 0.24) 0%, transparent 55%),
+              radial-gradient(ellipse at 12% 88%, rgba(59, 130, 246, 0.16) 0%, transparent 50%);
 }
 .hv-lifetime-inner {
   position: relative; z-index: 1;
-  padding: 16px; display: flex; flex-direction: column; gap: 10px;
+  padding: 20px; display: flex; flex-direction: column; gap: 12px;
 }
 .hv-lifetime-icon {
-  width: 40px; height: 40px; border-radius: 11px; flex-shrink: 0;
-  background: linear-gradient(135deg, #F59E0B, #D97706);
+  width: 42px; height: 42px; border-radius: 12px; flex-shrink: 0;
+  background: linear-gradient(135deg, #7c3aed, #2563eb);
   display: flex; align-items: center; justify-content: center;
-  font-size: 18px; color: #000;
-  box-shadow: 0 4px 16px rgba(245,158,11,.45);
+  font-size: 17px; color: #fff;
+  box-shadow: 0 4px 16px rgba(124, 58, 237, 0.35);
 }
 .hv-lifetime-title {
-  font-size: 13px; font-weight: 800; color: #FCD34D; letter-spacing: -.2px;
+  font-size: 15px; font-weight: 800; color: var(--text); letter-spacing: -.2px;
 }
 .hv-lifetime-desc {
-  font-size: 11px; color: rgba(253,230,138,.7); line-height: 1.6; margin-top: 3px;
+  font-size: 12px; color: var(--text2); line-height: 1.55; margin-top: 3px;
 }
 .hv-lifetime-btn {
   display: flex; align-items: center; justify-content: center; gap: 8px;
-  padding: 10px 14px; border-radius: 10px; margin-top: 4px;
-  background: linear-gradient(135deg, #F59E0B, #D97706);
-  color: #000; font-size: 11px; font-weight: 800;
+  padding: 11px 14px; border-radius: 10px; margin-top: 2px;
+  background: rgba(99, 102, 241, 0.12);
+  border: 1px solid rgba(139, 156, 255, 0.22);
+  color: #c7d2fe; font-size: 12px; font-weight: 700;
   text-decoration: none; letter-spacing: .1px;
-  box-shadow: 0 3px 14px rgba(245,158,11,.45);
-  transition: transform .18s, box-shadow .18s;
+  box-shadow: none;
+  transition: transform .18s, background .18s, border-color .18s, color .18s;
 }
-.hv-lifetime-btn:hover { transform: translateY(-2px); box-shadow: 0 5px 20px rgba(245,158,11,.6); }
+.hv-lifetime-btn:hover {
+  transform: translateY(-1px);
+  background: rgba(99, 102, 241, 0.22);
+  border-color: rgba(139, 156, 255, 0.35);
+  color: #fff;
+}
 
 /* ═══════════════════════════════════════════════
    SIDEBAR CONSISTENCY — home / broadcast / messenger
