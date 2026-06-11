@@ -125,6 +125,9 @@
     if (typeof window.updateHomeViewStats === 'function') {
       window.updateHomeViewStats();
     }
+    try {
+      window.dispatchEvent(new CustomEvent('fbc:home-summary-updated', { detail: data }));
+    } catch (_) {}
   }
 
   async function refresh(force) {

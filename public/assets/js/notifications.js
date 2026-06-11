@@ -14,6 +14,7 @@
   let unread = 0;
   let pollTimer = null;
   let booted = false;
+  let activeTab = 'all';
 
   function $(id) { return document.getElementById(id); }
 
@@ -82,16 +83,24 @@
     }
   }
 
+  function filteredNotifications() {
+    if (activeTab === 'all') return notifications;
+    if (activeTab === 'personal') return notifications.filter((n) => n.target_type === 'user');
+    if (activeTab === 'announcements') return notifications.filter((n) => n.target_type !== 'user');
+    return notifications;
+  }
+
   function render() {
     const list = $('notifList');
     const meta = $('notifFooterMeta');
     if (!list) return;
-    if (!notifications.length) {
+    const visible = filteredNotifications();
+    if (!visible.length) {
       list.innerHTML = '<div class="notif-empty"><i class="fa-solid fa-bell-slash"></i><p>You\'re all caught up.</p></div>';
-      if (meta) meta.textContent = 'No notifications yet';
+      if (meta) meta.textContent = notifications.length ? 'No items in this tab' : 'No notifications yet';
       return;
     }
-    list.innerHTML = notifications.map(n => {
+    list.innerHTML = visible.map(n => {
       const sev = n.severity || 'info';
       const unreadCls = n.is_read ? '' : 'is-unread';
       const link = n.link_url
@@ -162,11 +171,34 @@
     }
   }
 
+  function ensureTabs() {
+    const panel = $('notifPanel');
+    if (!panel || panel.querySelector('.notif-tabs')) return;
+    const tabs = document.createElement('div');
+    tabs.className = 'notif-tabs';
+    tabs.setAttribute('role', 'tablist');
+    tabs.innerHTML =
+      '<button type="button" class="notif-tab is-active" data-tab="all" role="tab">All</button>' +
+      '<button type="button" class="notif-tab" data-tab="announcements" role="tab">Announcements</button>' +
+      '<button type="button" class="notif-tab" data-tab="personal" role="tab">Personal</button>';
+    const list = $('notifList');
+    if (list) panel.insertBefore(tabs, list);
+    tabs.querySelectorAll('.notif-tab').forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        activeTab = btn.dataset.tab || 'all';
+        tabs.querySelectorAll('.notif-tab').forEach((b) => b.classList.toggle('is-active', b === btn));
+        render();
+      });
+    });
+  }
+
   function attachEvents() {
     const bell = $('notifBellBtn');
     const panel = $('notifPanel');
     const markAll = $('notifMarkAll');
     if (!bell || !panel) return;
+    ensureTabs();
 
     bell.addEventListener('click', (e) => {
       e.stopPropagation();

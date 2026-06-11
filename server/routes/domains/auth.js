@@ -403,6 +403,65 @@ app.get('/api/auth/status', (req, res) => {
     sendAuthStatus(req, res);
 });
 
+app.get('/api/user/activity', requireAuth, async (req, res) => {
+    try {
+        res.setHeader('Cache-Control', 'no-store');
+        const uid = req.session.userId;
+        const limit = Math.min(50, Math.max(1, parseInt(req.query.limit, 10) || 15));
+        if (!uid) {
+            return res.json({ items: [], message: 'Connect Facebook to see activity history' });
+        }
+        const items = state.dbConnected ? await db.getUserActivityFeed(uid, limit) : [];
+        res.json({ items });
+    } catch (err) {
+        logError('user_activity', err);
+        res.status(500).json({ error: 'Failed to load activity' });
+    }
+});
+
+app.get('/api/workspace/members', async (req, res) => {
+    try {
+        if (!req.session.appAccountId) {
+            return res.status(401).json({ error: 'Sign in to manage your team' });
+        }
+        if (!state.dbConnected) return res.json({ members: [] });
+        const acc = await db.getAppAccountById(req.session.appAccountId);
+        const ws = await db.ensureWorkspaceForAppAccount(req.session.appAccountId, acc?.email);
+        const members = ws ? await db.getWorkspaceMembers(ws.id) : [];
+        res.json({ workspace: ws, members });
+    } catch (err) {
+        logError('workspace_members', err);
+        res.status(500).json({ error: 'Failed to load team' });
+    }
+});
+
+app.post('/api/workspace/invite', verifyCsrf, async (req, res) => {
+    try {
+        if (!req.session.appAccountId) {
+            return res.status(401).json({ error: 'Sign in to invite teammates' });
+        }
+        if (!state.dbConnected) return res.status(503).json({ error: 'Database unavailable' });
+        const email = appAuth.validateEmail(req.body.email);
+        if (!email) return res.status(400).json({ error: 'Valid email is required' });
+        const role = String(req.body.role || 'editor').toLowerCase();
+        const acc = await db.getAppAccountById(req.session.appAccountId);
+        if (acc?.email && email === acc.email.toLowerCase()) {
+            return res.status(400).json({ error: 'You are already the workspace owner' });
+        }
+        const ws = await db.ensureWorkspaceForAppAccount(req.session.appAccountId, acc?.email);
+        const member = await db.inviteWorkspaceMember({
+            workspaceId: ws.id,
+            email,
+            role,
+            invitedBy: req.session.appAccountId
+        });
+        res.json({ success: true, member });
+    } catch (err) {
+        logError('workspace_invite', err);
+        res.status(500).json({ error: err.message || 'Invite failed' });
+    }
+});
+
 app.post('/api/auth/onboarding/complete', async (req, res) => {
     try {
         if (!req.session.appAccountId && !req.session.userId) {

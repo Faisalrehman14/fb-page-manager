@@ -11,7 +11,8 @@
     m: 'messenger',
     s: 'scheduling',
     a: 'analytics',
-    g: 'settings'
+    g: 'settings',
+    t: 'settings'
   };
 
   let gPrefixAt = 0;
@@ -149,6 +150,10 @@
       });
     });
 
+    if (typeof global.__fbcCmdkExtras === 'function') {
+      global.__fbcCmdkExtras(q, items);
+    }
+
     return items;
   }
 
@@ -163,7 +168,7 @@
       return;
     }
 
-    const groups = { nav: 'Navigate', page: 'Pages', action: 'Actions' };
+    const groups = { nav: 'Navigate', page: 'Pages', action: 'Actions & Settings' };
     let html = '';
     ['nav', 'page', 'action'].forEach((type) => {
       const group = items.filter((i) => i.type === type);

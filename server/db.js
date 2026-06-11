@@ -222,6 +222,7 @@ async function initDatabase() {
             "ALTER TABLE app_accounts ADD COLUMN welcome_email_sent_at DATETIME NULL",
             "ALTER TABLE app_accounts ADD COLUMN onboarding_completed_at DATETIME NULL",
             "ALTER TABLE users ADD COLUMN onboarding_completed_at DATETIME NULL",
+            "ALTER TABLE workspace_members ADD COLUMN invited_by BIGINT UNSIGNED NULL",
             "ALTER TABLE users ADD COLUMN free_trial_email_sent_at DATETIME NULL",
             "ALTER TABLE users ADD COLUMN trial_reminder_email_sent_at DATETIME NULL",
             "ALTER TABLE users ADD COLUMN account_status ENUM('active','suspended') NOT NULL DEFAULT 'active'"
@@ -295,6 +296,31 @@ async function initDatabase() {
                 updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
                 UNIQUE KEY uq_app_email (email),
                 INDEX idx_app_fb (linked_fb_user_id)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        `);
+
+        await tryCreate(`
+            CREATE TABLE IF NOT EXISTS workspaces (
+                id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                owner_app_account_id BIGINT UNSIGNED NOT NULL,
+                name VARCHAR(120) NOT NULL DEFAULT 'My Workspace',
+                created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE KEY uq_ws_owner (owner_app_account_id)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        `);
+
+        await tryCreate(`
+            CREATE TABLE IF NOT EXISTS workspace_members (
+                id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                workspace_id BIGINT UNSIGNED NOT NULL,
+                email VARCHAR(255) NOT NULL,
+                role ENUM('owner','admin','editor','inbox','analyst','viewer') NOT NULL DEFAULT 'editor',
+                status ENUM('pending','active') NOT NULL DEFAULT 'pending',
+                invited_by BIGINT UNSIGNED NULL,
+                invited_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                accepted_at DATETIME NULL,
+                UNIQUE KEY uq_ws_email (workspace_id, email),
+                INDEX idx_ws_member_ws (workspace_id)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
         `);
 
@@ -2441,6 +2467,86 @@ async function getAppAccountById(id) {
         [id]
     );
     return rows[0] || null;
+}
+
+async function ensureWorkspaceForAppAccount(appAccountId, ownerEmail) {
+    if (!pool || !appAccountId) return null;
+    const [existing] = await pool.query(
+        'SELECT id, name FROM workspaces WHERE owner_app_account_id = ? LIMIT 1',
+        [appAccountId]
+    );
+    if (existing.length) return existing[0];
+    const [result] = await pool.query(
+        'INSERT INTO workspaces (owner_app_account_id, name) VALUES (?, ?)',
+        [appAccountId, 'My Workspace']
+    );
+    const wsId = result.insertId;
+    if (ownerEmail) {
+        await pool.query(
+            `INSERT INTO workspace_members (workspace_id, email, role, status, invited_at, accepted_at)
+             VALUES (?, ?, 'owner', 'active', NOW(), NOW())
+             ON DUPLICATE KEY UPDATE role = 'owner', status = 'active'`,
+            [wsId, ownerEmail]
+        );
+    }
+    return { id: wsId, name: 'My Workspace' };
+}
+
+async function getWorkspaceMembers(workspaceId) {
+    if (!pool || !workspaceId) return [];
+    const [rows] = await pool.query(
+        `SELECT id, email, role, status, invited_at, accepted_at
+         FROM workspace_members WHERE workspace_id = ? ORDER BY FIELD(role,'owner','admin','editor','inbox','analyst','viewer'), invited_at`,
+        [workspaceId]
+    );
+    return rows;
+}
+
+async function inviteWorkspaceMember({ workspaceId, email, role, invitedBy }) {
+    if (!pool || !workspaceId || !email) throw new Error('Invalid invite');
+    const allowed = ['admin', 'editor', 'inbox', 'analyst', 'viewer'];
+    const r = allowed.includes(role) ? role : 'editor';
+    await pool.query(
+        `INSERT INTO workspace_members (workspace_id, email, role, status, invited_by, invited_at)
+         VALUES (?, ?, ?, 'pending', ?, NOW())
+         ON DUPLICATE KEY UPDATE role = VALUES(role), status = IF(status = 'active', 'active', 'pending')`,
+        [workspaceId, email, r, invitedBy || null]
+    );
+    return { email, role: r, status: 'pending' };
+}
+
+async function getUserActivityFeed(fb_user_id, limit = 15) {
+    if (!pool || !fb_user_id) return [];
+    const lim = Math.min(50, Math.max(1, parseInt(limit, 10) || 15));
+    const items = [];
+    const [broadcasts] = await pool.query(
+        `SELECT message_preview, sent_count, failed_count, mode, created_at
+         FROM broadcast_history WHERE fb_user_id = ? ORDER BY created_at DESC LIMIT ?`,
+        [fb_user_id, lim]
+    );
+    broadcasts.forEach((b) => {
+        items.push({
+            type: 'broadcast',
+            ts: b.created_at,
+            title: 'Broadcast sent — ' + (b.sent_count || 0) + ' delivered',
+            meta: (b.message_preview || b.mode || 'campaign').toString().slice(0, 60)
+        });
+    });
+    const [schedules] = await pool.query(
+        `SELECT message, status, scheduled_at, created_at FROM scheduled_broadcasts
+         WHERE fb_user_id = ? ORDER BY COALESCE(scheduled_at, created_at) DESC LIMIT ?`,
+        [fb_user_id, lim]
+    ).catch(() => [[]]);
+    schedules.forEach((s) => {
+        items.push({
+            type: 'schedule',
+            ts: s.scheduled_at || s.created_at,
+            title: 'Scheduled broadcast — ' + (s.status || 'pending'),
+            meta: (s.message || '').toString().slice(0, 60)
+        });
+    });
+    items.sort((a, b) => new Date(b.ts) - new Date(a.ts));
+    return items.slice(0, lim);
 }
 
 async function markAppAccountOnboardingComplete(id) {
@@ -4642,6 +4748,10 @@ const dbModule = {
     markAppAccountOnboardingComplete,
     markUserOnboardingComplete,
     isOnboardingComplete,
+    ensureWorkspaceForAppAccount,
+    getWorkspaceMembers,
+    inviteWorkspaceMember,
+    getUserActivityFeed,
     saveEmailOtp,
     getEmailOtpRow,
     getEmailOtpCooldownRemaining,

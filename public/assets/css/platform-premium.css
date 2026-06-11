@@ -1,0 +1,400 @@
+/* FBCast Pro — Platform Premium UX layer */
+
+/* ── Quick actions strip ── */
+.pp-quick-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 0 0 20px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, rgba(8, 102, 255, 0.08), rgba(91, 33, 182, 0.06));
+  border: 1px solid rgba(8, 102, 255, 0.14);
+}
+.pp-quick-bar__label {
+  width: 100%;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted, #94a3b8);
+  margin-bottom: 2px;
+}
+.pp-quick-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.1));
+  background: var(--surface, #0d1b38);
+  color: var(--text, #f1f5f9);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.15s, border-color 0.15s, box-shadow 0.15s;
+}
+.pp-quick-btn:hover {
+  transform: translateY(-1px);
+  border-color: rgba(8, 102, 255, 0.35);
+  box-shadow: 0 8px 24px rgba(8, 102, 255, 0.12);
+}
+.pp-quick-btn i { color: var(--primary, #0866ff); }
+
+/* ── Smart recommendations ── */
+.pp-reco-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.pp-reco-card {
+  display: flex;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  cursor: pointer;
+  transition: border-color 0.2s, transform 0.15s;
+}
+.pp-reco-card:hover {
+  border-color: rgba(8, 102, 255, 0.3);
+  transform: translateY(-2px);
+}
+.pp-reco-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 16px;
+  color: #fff;
+}
+.pp-reco-icon--blue { background: linear-gradient(135deg, #0866ff, #3b82f6); }
+.pp-reco-icon--green { background: linear-gradient(135deg, #059669, #34d399); }
+.pp-reco-icon--amber { background: linear-gradient(135deg, #d97706, #fbbf24); }
+.pp-reco-icon--purple { background: linear-gradient(135deg, #7c3aed, #a78bfa); }
+.pp-reco-title { font-size: 13px; font-weight: 700; margin-bottom: 4px; }
+.pp-reco-text { font-size: 12px; color: var(--text2); line-height: 1.5; }
+
+/* ── Activity feed ── */
+.pp-activity-panel {
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  overflow: hidden;
+  margin-bottom: 20px;
+}
+.pp-activity-hdr {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+}
+.pp-activity-hdr h3 {
+  font-size: 14px;
+  font-weight: 800;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.pp-activity-list { max-height: 280px; overflow-y: auto; }
+.pp-activity-item {
+  display: flex;
+  gap: 12px;
+  padding: 12px 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  transition: background 0.15s;
+}
+.pp-activity-item:hover { background: rgba(8, 102, 255, 0.04); }
+.pp-activity-item:last-child { border-bottom: none; }
+.pp-activity-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-top: 6px;
+  flex-shrink: 0;
+}
+.pp-activity-dot--sent { background: #34d399; }
+.pp-activity-dot--sched { background: #a78bfa; }
+.pp-activity-dot--info { background: #60a5fa; }
+.pp-activity-body { flex: 1; min-width: 0; }
+.pp-activity-title { font-size: 13px; font-weight: 600; }
+.pp-activity-meta { font-size: 11px; color: var(--muted); margin-top: 2px; }
+.pp-activity-empty {
+  padding: 28px 16px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+/* ── Widget customize ── */
+.pp-widget-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+.pp-widget-bar h2 { margin: 0; }
+.pp-customize-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text2);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.pp-customize-btn:hover { border-color: var(--primary); color: var(--primary); }
+.pp-widget-hidden { display: none !important; }
+
+.pp-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 14000;
+  background: rgba(3, 10, 24, 0.75);
+  backdrop-filter: blur(6px);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+.pp-modal-overlay.is-open { display: flex; }
+.pp-modal {
+  width: min(440px, 100%);
+  border-radius: 18px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  padding: 22px;
+  box-shadow: var(--ds-shadow-lg);
+}
+.pp-modal h3 { margin: 0 0 14px; font-size: 17px; }
+.pp-widget-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  font-size: 13px;
+}
+.pp-modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
+
+/* ── Floating quick actions ── */
+.pp-fab {
+  position: fixed;
+  right: 20px;
+  bottom: 88px;
+  z-index: 11000;
+}
+.pp-fab-main {
+  width: 52px;
+  height: 52px;
+  border-radius: 16px;
+  border: none;
+  background: linear-gradient(135deg, #0866ff, #5b21b6);
+  color: #fff;
+  font-size: 20px;
+  cursor: pointer;
+  box-shadow: 0 12px 32px rgba(8, 102, 255, 0.35);
+  transition: transform 0.2s;
+}
+.pp-fab-main:hover { transform: scale(1.05); }
+.pp-fab-menu {
+  position: absolute;
+  bottom: 60px;
+  right: 0;
+  display: none;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 200px;
+}
+.pp-fab.is-open .pp-fab-menu { display: flex; }
+.pp-fab-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  white-space: nowrap;
+}
+.pp-fab-item:hover { border-color: var(--primary); }
+
+/* ── AI contextual hint bar ── */
+.pp-ai-hint {
+  display: none;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  margin-bottom: 14px;
+  border-radius: 12px;
+  background: linear-gradient(90deg, rgba(8, 102, 255, 0.1), rgba(91, 33, 182, 0.08));
+  border: 1px solid rgba(8, 102, 255, 0.2);
+  font-size: 12px;
+  color: var(--text2);
+}
+.pp-ai-hint.is-visible { display: flex; }
+.pp-ai-hint i { color: var(--primary); font-size: 14px; }
+.pp-ai-hint button {
+  margin-left: auto;
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: none;
+  background: var(--primary);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+/* ── Settings: security & team ── */
+.pp-security-grid {
+  display: grid;
+  gap: 12px;
+  margin-top: 10px;
+}
+.pp-security-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border);
+}
+.pp-security-row strong { display: block; font-size: 13px; }
+.pp-security-row span { font-size: 12px; color: var(--text2); }
+.pp-badge {
+  display: inline-flex;
+  padding: 3px 8px;
+  border-radius: 99px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.pp-badge--ok { background: rgba(52, 211, 153, 0.15); color: #34d399; }
+.pp-badge--soon { background: rgba(251, 191, 36, 0.15); color: #fbbf24; }
+
+.pp-team-invite {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+  flex-wrap: wrap;
+}
+.pp-team-invite input,
+.pp-team-invite select {
+  flex: 1;
+  min-width: 140px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--bg, #0a1628);
+  color: var(--text);
+  font-size: 13px;
+}
+.pp-team-list { margin-top: 14px; }
+.pp-team-member {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  font-size: 13px;
+}
+.pp-team-role {
+  margin-left: auto;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--muted);
+  text-transform: capitalize;
+}
+
+/* ── Notification tabs ── */
+.notif-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 8px 12px 0;
+  border-bottom: 1px solid var(--border);
+}
+.notif-tab {
+  padding: 8px 12px;
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+}
+.notif-tab.is-active {
+  color: var(--primary);
+  border-bottom-color: var(--primary);
+}
+
+/* ── Landing competitive advantage ── */
+.pp-advantage-section {
+  padding: 64px 24px;
+  background: linear-gradient(180deg, transparent, rgba(8, 102, 255, 0.04));
+}
+.pp-advantage-inner {
+  max-width: 1100px;
+  margin: 0 auto;
+}
+.pp-advantage-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 16px;
+  margin-top: 28px;
+}
+.pp-advantage-card {
+  padding: 22px 20px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+  transition: transform 0.2s, border-color 0.2s;
+}
+.pp-advantage-card:hover {
+  transform: translateY(-4px);
+  border-color: rgba(8, 102, 255, 0.25);
+}
+.pp-advantage-card i {
+  font-size: 22px;
+  color: var(--primary, #0866ff);
+  margin-bottom: 12px;
+}
+.pp-advantage-card h3 {
+  font-size: 15px;
+  font-weight: 800;
+  margin: 0 0 8px;
+}
+.pp-advantage-card p {
+  font-size: 13px;
+  color: var(--text2, #94a3b8);
+  line-height: 1.55;
+  margin: 0;
+}
+
+@media (max-width: 768px) {
+  .pp-fab { right: 14px; bottom: 100px; }
+  .pp-quick-bar { gap: 8px; }
+  .pp-quick-btn { flex: 1 1 calc(50% - 8px); justify-content: center; }
+}
