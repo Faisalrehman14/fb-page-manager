@@ -399,23 +399,55 @@ body.light #landingPage .cmp-premium {
   text-align: center;
   margin-top: 32px;
 }
-.cmp-premium__cta a {
+
+.cmp-premium__cta-btn {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  padding: 14px 28px;
+  justify-content: center;
+  gap: 10px;
+  padding: 15px 32px;
   border-radius: 14px;
   font-size: 15px;
   font-weight: 700;
+  line-height: 1.2;
   text-decoration: none;
-  color: #fff;
-  background: linear-gradient(135deg, var(--cmp-primary), #1d4ed8);
-  box-shadow: 0 8px 28px rgba(37, 99, 235, 0.35);
-  transition: transform 0.2s, box-shadow 0.2s;
+  color: #ffffff;
+  background: linear-gradient(135deg, var(--cmp-primary) 0%, #1d4ed8 55%, #1e40af 100%);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  box-shadow:
+    0 8px 28px rgba(37, 99, 235, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.22);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
 }
-.cmp-premium__cta a:hover {
+
+.cmp-premium__cta-btn i {
+  color: #ffffff;
+  font-size: 14px;
+}
+
+.cmp-premium__cta-btn:hover {
+  color: #ffffff;
   transform: translateY(-2px);
-  box-shadow: 0 12px 36px rgba(37, 99, 235, 0.45);
+  box-shadow:
+    0 14px 40px rgba(37, 99, 235, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.28);
+}
+
+.cmp-premium__cta-btn:focus-visible {
+  outline: 2px solid var(--cmp-primary);
+  outline-offset: 3px;
+}
+
+html[data-theme='light'] #landingPage .cmp-premium__cta-btn,
+body.light #landingPage .cmp-premium__cta-btn {
+  color: #ffffff;
+}
+
+html[data-theme='light'] #landingPage .cmp-premium__cta-btn:hover,
+body.light #landingPage .cmp-premium__cta-btn:hover,
+html[data-theme='light'] #landingPage .cmp-premium__cta-btn i,
+body.light #landingPage .cmp-premium__cta-btn i {
+  color: #ffffff;
 }
 
 .cmp-premium__scroll {
