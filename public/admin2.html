@@ -163,7 +163,7 @@
           <div class="admin-page-hero">
             <div>
               <h2>Platform overview</h2>
-              <p>Real-time metrics for users, subscriptions, and broadcast activity across FBCast Pro.</p>
+              <p>Monitor every registered account — names, emails, status, and login activity in one place.</p>
             </div>
             <div class="admin-hero-pills">
               <span class="admin-pill ok"><i class="fa-solid fa-circle"></i> API online</span>
@@ -174,9 +174,9 @@
           <div class="stats-grid">
             <div class="stat-card c-purple">
               <div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg></div>
-              <div class="stat-label">Total Users</div>
+              <div class="stat-label">Registered Accounts</div>
               <div class="stat-value" id="sTotal">—</div>
-              <div class="stat-sub">Registered accounts</div>
+              <div class="stat-sub" id="sRegisteredSub">Facebook-connected users</div>
             </div>
             <div class="stat-card c-green">
               <div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg></div>
@@ -298,6 +298,41 @@
             </div>
           </div>
 
+          <!-- Registered users registry -->
+          <div class="panel registry-panel">
+            <div class="panel-head">
+              <div class="panel-head-left">
+                <div>
+                  <div class="panel-title">All registered users</div>
+                  <div class="panel-sub" id="registrySub">Complete list of accounts on the platform</div>
+                </div>
+              </div>
+              <div class="registry-head-actions">
+                <button class="btn btn-ghost btn-sm" onclick="App.dashboard.loadRegistry()">Refresh</button>
+                <button class="btn btn-ghost btn-sm" onclick="App.users.exportAll()">Export all CSV</button>
+                <button class="btn btn-primary btn-sm" onclick="App.switchView('users')">Manage users →</button>
+              </div>
+            </div>
+            <div class="tbl-wrap registry-table-wrap">
+              <table class="registry-table">
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Registered</th>
+                    <th>Status</th>
+                    <th>Last login</th>
+                    <th>Plan</th>
+                  </tr>
+                </thead>
+                <tbody id="registryBody">
+                  <tr><td colspan="6"><div class="loading-center"><span class="spinner spinner-lg"></span></div></td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="registry-foot" id="registryFoot"></div>
+          </div>
+
           <!-- Recent Users + Top Usage -->
           <div style="display:grid;grid-template-columns:1.5fr 1fr;gap:14px">
             <div class="panel">
@@ -307,7 +342,7 @@
               </div>
               <div class="tbl-wrap">
                 <table>
-                  <thead><tr><th>User</th><th>Plan</th><th>Messages</th><th>Joined</th></tr></thead>
+                  <thead><tr><th>Name</th><th>Email</th><th>Status</th><th>Joined</th></tr></thead>
                   <tbody id="dashUserBody"><tr><td colspan="4"><div class="loading-center"><span class="spinner spinner-lg"></span></div></td></tr></tbody>
                 </table>
               </div>
@@ -343,14 +378,24 @@
           <div class="admin-page-hero">
             <div>
               <h2>User management</h2>
-              <p>Per-user LTV, renewals, pages (name + URL), billing timeline — click Analyze on any user.</p>
+              <p>Complete directory of registered accounts with email, status, registration date, and last login.</p>
+            </div>
+            <div class="admin-hero-pills">
+              <span class="admin-pill" id="usersHeroTotal">— accounts</span>
             </div>
           </div>
           <div class="panel">
             <div class="tbl-controls">
               <div class="tbl-search">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
-                <input type="text" id="usersSearch" placeholder="Search by name or Facebook ID…" oninput="App.users.debouncedSearch()"/>
+                <input type="text" id="usersSearch" placeholder="Search name, email, or ID…" oninput="App.users.debouncedSearch()"/>
+              </div>
+              <div class="tbl-filter">
+                <select id="statusFilter" onchange="App.users.filterChange()">
+                  <option value="">All statuses</option>
+                  <option value="active">Active</option>
+                  <option value="suspended">Suspended</option>
+                </select>
               </div>
               <div class="tbl-filter">
                 <select id="planFilter" onchange="App.users.filterChange()">
@@ -358,10 +403,8 @@
                 </select>
               </div>
               <div class="tbl-count" id="usersCount"></div>
-              <button class="btn btn-ghost btn-sm" onclick="App.users.exportCSV()">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:13px;height:13px"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                Export
-              </button>
+              <button class="btn btn-ghost btn-sm" onclick="App.users.exportAll()">Export all</button>
+              <button class="btn btn-ghost btn-sm" onclick="App.users.exportCSV()">Export page</button>
             </div>
             <div class="bulk-bar" id="bulkBar">
               <span class="bulk-count" id="bulkCount">0 selected</span>
@@ -373,24 +416,21 @@
               <button class="btn btn-ghost btn-sm" style="margin-left:auto" onclick="App.users.clearSelection()">Clear</button>
             </div>
             <div class="tbl-wrap">
-              <table>
+              <table class="registry-table users-table-pro">
                 <thead>
                   <tr>
                     <th class="td-check"><input type="checkbox" id="selectAll" onchange="App.users.toggleSelectAll(this)"/></th>
-                    <th class="sortable" onclick="App.users.sort('fb_name')">User<span class="sort-indicator"><span class="up"></span><span class="dn"></span></span></th>
-                    <th>IP</th>
-                    <th>Pages</th>
-                    <th>LTV</th>
-                    <th>Renewals</th>
+                    <th class="sortable" onclick="App.users.sort('fb_name')">Name<span class="sort-indicator"><span class="up"></span><span class="dn"></span></span></th>
+                    <th class="sortable" onclick="App.users.sort('email')">Email<span class="sort-indicator"><span class="up"></span><span class="dn"></span></span></th>
+                    <th class="sortable" onclick="App.users.sort('created_at')">Registered<span class="sort-indicator"><span class="up"></span><span class="dn"></span></span></th>
+                    <th class="sortable" onclick="App.users.sort('account_status')">Status<span class="sort-indicator"><span class="up"></span><span class="dn"></span></span></th>
+                    <th class="sortable" onclick="App.users.sort('last_login_at')">Last login<span class="sort-indicator"><span class="up"></span><span class="dn"></span></span></th>
                     <th class="sortable" onclick="App.users.sort('plan')">Plan<span class="sort-indicator"><span class="up"></span><span class="dn"></span></span></th>
-                    <th>Messages</th>
-                    <th>Expires</th>
-                    <th class="sortable" onclick="App.users.sort('last_login_at')">Last seen<span class="sort-indicator"><span class="up"></span><span class="dn"></span></span></th>
                     <th>Actions</th>
                   </tr>
                 </thead>
                 <tbody id="usersBody">
-                  <tr><td colspan="11"><div class="loading-center"><span class="spinner spinner-lg"></span></div></td></tr>
+                  <tr><td colspan="8"><div class="loading-center"><span class="spinner spinner-lg"></span></div></td></tr>
                 </tbody>
               </table>
             </div>
@@ -853,10 +893,44 @@ function planBadgeClass(u) {
   return 'badge badge-' + db;
 }
 
+const USERS_PAGE_SIZE = 25;
+
 function userDisplayName(u) {
-  const n = String(u?.fb_name || '').trim();
+  const fn = [u?.account_first_name, u?.account_last_name].filter(Boolean).join(' ').trim();
+  if (fn) return fn;
+  const n = String(u?.fb_name || u?.display_name || '').trim();
   if (n) return n;
   return 'Facebook User';
+}
+function userEmail(u) {
+  const e = String(u?.display_email || u?.email || u?.account_email || '').trim();
+  return e || '—';
+}
+function accountStatusHtml(u) {
+  const st = String(u?.account_status || 'active').toLowerCase();
+  if (st === 'suspended') return '<span class="acct-status acct-status--off">Suspended</span>';
+  return '<span class="acct-status acct-status--ok">Active</span>';
+}
+function lastLoginHtml(u) {
+  if (!u?.last_login_at) return '<span class="text-muted">Never</span>';
+  return `<span class="login-time" title="${esc(fmtDate(u.last_login_at))}">${esc(fmtTime(u.last_login_at))}</span>`;
+}
+function registryRowHtml(u, opts = {}) {
+  const clickable = opts.clickable !== false;
+  const nameCell = clickable
+    ? `<div class="user-cell" style="cursor:pointer" onclick="App.users.openDetail('${esc(u.fb_user_id)}')">
+         <div class="u-av">${userInitial(u)}</div>
+         <div><div class="u-name">${esc(userDisplayName(u))}</div><div class="u-id">${esc(u.fb_user_id)}</div></div>
+       </div>`
+    : `<div class="user-cell"><div class="u-av">${userInitial(u)}</div><div><div class="u-name">${esc(userDisplayName(u))}</div></div></div>`;
+  return `<tr>
+    <td>${nameCell}</td>
+    <td class="email-cell">${esc(userEmail(u))}</td>
+    <td class="date-cell">${u.created_at ? esc(fmtDate(u.created_at)) : '—'}</td>
+    <td>${accountStatusHtml(u)}</td>
+    <td class="date-cell">${lastLoginHtml(u)}</td>
+    <td><span class="${planBadgeClass(u)}">${esc(planAdminLabel(u))}</span></td>
+  </tr>`;
 }
 function userInitial(u) {
   return (userDisplayName(u).replace(/^@/, '')[0] || '?').toUpperCase();
@@ -891,7 +965,7 @@ function fillDates(data, days) {
 const App = {
   state: {
     view: 'dashboard',
-    users: { page:1, total:0, pages:1, search:'', plan:'', sortCol:'created_at', sortDir:'desc', selected: new Set(), allData:[] },
+    users: { page:1, total:0, pages:1, limit: USERS_PAGE_SIZE, search:'', plan:'', status:'', sortCol:'created_at', sortDir:'desc', selected: new Set(), allData:[] },
     activity: { page:1, action:'' },
     revenuePeriod: 'day'
   },
@@ -1003,6 +1077,7 @@ const App = {
     async load() {
       await Promise.all([
         this.loadStats(),
+        this.loadRegistry(),
         this.loadCharts(),
         this.loadRecentUsers(),
         this.loadRevenue(App.state.revenuePeriod),
@@ -1011,18 +1086,59 @@ const App = {
       App.markSynced();
     },
 
+    async loadRegistry() {
+      const body = $('registryBody');
+      const foot = $('registryFoot');
+      if (!body) return;
+      try {
+        const r = await fetch('/api/admin/users?p=1&limit=50');
+        if (!r.ok) throw new Error();
+        const d = await r.json();
+        const total = d.total || 0;
+        if ($('registrySub')) {
+          $('registrySub').textContent = total
+            ? `${fmt(total)} registered account${total === 1 ? '' : 's'} on the platform`
+            : 'No accounts registered yet';
+        }
+        if (!d.users?.length) {
+          body.innerHTML = '<tr><td colspan="6"><div class="empty"><p>No registered users yet</p></div></td></tr>';
+          if (foot) foot.textContent = '';
+          return;
+        }
+        body.innerHTML = d.users.map((u) => registryRowHtml(u)).join('');
+        if (foot) {
+          foot.innerHTML = total > d.users.length
+            ? `Showing ${d.users.length} of ${fmt(total)} — <button type="button" class="link-btn" onclick="App.switchView('users')">View complete list</button>`
+            : `Showing all ${fmt(total)} registered account${total === 1 ? '' : 's'}`;
+        }
+      } catch (_) {
+        body.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:20px;color:var(--muted)">Could not load user registry</td></tr>';
+      }
+    },
+
     async loadStats() {
       try {
         const r = await fetch('/api/admin/stats');
         if(!r.ok) throw new Error();
         const d = await r.json();
-        animateNumber($('sTotal'),  d.users || 0);
+        animateNumber($('sTotal'),  d.registeredAccounts ?? d.users || 0);
         animateNumber($('sPaid'),   d.paidPlan || 0);
         animateNumber($('sFree'),   d.freePlan || 0);
         animateNumber($('sLogins'), d.todayLogins || 0);
         animateNumber($('sMsgs'),   d.totalMessages || 0);
-        $('navUserCount').textContent = fmt(d.users || 0);
-        $('navUserCount').style.display = d.users ? '' : 'none';
+        const regTotal = d.registeredAccounts ?? d.users || 0;
+        $('navUserCount').textContent = fmt(regTotal);
+        $('navUserCount').style.display = regTotal ? '' : 'none';
+        if ($('sRegisteredSub')) {
+          const active = d.activeAccounts ?? regTotal;
+          const suspended = d.suspendedAccounts || 0;
+          const emailAccts = d.emailAccounts || 0;
+          $('sRegisteredSub').textContent =
+            `${fmt(active)} active` +
+            (suspended ? ` · ${fmt(suspended)} suspended` : '') +
+            (emailAccts ? ` · ${fmt(emailAccts)} email signups` : '');
+        }
+        if ($('usersHeroTotal')) $('usersHeroTotal').textContent = fmt(regTotal) + ' accounts';
         if (d.revenue) {
           $('sRevToday').textContent = fmtMoney(d.revenue.today);
           $('sRevMonth').textContent = fmtMoney(d.revenue.month);
@@ -1211,20 +1327,17 @@ const App = {
 
     async loadRecentUsers() {
       try {
-        const r = await fetch('/api/admin/users?p=1');
+        const r = await fetch('/api/admin/users?p=1&limit=5&sort=created_at&dir=desc');
         if(!r.ok) throw new Error();
         const d = await r.json();
         const body = $('dashUserBody');
         if(!d.users?.length){ body.innerHTML='<tr><td colspan="4"><div class="empty"><p>No users yet</p></div></td></tr>'; return; }
-        body.innerHTML = d.users.slice(0,6).map(u => `
+        body.innerHTML = d.users.map(u => `
           <tr>
-            <td><div class="user-cell">
-              <div class="u-av">${userInitial(u)}</div>
-              <div><div class="u-name">${esc(userDisplayName(u))}</div><div class="u-id">${esc(u.fb_user_id)}</div></div>
-            </div></td>
-            <td><span class="${planBadgeClass(u)}">${esc(planAdminLabel(u))}</span></td>
-            <td style="font-size:12px">${fmt(u.messenger_messages_used||0)} / ${fmt(u.messenger_messages_limit||0)}</td>
-            <td style="font-size:12px;color:var(--muted)">${fmtDate(u.created_at)}</td>
+            <td><div class="user-cell"><div class="u-av">${userInitial(u)}</div><div><div class="u-name">${esc(userDisplayName(u))}</div></div></div></td>
+            <td class="email-cell">${esc(userEmail(u))}</td>
+            <td>${accountStatusHtml(u)}</td>
+            <td class="date-cell">${u.created_at ? esc(fmtDate(u.created_at)) : '—'}</td>
           </tr>`).join('');
       } catch(e) { $('dashUserBody').innerHTML='<tr><td colspan="4" style="text-align:center;padding:24px;color:var(--muted);font-size:13px">Could not load users</td></tr>'; }
     },
@@ -1279,7 +1392,8 @@ const App = {
     }, 350),
 
     filterChange() {
-      App.state.users.plan = $('planFilter').value;
+      App.state.users.plan = $('planFilter')?.value || '';
+      App.state.users.status = $('statusFilter')?.value || '';
       App.state.users.page = 1;
       this.load();
     },
@@ -1300,11 +1414,12 @@ const App = {
       if(page) App.state.users.page = page;
       const s = App.state.users;
       const body = $('usersBody');
-      if (!silent) body.innerHTML = '<tr><td colspan="11"><div class="loading-center"><span class="spinner spinner-lg"></span></div></td></tr>';
+      if (!silent) body.innerHTML = '<tr><td colspan="8"><div class="loading-center"><span class="spinner spinner-lg"></span></div></td></tr>';
       try {
-        const p = new URLSearchParams({ p: s.page });
+        const p = new URLSearchParams({ p: s.page, limit: s.limit || USERS_PAGE_SIZE, sort: s.sortCol, dir: s.sortDir });
         if(s.search) p.set('q', s.search);
-        if(s.plan)   p.set('plan', s.plan);
+        if(s.plan) p.set('plan', s.plan);
+        if(s.status) p.set('status', s.status);
         const r = await fetch('/api/admin/users?'+p);
         const d = await r.json();
         s.total = d.total || 0; s.pages = d.pages || 1;
@@ -1323,16 +1438,17 @@ const App = {
         }
         this.updateBulkBar();
       } catch(e) {
-        body.innerHTML = '<tr><td colspan="11" style="text-align:center;padding:32px;color:var(--red);font-size:13px">Failed to load users</td></tr>';
+        body.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:32px;color:var(--red);font-size:13px">Failed to load users</td></tr>';
       }
     },
 
     render(d) {
       const s = App.state.users;
       const body = $('usersBody');
-      $('usersCount').textContent = s.total ? `${fmt(s.total)} users` : '';
+      $('usersCount').textContent = s.total ? `${fmt(s.total)} registered account${s.total === 1 ? '' : 's'}` : '';
+      if ($('usersHeroTotal')) $('usersHeroTotal').textContent = fmt(s.total || 0) + ' accounts';
       if(!d.users?.length){
-        body.innerHTML = `<tr><td colspan="11"><div class="empty">
+        body.innerHTML = `<tr><td colspan="8"><div class="empty">
           <div class="empty-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></div>
           <h3>No users found</h3><p>Try a different search or filter</p>
         </div></td></tr>`;
@@ -1340,47 +1456,24 @@ const App = {
         return;
       }
       body.innerHTML = d.users.map(u => {
-        const used=u.messenger_messages_used||0, limit=u.messenger_messages_limit||2000;
-        const pct = limit ? Math.min(100,Math.round(used/limit*100)) : 0;
-        const cls = pct>=90?'qf-hot':pct>=70?'qf-warn':'qf-ok';
         const sel = s.selected.has(u.fb_user_id);
-        const hasSub = u.stripe_subscription_id;
         const ud = JSON.stringify(u).replace(/"/g,'&quot;');
-        const exp = u.subscription_expires || u.free_trial_expires_at;
-        const expLabel = exp ? fmtDate(exp) : '—';
-        const ip = u.last_login_ip || '—';
-        const pages = Number(u.page_count) || 0;
-        const remain = u.messages_remaining != null ? u.messages_remaining : Math.max(0, (limit||0) - used);
-        const ltv = Number(u.total_revenue_cents) || 0;
-        const renewals = Number(u.renewal_count) || 0;
         return `<tr class="${sel?'selected':''}" id="row-${esc(u.fb_user_id)}">
           <td class="td-check"><input type="checkbox" ${sel?'checked':''} onchange="App.users.toggleRow('${esc(u.fb_user_id)}',this)"/></td>
           <td><div class="user-cell" style="cursor:pointer" onclick="App.users.openDetail('${esc(u.fb_user_id)}')">
             <div class="u-av">${userInitial(u)}</div>
             <div><div class="u-name">${esc(userDisplayName(u))}</div><div class="u-id">${esc(u.fb_user_id)}</div></div>
           </div></td>
-          <td class="mono-cell" title="${esc(ip)}">${esc(ip)}</td>
-          <td><span class="page-pill">${pages} page${pages!==1?'s':''}</span></td>
-          <td style="font-size:12px;font-weight:700;color:var(--green)">${ltv ? fmtMoney(ltv) : '—'}</td>
-          <td style="font-size:12px;font-weight:600">${renewals || '—'}</td>
+          <td class="email-cell">${esc(userEmail(u))}</td>
+          <td class="date-cell">${u.created_at ? esc(fmtDate(u.created_at)) : '—'}</td>
+          <td>${accountStatusHtml(u)}</td>
+          <td class="date-cell">${lastLoginHtml(u)}</td>
           <td><span class="${planBadgeClass(u)}">${esc(planAdminLabel(u))}</span></td>
-          <td class="quota-cell">
-            <div class="quota-bar"><div class="quota-fill ${cls}" style="width:${pct}%"></div></div>
-            <div class="quota-txt">${fmt(remain)} left · ${fmt(used)}/${fmt(limit)}</div>
-          </td>
-          <td style="font-size:12px;white-space:nowrap">${expLabel}</td>
-          <td style="font-size:12px;color:var(--muted);white-space:nowrap">${u.last_login_at ? fmtTime(u.last_login_at) : '—'}</td>
           <td>
             <div class="actions">
-              <button class="btn btn-primary btn-sm" onclick="event.stopPropagation();App.users.openDetail('${esc(u.fb_user_id)}')" title="Analyze user">Analyze</button>
+              <button class="btn btn-primary btn-sm" onclick="event.stopPropagation();App.users.openDetail('${esc(u.fb_user_id)}')" title="View profile">View</button>
               <button class="btn btn-ghost btn-sm" onclick='event.stopPropagation();App.users.openEdit(${ud})' title="Edit">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-              </button>
-              <button class="btn btn-success btn-sm" onclick="event.stopPropagation();App.users.resetQuota('${esc(u.fb_user_id)}')" title="Reset Quota">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg>
-              </button>
-              <button class="btn btn-danger btn-sm" onclick="event.stopPropagation();App.users.deleteConfirm('${esc(u.fb_user_id)}')" title="Delete">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg>
               </button>
             </div>
           </td>
@@ -1394,7 +1487,8 @@ const App = {
       const pg = $('usersPagination');
       if(s.pages <= 1){ pg.style.display='none'; return; }
       pg.style.display = 'flex';
-      const start = (s.page-1)*20+1, end = Math.min(s.page*20, s.total);
+      const limit = s.limit || USERS_PAGE_SIZE;
+      const start = (s.page-1)*limit+1, end = Math.min(s.page*limit, s.total);
       $('pgInfo').textContent = `Showing ${fmt(start)}–${fmt(end)} of ${fmt(s.total)}`;
       let html = `<button class="pg-btn" onclick="App.users.load(${s.page-1})" ${s.page===1?'disabled':''}>‹</button>`;
       for(let i=1;i<=s.pages;i++){
@@ -1542,14 +1636,38 @@ const App = {
     exportCSV() {
       const s = App.state.users;
       if(!s.allData.length){ App.toast.show('No data to export','info'); return; }
-      const rows = [['ID','Facebook Name','Plan','Messages Used','Limit','Subscription','Joined']];
-      s.allData.forEach(u => rows.push([u.fb_user_id,userDisplayName(u),u.plan||'',u.messenger_messages_used||0,u.messenger_messages_limit||0,u.stripe_subscription_id||'',u.created_at||'']));
+      const rows = [['Name','Email','Registered','Status','Last Login','Plan','Facebook ID']];
+      s.allData.forEach(u => rows.push([
+        userDisplayName(u), userEmail(u), u.created_at || '', u.account_status || 'active',
+        u.last_login_at || '', u.plan || '', u.fb_user_id
+      ]));
+      this._downloadCsv(rows, `fbcast-users-page-${s.page}.csv`);
+    },
+
+    async exportAll() {
+      App.toast.show('Preparing full export…', 'info');
+      try {
+        const r = await fetch('/api/admin/users/export');
+        const d = await r.json();
+        if (!r.ok) throw new Error(d.error || 'Export failed');
+        const rows = [['Name','Email','Registered','Status','Last Login','Plan','Facebook ID']];
+        (d.users || []).forEach(u => rows.push([
+          u.display_name || '', u.display_email || '—', u.created_at || '',
+          u.account_status || 'active', u.last_login_at || '', u.plan || '', u.fb_user_id
+        ]));
+        this._downloadCsv(rows, `fbcast-all-users-${new Date().toISOString().split('T')[0]}.csv`);
+        App.toast.show(`Exported ${fmt(d.total || rows.length - 1)} users`, 'success');
+      } catch (e) {
+        App.toast.show(e.message || 'Export failed', 'error');
+      }
+    },
+
+    _downloadCsv(rows, filename) {
       const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
       const a = document.createElement('a');
       a.href = 'data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
-      a.download = `fbcast-users-${new Date().toISOString().split('T')[0]}.csv`;
+      a.download = filename;
       a.click();
-      App.toast.show('CSV exported','success');
     },
 
 

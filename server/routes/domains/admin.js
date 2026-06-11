@@ -136,9 +136,20 @@ app.get('/api/admin/stats', requireAdminAuth, async (req, res) => {
             `SELECT COUNT(*) as c FROM users WHERE subscription_expires IS NOT NULL
              AND subscription_expires > NOW() AND subscription_expires <= DATE_ADD(NOW(), INTERVAL 7 DAY)`
         ).catch(()=>[[{c:0}]]);
+        const [[emailAcctRow]] = await pool.query('SELECT COUNT(*) AS c FROM app_accounts').catch(()=>[[{c:0}]]);
+        const [[activeRow]] = await pool.query(
+            "SELECT COUNT(*) AS c FROM users WHERE COALESCE(account_status, 'active') = 'active'"
+        ).catch(()=>[[{c:0}]]);
+        const [[suspendedRow]] = await pool.query(
+            "SELECT COUNT(*) AS c FROM users WHERE account_status = 'suspended'"
+        ).catch(()=>[[{c:0}]]);
         const revenue = await db.getAdminRevenueTotals();
         res.json({
             users:         userRow.c,
+            registeredAccounts: userRow.c,
+            emailAccounts: emailAcctRow.c,
+            activeAccounts: activeRow.c,
+            suspendedAccounts: suspendedRow.c,
             totalMessages: msgRow.c,
             todayLogins:   loginRow.c,
             freePlan:      freeRow.c,
@@ -168,6 +179,30 @@ app.get('/api/admin/expiring', requireAdminAuth, async (req, res) => {
         res.json({ users: stripUserTokens(users) });
     } catch (e) {
         res.json({ users: [] });
+    }
+});
+
+app.get('/api/admin/users/export', requireAdminAuth, async (req, res) => {
+    const pool = db.pool;
+    if (!pool) return res.status(503).json({ error: 'Database unavailable' });
+    try {
+        const [users] = await pool.query(
+            `SELECT u.fb_user_id,
+              COALESCE(NULLIF(TRIM(u.fb_name), ''), TRIM(CONCAT(COALESCE(aa.first_name,''), ' ', COALESCE(aa.last_name,''))), 'Facebook User') AS display_name,
+              COALESCE(NULLIF(TRIM(u.email), ''), aa.email, '') AS display_email,
+              COALESCE(u.account_status, 'active') AS account_status,
+              u.plan,
+              u.created_at,
+              u.last_login_at,
+              u.last_login_ip
+             FROM users u
+             LEFT JOIN app_accounts aa ON aa.linked_fb_user_id = u.fb_user_id
+             ORDER BY u.created_at DESC
+             LIMIT 10000`
+        );
+        res.json({ users, total: users.length });
+    } catch (e) {
+        res.status(500).json({ error: e.message || 'Export failed' });
     }
 });
 
@@ -207,27 +242,55 @@ app.get('/api/admin/users', requireAdminAuth, async (req, res) => {
     const pool = db.pool;
     if (!pool) return res.json({ users: [], total: 0 });
     try {
-        const page   = Math.max(1, parseInt(req.query.p) || 1);
-        const limit  = 20;
+        const page   = Math.max(1, parseInt(req.query.p, 10) || 1);
+        const limit  = Math.min(100, Math.max(10, parseInt(req.query.limit, 10) || 25));
         const offset = (page - 1) * limit;
         const search = req.query.q ? `%${req.query.q}%` : null;
         const planFilter = (req.query.plan || '').trim();
+        const statusFilter = (req.query.status || '').trim();
+        const sortAllowed = {
+            created_at: 'u.created_at',
+            last_login_at: 'u.last_login_at',
+            fb_name: 'COALESCE(NULLIF(TRIM(u.fb_name), \'\'), aa.first_name, u.fb_user_id)',
+            plan: 'u.plan',
+            account_status: 'u.account_status',
+            email: 'COALESCE(NULLIF(TRIM(u.email), \'\'), aa.email, \'\')'
+        };
+        const sortCol = sortAllowed[req.query.sort] || sortAllowed.created_at;
+        const sortDir = String(req.query.dir || 'desc').toLowerCase() === 'asc' ? 'ASC' : 'DESC';
         const conditions = [];
         const countParams = [];
         if (search) {
-            conditions.push('(u.fb_user_id LIKE ? OR u.fb_name LIKE ? OR u.email LIKE ? OR u.last_login_ip LIKE ?)');
-            countParams.push(search, search, search, search);
+            conditions.push(`(
+                u.fb_user_id LIKE ? OR u.fb_name LIKE ? OR u.email LIKE ?
+                OR u.last_login_ip LIKE ? OR aa.email LIKE ?
+                OR CONCAT(COALESCE(aa.first_name,''), ' ', COALESCE(aa.last_name,'')) LIKE ?
+            )`);
+            countParams.push(search, search, search, search, search, search);
         }
         if (planFilter) {
             conditions.push('u.plan = ?');
             countParams.push(planFilter);
         }
+        if (statusFilter === 'active' || statusFilter === 'suspended') {
+            conditions.push("COALESCE(u.account_status, 'active') = ?");
+            countParams.push(statusFilter);
+        }
         const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
-        const [[{total}]] = await pool.query(`SELECT COUNT(*) as total FROM users u ${where}`, countParams);
+        const join = 'LEFT JOIN app_accounts aa ON aa.linked_fb_user_id = u.fb_user_id';
+        const [[{ total }]] = await pool.query(
+            `SELECT COUNT(*) AS total FROM users u ${join} ${where}`,
+            countParams
+        );
         const listParams = [...countParams, limit, offset];
         const [users] = await pool.query(
             `SELECT u.*,
               COALESCE(u.account_status, 'active') AS account_status,
+              COALESCE(NULLIF(TRIM(u.email), ''), aa.email, '') AS display_email,
+              aa.email AS account_email,
+              aa.first_name AS account_first_name,
+              aa.last_name AS account_last_name,
+              aa.created_at AS account_registered_at,
               (SELECT COUNT(*) FROM user_fb_pages p WHERE p.fb_user_id = u.fb_user_id) AS page_count,
               GREATEST(0, COALESCE(u.messenger_messages_limit,0) - COALESCE(u.messenger_messages_used,0)) AS messages_remaining,
               (SELECT COALESCE(SUM(amount_cents),0) FROM payment_history ph
@@ -236,15 +299,19 @@ app.get('/api/admin/users', requireAdminAuth, async (req, res) => {
                WHERE ph.fb_user_id = u.fb_user_id AND ph.status = 'succeeded'
                AND (ph.billing_reason IN ('subscription_cycle','invoice.payment_succeeded')
                     OR ph.billing_reason LIKE '%renew%')) AS renewal_count
-             FROM users u ${where} ORDER BY u.created_at DESC LIMIT ? OFFSET ?`,
+             FROM users u ${join} ${where}
+             ORDER BY ${sortCol} ${sortDir}
+             LIMIT ? OFFSET ?`,
             listParams
         );
         await fbNames.enrichUsersWithFacebookNames(db, users, { maxLookups: 25 });
         if (page === 1 && !search) {
             await fbNames.backfillMissingFacebookNames(db, 40);
         }
-        res.json({ users: stripUserTokens(users), total, page, pages: Math.ceil(total / limit) });
-    } catch(e) { res.json({ users:[], total:0 }); }
+        res.json({ users: stripUserTokens(users), total, page, pages: Math.ceil(total / limit), limit });
+    } catch (e) {
+        res.json({ users: [], total: 0, page: 1, pages: 1 });
+    }
 });
 
 // Plan catalog for admin UI
