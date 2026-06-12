@@ -6,7 +6,7 @@
 
   const MOBILE_BP = 900;
   const DESIGN_W = 1280;
-  const MIN_SCALE = 0.32;
+  const MIN_SCALE = 0.28;
   const TOPBAR_COMPACT_W = 960;
 
   let backdrop = null;
@@ -14,6 +14,8 @@
   let quotaSyncLock = false;
   let fitRaf = 0;
   let lastFitScale = 1;
+  let wrappedRoot = null;
+  let shellResizeObs = null;
 
   function isFitMode() {
     return document.documentElement.classList.contains('rs-viewport-fit');
@@ -63,8 +65,33 @@
 
   function updateShellHeight(shell, stage, scale) {
     if (!shell || !stage) return;
-    const naturalH = stage.offsetHeight;
+    const naturalH = Math.max(stage.scrollHeight, stage.offsetHeight);
     shell.style.height = Math.ceil(naturalH * scale) + 'px';
+  }
+
+  function bindShellResizeObserver(shell, stage, scale) {
+    if (typeof ResizeObserver === 'undefined' || !shell || !stage) return;
+    if (shellResizeObs) shellResizeObs.disconnect();
+    let timer;
+    shellResizeObs = new ResizeObserver(() => {
+      clearTimeout(timer);
+      timer = setTimeout(() => updateShellHeight(shell, stage, scale), 50);
+    });
+    shellResizeObs.observe(stage);
+  }
+
+  function clearViewportFit() {
+    unwrapAllShells();
+    wrappedRoot = null;
+    if (shellResizeObs) {
+      shellResizeObs.disconnect();
+      shellResizeObs = null;
+    }
+    document.documentElement.classList.remove('rs-viewport-fit', 'rs-viewport-scaled');
+    document.documentElement.style.removeProperty('--rs-fit-scale');
+    document.documentElement.style.removeProperty('--rs-viewport-scale');
+    document.body.style.removeProperty('min-height');
+    lastFitScale = 1;
   }
 
   function applyViewportFit() {
@@ -72,30 +99,33 @@
     const w = window.innerWidth;
     const scale = w >= DESIGN_W ? 1 : Math.max(MIN_SCALE, w / DESIGN_W);
 
-    unwrapAllShells();
-    document.documentElement.classList.remove('rs-viewport-fit', 'rs-viewport-scaled');
-    document.documentElement.style.removeProperty('--rs-fit-scale');
-    document.documentElement.style.removeProperty('--rs-viewport-scale');
-    document.body.style.removeProperty('min-height');
-
     if (scale >= 1) {
-      lastFitScale = 1;
+      clearViewportFit();
       return;
     }
 
     const content = getActiveRoot();
     if (!content) return;
 
+    if (wrappedRoot && wrappedRoot !== content) {
+      unwrapAllShells();
+      wrappedRoot = null;
+    }
+
     const shell = ensureScaleShell(content);
     const stage = shell && shell.querySelector('.rs-viewport-stage');
     if (!shell || !stage) return;
 
-    if (Math.abs(scale - lastFitScale) > 0.0001) {
-      lastFitScale = scale;
-    }
+    wrappedRoot = content;
+    lastFitScale = scale;
 
     document.documentElement.classList.add('rs-viewport-fit');
     document.documentElement.style.setProperty('--rs-fit-scale', scale.toFixed(4));
+    stage.style.width = DESIGN_W + 'px';
+    stage.style.transformOrigin = 'top left';
+    stage.style.transform = 'scale(' + scale.toFixed(4) + ')';
+
+    bindShellResizeObserver(shell, stage, scale);
 
     requestAnimationFrame(() => {
       updateShellHeight(shell, stage, scale);
@@ -305,6 +335,13 @@
       scheduleViewportFit();
     });
     obs.observe(document.body, { attributes: true, attributeFilter: ['class'] });
+
+    ['appPage', 'landingPage'].forEach((id) => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      const pageObs = new MutationObserver(() => scheduleViewportFit());
+      pageObs.observe(el, { attributes: true, attributeFilter: ['style', 'class'] });
+    });
   }
 
   function initResizeHandler() {
@@ -327,10 +364,23 @@
     });
   }
 
+  function hookViewSwitch() {
+    const orig = global.switchDashboardView;
+    if (typeof orig !== 'function' || orig.__rsFitHooked) return;
+    function wrapped() {
+      const result = orig.apply(this, arguments);
+      scheduleViewportFit();
+      return result;
+    }
+    wrapped.__rsFitHooked = true;
+    global.switchDashboardView = wrapped;
+  }
+
   function init() {
     scheduleViewportFit();
     window.addEventListener('load', scheduleViewportFit, { passive: true });
     watchDashboardActivation();
+    hookViewSwitch();
 
     initPagesToggle();
     initPageCardClose();

@@ -462,29 +462,29 @@ body.app-dashboard-active #view-home .hv-qa-card:hover {
 
 /* ─── 8. Tablet landscape (≤1024px) — icon-only nav rail ─── */
 @media (max-width: 1024px) {
-  #appPage .nav-sidebar,
-  #appPage .nav-sidebar:hover {
+  html:not(.rs-viewport-fit) #appPage .nav-sidebar,
+  html:not(.rs-viewport-fit) #appPage .nav-sidebar:hover {
     width: var(--ds-nav-width, 72px) !important;
     min-width: var(--ds-nav-width, 72px) !important;
     max-width: var(--ds-nav-width, 72px) !important;
   }
 
-  #appPage .nav-sidebar .nav-side-item span,
-  #appPage .nav-sidebar .nav-sidebar-hdr span,
-  #appPage .nav-sidebar:hover .nav-side-item span,
-  #appPage .nav-sidebar:hover .nav-sidebar-hdr span,
-  #appPage .nav-sidebar .nav-user-details,
-  #appPage .nav-sidebar:hover .nav-user-details,
-  #appPage .nav-sidebar .nav-ai-label,
-  #appPage .nav-sidebar .nav-contact-label,
-  #appPage .nav-sidebar:hover .nav-ai-label,
-  #appPage .nav-sidebar:hover .nav-contact-label {
+  html:not(.rs-viewport-fit) #appPage .nav-sidebar .nav-side-item span,
+  html:not(.rs-viewport-fit) #appPage .nav-sidebar .nav-sidebar-hdr span,
+  html:not(.rs-viewport-fit) #appPage .nav-sidebar:hover .nav-side-item span,
+  html:not(.rs-viewport-fit) #appPage .nav-sidebar:hover .nav-sidebar-hdr span,
+  html:not(.rs-viewport-fit) #appPage .nav-sidebar .nav-user-details,
+  html:not(.rs-viewport-fit) #appPage .nav-sidebar:hover .nav-user-details,
+  html:not(.rs-viewport-fit) #appPage .nav-sidebar .nav-ai-label,
+  html:not(.rs-viewport-fit) #appPage .nav-sidebar .nav-contact-label,
+  html:not(.rs-viewport-fit) #appPage .nav-sidebar:hover .nav-ai-label,
+  html:not(.rs-viewport-fit) #appPage .nav-sidebar:hover .nav-contact-label {
     opacity: 0 !important;
     max-width: 0 !important;
     overflow: hidden !important;
   }
 
-  body.shell-broadcast #appPage > .app-body:has(.nav-sidebar:hover) {
+  html:not(.rs-viewport-fit) body.shell-broadcast #appPage > .app-body:has(.nav-sidebar:hover) {
     --bcast-nav-active: var(--ds-nav-width, 72px) !important;
   }
 
@@ -516,7 +516,7 @@ body.app-dashboard-active #view-home .hv-qa-card:hover {
 
 /* ─── 9. Tablet portrait / small laptop (≤900px) ─── */
 @media (max-width: 900px) {
-  .saas-topbar {
+  html:not(.rs-viewport-fit) .saas-topbar {
     --tb-h: 56px;
     height: auto;
     min-height: var(--tb-h);
@@ -634,11 +634,11 @@ body.app-dashboard-active #view-home .hv-qa-card:hover {
     display: none;
   }
 
-  .nav-sidebar {
+  html:not(.rs-viewport-fit) .nav-sidebar {
     display: none !important;
   }
 
-  #appPage > .app-body {
+  html:not(.rs-viewport-fit) #appPage > .app-body {
     display: flex !important;
     flex-direction: row !important;
     flex-wrap: nowrap !important;
@@ -649,7 +649,7 @@ body.app-dashboard-active #view-home .hv-qa-card:hover {
   }
 
   /* Pages drawer */
-  #appPage .sidebar {
+  html:not(.rs-viewport-fit) #appPage .sidebar {
     position: fixed !important;
     top: 0;
     left: 0;
@@ -666,7 +666,7 @@ body.app-dashboard-active #view-home .hv-qa-card:hover {
     box-shadow: none;
   }
 
-  body.pages-drawer-open #appPage .sidebar {
+  html:not(.rs-viewport-fit) body.pages-drawer-open #appPage .sidebar {
     transform: translateX(0);
     box-shadow: 16px 0 48px rgba(0, 0, 0, 0.35);
   }
@@ -689,13 +689,13 @@ body.app-dashboard-active #view-home .hv-qa-card:hover {
     max-width: 100% !important;
   }
 
-  body.shell-broadcast #appPage > .app-body {
+  html:not(.rs-viewport-fit) body.shell-broadcast #appPage > .app-body {
     --bcast-nav-active: 0px;
     display: flex !important;
     flex-direction: column !important;
   }
 
-  body.shell-broadcast #view-broadcast {
+  html:not(.rs-viewport-fit) body.shell-broadcast #view-broadcast {
     grid-column: auto;
     flex: 1 1 auto;
     min-height: 0;
@@ -704,16 +704,16 @@ body.app-dashboard-active #view-home .hv-qa-card:hover {
     -webkit-overflow-scrolling: touch;
   }
 
-  body.shell-broadcast #view-broadcast .compose,
-  body.shell-broadcast #view-broadcast .compose-col {
+  html:not(.rs-viewport-fit) body.shell-broadcast #view-broadcast .compose,
+  html:not(.rs-viewport-fit) body.shell-broadcast #view-broadcast .compose-col {
     flex: 1 1 auto !important;
     min-height: 180px !important;
     border-right: none !important;
     border-bottom: 1px solid var(--border) !important;
   }
 
-  body.shell-broadcast #view-broadcast .broadcast-col,
-  body.shell-broadcast #view-broadcast .broadcast-col.bcast-panel-v2 {
+  html:not(.rs-viewport-fit) body.shell-broadcast #view-broadcast .broadcast-col,
+  html:not(.rs-viewport-fit) body.shell-broadcast #view-broadcast .broadcast-col.bcast-panel-v2 {
     display: flex !important;
     flex: 0 0 auto !important;
     width: 100% !important;
@@ -723,7 +723,7 @@ body.app-dashboard-active #view-home .hv-qa-card:hover {
     overflow-y: auto;
   }
 
-  body.shell-broadcast #appPage .stats-panel {
+  html:not(.rs-viewport-fit) body.shell-broadcast #appPage .stats-panel {
     display: none !important;
   }
 
@@ -1478,8 +1478,9 @@ html.rs-viewport-fit #landingPage {
 }
 
 html.rs-viewport-fit #appPage {
-  height: 100vh;
-  height: 100dvh;
+  height: auto !important;
+  min-height: var(--rs-design-h, 900px) !important;
+  max-height: none !important;
   display: flex !important;
   flex-direction: column !important;
 }
@@ -1607,6 +1608,208 @@ html.rs-viewport-fit #landingPage.landing-enterprise .hero-sub {
 .pp-ai-hint button {
   margin-left: auto;
   flex-shrink: 0;
+}
+
+/* ─── 23. Viewport-fit desktop lock — overrides ALL narrow-viewport media rules ─── */
+html.rs-viewport-fit {
+  --rs-design-h: 900px;
+}
+
+html.rs-viewport-fit .nav-sidebar,
+html.rs-viewport-fit #appPage .nav-sidebar {
+  display: flex !important;
+}
+
+html.rs-viewport-fit #appPage .nav-sidebar,
+html.rs-viewport-fit #appPage .nav-sidebar:hover {
+  width: var(--ds-nav-width, 72px) !important;
+  min-width: var(--ds-nav-width, 72px) !important;
+  max-width: var(--ds-nav-width-expanded, 200px) !important;
+}
+
+html.rs-viewport-fit #appPage .nav-sidebar .nav-side-item span,
+html.rs-viewport-fit #appPage .nav-sidebar .nav-sidebar-hdr span,
+html.rs-viewport-fit #appPage .nav-sidebar:hover .nav-side-item span,
+html.rs-viewport-fit #appPage .nav-sidebar:hover .nav-sidebar-hdr span,
+html.rs-viewport-fit #appPage .nav-sidebar .nav-user-details,
+html.rs-viewport-fit #appPage .nav-sidebar:hover .nav-user-details,
+html.rs-viewport-fit #appPage .nav-sidebar .nav-ai-label,
+html.rs-viewport-fit #appPage .nav-sidebar .nav-contact-label,
+html.rs-viewport-fit #appPage .nav-sidebar:hover .nav-ai-label,
+html.rs-viewport-fit #appPage .nav-sidebar:hover .nav-contact-label {
+  opacity: unset !important;
+  max-width: unset !important;
+  overflow: unset !important;
+}
+
+html.rs-viewport-fit .app-mobile-nav,
+html.rs-viewport-fit .app-mobile-more,
+html.rs-viewport-fit .sidebar-backdrop {
+  display: none !important;
+}
+
+html.rs-viewport-fit #appPage .sidebar {
+  position: static !important;
+  transform: none !important;
+  width: var(--sidebar-w, 220px) !important;
+  min-width: var(--sidebar-w, 220px) !important;
+  max-width: var(--sidebar-w, 220px) !important;
+  margin: 0 !important;
+  border-radius: var(--rs-radius-lg, 16px) !important;
+  box-shadow: none !important;
+}
+
+html.rs-viewport-fit .saas-topbar__overflow-wrap,
+html.rs-viewport-fit .saas-topbar__pages-btn {
+  display: none !important;
+}
+
+html.rs-viewport-fit .saas-topbar__sep-v,
+html.rs-viewport-fit .saas-topbar__breadcrumb,
+html.rs-viewport-fit .saas-topbar .topbar-announcement,
+html.rs-viewport-fit .saas-topbar #loginStatus,
+html.rs-viewport-fit .saas-topbar__actions .saas-topbar__icon-btn[title="Help"],
+html.rs-viewport-fit .saas-topbar__actions .saas-topbar__icon-btn[title="Settings"],
+html.rs-viewport-fit .saas-topbar__actions .theme-toggle-wrap,
+html.rs-viewport-fit .saas-topbar .topbar-user-name,
+html.rs-viewport-fit .saas-topbar .btn-upgrade span,
+html.rs-viewport-fit .saas-topbar .topbar-title p {
+  display: revert !important;
+}
+
+html.rs-viewport-fit .saas-topbar .topbar-user-btn .saas-topbar__chevron {
+  display: inline-flex !important;
+}
+
+html.rs-viewport-fit .saas-topbar #planBadge.saas-topbar__plan-btn {
+  max-width: none !important;
+  overflow: visible !important;
+  text-overflow: unset !important;
+}
+
+html.rs-viewport-fit .saas-topbar__quota-values .quota-num,
+html.rs-viewport-fit .saas-topbar__quota-values .quota-total-num {
+  font-size: inherit !important;
+}
+
+/* Broadcast — keep 5-column desktop workspace */
+html.rs-viewport-fit body.shell-broadcast {
+  --bcast-control-w: 340px;
+  --bcast-sidebar-w: 220px;
+}
+
+html.rs-viewport-fit body.shell-broadcast #appPage > .app-body {
+  --bcast-nav-active: var(--ds-nav-width, 72px) !important;
+  display: grid !important;
+  grid-template-columns:
+    var(--bcast-nav-active)
+    var(--bcast-sidebar-w, 220px)
+    minmax(0, 1fr)
+    var(--bcast-control-w, 340px)
+    minmax(0, 1fr) !important;
+  grid-template-rows: minmax(0, 1fr) !important;
+  flex-direction: unset !important;
+  gap: 0 !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  align-items: stretch !important;
+}
+
+html.rs-viewport-fit body.shell-broadcast #appPage > .app-body:has(.nav-sidebar:hover) {
+  --bcast-nav-active: var(--ds-nav-width-expanded, 200px) !important;
+}
+
+html.rs-viewport-fit body.shell-broadcast #appPage .nav-sidebar {
+  grid-column: 1 !important;
+  grid-row: 1 !important;
+  align-self: stretch !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  border-radius: 0 !important;
+}
+
+html.rs-viewport-fit body.shell-broadcast #appPage .sidebar {
+  grid-column: 2 !important;
+  grid-row: 1 !important;
+  display: flex !important;
+  width: auto !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  border-radius: 0 !important;
+}
+
+html.rs-viewport-fit body.shell-broadcast #view-broadcast {
+  grid-column: 3 / 5 !important;
+  grid-row: 1 !important;
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
+  min-width: 0 !important;
+  overflow: hidden !important;
+}
+
+html.rs-viewport-fit body.shell-broadcast #view-broadcast .compose,
+html.rs-viewport-fit body.shell-broadcast #view-broadcast .compose-col {
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  border-right: 1px solid var(--border, rgba(148, 163, 184, 0.12)) !important;
+  border-bottom: none !important;
+}
+
+html.rs-viewport-fit body.shell-broadcast #view-broadcast .broadcast-col,
+html.rs-viewport-fit body.shell-broadcast #view-broadcast .broadcast-col.bcast-panel-v2 {
+  display: flex !important;
+  flex: 0 0 var(--bcast-control-w, 340px) !important;
+  width: var(--bcast-control-w, 340px) !important;
+  min-width: var(--bcast-control-w, 340px) !important;
+  max-width: var(--bcast-control-w, 340px) !important;
+  max-height: none !important;
+}
+
+html.rs-viewport-fit body.shell-broadcast #appPage .stats-panel {
+  display: flex !important;
+  grid-column: 5 !important;
+  grid-row: 1 !important;
+  min-width: 0 !important;
+}
+
+/* Home / messenger / other shells */
+html.rs-viewport-fit body.shell-home #appPage > .app-body,
+html.rs-viewport-fit body.shell-messenger #appPage > .app-body,
+html.rs-viewport-fit body.shell-scheduling #appPage > .app-body,
+html.rs-viewport-fit body.app-dashboard-active:not(.shell-broadcast) #appPage > .app-body {
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
+  gap: 12px !important;
+  padding: 12px !important;
+  padding-bottom: 12px !important;
+  min-width: 0 !important;
+  overflow: hidden !important;
+}
+
+html.rs-viewport-fit #view-home .hv-main-grid {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 380px) !important;
+}
+
+html.rs-viewport-fit #view-home .hv-kpi-row {
+  grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+}
+
+html.rs-viewport-fit body.shell-home .sidebar {
+  display: none !important;
+}
+
+html.rs-viewport-fit .rs-viewport-shell {
+  width: 100%;
+  max-width: 100%;
+}
+
+html.rs-viewport-fit .rs-viewport-stage {
+  width: var(--rs-design-w, 1280px);
+  will-change: transform;
 }
 
 /* ─── 15. Reduced motion ─── */
