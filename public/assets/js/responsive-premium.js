@@ -1,11 +1,10 @@
 /**
  * Responsive shell — viewport fit engine + mobile drawer utilities
  *
- * Viewport fit (Meta-style):
- *   • Fixed design canvas 1280×900
- *   • Uniform scale (no stretch) — width-first, height fallback
- *   • Side gutters use --sched-bg (same as dashboard chrome)
- *   • html.rs-viewport-fit disables mobile @media layout breaks
+ * Viewport fit:
+ *   • Fixed canvas 1280×900, single uniform scale (never stretch)
+ *   • Width-bound: fills viewport edge-to-edge
+ *   • Height-bound: centered, gutters = --sched-bg (not white)
  */
 (function (global) {
   'use strict';
@@ -24,7 +23,13 @@
   let wrappedRoot = null;
   let shellResizeObs = null;
 
-  /* ─── Viewport fit engine ─── */
+  function viewportSize() {
+    const vv = window.visualViewport;
+    return {
+      w: Math.round(vv ? vv.width : window.innerWidth),
+      h: Math.round(vv ? vv.height : window.innerHeight),
+    };
+  }
 
   function isFitMode() {
     return document.documentElement.classList.contains('rs-viewport-fit');
@@ -54,42 +59,37 @@
     return vw < DESIGN.w;
   }
 
-  /** Single uniform scale — never stretch; prefer filling width */
+  /** Uniform contain scale — one number for X and Y (no distortion) */
   function computeDashboardScale(vw, vh) {
-    let scale = vw / DESIGN.w;
-    if (DESIGN.h * scale > vh) {
-      scale = vh / DESIGN.h;
-    }
-    return Math.max(MIN_SCALE, scale);
+    const sw = vw / DESIGN.w;
+    const sh = vh / DESIGN.h;
+    return Math.max(MIN_SCALE, Math.min(sw, sh));
   }
 
   function computeScale(vw, vh, el) {
     const sw = vw / DESIGN.w;
-    if (isDashboardRoot(el)) {
-      return computeDashboardScale(vw, vh);
-    }
+    if (isDashboardRoot(el)) return computeDashboardScale(vw, vh);
     if (sw >= 1) return 1;
     return Math.max(MIN_SCALE, sw);
   }
 
-  function setFitTokens(scale, el, vw, vh) {
+  function setFitTokens(scale, el, layout) {
     const html = document.documentElement;
     const designH = isDashboardRoot(el) ? DESIGN.h : measureLandingHeight(el);
-    const fitW = DESIGN.w * scale;
-    const fitH = designH * scale;
     html.style.setProperty('--rs-fit-scale', scale.toFixed(4));
     html.style.setProperty('--rs-design-w', DESIGN.w + 'px');
     html.style.setProperty('--rs-design-h', designH + 'px');
-    html.style.setProperty('--rs-fit-w', fitW.toFixed(2) + 'px');
-    html.style.setProperty('--rs-fit-h', fitH.toFixed(2) + 'px');
-    html.style.removeProperty('--rs-fit-scale-x');
-    html.style.removeProperty('--rs-fit-scale-y');
+    html.style.setProperty('--rs-fit-w', layout.fitW.toFixed(2) + 'px');
+    html.style.setProperty('--rs-fit-h', layout.fitH.toFixed(2) + 'px');
+    html.classList.toggle('rs-viewport-fit--width-bound', !!layout.widthBound);
+    html.classList.toggle('rs-viewport-fit--height-bound', !!layout.heightBound);
   }
 
   function clearFitTokens() {
     const html = document.documentElement;
     ['--rs-fit-scale', '--rs-design-w', '--rs-design-h', '--rs-fit-w', '--rs-fit-h', '--rs-viewport-scale']
       .forEach((k) => html.style.removeProperty(k));
+    html.classList.remove('rs-viewport-fit--width-bound', 'rs-viewport-fit--height-bound');
   }
 
   function unwrapAllShells() {
@@ -128,32 +128,46 @@
   function layoutShell(shell, el, vw, vh) {
     const clip = shell.querySelector('.rs-viewport-scaler');
     const stage = shell.querySelector('.rs-viewport-stage');
-    if (!clip || !stage) return 1;
+    if (!clip || !stage) return { scale: 1, fitW: vw, fitH: vh, widthBound: true, heightBound: false };
 
     const designH = isDashboardRoot(el) ? DESIGN.h : measureLandingHeight(el);
     const scale = computeScale(vw, vh, el);
+    const sw = vw / DESIGN.w;
+    const sh = vh / DESIGN.h;
     const fitW = DESIGN.w * scale;
     const fitH = designH * scale;
-
-    clip.style.width = fitW + 'px';
-    clip.style.height = fitH + 'px';
-    clip.style.maxWidth = '100%';
-    clip.style.overflow = 'hidden';
-    clip.style.margin = '0 auto';
-    clip.style.padding = '0';
+    const widthBound = isDashboardRoot(el) ? sw <= sh : true;
+    const heightBound = isDashboardRoot(el) ? sh < sw : false;
 
     stage.style.width = DESIGN.w + 'px';
     stage.style.height = designH + 'px';
     stage.style.transform = 'scale(' + scale.toFixed(4) + ')';
     stage.style.transformOrigin = 'top left';
 
-    shell.style.display = 'flex';
-    shell.style.flexDirection = 'column';
-    shell.style.alignItems = 'center';
-    shell.style.justifyContent = 'flex-start';
+    clip.style.overflow = 'hidden';
+    clip.style.padding = '0';
+    clip.style.height = fitH + 'px';
+    clip.style.maxWidth = '100%';
+
+    if (isDashboardRoot(el) && widthBound) {
+      clip.style.width = '100%';
+      clip.style.margin = '0';
+      shell.dataset.rsBound = 'width';
+    } else if (isDashboardRoot(el) && heightBound) {
+      clip.style.width = fitW + 'px';
+      clip.style.margin = '0 auto';
+      shell.dataset.rsBound = 'height';
+    } else {
+      clip.style.width = fitW + 'px';
+      clip.style.margin = '0 auto';
+      shell.dataset.rsBound = '';
+    }
+
+    shell.style.display = 'block';
+    shell.style.width = '100%';
     shell.style.overflow = isDashboardRoot(el) ? 'hidden' : 'auto';
 
-    return scale;
+    return { scale, fitW, fitH, widthBound, heightBound };
   }
 
   function setFitModeClasses(el, on) {
@@ -210,8 +224,7 @@
 
   function applyViewportFit() {
     fitRaf = 0;
-    const vw = window.innerWidth;
-    const vh = window.innerHeight;
+    const { w: vw, h: vh } = viewportSize();
     const el = getActiveRoot();
     if (!el) return;
 
@@ -231,12 +244,12 @@
     wrappedRoot = el;
     ensureFabInAppPage();
 
-    const scale = layoutShell(shell, el, vw, vh);
-    lastFitScale = scale;
+    const layout = layoutShell(shell, el, vw, vh);
+    lastFitScale = layout.scale;
 
     document.documentElement.classList.add('rs-viewport-fit');
     setFitModeClasses(el, true);
-    setFitTokens(scale, el, vw, vh);
+    setFitTokens(layout.scale, el, layout);
     applyBodyScrollLock(true);
     syncMessengerLayout();
 
@@ -248,10 +261,9 @@
         shellResizeObs = new ResizeObserver(() => {
           clearTimeout(timer);
           timer = setTimeout(() => {
-            const vw2 = window.innerWidth;
-            const vh2 = window.innerHeight;
-            const s = layoutShell(shell, el, vw2, vh2);
-            setFitTokens(s, el, vw2, vh2);
+            const size = viewportSize();
+            const next = layoutShell(shell, el, size.w, size.h);
+            setFitTokens(next.scale, el, next);
           }, 80);
         });
         shellResizeObs.observe(stage);
@@ -269,8 +281,6 @@
     const parsed = parseFloat(String(raw).trim());
     return Number.isFinite(parsed) && parsed > 0 ? parsed : lastFitScale;
   }
-
-  /* ─── Mobile drawer (native breakpoint only, not in fit mode) ─── */
 
   function isMobile() {
     if (isFitMode()) return false;

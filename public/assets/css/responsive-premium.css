@@ -1466,16 +1466,13 @@ html.rs-viewport-fit body.app-dashboard-active {
 
 .rs-viewport-shell {
   width: 100%;
+  width: 100vw;
   height: 100dvh;
   max-height: 100dvh;
   overflow: hidden;
   margin: 0;
   padding: 0;
   position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: flex-start;
   background: var(--sched-bg, var(--bg, #030812));
 }
 
@@ -1484,12 +1481,24 @@ body.light.rs-viewport-fit .rs-viewport-shell {
   background: var(--sched-bg, var(--bg, #eef2ff));
 }
 
+/* Width-bound: edge-to-edge, no side gutters */
+html.rs-viewport-fit.rs-viewport-fit--width-bound .rs-viewport-scaler {
+  width: 100% !important;
+  max-width: 100vw !important;
+  margin: 0 !important;
+}
+
+/* Height-bound: centered, gutters match dashboard chrome (not white) */
+html.rs-viewport-fit.rs-viewport-fit--height-bound .rs-viewport-scaler {
+  margin-left: auto !important;
+  margin-right: auto !important;
+}
+
 .rs-viewport-scaler {
   position: relative;
   flex-shrink: 0;
   overflow: hidden;
   box-sizing: border-box;
-  margin: 0 auto;
   padding: 0;
 }
 
@@ -1497,6 +1506,12 @@ body.light.rs-viewport-fit .rs-viewport-shell {
   flex-shrink: 0;
   will-change: transform;
   box-sizing: border-box;
+}
+
+body.app-dashboard-active:not(.rs-viewport-fit) #appPage {
+  width: 100% !important;
+  max-width: none !important;
+  min-width: 0 !important;
 }
 
 html.rs-viewport-fit #appPage,
