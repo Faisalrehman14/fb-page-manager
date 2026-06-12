@@ -3,8 +3,8 @@
  *
  * Viewport fit (Meta-style):
  *   • Fixed design canvas 1280×900
- *   • Uniform scale = min(vw/1280, vh/900) — no distortion
- *   • Centered in viewport, shell background matches app
+ *   • Width-fill uniform scale (edge-to-edge, no side gutters)
+ *   • Top-left anchor, shell background = app background
  *   • html.rs-viewport-fit disables mobile @media layout breaks
  */
 (function (global) {
@@ -54,25 +54,26 @@
     return vw < DESIGN.w;
   }
 
-  /** Uniform scale — preserves aspect ratio (professional, no stretch) */
+  /** Width-fill uniform scale — spans full viewport width, no side letterboxing */
   function computeScale(vw, vh, el) {
     const sw = vw / DESIGN.w;
     if (isDashboardRoot(el)) {
-      const sh = vh / DESIGN.h;
-      return Math.max(MIN_SCALE, Math.min(sw, sh, 1));
+      return Math.max(MIN_SCALE, sw);
     }
     if (sw >= 1) return 1;
     return Math.max(MIN_SCALE, sw);
   }
 
-  function setFitTokens(scale, el) {
+  function setFitTokens(scale, el, vw, vh) {
     const html = document.documentElement;
     const designH = isDashboardRoot(el) ? DESIGN.h : measureLandingHeight(el);
+    const fitW = isDashboardRoot(el) ? vw : DESIGN.w * scale;
+    const fitH = Math.min(vh, designH * scale);
     html.style.setProperty('--rs-fit-scale', scale.toFixed(4));
     html.style.setProperty('--rs-design-w', DESIGN.w + 'px');
     html.style.setProperty('--rs-design-h', designH + 'px');
-    html.style.setProperty('--rs-fit-w', (DESIGN.w * scale).toFixed(2) + 'px');
-    html.style.setProperty('--rs-fit-h', (designH * scale).toFixed(2) + 'px');
+    html.style.setProperty('--rs-fit-w', fitW.toFixed(2) + 'px');
+    html.style.setProperty('--rs-fit-h', fitH.toFixed(2) + 'px');
   }
 
   function clearFitTokens() {
@@ -121,11 +122,12 @@
 
     const scale = computeScale(vw, vh, el);
     const designH = isDashboardRoot(el) ? DESIGN.h : measureLandingHeight(el);
-    const fitW = DESIGN.w * scale;
-    const fitH = designH * scale;
+    const fittedH = designH * scale;
+    const clipH = isDashboardRoot(el) ? Math.min(vh, fittedH) : fittedH;
 
-    clip.style.width = fitW + 'px';
-    clip.style.height = fitH + 'px';
+    clip.style.width = isDashboardRoot(el) ? '100%' : (DESIGN.w * scale) + 'px';
+    clip.style.maxWidth = '100%';
+    clip.style.height = clipH + 'px';
     clip.style.overflow = 'hidden';
 
     stage.style.width = DESIGN.w + 'px';
@@ -218,7 +220,7 @@
 
     document.documentElement.classList.add('rs-viewport-fit');
     setFitModeClasses(el, true);
-    setFitTokens(scale, el);
+    setFitTokens(scale, el, vw, vh);
     applyBodyScrollLock(true);
     syncMessengerLayout();
 
@@ -230,8 +232,10 @@
         shellResizeObs = new ResizeObserver(() => {
           clearTimeout(timer);
           timer = setTimeout(() => {
-            const s = layoutShell(shell, el, window.innerWidth, window.innerHeight);
-            setFitTokens(s, el);
+            const vw2 = window.innerWidth;
+            const vh2 = window.innerHeight;
+            const s = layoutShell(shell, el, vw2, vh2);
+            setFitTokens(s, el, vw2, vh2);
           }, 80);
         });
         shellResizeObs.observe(stage);

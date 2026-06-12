@@ -1440,6 +1440,7 @@ html.rs-viewport-fit {
   overflow: hidden !important;
   height: 100% !important;
   width: 100% !important;
+  background: var(--bg, #030812) !important;
 }
 
 html.rs-viewport-fit body {
@@ -1448,6 +1449,13 @@ html.rs-viewport-fit body {
   height: 100% !important;
   min-width: 0;
   margin: 0;
+  background: var(--bg, #030812) !important;
+}
+
+html[data-theme='light'].rs-viewport-fit,
+html[data-theme='light'].rs-viewport-fit body,
+body.light.rs-viewport-fit {
+  background: var(--bg, #eef2ff) !important;
 }
 
 html.rs-viewport-fit body.app-dashboard-active {
@@ -1462,16 +1470,15 @@ html.rs-viewport-fit body.app-dashboard-active {
   max-height: 100dvh;
   overflow: hidden;
   margin: 0;
+  padding: 0;
   position: relative;
-  display: flex;
-  justify-content: center;
-  align-items: center;
+  display: block;
   background: var(--bg, #030812);
 }
 
 html[data-theme='light'].rs-viewport-fit .rs-viewport-shell,
 body.light.rs-viewport-fit .rs-viewport-shell {
-  background: #f1f5f9;
+  background: var(--bg, #eef2ff);
 }
 
 .rs-viewport-scaler {
@@ -1479,6 +1486,8 @@ body.light.rs-viewport-fit .rs-viewport-shell {
   flex-shrink: 0;
   overflow: hidden;
   box-sizing: border-box;
+  margin: 0;
+  padding: 0;
 }
 
 .rs-viewport-stage {
