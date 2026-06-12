@@ -95,6 +95,7 @@
 <link rel="stylesheet" href="assets/css/professional-theme.css?v={{VER}}">
 <link rel="stylesheet" href="assets/css/app-enhancements.css?v={{VER}}">
 <link rel="stylesheet" href="assets/css/analytics-dashboard.css?v={{VER}}">
+<link rel="stylesheet" href="assets/css/responsive-premium.css?v={{VER}}">
 </head>
 <body>
 <script>
@@ -1058,6 +1059,10 @@ window.getCsrfToken = async (forceRefresh = false) => {
         <span class="app-topbar__sep" aria-hidden="true">/</span>
         <strong id="shellBreadcrumbLabel">Home</strong>
       </nav>
+      <button type="button" class="saas-topbar__pages-btn" id="mobilePagesToggle" aria-label="Show Facebook pages" aria-expanded="false" aria-controls="appSidebar">
+        <i class="fa-solid fa-flag" aria-hidden="true"></i>
+        <span>Pages</span>
+      </button>
     </div>
 
     <div id="statusBar" role="status" aria-live="polite"></div>
@@ -1334,7 +1339,7 @@ window.getCsrfToken = async (forceRefresh = false) => {
     </div>
 
     <!-- COL 1: SIDEBAR / PAGES -->
-    <div class="sidebar">
+    <div class="sidebar" id="appSidebar">
       <div class="sidebar-hdr">
         <div class="sidebar-hdr-main">
           <div class="sidebar-hdr-brand">
@@ -3134,6 +3139,7 @@ window.getCsrfToken = async (forceRefresh = false) => {
 <script src="assets/js/index-page.js?v={{VER}}" defer></script>
 <script src="assets/js/ui-components.js?v={{VER}}" defer></script>
 <script src="assets/js/app-shell.js?v={{VER}}" defer></script>
+<script src="assets/js/responsive-premium.js?v={{VER}}" defer></script>
 <script src="assets/js/onboarding-tour.js?v={{VER}}" defer></script>
 <script src="assets/js/billing-status.js?v={{VER}}" defer></script>
 <script src="assets/js/billing.js?v={{VER}}" defer></script>

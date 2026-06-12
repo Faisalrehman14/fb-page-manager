@@ -1,0 +1,400 @@
+/* ═══════════════════════════════════════════════════════════════
+   Responsive Premium Layer — layout fixes + polished UI
+   Loads last. Breakpoints: 1100 · 900 · 768 · 640
+═══════════════════════════════════════════════════════════════ */
+
+:root {
+  --rp-radius: 16px;
+  --rp-radius-lg: 20px;
+  --rp-shadow: 0 8px 32px rgba(15, 23, 42, 0.08);
+  --rp-shadow-lg: 0 20px 60px rgba(15, 23, 42, 0.12);
+  --rp-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --rp-duration: 0.28s;
+}
+
+html[data-theme='dark'] #appPage,
+html:not([data-theme='light']) #appPage,
+body:not(.light) #appPage {
+  --rp-surface: rgba(14, 22, 48, 0.92);
+  --rp-border: rgba(139, 156, 255, 0.14);
+  --rp-glow: rgba(99, 102, 241, 0.08);
+}
+
+html[data-theme='light'] #appPage,
+body.light #appPage {
+  --rp-surface: #ffffff;
+  --rp-border: rgba(99, 102, 241, 0.12);
+  --rp-shadow: 0 8px 32px rgba(15, 23, 42, 0.06);
+  --rp-glow: rgba(99, 102, 241, 0.05);
+}
+
+/* ─── Global overflow guard ─── */
+html {
+  overflow-x: clip;
+}
+
+body.app-dashboard-active {
+  overflow: hidden;
+  max-width: 100%;
+}
+
+#landingPage,
+#appPage {
+  max-width: 100%;
+  overflow-x: clip;
+}
+
+/* ─── Landing: premium nav + sections ─── */
+#landingPage.landing-enterprise .nav {
+  transition: background var(--rp-duration) var(--rp-ease),
+    box-shadow var(--rp-duration) var(--rp-ease),
+    border-color var(--rp-duration) var(--rp-ease);
+}
+
+#landingPage.landing-enterprise .nav.scrolled {
+  backdrop-filter: blur(16px) saturate(160%);
+}
+
+#landingPage .btn-hero {
+  min-width: 0;
+  max-width: 100%;
+}
+
+#landingPage .pricing-grid--6,
+#landingPage .features-grid,
+#landingPage .testimonials-grid {
+  width: 100%;
+}
+
+#landingPage .trust-strip {
+  scrollbar-width: thin;
+}
+
+/* ─── App topbar: mobile pages toggle ─── */
+.saas-topbar__pages-btn {
+  display: none;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--rp-border, rgba(139, 156, 255, 0.2));
+  background: var(--rp-glow, rgba(99, 102, 241, 0.08));
+  color: var(--text, #e2e8f0);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background var(--rp-duration) var(--rp-ease),
+    border-color var(--rp-duration) var(--rp-ease),
+    transform 0.15s ease;
+  flex-shrink: 0;
+}
+
+.saas-topbar__pages-btn i {
+  font-size: 13px;
+  color: var(--primary-light, #60a5fa);
+}
+
+.saas-topbar__pages-btn:hover {
+  background: rgba(99, 102, 241, 0.16);
+  border-color: rgba(139, 156, 255, 0.32);
+}
+
+.saas-topbar__pages-btn:active {
+  transform: scale(0.97);
+}
+
+html[data-theme='light'] .saas-topbar__pages-btn,
+body.light .saas-topbar__pages-btn {
+  color: #334155;
+  background: rgba(99, 102, 241, 0.06);
+  border-color: rgba(99, 102, 241, 0.16);
+}
+
+/* Sidebar mobile drawer backdrop */
+.sidebar-backdrop {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 105;
+  background: rgba(3, 8, 20, 0.55);
+  backdrop-filter: blur(3px);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--rp-duration) var(--rp-ease);
+}
+
+body.pages-drawer-open .sidebar-backdrop {
+  display: block;
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* ─── App body: flex reflow ─── */
+#appPage > .app-body {
+  min-width: 0;
+  width: 100%;
+}
+
+#appPage .sidebar {
+  width: 220px;
+  min-width: 220px;
+}
+
+/* ─── Premium card polish (dashboard) ─── */
+body.app-dashboard-active #view-home .hv-kpi,
+body.app-dashboard-active #view-home .hv-panel,
+body.app-dashboard-active #view-home .hv-qa-card,
+body.app-dashboard-active #view-home .hv-plan-card,
+body.app-dashboard-active #view-home .hv-lifetime-card,
+body.app-dashboard-active .sidebar,
+body.app-dashboard-active #view-broadcast .compose,
+body.app-dashboard-active .stats-panel {
+  transition: border-color var(--rp-duration) var(--rp-ease),
+    box-shadow var(--rp-duration) var(--rp-ease),
+    transform var(--rp-duration) var(--rp-ease);
+}
+
+body.app-dashboard-active #view-home .hv-kpi:hover,
+body.app-dashboard-active #view-home .hv-qa-card:hover {
+  transform: translateY(-2px);
+}
+
+/* Compose textarea — flexible height on smaller screens */
+#messageText {
+  min-height: 160px;
+  max-height: min(420px, 40vh);
+  resize: vertical;
+}
+
+/* Stats panel scroll on narrow desktop */
+.stats-panel {
+  min-width: 0;
+  overflow: hidden;
+}
+
+/* ─── Tablet (≤1100px) ─── */
+@media (max-width: 1100px) {
+  #view-home .hv-main-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  #view-home .hv-right-col {
+    position: static;
+  }
+
+  body.shell-scheduling #view-scheduling,
+  body.shell-broadcast #view-broadcast {
+    min-width: 0;
+  }
+}
+
+/* ─── Mobile app (≤900px) ─── */
+@media (max-width: 900px) {
+  .saas-topbar__pages-btn {
+    display: inline-flex;
+  }
+
+  body.app-dashboard-active.shell-broadcast .saas-topbar__pages-btn,
+  body.app-dashboard-active.shell-scheduling .saas-topbar__pages-btn,
+  body.app-dashboard-active:not(.shell-messenger):not(.shell-home) .saas-topbar__pages-btn {
+    display: inline-flex;
+  }
+
+  body.shell-home .saas-topbar__pages-btn,
+  body.shell-messenger .saas-topbar__pages-btn,
+  body.in-messenger .saas-topbar__pages-btn {
+    display: none !important;
+  }
+
+  #appPage > .app-body {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    gap: 0 !important;
+    padding: 0 !important;
+    min-width: 0 !important;
+    overflow: hidden !important;
+  }
+
+  /* Pages sidebar — slide-over drawer */
+  #appPage .sidebar {
+    position: fixed !important;
+    top: 0;
+    left: 0;
+    bottom: calc(60px + env(safe-area-inset-bottom, 0px));
+    z-index: 110;
+    width: min(300px, 88vw) !important;
+    min-width: 0 !important;
+    max-width: 88vw !important;
+    margin: 0 !important;
+    border-radius: 0 16px 16px 0 !important;
+    border-left: none !important;
+    transform: translateX(-105%);
+    transition: transform var(--rp-duration) var(--rp-ease),
+      box-shadow var(--rp-duration) var(--rp-ease);
+    box-shadow: none;
+  }
+
+  body.pages-drawer-open #appPage .sidebar {
+    transform: translateX(0);
+    box-shadow: 16px 0 48px rgba(0, 0, 0, 0.35);
+  }
+
+  body.shell-broadcast #appPage .sidebar,
+  body.shell-scheduling #appPage .sidebar {
+    display: flex !important;
+  }
+
+  /* Main view fills width */
+  #view-home,
+  #view-messenger,
+  #view-broadcast,
+  #view-scheduling,
+  #view-analytics,
+  #view-settings,
+  #view-help {
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  body.shell-messenger #appPage > .app-body {
+    display: flex !important;
+  }
+
+  body.shell-messenger #view-messenger {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  /* Broadcast: stack compose + control */
+  body.shell-broadcast #view-broadcast {
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  body.shell-broadcast #appPage .stats-panel {
+    display: none !important;
+  }
+
+  /* Home dashboard padding */
+  #view-home {
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  #view-home .hv-hero,
+  #view-home .hv-main-grid {
+    padding-left: 14px;
+    padding-right: 14px;
+  }
+
+  /* Scheduling / pro views */
+  #view-scheduling.broadcast-subview.is-active,
+  #view-analytics.pro-view.is-active,
+  #view-settings.pro-view.is-active {
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Landing nav */
+  #landingPage.landing-enterprise .nav-links {
+    display: none;
+  }
+
+  #landingPage.landing-enterprise .nav-hamburger {
+    display: flex;
+  }
+
+  #landingPage.landing-enterprise .le-nav-badge {
+    display: none;
+  }
+}
+
+/* ─── Small tablet / large phone (≤768px) ─── */
+@media (max-width: 768px) {
+  #landingPage .hero-enterprise-metrics,
+  #landingPage .hero-enterprise-badges {
+    justify-content: center;
+  }
+
+  #landingPage .pricing-grid--6 {
+    grid-template-columns: 1fr !important;
+  }
+
+  #landingPage .cmp-premium__stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .saas-topbar .topbar-title h1 {
+    font-size: 15px;
+  }
+
+  #view-home .hv-kpi-row,
+  #view-home .hv-metrics-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+
+  .compose-tpl-acc .quick-tpls--compact {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ─── Phone (≤640px) ─── */
+@media (max-width: 640px) {
+  #landingPage.landing-enterprise .nav-link-login {
+    display: none;
+  }
+
+  #landingPage .cmp-premium__stats {
+    grid-template-columns: 1fr;
+  }
+
+  #view-home .hv-kpi-row,
+  #view-home .hv-metrics-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .saas-topbar__pages-btn span {
+    display: none;
+  }
+
+  .saas-topbar__pages-btn {
+    padding: 8px 10px;
+  }
+
+  #messageText {
+    min-height: 140px;
+  }
+
+  body.shell-broadcast #view-broadcast .broadcast-col,
+  body.shell-broadcast #view-broadcast .broadcast-col.bcast-panel-v2 {
+    max-height: none;
+  }
+}
+
+/* ─── Light mode landing polish ─── */
+html[data-theme='light'] #landingPage.landing-enterprise,
+body.light #landingPage.landing-enterprise {
+  background: #f8fafc;
+}
+
+html[data-theme='light'] #landingPage .feat,
+html[data-theme='light'] #landingPage .price-card,
+body.light #landingPage .feat,
+body.light #landingPage .price-card {
+  box-shadow: var(--rp-shadow);
+}
+
+/* ─── Reduced motion ─── */
+@media (prefers-reduced-motion: reduce) {
+  #appPage .sidebar,
+  .sidebar-backdrop,
+  body.app-dashboard-active #view-home .hv-kpi,
+  body.app-dashboard-active #view-home .hv-qa-card {
+    transition: none !important;
+    transform: none !important;
+  }
+}

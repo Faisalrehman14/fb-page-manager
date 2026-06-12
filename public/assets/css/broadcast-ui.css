@@ -753,13 +753,47 @@ body.shell-broadcast #appPage .stats-panel {
     grid-template-columns: var(--bcast-nav-active) minmax(0, 1fr);
   }
 
-  body.shell-broadcast #appPage .sidebar,
   body.shell-broadcast #appPage .stats-panel {
     display: none !important;
   }
 
   body.shell-broadcast #view-broadcast {
     grid-column: 2;
+  }
+}
+
+@media (max-width: 900px) {
+  body.shell-broadcast #appPage > .app-body {
+    --bcast-nav-active: 0px;
+    grid-template-columns: minmax(0, 1fr) !important;
+    display: flex !important;
+    flex-direction: column !important;
+  }
+
+  body.shell-broadcast #view-broadcast {
+    grid-column: auto;
+    flex: 1 1 auto;
+    min-height: 0;
+    flex-direction: column !important;
+  }
+
+  body.shell-broadcast #view-broadcast .compose,
+  body.shell-broadcast #view-broadcast .compose-col {
+    flex: 1 1 auto !important;
+    min-height: 200px !important;
+    border-right: none !important;
+    border-bottom: 1px solid var(--border, rgba(148, 163, 184, 0.12)) !important;
+  }
+
+  body.shell-broadcast #view-broadcast .broadcast-col,
+  body.shell-broadcast #view-broadcast .broadcast-col.bcast-panel-v2 {
+    display: flex !important;
+    flex: 0 0 auto !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    max-height: 42vh;
+    overflow-y: auto;
   }
 }
 

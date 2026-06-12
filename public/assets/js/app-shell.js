@@ -217,6 +217,7 @@
   function navigate(view) {
     if (!VIEWS[view]) view = 'home';
     closeMobileMore();
+    if (typeof global.closePagesDrawer === 'function') global.closePagesDrawer();
     const prev = VIEWS[currentView];
     const next = VIEWS[view];
 

@@ -481,7 +481,9 @@ body.shell-multi-broadcast .page-card.multi-selected .page-indicator::after {
   margin: 8px 0 0;
 }
 
-body.shell-messenger .nav-sidebar { display: flex !important; }
+@media (min-width: 901px) {
+  body.shell-messenger .nav-sidebar { display: flex !important; }
+}
 
 /* ─── Responsive ─── */
 @media (max-width: 900px) {
