@@ -200,6 +200,15 @@
   position: absolute;
   bottom: 20px;
 }
+
+/* Messenger has its own composer — hide quick FAB so it does not cover send */
+body.shell-messenger #ppFab,
+body.shell-messenger #appPage .pp-fab {
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
 .pp-fab-main {
   width: 52px;
   height: 52px;

@@ -540,12 +540,24 @@
   };
 
   /* ── View change hook ── */
+  function syncFabForView(view) {
+    const fab = $('ppFab');
+    if (!fab) return;
+    const hide = view === 'messenger';
+    fab.hidden = hide;
+    if (hide) {
+      fab.classList.remove('is-open');
+      fabOpen = false;
+    }
+  }
+
   function hookViewChanges() {
     if (!global.AppShell) return;
     const orig = global.AppShell.navigate?.bind(global.AppShell);
     if (!orig) return;
     global.AppShell.navigate = function (view) {
       orig(view);
+      syncFabForView(view);
       updateAiHint(view);
       if (view === 'home') {
         setTimeout(() => {
@@ -561,6 +573,26 @@
     };
   }
 
+  function hookSwitchDashboardView() {
+    const orig = global.switchDashboardView;
+    if (typeof orig !== 'function' || orig.__ppFabHooked) return;
+    function wrapped(view) {
+      const result = orig.apply(this, arguments);
+      syncFabForView(view);
+      return result;
+    }
+    wrapped.__ppFabHooked = true;
+    global.switchDashboardView = wrapped;
+  }
+
+  function detectActiveView() {
+    if (document.body.classList.contains('shell-messenger')) return 'messenger';
+    if (document.body.classList.contains('shell-broadcast')) return 'broadcast';
+    if (document.body.classList.contains('shell-scheduling')) return 'scheduling';
+    if (document.body.classList.contains('shell-home')) return 'home';
+    return 'home';
+  }
+
   function init() {
     loadWidgets();
     injectLandingAdvantages();
@@ -571,6 +603,8 @@
       injectAiHint();
       injectSettingsSections();
       hookViewChanges();
+      hookSwitchDashboardView();
+      syncFabForView(detectActiveView());
       updateAiHint('home');
     };
 
