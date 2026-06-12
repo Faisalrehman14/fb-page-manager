@@ -70,15 +70,18 @@ body {
 }
 
 body.app-dashboard-active {
-  overflow: hidden;
-  max-width: 100%;
+  overflow-x: clip;
+  overflow-y: hidden;
+  max-width: 100vw;
 }
 
 #landingPage,
 #appPage {
-  max-width: 100%;
+  width: 100%;
+  max-width: 100vw;
   min-width: 0;
   overflow-x: clip;
+  box-sizing: border-box;
 }
 
 img,
@@ -1387,176 +1390,61 @@ body.app-dashboard-active #appPage > .app-body {
   }
 }
 
-/* ─── 21. Viewport scale — full desktop UI at any window width (no freeze) ─── */
-:root {
-  --rs-design-w: 1280px;
-  --rs-viewport-scale: 1;
+/* ─── 21. Fluid fit — full content visible, no crop at any width ─── */
+body.app-dashboard-active #appPage > .app-body {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
 }
 
-html.rs-viewport-scaled {
-  overflow-x: hidden;
-  overflow-y: auto;
-}
-
-html.rs-viewport-scaled body {
-  overflow-x: hidden;
-}
-
-html.rs-viewport-scaled body.app-dashboard-active {
-  overflow-x: hidden;
-  overflow-y: auto;
-  height: auto;
-  min-height: 100vh;
-}
-
-html.rs-viewport-scaled #landingPage,
-html.rs-viewport-scaled #appPage {
-  width: var(--rs-design-w) !important;
-  max-width: var(--rs-design-w) !important;
-  min-width: var(--rs-design-w) !important;
-  margin-left: auto !important;
-  margin-right: auto !important;
-  transform: scale(var(--rs-viewport-scale));
-  transform-origin: top center;
-}
-
-html.rs-viewport-scaled #appPage {
-  height: 100vh;
-  height: 100dvh;
-}
-
-html.rs-viewport-scaled .app-mobile-nav {
-  width: calc(var(--rs-design-w) * var(--rs-viewport-scale));
-  max-width: 100vw;
-  left: 50%;
-  transform: translateX(-50%) scale(var(--rs-viewport-scale));
-  transform-origin: bottom center;
-}
-
-/* Keep desktop landing layout when scaled */
-html.rs-viewport-scaled #landingPage.landing-enterprise .nav-links,
-html.rs-viewport-scaled #landingPage.landing-enterprise .nav-link-login,
-html.rs-viewport-scaled #landingPage.landing-enterprise .nav-cta {
-  display: inline-flex !important;
-}
-
-html.rs-viewport-scaled #landingPage.landing-enterprise .nav-hamburger {
-  display: none !important;
-}
-
-html.rs-viewport-scaled #landingPage.landing-enterprise .hero-enterprise-grid {
-  grid-template-columns: 1.05fr 0.95fr !important;
-  text-align: left !important;
-}
-
-html.rs-viewport-scaled #landingPage.landing-enterprise .hero-h1,
-html.rs-viewport-scaled #landingPage.landing-enterprise .hero-sub {
-  text-align: left !important;
-}
-
-html.rs-viewport-scaled #landingPage.landing-enterprise .hero-actions,
-html.rs-viewport-scaled #landingPage.landing-enterprise .hero-enterprise-ctas,
-html.rs-viewport-scaled #landingPage.landing-enterprise .hero-enterprise-badges {
-  justify-content: flex-start !important;
-  align-items: flex-start !important;
-}
-
-html.rs-viewport-scaled #landingPage.landing-enterprise .hero-enterprise-metrics {
-  grid-template-columns: repeat(3, 1fr) !important;
-}
-
-html.rs-viewport-scaled #landingPage .pricing-grid--6 {
-  grid-template-columns: repeat(3, 1fr) !important;
-}
-
-html.rs-viewport-scaled .cmp-premium__table-wrap {
+body.shell-home #appPage > .app-body,
+body.shell-home #view-home {
+  width: 100% !important;
+  max-width: 100% !important;
   min-width: 0 !important;
 }
 
-html.rs-viewport-scaled .cmp-premium__table thead {
-  display: table-header-group !important;
-}
-
-html.rs-viewport-scaled .cmp-premium__table tbody tr {
-  display: table-row !important;
-  padding: 0 !important;
-  margin: 0 !important;
-  border: none !important;
-  background: transparent !important;
-  box-shadow: none !important;
-}
-
-html.rs-viewport-scaled .cmp-premium__table tbody tr td,
-html.rs-viewport-scaled .cmp-premium__table tbody tr th {
-  display: table-cell !important;
-}
-
-html.rs-viewport-scaled .cmp-premium__table tbody tr td::before {
-  content: none !important;
+body.shell-home .sidebar {
   display: none !important;
 }
 
-/* Keep desktop app chrome when scaled */
-html.rs-viewport-scaled .saas-topbar {
-  height: 60px !important;
-  min-height: 60px !important;
-  flex-direction: row !important;
-  flex-wrap: nowrap !important;
-  padding: 0 20px !important;
+/* Split-screen: use full width for content, bottom nav instead of side rail */
+@media (max-width: 1100px) {
+  body.app-dashboard-active #appPage > .app-body {
+    padding: 0 !important;
+    padding-bottom: calc(60px + env(safe-area-inset-bottom, 0px)) !important;
+    gap: 0 !important;
+  }
+
+  body.app-dashboard-active #appPage .nav-sidebar {
+    display: none !important;
+  }
+
+  body.app-dashboard-active .app-mobile-nav {
+    display: grid !important;
+  }
+
+  #view-home,
+  #view-messenger,
+  #view-broadcast,
+  #view-scheduling.broadcast-subview.is-active,
+  #view-analytics.pro-view.is-active,
+  #view-settings.pro-view.is-active,
+  #view-help.pro-view.is-active {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    flex: 1 1 auto !important;
+  }
 }
 
-html.rs-viewport-scaled .saas-topbar__left {
-  order: 0 !important;
-  padding-right: 0 !important;
-  width: auto !important;
-}
-
-html.rs-viewport-scaled .saas-topbar__right {
-  order: 0 !important;
-  width: auto !important;
-  flex: 0 1 auto !important;
-  display: flex !important;
-  flex-direction: row !important;
-  align-items: center !important;
-}
-
-html.rs-viewport-scaled .saas-topbar__actions,
-html.rs-viewport-scaled .saas-topbar__user-cluster {
-  position: static !important;
-}
-
-html.rs-viewport-scaled .saas-topbar .topbar-title {
-  display: block !important;
-}
-
-html.rs-viewport-scaled .saas-topbar .topbar-user-name {
-  display: inline !important;
-}
-
-html.rs-viewport-scaled .saas-topbar__breadcrumb,
-html.rs-viewport-scaled .saas-topbar__sep-v {
-  display: flex !important;
-}
-
-html.rs-viewport-scaled .nav-sidebar {
-  display: flex !important;
-}
-
-html.rs-viewport-scaled .app-mobile-nav {
-  display: none !important;
-}
-
-html.rs-viewport-scaled #view-home .hv-kpi-row {
-  grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
-}
-
-html.rs-viewport-scaled #view-home .hv-hero-content {
-  flex-direction: row !important;
-  align-items: center !important;
-}
-
-html.rs-viewport-scaled #view-home .hv-main-grid {
-  grid-template-columns: minmax(0, 1fr) minmax(0, min(380px, 100%)) !important;
+#landingPage.landing-enterprise,
+#landingPage.landing-enterprise #landingMain {
+  width: 100%;
+  max-width: 100vw;
+  overflow-x: clip;
+  box-sizing: border-box;
 }
 
 /* ─── 15. Reduced motion ─── */

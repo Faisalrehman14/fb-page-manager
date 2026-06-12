@@ -1,19 +1,15 @@
 /**
- * Responsive shell — viewport scale, pages drawer, topbar overflow, resize cleanup
+ * Responsive shell — pages drawer, topbar overflow, resize cleanup
  */
 (function (global) {
   'use strict';
 
   const MOBILE_BP = 900;
-  const DESIGN_W = 1280;
-  const MIN_SCALE = 0.32;
   const TOPBAR_COMPACT_W = 960;
 
   let backdrop = null;
   let topbarQuotaInited = false;
   let quotaSyncLock = false;
-  let scaleRaf = 0;
-  let lastAppliedScale = 1;
 
   function isMobile() {
     return window.matchMedia('(max-width: ' + MOBILE_BP + 'px)').matches;
@@ -31,7 +27,7 @@
   }
 
   function openPagesDrawer() {
-    if (!isMobile() || document.documentElement.classList.contains('rs-viewport-scaled')) return;
+    if (!isMobile()) return;
     ensureBackdrop();
     document.body.classList.add('pages-drawer-open');
     backdrop.setAttribute('aria-hidden', 'false');
@@ -63,9 +59,7 @@
   function initPageCardClose() {
     document.addEventListener('click', (e) => {
       const card = e.target.closest('.page-card');
-      if (card && isMobile() && !document.documentElement.classList.contains('rs-viewport-scaled')) {
-        closePagesDrawer();
-      }
+      if (card && isMobile()) closePagesDrawer();
     });
   }
 
@@ -125,7 +119,6 @@
   }
 
   function syncMessengerLayout() {
-    if (document.documentElement.classList.contains('rs-viewport-scaled')) return;
     const panel = document.getElementById('msngContactPanel');
     if (!panel) return;
     if (window.innerWidth <= 1200) {
@@ -169,8 +162,7 @@
     const totEl = document.getElementById('quotaTotal');
     if (!topbar || !valEl || topbar.offsetParent === null) return;
 
-    const scaled = document.documentElement.classList.contains('rs-viewport-scaled');
-    const compact = !scaled && topbar.offsetWidth < TOPBAR_COMPACT_W;
+    const compact = topbar.offsetWidth < TOPBAR_COMPACT_W;
     const fullRem = parseInt(valEl.dataset.fullValue || String(parseQuotaNum(valEl)), 10);
     const fullTot = totEl
       ? parseInt(totEl.dataset.fullValue || String(parseQuotaNum(totEl)), 10)
@@ -210,59 +202,19 @@
     syncTopbarQuotaDisplay();
   }
 
-  function activeScaleRoot() {
-    if (document.body.classList.contains('app-dashboard-active')) {
-      return document.getElementById('appPage');
-    }
-    return document.getElementById('landingPage');
-  }
-
-  function applyViewportScale() {
-    scaleRaf = 0;
-    const w = window.innerWidth;
-    const scale = w >= DESIGN_W ? 1 : Math.max(MIN_SCALE, w / DESIGN_W);
-
-    if (Math.abs(scale - lastAppliedScale) < 0.001) {
-      return;
-    }
-    lastAppliedScale = scale;
-
-    const root = activeScaleRoot();
-
-    if (scale >= 1) {
-      document.documentElement.classList.remove('rs-viewport-scaled');
-      document.documentElement.style.removeProperty('--rs-viewport-scale');
-      document.body.style.removeProperty('min-height');
-      return;
-    }
-
-    document.documentElement.classList.add('rs-viewport-scaled');
-    document.documentElement.style.setProperty('--rs-viewport-scale', scale.toFixed(4));
-
-    if (!root) return;
-
-    requestAnimationFrame(() => {
-      document.body.style.minHeight = Math.ceil(root.offsetHeight * scale) + 'px';
-    });
-  }
-
-  function scheduleViewportScale() {
-    if (scaleRaf) return;
-    scaleRaf = requestAnimationFrame(applyViewportScale);
-  }
-
-  function initViewportScale() {
-    window.addEventListener('resize', scheduleViewportScale, { passive: true });
-    applyViewportScale();
+  function clearLegacyScale() {
+    document.documentElement.classList.remove('rs-viewport-scaled');
+    document.documentElement.style.removeProperty('--rs-viewport-scale');
+    document.body.style.removeProperty('min-height');
   }
 
   function watchDashboardActivation() {
     if (typeof MutationObserver === 'undefined') return;
     const obs = new MutationObserver(() => {
+      clearLegacyScale();
       if (document.body.classList.contains('app-dashboard-active')) {
         initTopbarQuotaObserver();
       }
-      scheduleViewportScale();
     });
     obs.observe(document.body, { attributes: true, attributeFilter: ['class'] });
   }
@@ -272,13 +224,11 @@
     window.addEventListener('resize', () => {
       clearTimeout(timer);
       timer = setTimeout(() => {
-        if (!isMobile() || document.documentElement.classList.contains('rs-viewport-scaled')) {
-          closePagesDrawer();
-        }
+        clearLegacyScale();
+        if (!isMobile()) closePagesDrawer();
         closeTopbarOverflow();
         syncMessengerLayout();
         syncTopbarQuotaDisplay();
-        scheduleViewportScale();
       }, 120);
     }, { passive: true });
   }
@@ -290,7 +240,7 @@
   }
 
   function init() {
-    initViewportScale();
+    clearLegacyScale();
     watchDashboardActivation();
 
     if (!document.getElementById('appPage')) return;
@@ -306,7 +256,6 @@
   global.closePagesDrawer = closePagesDrawer;
   global.togglePagesDrawer = togglePagesDrawer;
   global.syncTopbarQuotaDisplay = syncTopbarQuotaDisplay;
-  global.scheduleViewportScale = scheduleViewportScale;
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
