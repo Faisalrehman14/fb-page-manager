@@ -167,6 +167,7 @@
 
   /** Collapse nav rail during route change (prevents expand while switching views). */
   function collapseNavRail() {
+    if (document.documentElement.classList.contains('rs-viewport-fit')) return;
     const nav = document.querySelector('#appPage .nav-sidebar');
     if (!nav) return;
     nav.classList.add('nav-sidebar--locked');

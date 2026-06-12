@@ -42,12 +42,26 @@
     return document.getElementById('appPage') || landing;
   }
 
-  function computeFitScale(w, h, content) {
-    const scaleW = w / DESIGN_W;
+  function needsViewportFit(w, h, content) {
     if (isDashboardRoot(content)) {
-      // Width-fill: always edge-to-edge, no side letterboxing
-      return Math.max(MIN_SCALE, Math.min(scaleW, 1));
+      return w < DESIGN_W || h < DESIGN_H;
     }
+    return w < DESIGN_W;
+  }
+
+  function getDashboardScales(w, h) {
+    return {
+      scaleX: Math.max(MIN_SCALE, w / DESIGN_W),
+      scaleY: Math.max(MIN_SCALE, h / DESIGN_H),
+    };
+  }
+
+  function computeFitScale(w, h, content) {
+    if (isDashboardRoot(content)) {
+      const { scaleX, scaleY } = getDashboardScales(w, h);
+      return Math.min(scaleX, scaleY);
+    }
+    const scaleW = w / DESIGN_W;
     if (scaleW >= 1) return 1;
     return Math.max(MIN_SCALE, scaleW);
   }
@@ -58,24 +72,35 @@
     return Math.max(LANDING_FIT_H, measured);
   }
 
-  function applyStageLayout(shell, stage, scaler, scale, content) {
+  function applyStageLayout(shell, stage, scaler, scale, content, viewportW, viewportH) {
     if (!shell || !stage || !scaler) return;
 
+    const w = viewportW || window.innerWidth;
+    const h = viewportH || window.innerHeight;
     const designH = getDesignHeight(content);
 
-    scaler.style.width = '100%';
-    scaler.style.maxWidth = '100%';
     scaler.style.overflow = 'hidden';
     scaler.style.flexShrink = '0';
     scaler.style.position = 'relative';
 
     stage.style.width = DESIGN_W + 'px';
     stage.style.height = designH + 'px';
-    stage.style.transform = 'scale(' + scale.toFixed(4) + ')';
     stage.style.transformOrigin = 'top left';
     stage.style.margin = '0';
 
-    scaler.style.height = (designH * scale) + 'px';
+    if (isDashboardRoot(content)) {
+      const { scaleX, scaleY } = getDashboardScales(w, h);
+      scaler.style.width = w + 'px';
+      scaler.style.height = h + 'px';
+      scaler.style.maxWidth = '100%';
+      stage.style.transform = 'scale(' + scaleX.toFixed(4) + ', ' + scaleY.toFixed(4) + ')';
+    } else {
+      const scaleW = Math.max(MIN_SCALE, Math.min(w / DESIGN_W, 1));
+      scaler.style.width = '100%';
+      scaler.style.maxWidth = '100%';
+      scaler.style.height = (designH * scaleW) + 'px';
+      stage.style.transform = 'scale(' + scaleW.toFixed(4) + ')';
+    }
 
     shell.style.height = '100dvh';
     shell.style.maxHeight = '100dvh';
@@ -199,7 +224,7 @@
 
     const scale = computeFitScale(w, h, content);
 
-    if (scale >= 1) {
+    if (!needsViewportFit(w, h, content)) {
       clearViewportFit();
       return;
     }
@@ -225,11 +250,11 @@
     document.documentElement.style.setProperty('--rs-design-h', getDesignHeight(content) + 'px');
 
     applyBodyOverflowForFit(true);
-    applyStageLayout(shell, stage, scaler, scale, content);
+    applyStageLayout(shell, stage, scaler, scale, content, w, h);
     syncMessengerLayout();
     bindShellResizeObserver(shell, stage, content);
 
-    requestAnimationFrame(() => applyStageLayout(shell, stage, scaler, scale, content));
+    requestAnimationFrame(() => applyStageLayout(shell, stage, scaler, scale, content, w, h));
   }
 
   function scheduleViewportFit() {
