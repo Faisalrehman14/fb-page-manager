@@ -325,7 +325,8 @@
       '<button type="button" class="pp-fab-item" data-fab="search"><i class="fa-solid fa-magnifying-glass"></i> Search</button>' +
       '</div>' +
       '<button type="button" class="pp-fab-main" aria-label="Quick actions"><i class="fa-solid fa-plus"></i></button>';
-    document.body.appendChild(fab);
+    const app = document.getElementById('appPage');
+    (app || document.body).appendChild(fab);
     fab.querySelector('.pp-fab-main').addEventListener('click', () => {
       fabOpen = !fabOpen;
       fab.classList.toggle('is-open', fabOpen);

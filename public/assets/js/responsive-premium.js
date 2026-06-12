@@ -117,6 +117,13 @@
     lastFitScale = 1;
   }
 
+  function ensureFabInAppPage() {
+    const fab = document.getElementById('ppFab');
+    const app = document.getElementById('appPage');
+    if (!fab || !app || fab.parentElement === app) return;
+    app.appendChild(fab);
+  }
+
   function applyViewportFit() {
     fitRaf = 0;
     const w = window.innerWidth;
@@ -141,6 +148,8 @@
 
     wrappedRoot = content;
     lastFitScale = scale;
+
+    ensureFabInAppPage();
 
     document.documentElement.classList.add('rs-viewport-fit');
     document.documentElement.style.setProperty('--rs-fit-scale', scale.toFixed(4));
@@ -408,6 +417,7 @@
   }
 
   function init() {
+    ensureFabInAppPage();
     scheduleViewportFit();
     window.addEventListener('load', scheduleViewportFit, { passive: true });
     watchDashboardActivation();

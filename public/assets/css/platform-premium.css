@@ -188,12 +188,17 @@
 }
 .pp-modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
 
-/* ── Floating quick actions ── */
+/* ── Floating quick actions (inside #appPage so viewport-fit scale applies) ── */
 .pp-fab {
   position: fixed;
   right: 20px;
   bottom: 88px;
   z-index: 11000;
+}
+
+#appPage .pp-fab {
+  position: absolute;
+  bottom: 20px;
 }
 .pp-fab-main {
   width: 52px;
