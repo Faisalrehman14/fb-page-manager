@@ -71,7 +71,7 @@ body {
 
 body.app-dashboard-active {
   overflow-x: clip;
-  overflow-y: auto;
+  overflow-y: hidden;
   max-width: 100vw;
   background: var(--sched-bg, var(--bg, #030812)) !important;
 }
@@ -940,8 +940,9 @@ html:not(.rs-viewport-fit) body.app-dashboard-active #appPage {
   display: flex;
   flex-direction: column;
   min-height: 100dvh;
-  height: auto;
-  max-height: none;
+  height: 100dvh;
+  max-height: 100dvh;
+  overflow: hidden;
 }
 
 html:not(.rs-viewport-fit) body.app-dashboard-active #appPage > .app-body {
@@ -962,6 +963,19 @@ html:not(.rs-viewport-fit) #view-help.pro-view.is-active {
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   min-height: 0;
+  flex: 1 1 auto;
+}
+
+/* Home dashboard — scroll inside view, topbar stays fixed */
+body.shell-home #view-home,
+html:not(.rs-viewport-fit) body.shell-home #view-home {
+  overflow-x: clip !important;
+  overflow-y: auto !important;
+  -webkit-overflow-scrolling: touch;
+  min-height: 0 !important;
+  flex: 1 1 auto !important;
+  height: auto !important;
+  max-height: 100% !important;
 }
 
 #view-broadcast,
@@ -1397,6 +1411,14 @@ body.shell-home #view-home {
   min-width: 0 !important;
 }
 
+body.shell-home #appPage > .app-body {
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+  display: flex !important;
+  flex-direction: row !important;
+}
+
 body.shell-home .sidebar {
   display: none !important;
 }
@@ -1561,7 +1583,6 @@ html.rs-viewport-fit.rs-viewport-fit--app #appPage > .app-body {
   overflow: hidden !important;
 }
 
-html.rs-viewport-fit.rs-viewport-fit--app #view-home,
 html.rs-viewport-fit.rs-viewport-fit--app #view-messenger,
 html.rs-viewport-fit.rs-viewport-fit--app #view-broadcast,
 html.rs-viewport-fit.rs-viewport-fit--app #view-scheduling,
@@ -1574,7 +1595,11 @@ html.rs-viewport-fit.rs-viewport-fit--app #view-help {
 }
 
 html.rs-viewport-fit.rs-viewport-fit--app #view-home {
-  overflow: hidden !important;
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  overflow-x: clip !important;
+  overflow-y: auto !important;
+  -webkit-overflow-scrolling: touch;
 }
 
 html.rs-viewport-fit.rs-viewport-fit--landing #landingPage {
@@ -2066,12 +2091,27 @@ html.rs-viewport-fit.rs-viewport-fit--landing .rs-viewport-shell {
 html.rs-viewport-fit .rs-viewport-shell {
   width: 100%;
   max-width: 100%;
-  height: 100dvh;
-  max-height: 100dvh;
+  min-height: 100dvh;
+  height: auto;
+  max-height: none;
 }
 
 html.rs-viewport-fit.rs-viewport-fit--app .rs-viewport-shell {
-  overflow: hidden;
+  overflow: visible;
+}
+
+html.rs-viewport-fit body.shell-home #appPage > .app-body {
+  overflow: hidden !important;
+  min-height: 0 !important;
+  flex: 1 1 auto !important;
+}
+
+html.rs-viewport-fit body.shell-home #view-home {
+  overflow-x: clip !important;
+  overflow-y: auto !important;
+  -webkit-overflow-scrolling: touch;
+  min-height: 0 !important;
+  flex: 1 1 auto !important;
 }
 
 html.rs-viewport-fit .rs-viewport-stage {
