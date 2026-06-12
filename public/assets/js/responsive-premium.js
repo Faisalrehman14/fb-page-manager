@@ -1,12 +1,14 @@
 /**
- * Responsive shell — proportional viewport fit, pages drawer, topbar overflow
+ * Responsive shell — Meta-style viewport fit (scale entire UI to window, no page scroll)
  */
 (function (global) {
   'use strict';
 
   const MOBILE_BP = 900;
   const DESIGN_W = 1280;
-  const MIN_SCALE = 0.28;
+  const DESIGN_H = 800;
+  const LANDING_FIT_H = 900;
+  const MIN_SCALE = 0.18;
   const TOPBAR_COMPACT_W = 960;
 
   let backdrop = null;
@@ -26,6 +28,10 @@
     return window.matchMedia('(max-width: ' + MOBILE_BP + 'px)').matches;
   }
 
+  function isDashboardRoot(content) {
+    return !!(content && content.id === 'appPage');
+  }
+
   function getActiveRoot() {
     if (document.body.classList.contains('app-dashboard-active')) {
       const app = document.getElementById('appPage');
@@ -34,6 +40,16 @@
     const landing = document.getElementById('landingPage');
     if (landing && landing.style.display !== 'none') return landing;
     return document.getElementById('appPage') || landing;
+  }
+
+  function computeFitScale(w, h, content) {
+    const scaleW = w / DESIGN_W;
+    if (isDashboardRoot(content)) {
+      const scaleH = h / DESIGN_H;
+      return Math.max(MIN_SCALE, Math.min(scaleW, scaleH, 1));
+    }
+    const scaleH = h / LANDING_FIT_H;
+    return Math.max(MIN_SCALE, Math.min(scaleW, scaleH, 1));
   }
 
   function unwrapAllShells() {
@@ -70,35 +86,59 @@
     return Number.isFinite(parsed) && parsed > 0 ? parsed : lastFitScale;
   }
 
-  function updateShellHeight(shell, stage, scale) {
+  function updateShellLayout(shell, stage, scale, content) {
     if (!shell || !stage) return;
-    const s = scale || getCurrentScale();
-    const naturalH = Math.max(stage.scrollHeight, stage.offsetHeight, stage.getBoundingClientRect().height / s);
-    shell.style.height = Math.ceil(naturalH * s) + 'px';
+    shell.style.height = '100dvh';
+    shell.style.maxHeight = '100dvh';
+    shell.style.overflow = 'hidden';
+
+    if (isDashboardRoot(content)) {
+      stage.style.minHeight = DESIGN_H + 'px';
+      stage.style.height = DESIGN_H + 'px';
+    } else {
+      stage.style.minHeight = '';
+      stage.style.height = 'auto';
+    }
   }
 
-  function bindShellResizeObserver(shell, stage) {
+  function bindShellResizeObserver(shell, stage, content) {
     if (typeof ResizeObserver === 'undefined' || !shell || !stage) return;
     if (shellResizeObs) shellResizeObs.disconnect();
     let timer;
     shellResizeObs = new ResizeObserver(() => {
       clearTimeout(timer);
-      timer = setTimeout(() => updateShellHeight(shell, stage), 50);
+      timer = setTimeout(() => updateShellLayout(shell, stage, getCurrentScale(), content), 50);
     });
     shellResizeObs.observe(stage);
   }
 
   function applyBodyOverflowForFit(active) {
+    const html = document.documentElement;
     if (active) {
       if (document.body.dataset.rsOverflow == null) {
         document.body.dataset.rsOverflow = document.body.style.overflow || '';
       }
-      document.body.style.overflowX = 'hidden';
-      document.body.style.overflowY = 'auto';
-    } else if (document.body.dataset.rsOverflow != null) {
-      document.body.style.overflow = document.body.dataset.rsOverflow;
+      if (html.dataset.rsOverflow == null) {
+        html.dataset.rsOverflow = html.style.overflow || '';
+      }
+      html.style.overflow = 'hidden';
+      html.style.height = '100%';
+      document.body.style.overflow = 'hidden';
+      document.body.style.height = '100%';
+    } else {
+      html.style.overflow = html.dataset.rsOverflow || '';
+      html.style.height = '';
+      delete html.dataset.rsOverflow;
+      document.body.style.overflow = document.body.dataset.rsOverflow || '';
+      document.body.style.height = '';
       delete document.body.dataset.rsOverflow;
     }
+  }
+
+  function setFitModeClasses(content, on) {
+    const html = document.documentElement;
+    html.classList.toggle('rs-viewport-fit--app', on && isDashboardRoot(content));
+    html.classList.toggle('rs-viewport-fit--landing', on && content && content.id === 'landingPage');
   }
 
   function clearViewportFit() {
@@ -109,7 +149,9 @@
       shellResizeObs = null;
     }
     document.documentElement.classList.remove('rs-viewport-fit', 'rs-viewport-scaled');
+    setFitModeClasses(null, false);
     document.documentElement.style.removeProperty('--rs-fit-scale');
+    document.documentElement.style.removeProperty('--rs-design-h');
     document.documentElement.style.removeProperty('--rs-viewport-scale');
     document.body.style.removeProperty('min-height');
     applyBodyOverflowForFit(false);
@@ -127,15 +169,16 @@
   function applyViewportFit() {
     fitRaf = 0;
     const w = window.innerWidth;
-    const scale = w >= DESIGN_W ? 1 : Math.max(MIN_SCALE, w / DESIGN_W);
+    const h = window.innerHeight;
+    const content = getActiveRoot();
+    if (!content) return;
+
+    const scale = computeFitScale(w, h, content);
 
     if (scale >= 1) {
       clearViewportFit();
       return;
     }
-
-    const content = getActiveRoot();
-    if (!content) return;
 
     if (wrappedRoot && wrappedRoot !== content) {
       unwrapAllShells();
@@ -152,20 +195,20 @@
     ensureFabInAppPage();
 
     document.documentElement.classList.add('rs-viewport-fit');
+    setFitModeClasses(content, true);
     document.documentElement.style.setProperty('--rs-fit-scale', scale.toFixed(4));
+    document.documentElement.style.setProperty('--rs-design-h', isDashboardRoot(content) ? DESIGN_H + 'px' : LANDING_FIT_H + 'px');
+
     stage.style.width = DESIGN_W + 'px';
-    stage.style.transformOrigin = 'top left';
+    stage.style.transformOrigin = 'top center';
     stage.style.transform = 'scale(' + scale.toFixed(4) + ')';
+
     applyBodyOverflowForFit(true);
     syncMessengerLayout();
+    updateShellLayout(shell, stage, scale, content);
+    bindShellResizeObserver(shell, stage, content);
 
-    bindShellResizeObserver(shell, stage);
-
-    requestAnimationFrame(() => {
-      updateShellHeight(shell, stage, scale);
-      requestAnimationFrame(() => updateShellHeight(shell, stage, scale));
-      setTimeout(() => updateShellHeight(shell, stage, scale), 300);
-    });
+    requestAnimationFrame(() => updateShellLayout(shell, stage, scale, content));
   }
 
   function scheduleViewportFit() {
@@ -396,6 +439,7 @@
         syncTopbarQuotaDisplay();
       }, 120);
     }, { passive: true });
+    window.addEventListener('orientationchange', scheduleViewportFit, { passive: true });
   }
 
   function initEscape() {

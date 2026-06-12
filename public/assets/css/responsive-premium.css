@@ -1429,42 +1429,56 @@ body.shell-home .sidebar {
   box-sizing: border-box;
 }
 
-/* ─── 22. Proportional viewport fit — full desktop UI, no crop ─── */
+/* ─── 22. Meta-style viewport fit — entire UI scales to window, no page scroll ─── */
 :root {
   --rs-design-w: 1280px;
+  --rs-design-h: 800px;
   --rs-fit-scale: 1;
 }
 
 html.rs-viewport-fit {
-  overflow-x: hidden;
-  overflow-y: auto;
+  overflow: hidden !important;
+  height: 100% !important;
+  width: 100% !important;
 }
 
 html.rs-viewport-fit body {
-  overflow-x: hidden;
-  width: 100%;
+  overflow: hidden !important;
+  width: 100% !important;
+  height: 100% !important;
   min-width: 0;
+  margin: 0;
 }
 
 html.rs-viewport-fit body.app-dashboard-active {
-  overflow-x: hidden !important;
-  overflow-y: auto !important;
-  height: auto;
-  min-height: 0;
+  overflow: hidden !important;
+  height: 100% !important;
+  min-height: 0 !important;
 }
 
 .rs-viewport-shell {
   width: 100%;
-  max-width: 100%;
+  height: 100dvh;
+  max-height: 100dvh;
   overflow: hidden;
   margin: 0 auto;
   position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  background: var(--bg, #030812);
+}
+
+html[data-theme='light'].rs-viewport-fit .rs-viewport-shell,
+body.light.rs-viewport-fit .rs-viewport-shell {
+  background: #f1f5f9;
 }
 
 .rs-viewport-stage {
   width: var(--rs-design-w);
+  flex-shrink: 0;
   transform: scale(var(--rs-fit-scale));
-  transform-origin: top left;
+  transform-origin: top center;
 }
 
 html.rs-viewport-fit #appPage,
@@ -1473,16 +1487,47 @@ html.rs-viewport-fit #landingPage {
   max-width: var(--rs-design-w) !important;
   min-width: var(--rs-design-w) !important;
   margin: 0 !important;
-  overflow-x: clip;
+  overflow: hidden !important;
   box-sizing: border-box;
 }
 
-html.rs-viewport-fit #appPage {
+html.rs-viewport-fit.rs-viewport-fit--app #appPage {
+  position: relative !important;
+  height: var(--rs-design-h, 800px) !important;
+  min-height: var(--rs-design-h, 800px) !important;
+  max-height: var(--rs-design-h, 800px) !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+html.rs-viewport-fit.rs-viewport-fit--app #appPage > .app-body {
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+}
+
+html.rs-viewport-fit.rs-viewport-fit--app #view-home,
+html.rs-viewport-fit.rs-viewport-fit--app #view-messenger,
+html.rs-viewport-fit.rs-viewport-fit--app #view-broadcast,
+html.rs-viewport-fit.rs-viewport-fit--app #view-scheduling,
+html.rs-viewport-fit.rs-viewport-fit--app #view-analytics,
+html.rs-viewport-fit.rs-viewport-fit--app #view-settings,
+html.rs-viewport-fit.rs-viewport-fit--app #view-help {
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+}
+
+html.rs-viewport-fit.rs-viewport-fit--app #view-home {
+  overflow: hidden !important;
+}
+
+html.rs-viewport-fit.rs-viewport-fit--landing #landingPage {
   height: auto !important;
   min-height: var(--rs-design-h, 900px) !important;
   max-height: none !important;
-  display: flex !important;
-  flex-direction: column !important;
+  overflow-x: hidden !important;
+  overflow-y: hidden !important;
 }
 
 html.rs-viewport-fit .app-mobile-nav {
@@ -1614,10 +1659,6 @@ html.rs-viewport-fit .saas-topbar #statusBar.sb-info {
 }
 
 /* ─── 23. Viewport-fit desktop lock — overrides ALL narrow-viewport media rules ─── */
-html.rs-viewport-fit {
-  --rs-design-h: 900px;
-}
-
 html.rs-viewport-fit #appPage .nav-sidebar {
   display: flex !important;
   overflow: hidden !important;
@@ -1998,6 +2039,9 @@ html.rs-viewport-fit #view-scheduling.broadcast-subview {
 html.rs-viewport-fit .rs-viewport-shell {
   width: 100%;
   max-width: 100%;
+  height: 100dvh;
+  max-height: 100dvh;
+  overflow: hidden;
 }
 
 html.rs-viewport-fit .rs-viewport-stage {
