@@ -262,6 +262,10 @@
       requestAnimationFrame(() => {
         setShellNoMotion(false);
         releaseNavRailLock();
+        if (typeof global.scheduleViewportFit === 'function') {
+          global.scheduleViewportFit();
+          setTimeout(global.scheduleViewportFit, 150);
+        }
       });
     });
 
@@ -416,6 +420,12 @@
         global.renderPages(cached);
       }
     } catch (_) {}
+
+    if (typeof global.scheduleViewportFit === 'function') {
+      global.scheduleViewportFit();
+      setTimeout(global.scheduleViewportFit, 0);
+      setTimeout(global.scheduleViewportFit, 200);
+    }
   }
 
   /** Hide dashboard and return to marketing landing page. */

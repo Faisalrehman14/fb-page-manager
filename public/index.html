@@ -33,6 +33,15 @@
 })();
 </script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script>
+(function () {
+  var w = window.innerWidth;
+  if (w >= 1280) return;
+  var scale = Math.max(0.28, w / 1280);
+  document.documentElement.classList.add('rs-viewport-fit');
+  document.documentElement.style.setProperty('--rs-fit-scale', scale.toFixed(4));
+})();
+</script>
 <title>FBCast Pro — Facebook Broadcast Platform</title>
 <meta name="description" content="Enterprise-grade Facebook Messenger broadcast platform. AI-assisted campaigns, unified inbox, real-time analytics, and 98% delivery for professional teams.">
 <meta name="robots" content="index, follow">

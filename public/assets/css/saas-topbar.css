@@ -501,7 +501,7 @@
 }
 
 @media (max-width: 900px) {
-  .saas-topbar {
+  html:not(.rs-viewport-fit) .saas-topbar {
     height: auto;
     min-height: var(--tb-h);
     padding: 8px 12px;

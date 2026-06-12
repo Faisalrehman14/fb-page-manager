@@ -20,7 +20,7 @@
   align-items: stretch;
 }
 
-body.app-dashboard-active .app-mobile-nav {
+html:not(.rs-viewport-fit) body.app-dashboard-active .app-mobile-nav {
   display: grid;
 }
 

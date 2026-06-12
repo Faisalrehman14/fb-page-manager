@@ -729,7 +729,7 @@ body.shell-broadcast #appPage .stats-panel {
 }
 
 @media (max-width: 1080px) {
-  body.shell-broadcast #appPage > .app-body {
+  html:not(.rs-viewport-fit) body.shell-broadcast #appPage > .app-body {
     grid-template-columns:
       var(--bcast-nav-active)
       var(--bcast-sidebar-w, 200px)
@@ -737,47 +737,47 @@ body.shell-broadcast #appPage .stats-panel {
       minmax(240px, 1fr);
   }
 
-  body.shell-broadcast #view-broadcast {
+  html:not(.rs-viewport-fit) body.shell-broadcast #view-broadcast {
     grid-column: 3 / 4;
   }
 
-  body.shell-broadcast #view-broadcast .broadcast-col,
-  body.shell-broadcast #view-broadcast .broadcast-col.bcast-panel-v2 {
+  html:not(.rs-viewport-fit) body.shell-broadcast #view-broadcast .broadcast-col,
+  html:not(.rs-viewport-fit) body.shell-broadcast #view-broadcast .broadcast-col.bcast-panel-v2 {
     display: none !important;
   }
 
-  body.shell-broadcast #appPage .stats-panel {
+  html:not(.rs-viewport-fit) body.shell-broadcast #appPage .stats-panel {
     grid-column: 4;
   }
 }
 
 @media (max-width: 960px) {
-  body.shell-broadcast #appPage > .app-body {
+  html:not(.rs-viewport-fit) body.shell-broadcast #appPage > .app-body {
     grid-template-columns: var(--bcast-nav-active) minmax(0, 1fr);
   }
 
-  body.shell-broadcast #appPage .stats-panel {
+  html:not(.rs-viewport-fit) body.shell-broadcast #appPage .stats-panel {
     display: none !important;
   }
 
-  body.shell-broadcast #view-broadcast {
+  html:not(.rs-viewport-fit) body.shell-broadcast #view-broadcast {
     grid-column: 2;
   }
 }
 
 @media (max-width: 900px) {
-  body.shell-broadcast #appPage > .app-body {
+  html:not(.rs-viewport-fit) body.shell-broadcast #appPage > .app-body {
     --bcast-nav-active: 0px;
     display: flex !important;
     flex-direction: column !important;
     grid-template-columns: none !important;
   }
 
-  body.shell-broadcast #appPage > .app-body:has(.nav-sidebar:hover) {
+  html:not(.rs-viewport-fit) body.shell-broadcast #appPage > .app-body:has(.nav-sidebar:hover) {
     --bcast-nav-active: 0px !important;
   }
 
-  body.shell-broadcast #view-broadcast {
+  html:not(.rs-viewport-fit) body.shell-broadcast #view-broadcast {
     grid-column: auto;
     flex: 1 1 auto;
     min-height: 0;
@@ -785,16 +785,16 @@ body.shell-broadcast #appPage .stats-panel {
     overflow-y: auto;
   }
 
-  body.shell-broadcast #view-broadcast .compose,
-  body.shell-broadcast #view-broadcast .compose-col {
+  html:not(.rs-viewport-fit) body.shell-broadcast #view-broadcast .compose,
+  html:not(.rs-viewport-fit) body.shell-broadcast #view-broadcast .compose-col {
     flex: 1 1 auto !important;
     min-height: 180px !important;
     border-right: none !important;
     border-bottom: 1px solid var(--border, rgba(148, 163, 184, 0.12)) !important;
   }
 
-  body.shell-broadcast #view-broadcast .broadcast-col,
-  body.shell-broadcast #view-broadcast .broadcast-col.bcast-panel-v2 {
+  html:not(.rs-viewport-fit) body.shell-broadcast #view-broadcast .broadcast-col,
+  html:not(.rs-viewport-fit) body.shell-broadcast #view-broadcast .broadcast-col.bcast-panel-v2 {
     display: flex !important;
     flex: 0 0 auto !important;
     width: 100% !important;

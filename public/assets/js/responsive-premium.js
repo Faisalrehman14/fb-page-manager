@@ -63,21 +63,42 @@
     return shell;
   }
 
-  function updateShellHeight(shell, stage, scale) {
-    if (!shell || !stage) return;
-    const naturalH = Math.max(stage.scrollHeight, stage.offsetHeight);
-    shell.style.height = Math.ceil(naturalH * scale) + 'px';
+  function getCurrentScale() {
+    const raw = document.documentElement.style.getPropertyValue('--rs-fit-scale')
+      || getComputedStyle(document.documentElement).getPropertyValue('--rs-fit-scale');
+    const parsed = parseFloat(String(raw).trim());
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : lastFitScale;
   }
 
-  function bindShellResizeObserver(shell, stage, scale) {
+  function updateShellHeight(shell, stage, scale) {
+    if (!shell || !stage) return;
+    const s = scale || getCurrentScale();
+    const naturalH = Math.max(stage.scrollHeight, stage.offsetHeight, stage.getBoundingClientRect().height / s);
+    shell.style.height = Math.ceil(naturalH * s) + 'px';
+  }
+
+  function bindShellResizeObserver(shell, stage) {
     if (typeof ResizeObserver === 'undefined' || !shell || !stage) return;
     if (shellResizeObs) shellResizeObs.disconnect();
     let timer;
     shellResizeObs = new ResizeObserver(() => {
       clearTimeout(timer);
-      timer = setTimeout(() => updateShellHeight(shell, stage, scale), 50);
+      timer = setTimeout(() => updateShellHeight(shell, stage), 50);
     });
     shellResizeObs.observe(stage);
+  }
+
+  function applyBodyOverflowForFit(active) {
+    if (active) {
+      if (document.body.dataset.rsOverflow == null) {
+        document.body.dataset.rsOverflow = document.body.style.overflow || '';
+      }
+      document.body.style.overflowX = 'hidden';
+      document.body.style.overflowY = 'auto';
+    } else if (document.body.dataset.rsOverflow != null) {
+      document.body.style.overflow = document.body.dataset.rsOverflow;
+      delete document.body.dataset.rsOverflow;
+    }
   }
 
   function clearViewportFit() {
@@ -91,6 +112,7 @@
     document.documentElement.style.removeProperty('--rs-fit-scale');
     document.documentElement.style.removeProperty('--rs-viewport-scale');
     document.body.style.removeProperty('min-height');
+    applyBodyOverflowForFit(false);
     lastFitScale = 1;
   }
 
@@ -124,12 +146,14 @@
     stage.style.width = DESIGN_W + 'px';
     stage.style.transformOrigin = 'top left';
     stage.style.transform = 'scale(' + scale.toFixed(4) + ')';
+    applyBodyOverflowForFit(true);
 
-    bindShellResizeObserver(shell, stage, scale);
+    bindShellResizeObserver(shell, stage);
 
     requestAnimationFrame(() => {
       updateShellHeight(shell, stage, scale);
       requestAnimationFrame(() => updateShellHeight(shell, stage, scale));
+      setTimeout(() => updateShellHeight(shell, stage, scale), 300);
     });
   }
 

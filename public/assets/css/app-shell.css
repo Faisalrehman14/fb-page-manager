@@ -493,7 +493,7 @@ body.shell-multi-broadcast .page-card.multi-selected .page-indicator::after {
 
 /* ─── Responsive ─── */
 @media (max-width: 900px) {
-  .nav-sidebar { display: none !important; }
+  html:not(.rs-viewport-fit) .nav-sidebar { display: none !important; }
   .app-topbar { padding: 0 var(--ds-space-4, 16px); }
   #appPage {
     flex-direction: column;

@@ -855,7 +855,7 @@ body:not(.light) .msng-layout-pro .msng-filter-chip:hover:not(.active) {
 
 /* Responsive */
 @media (max-width: 1200px) {
-  .msng-contact {
+  html:not(.rs-viewport-fit) .msng-contact {
     position: absolute;
     top: 0;
     right: 0;
@@ -894,11 +894,11 @@ body:not(.light) .msng-layout-pro .msng-filter-chip:hover:not(.active) {
 }
 
 @media (max-width: 900px) {
-  .msng-layout-pro .msng-pages {
+  html:not(.rs-viewport-fit) .msng-layout-pro .msng-pages {
     display: none !important;
   }
 
-  .msng-layout-pro .msng-convs {
+  html:not(.rs-viewport-fit) .msng-layout-pro .msng-convs {
     width: 100% !important;
     max-width: none !important;
   }

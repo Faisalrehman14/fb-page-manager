@@ -527,7 +527,7 @@ body.app-dashboard-active #view-home .hv-qa-card:hover {
     overflow: visible;
   }
 
-  .saas-topbar__left {
+  html:not(.rs-viewport-fit) .saas-topbar__left {
     flex: 1 1 auto;
     min-width: 0;
     max-width: 100%;
@@ -535,7 +535,7 @@ body.app-dashboard-active #view-home .hv-qa-card:hover {
     overflow: hidden;
   }
 
-  .saas-topbar__right {
+  html:not(.rs-viewport-fit) .saas-topbar__right {
     flex: 1 1 100%;
     order: 2;
     width: 100%;
@@ -1447,14 +1447,14 @@ html.rs-viewport-fit body {
 }
 
 html.rs-viewport-fit body.app-dashboard-active {
-  overflow-x: hidden;
-  overflow-y: auto;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
   height: auto;
-  min-height: 100vh;
+  min-height: 0;
 }
 
 .rs-viewport-shell {
-  width: 100vw;
+  width: 100%;
   max-width: 100%;
   overflow: hidden;
   margin: 0 auto;
@@ -1491,14 +1491,6 @@ html.rs-viewport-fit .app-mobile-nav {
 
 html.rs-viewport-fit body.app-dashboard-active #appPage .nav-sidebar {
   display: flex !important;
-}
-
-html.rs-viewport-fit body.app-dashboard-active #appPage > .app-body {
-  padding: 12px !important;
-  padding-bottom: 12px !important;
-  gap: 12px !important;
-  flex: 1 1 auto !important;
-  min-height: 0 !important;
 }
 
 html.rs-viewport-fit .saas-topbar {
@@ -1581,6 +1573,17 @@ html.rs-viewport-fit #landingPage.landing-enterprise .hero-sub {
   z-index: 120 !important;
   pointer-events: none;
   max-width: min(520px, calc(100vw - 24px));
+}
+
+html.rs-viewport-fit .saas-topbar #statusBar.sb-success,
+html.rs-viewport-fit .saas-topbar #statusBar.sb-error,
+html.rs-viewport-fit .saas-topbar #statusBar.sb-warning,
+html.rs-viewport-fit .saas-topbar #statusBar.sb-info {
+  position: absolute !important;
+  top: calc(100% + 6px) !important;
+  left: 50% !important;
+  transform: translateX(-50%) !important;
+  max-width: min(520px, calc(var(--rs-design-w, 1280px) - 48px));
 }
 
 #appPage:has(#statusBar.sb-success) #ppAiHint.is-visible,
@@ -1810,6 +1813,41 @@ html.rs-viewport-fit .rs-viewport-shell {
 html.rs-viewport-fit .rs-viewport-stage {
   width: var(--rs-design-w, 1280px);
   will-change: transform;
+}
+
+/* Messenger — keep desktop 3-pane inbox */
+html.rs-viewport-fit body.shell-messenger #view-messenger .msng-layout-pro .msng-pages {
+  display: flex !important;
+  width: 240px !important;
+  min-width: 220px !important;
+  max-width: 280px !important;
+}
+
+html.rs-viewport-fit body.shell-messenger #view-messenger .msng-layout-pro .msng-convs {
+  width: auto !important;
+  max-width: none !important;
+  flex: 1 1 auto !important;
+}
+
+html.rs-viewport-fit body.shell-messenger #view-messenger .msng-contact {
+  position: relative !important;
+  top: auto !important;
+  right: auto !important;
+  bottom: auto !important;
+  box-shadow: none !important;
+}
+
+html.rs-viewport-fit .saas-topbar {
+  overflow: visible !important;
+}
+
+html.rs-viewport-fit .saas-topbar .topbar-title {
+  display: flex !important;
+}
+
+html.rs-viewport-fit .saas-topbar .topbar-title h1,
+html.rs-viewport-fit .saas-topbar .topbar-title p {
+  display: block !important;
 }
 
 /* ─── 15. Reduced motion ─── */
