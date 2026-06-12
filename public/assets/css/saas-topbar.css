@@ -147,7 +147,8 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  flex-shrink: 0;
+  flex-shrink: 1;
+  min-width: 0;
   margin-left: auto;
 }
 
@@ -261,6 +262,9 @@
   line-height: 1;
   padding: 0 4px;
   white-space: nowrap;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .saas-topbar__quota-values .quota-num {
@@ -470,26 +474,96 @@
 }
 
 /* Responsive */
+@media (max-width: 1280px) {
+  .saas-topbar__quota-values .quota-num {
+    font-size: clamp(14px, 1.2vw + 10px, 22px);
+  }
+
+  .saas-topbar__quota-values .quota-total-num {
+    font-size: clamp(12px, 1vw + 9px, 17px);
+  }
+}
+
 @media (max-width: 1100px) {
   .saas-topbar .topbar-title p { display: none; }
+  .saas-topbar__breadcrumb,
+  .saas-topbar__sep-v { display: none; }
 }
 
 @media (max-width: 900px) {
   .saas-topbar {
-    padding: 0 12px;
-    gap: 10px;
+    height: auto;
+    min-height: var(--tb-h);
+    padding: 8px 12px;
+    gap: 8px;
+    flex-wrap: wrap;
   }
+
+  .saas-topbar__left {
+    flex: 1 1 auto;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .saas-topbar__right {
+    flex: 1 1 100%;
+    width: 100%;
+    min-width: 0;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    margin-left: 0;
+  }
+
   .saas-topbar__sep-v,
   .saas-topbar__breadcrumb,
   .saas-topbar .topbar-announcement { display: none; }
-  .saas-topbar__quota-values .quota-num { font-size: 18px; }
-  .saas-topbar__quota-values .quota-total-num { font-size: 15px; }
-  .saas-topbar #planBadge.saas-topbar__plan-btn { padding: 7px 11px; font-size: 10px; }
+
+  .saas-topbar .quota-widget {
+    flex: 1 1 auto;
+    min-width: 0;
+    max-width: 100%;
+    overflow: hidden;
+  }
+
+  .saas-topbar__quota-values .quota-num {
+    font-size: clamp(13px, 3.2vw, 18px);
+  }
+
+  .saas-topbar__quota-values .quota-total-num {
+    font-size: clamp(11px, 2.8vw, 15px);
+  }
+
+  .saas-topbar #planBadge.saas-topbar__plan-btn {
+    padding: 7px 11px;
+    font-size: 10px;
+    max-width: 88px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
   .saas-topbar .topbar-user-name { display: none; }
-  .saas-topbar__icon-btn[title="Help"] { display: none; }
+
+  .saas-topbar__actions .theme-toggle-wrap { display: none; }
+
+  .saas-topbar__icon-btn[title="Help"],
+  .saas-topbar__icon-btn[title="Settings"] { display: none; }
+
+  .saas-topbar .btn-upgrade span { display: none; }
+  .saas-topbar .btn-upgrade { padding: 7px 10px; }
+}
+
+@media (max-width: 768px) {
+  .saas-topbar .topbar-title { display: none; }
+
+  .saas-topbar__quota-values .quota-total-num,
+  .saas-topbar__quota-sep { display: none; }
 }
 
 @media (max-width: 600px) {
   .saas-topbar .btn-upgrade span { display: none; }
   .saas-topbar .btn-upgrade { padding: 7px 10px; }
+}
+
+@media (max-width: 480px) {
+  .saas-topbar__quota-stack { display: none; }
 }
