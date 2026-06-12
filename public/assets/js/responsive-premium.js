@@ -6,7 +6,7 @@
 
   const MOBILE_BP = 900;
   const DESIGN_W = 1280;
-  const DESIGN_H = 800;
+  const DESIGN_H = 900;
   const LANDING_FIT_H = 900;
   const MIN_SCALE = 0.18;
   const TOPBAR_COMPACT_W = 960;
@@ -48,8 +48,38 @@
       const scaleH = h / DESIGN_H;
       return Math.max(MIN_SCALE, Math.min(scaleW, scaleH, 1));
     }
-    const scaleH = h / LANDING_FIT_H;
-    return Math.max(MIN_SCALE, Math.min(scaleW, scaleH, 1));
+    if (scaleW >= 1) return 1;
+    return Math.max(MIN_SCALE, scaleW);
+  }
+
+  function getDesignHeight(content) {
+    if (isDashboardRoot(content)) return DESIGN_H;
+    const measured = Math.ceil(content.scrollHeight || content.offsetHeight || 0);
+    return Math.max(LANDING_FIT_H, measured);
+  }
+
+  function applyStageLayout(shell, stage, scaler, scale, content) {
+    if (!shell || !stage || !scaler) return;
+
+    const designH = getDesignHeight(content);
+    const scaledW = DESIGN_W * scale;
+
+    scaler.style.width = scaledW + 'px';
+    scaler.style.overflow = 'hidden';
+    scaler.style.flexShrink = '0';
+    scaler.style.position = 'relative';
+
+    stage.style.width = DESIGN_W + 'px';
+    stage.style.height = designH + 'px';
+    stage.style.transform = 'scale(' + scale.toFixed(4) + ')';
+    stage.style.transformOrigin = 'top left';
+    stage.style.margin = '0';
+
+    scaler.style.height = (designH * scale) + 'px';
+
+    shell.style.height = '100dvh';
+    shell.style.maxHeight = '100dvh';
+    shell.style.overflow = isDashboardRoot(content) ? 'hidden' : 'auto';
   }
 
   function unwrapAllShells() {
@@ -70,12 +100,15 @@
 
     const shell = document.createElement('div');
     shell.className = 'rs-viewport-shell';
+    const scaler = document.createElement('div');
+    scaler.className = 'rs-viewport-scaler';
     const stage = document.createElement('div');
     stage.className = 'rs-viewport-stage';
 
     content.parentNode.insertBefore(shell, content);
     stage.appendChild(content);
-    shell.appendChild(stage);
+    scaler.appendChild(stage);
+    shell.appendChild(scaler);
     return shell;
   }
 
@@ -87,18 +120,8 @@
   }
 
   function updateShellLayout(shell, stage, scale, content) {
-    if (!shell || !stage) return;
-    shell.style.height = '100dvh';
-    shell.style.maxHeight = '100dvh';
-    shell.style.overflow = 'hidden';
-
-    if (isDashboardRoot(content)) {
-      stage.style.minHeight = DESIGN_H + 'px';
-      stage.style.height = DESIGN_H + 'px';
-    } else {
-      stage.style.minHeight = '';
-      stage.style.height = 'auto';
-    }
+    const scaler = shell && shell.querySelector('.rs-viewport-scaler');
+    applyStageLayout(shell, stage, scaler, scale || getCurrentScale(), content);
   }
 
   function bindShellResizeObserver(shell, stage, content) {
@@ -110,6 +133,7 @@
       timer = setTimeout(() => updateShellLayout(shell, stage, getCurrentScale(), content), 50);
     });
     shellResizeObs.observe(stage);
+    if (!isDashboardRoot(content)) shellResizeObs.observe(stage.firstElementChild || stage);
   }
 
   function applyBodyOverflowForFit(active) {
@@ -186,8 +210,9 @@
     }
 
     const shell = ensureScaleShell(content);
+    const scaler = shell && shell.querySelector('.rs-viewport-scaler');
     const stage = shell && shell.querySelector('.rs-viewport-stage');
-    if (!shell || !stage) return;
+    if (!shell || !scaler || !stage) return;
 
     wrappedRoot = content;
     lastFitScale = scale;
@@ -197,18 +222,14 @@
     document.documentElement.classList.add('rs-viewport-fit');
     setFitModeClasses(content, true);
     document.documentElement.style.setProperty('--rs-fit-scale', scale.toFixed(4));
-    document.documentElement.style.setProperty('--rs-design-h', isDashboardRoot(content) ? DESIGN_H + 'px' : LANDING_FIT_H + 'px');
-
-    stage.style.width = DESIGN_W + 'px';
-    stage.style.transformOrigin = 'top center';
-    stage.style.transform = 'scale(' + scale.toFixed(4) + ')';
+    document.documentElement.style.setProperty('--rs-design-h', getDesignHeight(content) + 'px');
 
     applyBodyOverflowForFit(true);
+    applyStageLayout(shell, stage, scaler, scale, content);
     syncMessengerLayout();
-    updateShellLayout(shell, stage, scale, content);
     bindShellResizeObserver(shell, stage, content);
 
-    requestAnimationFrame(() => updateShellLayout(shell, stage, scale, content));
+    requestAnimationFrame(() => applyStageLayout(shell, stage, scaler, scale, content));
   }
 
   function scheduleViewportFit() {

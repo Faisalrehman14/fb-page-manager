@@ -38,12 +38,12 @@
   var w = window.innerWidth;
   var h = window.innerHeight;
   var scaleW = w / 1280;
-  var scaleH = h / 800;
+  var scaleH = h / 900;
   var scale = Math.max(0.18, Math.min(scaleW, scaleH, 1));
   if (scale >= 1) return;
   document.documentElement.classList.add('rs-viewport-fit');
   document.documentElement.style.setProperty('--rs-fit-scale', scale.toFixed(4));
-  document.documentElement.style.setProperty('--rs-design-h', '800px');
+  document.documentElement.style.setProperty('--rs-design-h', '900px');
 })();
 </script>
 <title>FBCast Pro — Facebook Broadcast Platform</title>

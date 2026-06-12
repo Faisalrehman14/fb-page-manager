@@ -926,7 +926,7 @@ body.light .saas-topbar__pages-btn {
 }
 
 /* ─── 15. Full-site view scrolling & shrink guards ─── */
-body.app-dashboard-active #appPage {
+html:not(.rs-viewport-fit) body.app-dashboard-active #appPage {
   display: flex;
   flex-direction: column;
   min-height: 0;
@@ -934,20 +934,20 @@ body.app-dashboard-active #appPage {
   height: 100dvh;
 }
 
-body.app-dashboard-active #appPage > .app-body {
+html:not(.rs-viewport-fit) body.app-dashboard-active #appPage > .app-body {
   flex: 1 1 auto;
   min-height: 0;
   min-width: 0;
   overflow: hidden;
 }
 
-#view-home,
-#view-messenger,
-#view-broadcast,
-#view-scheduling.broadcast-subview.is-active,
-#view-analytics.pro-view.is-active,
-#view-settings.pro-view.is-active,
-#view-help.pro-view.is-active {
+html:not(.rs-viewport-fit) #view-home,
+html:not(.rs-viewport-fit) #view-messenger,
+html:not(.rs-viewport-fit) #view-broadcast,
+html:not(.rs-viewport-fit) #view-scheduling.broadcast-subview.is-active,
+html:not(.rs-viewport-fit) #view-analytics.pro-view.is-active,
+html:not(.rs-viewport-fit) #view-settings.pro-view.is-active,
+html:not(.rs-viewport-fit) #view-help.pro-view.is-active {
   overflow-x: clip;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
@@ -1432,7 +1432,7 @@ body.shell-home .sidebar {
 /* ─── 22. Meta-style viewport fit — entire UI scales to window, no page scroll ─── */
 :root {
   --rs-design-w: 1280px;
-  --rs-design-h: 800px;
+  --rs-design-h: 900px;
   --rs-fit-scale: 1;
 }
 
@@ -1465,7 +1465,7 @@ html.rs-viewport-fit body.app-dashboard-active {
   position: relative;
   display: flex;
   justify-content: center;
-  align-items: flex-start;
+  align-items: center;
   background: var(--bg, #030812);
 }
 
@@ -1474,11 +1474,15 @@ body.light.rs-viewport-fit .rs-viewport-shell {
   background: #f1f5f9;
 }
 
-.rs-viewport-stage {
-  width: var(--rs-design-w);
+.rs-viewport-scaler {
+  position: relative;
   flex-shrink: 0;
-  transform: scale(var(--rs-fit-scale));
-  transform-origin: top center;
+  overflow: hidden;
+}
+
+.rs-viewport-stage {
+  flex-shrink: 0;
+  will-change: transform;
 }
 
 html.rs-viewport-fit #appPage,
@@ -1493,9 +1497,9 @@ html.rs-viewport-fit #landingPage {
 
 html.rs-viewport-fit.rs-viewport-fit--app #appPage {
   position: relative !important;
-  height: var(--rs-design-h, 800px) !important;
-  min-height: var(--rs-design-h, 800px) !important;
-  max-height: var(--rs-design-h, 800px) !important;
+  height: var(--rs-design-h, 900px) !important;
+  min-height: var(--rs-design-h, 900px) !important;
+  max-height: var(--rs-design-h, 900px) !important;
   display: flex !important;
   flex-direction: column !important;
 }
@@ -2036,16 +2040,24 @@ html.rs-viewport-fit #view-scheduling.broadcast-subview {
   max-width: none !important;
 }
 
+html.rs-viewport-fit.rs-viewport-fit--landing .rs-viewport-shell {
+  align-items: flex-start;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
 html.rs-viewport-fit .rs-viewport-shell {
   width: 100%;
   max-width: 100%;
   height: 100dvh;
   max-height: 100dvh;
+}
+
+html.rs-viewport-fit.rs-viewport-fit--app .rs-viewport-shell {
   overflow: hidden;
 }
 
 html.rs-viewport-fit .rs-viewport-stage {
-  width: var(--rs-design-w, 1280px);
   will-change: transform;
 }
 
@@ -2175,6 +2187,21 @@ html.rs-viewport-fit #appPage .pp-fab-main:hover {
 
 html.rs-viewport-fit #appPage {
   position: relative !important;
+}
+
+/* Fit mode — scroll inside panels only, never the page */
+html.rs-viewport-fit.rs-viewport-fit--app #view-broadcast .compose,
+html.rs-viewport-fit.rs-viewport-fit--app #view-broadcast .broadcast-col,
+html.rs-viewport-fit.rs-viewport-fit--app #view-broadcast .stats-panel,
+html.rs-viewport-fit.rs-viewport-fit--app #view-messenger .msng-convs-list,
+html.rs-viewport-fit.rs-viewport-fit--app #view-messenger .msng-chat-msgs,
+html.rs-viewport-fit.rs-viewport-fit--app .pro-view__scroll,
+html.rs-viewport-fit.rs-viewport-fit--app #view-settings .settings-layout,
+html.rs-viewport-fit.rs-viewport-fit--app #view-help .help-layout {
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  min-height: 0 !important;
+  -webkit-overflow-scrolling: touch;
 }
 
 /* ─── 15. Reduced motion ─── */
