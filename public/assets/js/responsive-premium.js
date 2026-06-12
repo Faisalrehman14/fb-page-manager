@@ -3,8 +3,8 @@
  *
  * Viewport fit (Meta-style):
  *   • Fixed design canvas 1280×900
- *   • Dashboard: scaleX = vw/1280, scaleY = vh/900 — fills viewport edge-to-edge
- *   • No center letterboxing, no side white/empty columns
+ *   • Uniform scale (no stretch) — width-first, height fallback
+ *   • Side gutters use --sched-bg (same as dashboard chrome)
  *   • html.rs-viewport-fit disables mobile @media layout breaks
  */
 (function (global) {
@@ -54,18 +54,19 @@
     return vw < DESIGN.w;
   }
 
-  function computeDashboardScales(vw, vh) {
-    return {
-      scaleX: Math.max(MIN_SCALE, vw / DESIGN.w),
-      scaleY: Math.max(MIN_SCALE, vh / DESIGN.h),
-    };
+  /** Single uniform scale — never stretch; prefer filling width */
+  function computeDashboardScale(vw, vh) {
+    let scale = vw / DESIGN.w;
+    if (DESIGN.h * scale > vh) {
+      scale = vh / DESIGN.h;
+    }
+    return Math.max(MIN_SCALE, scale);
   }
 
   function computeScale(vw, vh, el) {
     const sw = vw / DESIGN.w;
     if (isDashboardRoot(el)) {
-      const { scaleX, scaleY } = computeDashboardScales(vw, vh);
-      return Math.min(scaleX, scaleY);
+      return computeDashboardScale(vw, vh);
     }
     if (sw >= 1) return 1;
     return Math.max(MIN_SCALE, sw);
@@ -74,26 +75,20 @@
   function setFitTokens(scale, el, vw, vh) {
     const html = document.documentElement;
     const designH = isDashboardRoot(el) ? DESIGN.h : measureLandingHeight(el);
+    const fitW = DESIGN.w * scale;
+    const fitH = designH * scale;
     html.style.setProperty('--rs-fit-scale', scale.toFixed(4));
     html.style.setProperty('--rs-design-w', DESIGN.w + 'px');
     html.style.setProperty('--rs-design-h', designH + 'px');
-    if (isDashboardRoot(el)) {
-      const { scaleX, scaleY } = computeDashboardScales(vw, vh);
-      html.style.setProperty('--rs-fit-scale-x', scaleX.toFixed(4));
-      html.style.setProperty('--rs-fit-scale-y', scaleY.toFixed(4));
-      html.style.setProperty('--rs-fit-w', vw.toFixed(2) + 'px');
-      html.style.setProperty('--rs-fit-h', vh.toFixed(2) + 'px');
-    } else {
-      html.style.removeProperty('--rs-fit-scale-x');
-      html.style.removeProperty('--rs-fit-scale-y');
-      html.style.setProperty('--rs-fit-w', (DESIGN.w * scale).toFixed(2) + 'px');
-      html.style.setProperty('--rs-fit-h', (designH * scale).toFixed(2) + 'px');
-    }
+    html.style.setProperty('--rs-fit-w', fitW.toFixed(2) + 'px');
+    html.style.setProperty('--rs-fit-h', fitH.toFixed(2) + 'px');
+    html.style.removeProperty('--rs-fit-scale-x');
+    html.style.removeProperty('--rs-fit-scale-y');
   }
 
   function clearFitTokens() {
     const html = document.documentElement;
-    ['--rs-fit-scale', '--rs-design-w', '--rs-design-h', '--rs-fit-w', '--rs-fit-h', '--rs-viewport-scale', '--rs-fit-scale-x', '--rs-fit-scale-y']
+    ['--rs-fit-scale', '--rs-design-w', '--rs-design-h', '--rs-fit-w', '--rs-fit-h', '--rs-viewport-scale']
       .forEach((k) => html.style.removeProperty(k));
   }
 
@@ -136,32 +131,28 @@
     if (!clip || !stage) return 1;
 
     const designH = isDashboardRoot(el) ? DESIGN.h : measureLandingHeight(el);
+    const scale = computeScale(vw, vh, el);
+    const fitW = DESIGN.w * scale;
+    const fitH = designH * scale;
 
+    clip.style.width = fitW + 'px';
+    clip.style.height = fitH + 'px';
     clip.style.maxWidth = '100%';
     clip.style.overflow = 'hidden';
-    clip.style.margin = '0';
+    clip.style.margin = '0 auto';
     clip.style.padding = '0';
 
     stage.style.width = DESIGN.w + 'px';
     stage.style.height = designH + 'px';
+    stage.style.transform = 'scale(' + scale.toFixed(4) + ')';
     stage.style.transformOrigin = 'top left';
 
-    if (isDashboardRoot(el)) {
-      const { scaleX, scaleY } = computeDashboardScales(vw, vh);
-      clip.style.width = '100%';
-      clip.style.height = '100%';
-      stage.style.transform = 'scale(' + scaleX.toFixed(4) + ', ' + scaleY.toFixed(4) + ')';
-      shell.style.display = 'block';
-      shell.style.overflow = 'hidden';
-      return Math.min(scaleX, scaleY);
-    }
+    shell.style.display = 'flex';
+    shell.style.flexDirection = 'column';
+    shell.style.alignItems = 'center';
+    shell.style.justifyContent = 'flex-start';
+    shell.style.overflow = isDashboardRoot(el) ? 'hidden' : 'auto';
 
-    const scale = computeScale(vw, vh, el);
-    clip.style.width = (DESIGN.w * scale) + 'px';
-    clip.style.height = (designH * scale) + 'px';
-    stage.style.transform = 'scale(' + scale.toFixed(4) + ')';
-    shell.style.display = 'block';
-    shell.style.overflow = 'auto';
     return scale;
   }
 

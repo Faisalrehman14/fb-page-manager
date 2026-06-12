@@ -38,14 +38,12 @@
   var w = window.innerWidth;
   var h = window.innerHeight;
   if (w >= 1280 && h >= 900) return;
-  var scaleX = Math.max(0.25, w / 1280);
-  var scaleY = Math.max(0.25, h / 900);
-  var scale = Math.min(scaleX, scaleY);
+  var scaleW = w / 1280;
+  var scaleH = h / 900;
+  var scale = Math.max(0.25, scaleW);
+  if (900 * scale > h) scale = Math.max(0.25, scaleH);
   document.documentElement.classList.add('rs-viewport-fit');
-  document.documentElement.classList.add('rs-viewport-fit--app');
   document.documentElement.style.setProperty('--rs-fit-scale', scale.toFixed(4));
-  document.documentElement.style.setProperty('--rs-fit-scale-x', scaleX.toFixed(4));
-  document.documentElement.style.setProperty('--rs-fit-scale-y', scaleY.toFixed(4));
   document.documentElement.style.setProperty('--rs-design-w', '1280px');
   document.documentElement.style.setProperty('--rs-design-h', '900px');
 })();
