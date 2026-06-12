@@ -843,6 +843,8 @@ body:not(.light) .msng-layout-pro .msng-filter-chip:hover:not(.active) {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  background: var(--msng-bg-subtle);
+  display: block;
 }
 
 .msng-contact-empty {

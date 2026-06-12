@@ -995,6 +995,39 @@
     return looksLikeThumbsMsg(msg);
   }
 
+  /** Photos/videos only — never thumbs up, stickers, or reactions. */
+  function isShareableMedia(msg) {
+    if (!msg || isLikeMessage(msg)) return false;
+    const url = msg.attachment_url;
+    if (!url || isThumbsUpUrl(url)) return false;
+    const t = String(msg.attachment_type || '').toLowerCase();
+    if (t === 'like' || t === 'thumbs_up' || t === 'sticker') return false;
+    if (t === 'image' || t === 'photo' || t === 'video') return true;
+    if (/\.(jpe?g|png|gif|webp)(\?|$)/i.test(url)) return true;
+    return false;
+  }
+
+  function mediaUrlStableKey(url) {
+    if (!url) return '';
+    try {
+      const u = new URL(String(url), 'https://cdn.invalid');
+      return u.origin + u.pathname;
+    } catch {
+      return String(url).split('?')[0];
+    }
+  }
+
+  function msgDomKey(msg) {
+    msg = normalizeMsg(msg);
+    if (msg.message_id) return 'id:' + msg.message_id;
+    if (msg._tempId) return 't:' + msg._tempId;
+    const body = isLikeMessage(msg)
+      ? 'like'
+      : (String(msg.message || '').trim().slice(0, 120)
+        || ('a:' + mediaUrlStableKey(msg.attachment_url)));
+    return 'h:' + (msg.created_at || '') + '|' + msg.from_me + '|' + body;
+  }
+
   function msgPreviewText(msg) {
     if (!msg) return '';
     if (isLikeMessage(msg)) return '👍';
@@ -1027,7 +1060,7 @@
       if (isThumbsUpUrl(attUrl)) {
         content = likeHtml;
       } else {
-        content = `<img class="msng-att-img" src="${esc(attUrl)}" alt="Photo" role="button" tabindex="0" loading="lazy" onerror="${likeImgFallback}">`;
+        content = `<img class="msng-att-img" src="${esc(attUrl)}" data-media-key="${esc(mediaUrlStableKey(attUrl))}" alt="Photo" role="button" tabindex="0" decoding="async" onerror="${likeImgFallback}">`;
         if (txt) content += `<div style="margin-top:4px">${esc(txt)}</div>`;
       }
     } else if (txt) {
@@ -1078,6 +1111,7 @@
 
     const createdTs = fromMe && msg.created_at ? new Date(msg.created_at).getTime() : 0;
     return `<div class="msng-msg ${fromMe ? 'from-me' : ''} ${msg._pending ? 'pending' : ''} ${msg._failed ? 'failed' : ''}"
+                 data-msg-key="${esc(msgDomKey(msg))}"
                  ${tempId ? `data-temp-id="${esc(tempId)}"` : ''}
                  ${msg.message_id ? `data-msg-id="${esc(msg.message_id)}"` : ''}
                  ${createdTs ? `data-created-ts="${createdTs}"` : ''}>
@@ -1417,6 +1451,11 @@
     });
 
     if (mode === 'replace') {
+      if (tryPatchMessagesDom(msgsEl, opts)) {
+        bindScrollListener(msgsEl);
+        if ($('msngContactPanel')?.classList.contains('is-open')) renderContactMedia();
+        return;
+      }
       const prevTop    = msgsEl.scrollTop;
       const prevHeight = msgsEl.scrollHeight;
       const nearBottom = isMsgsNearBottom(msgsEl);
@@ -1453,6 +1492,7 @@
   // Used by real-time poll and optimistic send.
   function appendBubble(msg, opts = {}) {
     msg = normalizeMsg(msg);
+    if (isDuplicate(msg)) return;
     const msgsEl = $('msngMsgs');
     if (!msgsEl) return;
 
@@ -1675,29 +1715,115 @@
     return `msng_note_${M.activePageId}_${M.activePsid}`;
   }
 
+  function msgListHeaderState() {
+    const showLoadMore = M.hasOlderMessages && !_atRetentionBoundary();
+    const showStart = M.msgs.length > 0 && !showLoadMore;
+    return { showLoadMore, showStart };
+  }
+
+  function patchMessageMeta(msgsEl, msgs) {
+    msgs.forEach((raw) => {
+      const msg = normalizeMsg(raw);
+      const key = msgDomKey(msg);
+      let el = msgsEl.querySelector(`.msng-msg[data-msg-key="${CSS.escape(key)}"]`);
+      if (!el && msg.message_id) {
+        el = msgsEl.querySelector(`.msng-msg[data-msg-id="${CSS.escape(msg.message_id)}"]`);
+      }
+      if (!el) return;
+      el.classList.toggle('pending', !!msg._pending);
+      el.classList.toggle('failed', !!msg._failed);
+      if (msg.message_id) el.dataset.msgId = msg.message_id;
+    });
+    updateTicksInDom();
+  }
+
+  /** Avoid full chat rebuild when message list is unchanged — keeps images loaded. */
+  function tryPatchMessagesDom(msgsEl, opts) {
+    if (!msgsEl || !M.msgs.length) return false;
+
+    const { showLoadMore, showStart } = msgListHeaderState();
+    const hasLoadMore = !!msgsEl.querySelector('#msngLoadMoreWrap');
+    const hasStart = !!msgsEl.querySelector('.msng-conv-start');
+    if (showLoadMore !== hasLoadMore || showStart !== hasStart) return false;
+
+    const msgEls = [...msgsEl.querySelectorAll('.msng-msg[data-msg-key]')];
+    if (!msgEls.length) return false;
+
+    const existingKeys = msgEls.map((el) => el.dataset.msgKey);
+    const nextKeys = M.msgs.map((m) => msgDomKey(m));
+
+    if (existingKeys.join('\n') === nextKeys.join('\n')) {
+      patchMessageMeta(msgsEl, M.msgs);
+      const scrollMode = opts.scroll || 'bottom';
+      if (scrollMode === 'force') scrollToBottom(false, true);
+      else if (scrollMode === 'preserve') { /* keep position */ }
+      else if (isMsgsNearBottom(msgsEl)) scrollToBottom(false, true);
+      return true;
+    }
+
+    if (nextKeys.length > existingKeys.length
+        && nextKeys.slice(0, existingKeys.length).join('\n') === existingKeys.join('\n')) {
+      appendNewMessagesFromIndex(existingKeys.length, { animate: false });
+      const scrollMode = opts.scroll || 'bottom';
+      if (scrollMode === 'force' || isMsgsNearBottom(msgsEl)) scrollToBottom(false, true);
+      return true;
+    }
+
+    return false;
+  }
+
+  function collectContactMediaUrls() {
+    const seen = new Set();
+    const urls = [];
+
+    const fromApi = (M._contactMediaPsid === M.activePsid && Array.isArray(M.contactMedia))
+      ? M.contactMedia : [];
+    for (const item of fromApi) {
+      const u = item?.url || item;
+      if (!u || seen.has(u) || isThumbsUpUrl(u)) continue;
+      const t = String(item?.type || '').toLowerCase();
+      if (t === 'like' || t === 'thumbs_up' || t === 'sticker') continue;
+      seen.add(u);
+      urls.push(u);
+    }
+    for (const m of M.msgs) {
+      if (!isShareableMedia(m)) continue;
+      const u = m.attachment_url;
+      if (!u || seen.has(u)) continue;
+      seen.add(u);
+      urls.push(u);
+    }
+    return urls;
+  }
+
   function mediaUrlsFromMsgs(msgs) {
     const items = [];
     const seen = new Set();
     for (const m of msgs) {
+      if (!isShareableMedia(m)) continue;
       const url = m.attachment_url;
-      const t = String(m.attachment_type || '').toLowerCase();
-      if (!url || isThumbsUpUrl(url) || seen.has(url)) continue;
-      if (t === 'image' || t === 'photo' || t === 'sticker' || /\.(jpe?g|png|gif|webp)(\?|$)/i.test(url)) {
-        seen.add(url);
-        items.push(url);
-      }
+      if (!url || seen.has(url)) continue;
+      seen.add(url);
+      items.push(url);
     }
     return items;
   }
 
-  function scheduleContactMediaRefresh() {
+  function scheduleContactMediaRefresh(force) {
     clearTimeout(M._contactMediaTimer);
-    M._contactMediaTimer = setTimeout(() => loadContactMedia(), 450);
+    M._contactMediaTimer = setTimeout(() => loadContactMedia(!!force), 450);
   }
 
-  async function loadContactMedia() {
+  async function loadContactMedia(force) {
     if (!M.activePageId || !M.activePsid) return;
     const forPsid = M.activePsid;
+    renderContactMedia();
+
+    const lastFetch = M._contactMediaFetchedAt || 0;
+    if (!force && M._contactMediaPsid === forPsid && Date.now() - lastFetch < 45000) {
+      return;
+    }
+
     try {
       const qs = new URLSearchParams({
         action: 'conversation_media',
@@ -1711,6 +1837,7 @@
       if (M.activePsid !== forPsid) return;
       M.contactMedia = data.data?.media || data.media || [];
       M._contactMediaPsid = forPsid;
+      M._contactMediaFetchedAt = Date.now();
     } catch {
       if (M.activePsid === forPsid) M.contactMedia = null;
     }
@@ -1721,32 +1848,50 @@
     const grid = $('msngContactMedia');
     if (!grid) return;
 
-    const seen = new Set();
-    const urls = [];
-
-    const fromApi = (M._contactMediaPsid === M.activePsid && Array.isArray(M.contactMedia))
-      ? M.contactMedia : [];
-    for (const item of fromApi) {
-      const u = item?.url || item;
-      if (!u || seen.has(u) || isThumbsUpUrl(u)) continue;
-      seen.add(u);
-      urls.push(u);
+    const urls = collectContactMediaUrls().slice(0, 24);
+    const sig = urls.join('|');
+    if (sig === M._contactMediaRenderSig && grid.querySelector('.msng-media-thumb')) {
+      return;
     }
-    for (const u of mediaUrlsFromMsgs(M.msgs)) {
-      if (!seen.has(u)) {
-        seen.add(u);
-        urls.push(u);
-      }
-    }
+    M._contactMediaRenderSig = sig;
 
     if (!urls.length) {
       grid.innerHTML = '<p class="msng-contact-empty">No shared images in this chat yet.</p>';
       return;
     }
-    grid.innerHTML = urls.slice(0, 24).map((u) =>
-      `<a href="${esc(u)}" target="_blank" rel="noopener noreferrer" class="msng-media-thumb">` +
-      `<img src="${esc(u)}" alt="" loading="lazy" decoding="async"></a>`
-    ).join('');
+
+    grid.querySelector('.msng-contact-empty')?.remove();
+
+    const existing = {};
+    grid.querySelectorAll('.msng-media-thumb[data-media-url]').forEach((node) => {
+      existing[node.dataset.mediaUrl] = node;
+    });
+
+    const wanted = new Set(urls);
+    Object.keys(existing).forEach((key) => {
+      if (!wanted.has(key)) existing[key].remove();
+    });
+
+    const frag = document.createDocumentFragment();
+    urls.forEach((u) => {
+      let node = existing[u];
+      if (!node) {
+        node = document.createElement('a');
+        node.className = 'msng-media-thumb';
+        node.href = u;
+        node.target = '_blank';
+        node.rel = 'noopener noreferrer';
+        node.dataset.mediaUrl = u;
+        const img = document.createElement('img');
+        img.src = u;
+        img.alt = '';
+        img.decoding = 'async';
+        img.dataset.mediaKey = mediaUrlStableKey(u);
+        node.appendChild(img);
+      }
+      frag.appendChild(node);
+    });
+    grid.appendChild(frag);
   }
 
   function updateContactPanel() {
@@ -2088,7 +2233,7 @@
       // Open thread: Meta sync may have landed in DB without appearing in poll slice
       if (M.activePsid && data.meta_sync && !gotNewMsg && !msgLoadBusy && !M.ui.sending) {
         const now = Date.now();
-        if (now - (M._graphMsgReloadAt || 0) > 12_000) {
+        if (now - (M._graphMsgReloadAt || 0) > 30_000) {
           M._graphMsgReloadAt = now;
           loadMessages(null, { silent: true }).catch(() => {});
         }
@@ -2989,6 +3134,8 @@
     M.hasOlderMessages = false;
     M.contactMedia = null;
     M._contactMediaPsid = null;
+    M._contactMediaRenderSig = '';
+    M._contactMediaFetchedAt = 0;
     if (pageId) {
       M.activePageId = pageId;
       M.activeToken  = (M.pages.find(p => p.id === pageId) || {}).access_token || M.activeToken;
@@ -3582,7 +3729,13 @@
         }
         if (d.attachment_url) {
           const img = bubble.querySelector('.msng-att-img');
-          if (img) img.src = d.attachment_url;
+          if (img) {
+            const nextKey = mediaUrlStableKey(d.attachment_url);
+            if (img.dataset.mediaKey !== nextKey) {
+              img.src = d.attachment_url;
+              img.dataset.mediaKey = nextKey;
+            }
+          }
         }
       }
       if (entry) {
@@ -3598,6 +3751,7 @@
         lastMsgAt: entry?.created_at || new Date().toISOString()
       });
       queueMarkConvRead(M.activePsid, { immediate: true });
+      scheduleContactMediaRefresh(true);
       URL.revokeObjectURL(objUrl);
     } catch (e) {
       const bubble = document.querySelector(`[data-temp-id="${tempId}"]`);

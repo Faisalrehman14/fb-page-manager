@@ -1,5 +1,6 @@
 require('./config/env');
 const mysql = require('mysql2/promise');
+const { isThumbsUpAttachmentUrl } = require('./messenger/message-content');
 
 let pool = null;
 const syncStatus = new Map(); // pageId -> boolean
@@ -1403,11 +1404,11 @@ function _mediaFromAttachment(url, type) {
     if (!url || typeof url !== 'string') return null;
     const u = url.trim();
     if (!u || u[0] === '[') return null;
+    if (isThumbsUpAttachmentUrl(u)) return null;
     const t = String(type || '').toLowerCase();
-    if (t === 'like' || t === 'thumbs_up') return null;
-    const isImage = t === 'image' || t === 'photo' || t === 'sticker'
-        || /\.(jpe?g|png|gif|webp)(\?|$)/i.test(u)
-        || /fbcdn|fbsbx|scontent/i.test(u);
+    if (t === 'like' || t === 'thumbs_up' || t === 'sticker') return null;
+    const isImage = t === 'image' || t === 'photo'
+        || /\.(jpe?g|png|gif|webp)(\?|$)/i.test(u);
     if (!isImage && t !== 'video') return null;
     return { url: u, type: isImage ? 'image' : (t || 'file') };
 }
@@ -1446,6 +1447,9 @@ async function getConversationMedia(conversationId, limit = 120) {
                     const meta = JSON.parse(row.metadata);
                     if (Array.isArray(meta)) {
                         for (const a of meta) {
+                            const mt = String(a?.t || '').toLowerCase();
+                            if (mt === 'like' || mt === 'thumbs_up' || mt === 'sticker') continue;
+                            if (a?.u && isThumbsUpAttachmentUrl(a.u)) continue;
                             if (a?.u) candidates.push({ url: a.u, type: a.t });
                         }
                     }
