@@ -1,10 +1,10 @@
 /**
  * Responsive shell — viewport fit engine + mobile drawer utilities
  *
- * Viewport fit:
- *   • Fixed canvas 1280×900, single uniform scale (never stretch)
- *   • Width-bound: fills viewport edge-to-edge
- *   • Height-bound: centered, gutters = --sched-bg (not white)
+ * Viewport fit (dashboard):
+ *   • Width-first uniform scale — always edge-to-edge, never side gutters
+ *   • Wide + short windows use native fluid layout (no transform)
+ *   • Bottom clip only when needed; internal panels scroll
  */
 (function (global) {
   'use strict';
@@ -55,20 +55,22 @@
   }
 
   function needsFit(vw, vh, el) {
-    if (isDashboardRoot(el)) return vw < DESIGN.w || vh < DESIGN.h;
+    if (isDashboardRoot(el)) {
+      // Wide screens: native fluid layout (no side gutters, no upscale)
+      if (vw >= DESIGN.w) return false;
+      return true;
+    }
     return vw < DESIGN.w;
   }
 
-  /** Uniform contain scale — one number for X and Y (no distortion) */
-  function computeDashboardScale(vw, vh) {
-    const sw = vw / DESIGN.w;
-    const sh = vh / DESIGN.h;
-    return Math.max(MIN_SCALE, Math.min(sw, sh));
+  /** Width-first uniform scale — fills viewport width, no side gaps */
+  function computeDashboardScale(vw) {
+    return Math.max(MIN_SCALE, vw / DESIGN.w);
   }
 
   function computeScale(vw, vh, el) {
+    if (isDashboardRoot(el)) return computeDashboardScale(vw);
     const sw = vw / DESIGN.w;
-    if (isDashboardRoot(el)) return computeDashboardScale(vw, vh);
     if (sw >= 1) return 1;
     return Math.max(MIN_SCALE, sw);
   }
@@ -132,12 +134,10 @@
 
     const designH = isDashboardRoot(el) ? DESIGN.h : measureLandingHeight(el);
     const scale = computeScale(vw, vh, el);
-    const sw = vw / DESIGN.w;
-    const sh = vh / DESIGN.h;
     const fitW = DESIGN.w * scale;
     const fitH = designH * scale;
-    const widthBound = isDashboardRoot(el) ? sw <= sh : true;
-    const heightBound = isDashboardRoot(el) ? sh < sw : false;
+    const widthBound = isDashboardRoot(el) ? true : true;
+    const heightBound = false;
 
     stage.style.width = DESIGN.w + 'px';
     stage.style.height = designH + 'px';
@@ -146,24 +146,23 @@
 
     clip.style.overflow = 'hidden';
     clip.style.padding = '0';
-    clip.style.height = fitH + 'px';
     clip.style.maxWidth = '100%';
 
-    if (isDashboardRoot(el) && widthBound) {
+    if (isDashboardRoot(el)) {
       clip.style.width = '100%';
       clip.style.margin = '0';
+      clip.style.height = Math.min(fitH, vh) + 'px';
       shell.dataset.rsBound = 'width';
-    } else if (isDashboardRoot(el) && heightBound) {
-      clip.style.width = fitW + 'px';
-      clip.style.margin = '0 auto';
-      shell.dataset.rsBound = 'height';
     } else {
       clip.style.width = fitW + 'px';
       clip.style.margin = '0 auto';
+      clip.style.height = fitH + 'px';
       shell.dataset.rsBound = '';
     }
 
-    shell.style.display = 'block';
+    shell.style.display = 'flex';
+    shell.style.flexDirection = 'column';
+    shell.style.justifyContent = fitH < vh && isDashboardRoot(el) ? 'center' : 'flex-start';
     shell.style.width = '100%';
     shell.style.overflow = isDashboardRoot(el) ? 'hidden' : 'auto';
 
