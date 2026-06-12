@@ -11,6 +11,8 @@
   display: flex;
   align-items: center;
   position: relative;
+  container-type: inline-size;
+  container-name: app-topbar;
   background: rgba(6, 10, 22, 0.9);
   backdrop-filter: blur(20px) saturate(160%);
   -webkit-backdrop-filter: blur(20px) saturate(160%);
@@ -133,6 +135,14 @@
   font-size: 12px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
   border: 1px solid rgba(255, 255, 255, 0.08);
+  pointer-events: none;
+}
+
+.saas-topbar > #announcementBar[hidden] {
+  display: none !important;
+  flex: 0 0 0 !important;
+  width: 0 !important;
+  overflow: hidden !important;
 }
 
 .saas-topbar #statusBar.sb-success,

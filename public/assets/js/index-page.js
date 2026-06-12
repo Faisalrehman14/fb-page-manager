@@ -1002,7 +1002,10 @@ function updateQuotaUI(){
   if(valEl){
     valEl.classList.toggle('warn',pct>0&&pct<0.2);
     valEl.classList.toggle('danger',rem<=0);
+    valEl.dataset.fullValue=String(rem);
   }
+  if(totEl) totEl.dataset.fullValue=String(q.messageLimit||0);
+  if(typeof window.syncTopbarQuotaDisplay==='function') window.syncTopbarQuotaDisplay();
   if(widgetEl){
     widgetEl.classList.toggle('is-empty', rem<=0);
     const trialHint=q.onFreeTrial&&!q.trialExpired&&q.trialDaysLeft>0?` · ${q.trialDaysLeft} day(s) left in free trial`:'';

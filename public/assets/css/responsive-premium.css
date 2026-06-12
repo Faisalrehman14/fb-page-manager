@@ -1235,6 +1235,158 @@ body.app-dashboard-active #appPage > .app-body {
   }
 }
 
+/* ─── 20. Topbar container queries — same premium layout at any window size ─── */
+@container app-topbar (max-width: 960px) {
+  .saas-topbar {
+    height: auto;
+    min-height: var(--tb-h, 60px);
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+    padding: 10px 12px 12px;
+  }
+
+  .saas-topbar__left {
+    flex: none;
+    width: 100%;
+    min-width: 0;
+    padding-right: 108px;
+    order: 1;
+  }
+
+  .saas-topbar__right {
+    flex: none;
+    width: 100%;
+    order: 2;
+    display: block;
+    margin-left: 0;
+    position: static;
+  }
+
+  .saas-topbar__actions {
+    position: absolute;
+    top: 10px;
+    right: 52px;
+    z-index: 3;
+    padding: 2px;
+    border: none;
+    background: transparent;
+  }
+
+  .saas-topbar__user-cluster {
+    position: absolute;
+    top: 8px;
+    right: 10px;
+    z-index: 3;
+  }
+
+  .saas-topbar .quota-widget {
+    display: flex;
+    width: 100%;
+    max-width: 100%;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: nowrap;
+    gap: 10px;
+    padding: 8px 12px;
+    border-radius: 12px;
+    box-sizing: border-box;
+  }
+
+  .saas-topbar__quota-values .quota-num {
+    font-size: 16px !important;
+  }
+
+  .saas-topbar #planBadge.saas-topbar__plan-btn {
+    max-width: none;
+    flex-shrink: 0;
+  }
+
+  .saas-topbar__sep-v,
+  .saas-topbar__breadcrumb,
+  .saas-topbar .topbar-announcement,
+  .saas-topbar #loginStatus {
+    display: none !important;
+  }
+
+  .saas-topbar__actions .theme-toggle-wrap {
+    display: none !important;
+  }
+
+  .saas-topbar__overflow-wrap {
+    display: block;
+  }
+}
+
+@container app-topbar (max-width: 520px) {
+  .saas-topbar__left .topbar-title {
+    display: none;
+  }
+
+  .saas-topbar__left {
+    padding-right: 96px;
+  }
+
+  .saas-topbar #planBadge.saas-topbar__plan-btn {
+    padding: 6px 10px;
+    font-size: 9px;
+  }
+
+  .saas-topbar #planBadge.saas-topbar__plan-btn span {
+    display: inline-block;
+    max-width: 68px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    vertical-align: bottom;
+  }
+}
+
+@container app-topbar (max-width: 420px) {
+  .saas-topbar .btn-upgrade span {
+    display: none;
+  }
+
+  .saas-topbar .btn-upgrade {
+    padding: 7px 9px;
+  }
+}
+
+/* AI hint + in-view banners scale with narrow content */
+.pp-ai-hint {
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.pp-ai-hint span,
+.pp-ai-hint #ppAiHintText {
+  flex: 1 1 160px;
+  min-width: 0;
+  line-height: 1.45;
+}
+
+.pp-ai-hint button {
+  margin-left: 0;
+  flex-shrink: 0;
+}
+
+#view-home {
+  container-type: inline-size;
+  container-name: home-view;
+}
+
+@container home-view (max-width: 640px) {
+  #view-home .hv-hero-btns {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  #view-home .hv-hero-cta,
+  #view-home .hv-hero-cta2 {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
 /* ─── 15. Reduced motion ─── */
 @media (prefers-reduced-motion: reduce) {
   #appPage .sidebar,
