@@ -76,11 +76,20 @@
 
     position();
     if (typeof ResizeObserver !== 'undefined') {
-      const ro = new ResizeObserver(position);
+      let roTimer;
+      const debouncedPosition = () => {
+        clearTimeout(roTimer);
+        roTimer = setTimeout(position, 80);
+      };
+      const ro = new ResizeObserver(debouncedPosition);
       ro.observe(table);
       if (proCol) ro.observe(proCol);
     }
-    window.addEventListener('resize', position, { passive: true });
+    let resizeTimer;
+    window.addEventListener('resize', () => {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(position, 80);
+    }, { passive: true });
   }
 
   function initCompareReveal() {
