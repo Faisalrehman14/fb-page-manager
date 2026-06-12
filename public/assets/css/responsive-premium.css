@@ -71,7 +71,7 @@ body {
 
 body.app-dashboard-active {
   overflow-x: clip;
-  overflow-y: hidden;
+  overflow-y: auto;
   max-width: 100vw;
   background: var(--sched-bg, var(--bg, #030812)) !important;
 }
@@ -939,9 +939,9 @@ body.light .saas-topbar__pages-btn {
 html:not(.rs-viewport-fit) body.app-dashboard-active #appPage {
   display: flex;
   flex-direction: column;
-  min-height: 0;
-  height: 100vh;
-  height: 100dvh;
+  min-height: 100dvh;
+  height: auto;
+  max-height: none;
 }
 
 html:not(.rs-viewport-fit) body.app-dashboard-active #appPage > .app-body {
@@ -1439,7 +1439,7 @@ body.shell-home .sidebar {
   box-sizing: border-box;
 }
 
-/* ─── 22. Meta-style viewport fit — entire UI scales to window, no page scroll ─── */
+/* ─── 22. Viewport fit — width-first scale, page scroll when needed ─── */
 :root {
   --rs-design-w: 1280px;
   --rs-design-h: 900px;
@@ -1447,16 +1447,20 @@ body.shell-home .sidebar {
 }
 
 html.rs-viewport-fit {
-  overflow: hidden !important;
-  height: 100% !important;
+  overflow-x: clip !important;
+  overflow-y: auto !important;
+  min-height: 100% !important;
+  height: auto !important;
   width: 100% !important;
   background: var(--sched-bg, var(--bg, #030812)) !important;
 }
 
 html.rs-viewport-fit body {
-  overflow: hidden !important;
+  overflow-x: clip !important;
+  overflow-y: auto !important;
   width: 100% !important;
-  height: 100% !important;
+  min-height: 100dvh !important;
+  height: auto !important;
   min-width: 0;
   margin: 0;
   background: var(--sched-bg, var(--bg, #030812)) !important;
@@ -1469,22 +1473,22 @@ body.light.rs-viewport-fit {
 }
 
 html.rs-viewport-fit body.app-dashboard-active {
-  overflow: hidden !important;
-  height: 100% !important;
-  min-height: 0 !important;
+  overflow-x: clip !important;
+  overflow-y: auto !important;
+  min-height: 100dvh !important;
+  height: auto !important;
 }
 
 .rs-viewport-shell {
   width: 100%;
   width: 100vw;
-  height: 100dvh;
-  max-height: 100dvh;
-  overflow: hidden;
+  min-height: 100dvh;
+  height: auto;
+  max-height: none;
+  overflow: visible;
   margin: 0;
   padding: 0;
   position: relative;
-  display: flex;
-  flex-direction: column;
   background: var(--sched-bg, var(--bg, #030812));
 }
 
@@ -1504,7 +1508,7 @@ html.rs-viewport-fit.rs-viewport-fit--app .rs-viewport-scaler {
 .rs-viewport-scaler {
   position: relative;
   flex-shrink: 0;
-  overflow: hidden;
+  overflow: visible;
   box-sizing: border-box;
   padding: 0;
 }

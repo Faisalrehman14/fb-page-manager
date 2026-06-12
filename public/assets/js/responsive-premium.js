@@ -3,8 +3,7 @@
  *
  * Viewport fit (dashboard):
  *   • Width-first uniform scale — always edge-to-edge, never side gutters
- *   • Wide + short windows use native fluid layout (no transform)
- *   • Bottom clip only when needed; internal panels scroll
+ *   • Page scrolls vertically when scaled content exceeds viewport height
  */
 (function (global) {
   'use strict';
@@ -144,14 +143,14 @@
     stage.style.transform = 'scale(' + scale.toFixed(4) + ')';
     stage.style.transformOrigin = 'top left';
 
-    clip.style.overflow = 'hidden';
+    clip.style.overflow = 'visible';
     clip.style.padding = '0';
     clip.style.maxWidth = '100%';
 
     if (isDashboardRoot(el)) {
       clip.style.width = '100%';
       clip.style.margin = '0';
-      clip.style.height = Math.min(fitH, vh) + 'px';
+      clip.style.height = fitH + 'px';
       shell.dataset.rsBound = 'width';
     } else {
       clip.style.width = fitW + 'px';
@@ -160,11 +159,14 @@
       shell.dataset.rsBound = '';
     }
 
-    shell.style.display = 'flex';
-    shell.style.flexDirection = 'column';
-    shell.style.justifyContent = fitH < vh && isDashboardRoot(el) ? 'center' : 'flex-start';
+    shell.style.display = 'block';
+    shell.style.flexDirection = '';
+    shell.style.justifyContent = '';
     shell.style.width = '100%';
-    shell.style.overflow = isDashboardRoot(el) ? 'hidden' : 'auto';
+    shell.style.minHeight = vh + 'px';
+    shell.style.height = 'auto';
+    shell.style.maxHeight = 'none';
+    shell.style.overflow = 'visible';
 
     return { scale, fitW, fitH, widthBound, heightBound };
   }
@@ -249,7 +251,6 @@
     document.documentElement.classList.add('rs-viewport-fit');
     setFitModeClasses(el, true);
     setFitTokens(layout.scale, el, layout);
-    applyBodyScrollLock(true);
     syncMessengerLayout();
 
     if (shellResizeObs) shellResizeObs.disconnect();
