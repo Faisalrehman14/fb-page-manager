@@ -100,6 +100,7 @@
       top: 'broadcast',
       broadcastSub: 'analytics',
       hideSidebar: false,
+      bodyClass: 'shell-sidebar-layout',
       onEnter() {
         if (typeof global.refreshAnalyticsDashboard === 'function') global.refreshAnalyticsDashboard();
       }
@@ -110,6 +111,7 @@
       top: 'broadcast',
       broadcastSub: 'settings',
       hideSidebar: false,
+      bodyClass: 'shell-sidebar-layout',
       onEnter() {
         if (typeof global.refreshBillingUI === 'function') global.refreshBillingUI();
       }
@@ -119,7 +121,8 @@
       icon: 'fa-circle-question',
       top: 'broadcast',
       broadcastSub: 'help',
-      hideSidebar: false
+      hideSidebar: false,
+      bodyClass: 'shell-sidebar-layout'
     }
   };
 
@@ -228,7 +231,7 @@
     collapseNavRail();
 
     if (prev && prev.onLeave) prev.onLeave();
-    document.body.classList.remove('shell-scheduling', 'shell-messenger', 'shell-broadcast', 'shell-home', 'in-messenger');
+    document.body.classList.remove('shell-scheduling', 'shell-messenger', 'shell-broadcast', 'shell-home', 'shell-sidebar-layout', 'in-messenger');
 
     /* Layout-affecting updates before paint */
     const sidebar = document.querySelector('.sidebar');
@@ -442,7 +445,7 @@
       landing.removeAttribute('aria-hidden');
     }
     document.body.style.overflow = '';
-    document.body.classList.remove('app-dashboard-active', 'shell-scheduling', 'shell-messenger', 'shell-broadcast', 'in-messenger');
+    document.body.classList.remove('app-dashboard-active', 'shell-scheduling', 'shell-messenger', 'shell-broadcast', 'shell-home', 'shell-sidebar-layout', 'in-messenger');
 
     if (global.homeDashboard && typeof global.homeDashboard.stop === 'function') {
       global.homeDashboard.stop();

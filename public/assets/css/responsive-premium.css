@@ -676,17 +676,17 @@ body.app-dashboard-active #view-home .hv-qa-card:hover {
     display: flex !important;
   }
 
-  #view-home,
-  #view-messenger,
-  #view-broadcast,
-  #view-scheduling,
-  #view-analytics,
-  #view-settings,
-  #view-help {
+  html:not(.rs-viewport-fit) #view-home,
+  html:not(.rs-viewport-fit) #view-messenger,
+  html:not(.rs-viewport-fit) #view-broadcast,
+  html:not(.rs-viewport-fit) #view-scheduling,
+  html:not(.rs-viewport-fit) #view-analytics,
+  html:not(.rs-viewport-fit) #view-settings,
+  html:not(.rs-viewport-fit) #view-help {
     flex: 1 1 auto !important;
     min-width: 0 !important;
-    width: 100% !important;
-    max-width: 100% !important;
+    width: auto !important;
+    max-width: none !important;
   }
 
   html:not(.rs-viewport-fit) body.shell-broadcast #appPage > .app-body {
@@ -1625,9 +1625,25 @@ html.rs-viewport-fit #appPage .nav-sidebar {
 
 html.rs-viewport-fit #appPage .nav-sidebar,
 html.rs-viewport-fit #appPage .nav-sidebar:hover {
+  flex: 0 0 var(--ds-nav-width, 72px) !important;
   width: var(--ds-nav-width, 72px) !important;
   min-width: var(--ds-nav-width, 72px) !important;
   max-width: var(--ds-nav-width-expanded, 200px) !important;
+  position: relative !important;
+  z-index: 30 !important;
+  pointer-events: auto !important;
+}
+
+html.rs-viewport-fit #appPage .nav-sidebar:hover {
+  flex: 0 0 var(--ds-nav-width-expanded, 200px) !important;
+  width: var(--ds-nav-width-expanded, 200px) !important;
+  min-width: var(--ds-nav-width-expanded, 200px) !important;
+}
+
+html.rs-viewport-fit #appPage .nav-side-item,
+html.rs-viewport-fit #appPage .nav-sidebar-contact button,
+html.rs-viewport-fit #appPage .nav-sidebar-footer {
+  pointer-events: auto !important;
 }
 
 html.rs-viewport-fit #appPage .nav-sidebar .nav-side-item span,
@@ -1654,12 +1670,16 @@ html.rs-viewport-fit .sidebar-backdrop {
 html.rs-viewport-fit #appPage .sidebar {
   position: static !important;
   transform: none !important;
+  flex: 0 0 var(--sidebar-w, 220px) !important;
   width: var(--sidebar-w, 220px) !important;
   min-width: var(--sidebar-w, 220px) !important;
   max-width: var(--sidebar-w, 220px) !important;
   margin: 0 !important;
   border-radius: var(--rs-radius-lg, 16px) !important;
   box-shadow: none !important;
+  flex-direction: column !important;
+  z-index: 20 !important;
+  pointer-events: auto !important;
 }
 
 html.rs-viewport-fit .saas-topbar__overflow-wrap,
@@ -1778,11 +1798,73 @@ html.rs-viewport-fit body.shell-broadcast #appPage .stats-panel {
   min-width: 0 !important;
 }
 
-/* Home / messenger / other shells */
-html.rs-viewport-fit body.shell-home #appPage > .app-body,
-html.rs-viewport-fit body.shell-messenger #appPage > .app-body,
+/* Scheduling + analytics/settings/help — 3-column nav | pages | content */
+html.rs-viewport-fit body.shell-scheduling,
+html.rs-viewport-fit body.shell-sidebar-layout {
+  --bcast-sidebar-w: 220px;
+}
+
 html.rs-viewport-fit body.shell-scheduling #appPage > .app-body,
-html.rs-viewport-fit body.app-dashboard-active:not(.shell-broadcast) #appPage > .app-body {
+html.rs-viewport-fit body.shell-sidebar-layout #appPage > .app-body {
+  --bcast-nav-active: var(--ds-nav-width, 72px) !important;
+  display: grid !important;
+  grid-template-columns:
+    var(--bcast-nav-active)
+    var(--bcast-sidebar-w, 220px)
+    minmax(0, 1fr) !important;
+  grid-template-rows: minmax(0, 1fr) !important;
+  flex-direction: unset !important;
+  gap: 0 !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  align-items: stretch !important;
+}
+
+html.rs-viewport-fit body.shell-scheduling #appPage > .app-body:has(.nav-sidebar:hover),
+html.rs-viewport-fit body.shell-sidebar-layout #appPage > .app-body:has(.nav-sidebar:hover) {
+  --bcast-nav-active: var(--ds-nav-width-expanded, 200px) !important;
+}
+
+html.rs-viewport-fit body.shell-scheduling #appPage .nav-sidebar,
+html.rs-viewport-fit body.shell-sidebar-layout #appPage .nav-sidebar {
+  grid-column: 1 !important;
+  grid-row: 1 !important;
+  align-self: stretch !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  flex: unset !important;
+  border-radius: 0 !important;
+}
+
+html.rs-viewport-fit body.shell-scheduling #appPage .sidebar,
+html.rs-viewport-fit body.shell-sidebar-layout #appPage .sidebar {
+  grid-column: 2 !important;
+  grid-row: 1 !important;
+  display: flex !important;
+  width: auto !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  flex: unset !important;
+  border-radius: 0 !important;
+}
+
+html.rs-viewport-fit body.shell-scheduling #view-scheduling.broadcast-subview.is-active,
+html.rs-viewport-fit body.shell-sidebar-layout #view-analytics.broadcast-subview.is-active,
+html.rs-viewport-fit body.shell-sidebar-layout #view-settings.broadcast-subview.is-active,
+html.rs-viewport-fit body.shell-sidebar-layout #view-help.broadcast-subview.is-active {
+  grid-column: 3 !important;
+  grid-row: 1 !important;
+  width: auto !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  flex: unset !important;
+  display: flex !important;
+}
+
+/* Home / messenger — nav rail + main only */
+html.rs-viewport-fit body.shell-home #appPage > .app-body,
+html.rs-viewport-fit body.shell-messenger #appPage > .app-body {
   display: flex !important;
   flex-direction: row !important;
   flex-wrap: nowrap !important;
@@ -1793,6 +1875,24 @@ html.rs-viewport-fit body.app-dashboard-active:not(.shell-broadcast) #appPage > 
   overflow: hidden !important;
 }
 
+html.rs-viewport-fit #view-home,
+html.rs-viewport-fit #view-messenger,
+html.rs-viewport-fit #view-broadcast,
+html.rs-viewport-fit #view-scheduling,
+html.rs-viewport-fit #view-analytics,
+html.rs-viewport-fit #view-settings,
+html.rs-viewport-fit #view-help {
+  flex: 1 1 auto !important;
+  width: auto !important;
+  min-width: 0 !important;
+  max-width: none !important;
+}
+
+html.rs-viewport-fit body.shell-home .sidebar,
+html.rs-viewport-fit body.shell-messenger .sidebar {
+  display: none !important;
+}
+
 html.rs-viewport-fit #view-home .hv-main-grid {
   grid-template-columns: minmax(0, 1fr) minmax(0, 380px) !important;
 }
@@ -1801,8 +1901,12 @@ html.rs-viewport-fit #view-home .hv-kpi-row {
   grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
 }
 
-html.rs-viewport-fit body.shell-home .sidebar {
-  display: none !important;
+html.rs-viewport-fit #view-analytics.pro-view,
+html.rs-viewport-fit #view-settings.pro-view,
+html.rs-viewport-fit #view-help.pro-view,
+html.rs-viewport-fit #view-scheduling.broadcast-subview {
+  width: auto !important;
+  max-width: none !important;
 }
 
 html.rs-viewport-fit .rs-viewport-shell {

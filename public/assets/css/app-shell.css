@@ -264,6 +264,16 @@ body.shell-scheduling #view-scheduling {
   inset: auto;
 }
 
+body.shell-sidebar-layout #view-analytics,
+body.shell-sidebar-layout #view-settings,
+body.shell-sidebar-layout #view-help {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  position: relative;
+  inset: auto;
+}
+
 body.shell-scheduling .sidebar-hdr-subtitle[data-mode="scheduling"] {
   display: block;
 }
