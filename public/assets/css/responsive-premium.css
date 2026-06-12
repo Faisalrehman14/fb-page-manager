@@ -1461,11 +1461,11 @@ html.rs-viewport-fit body.app-dashboard-active {
   height: 100dvh;
   max-height: 100dvh;
   overflow: hidden;
-  margin: 0 auto;
+  margin: 0;
   position: relative;
   display: flex;
-  justify-content: center;
-  align-items: center;
+  justify-content: flex-start;
+  align-items: flex-start;
   background: var(--bg, #030812);
 }
 
@@ -1478,6 +1478,8 @@ body.light.rs-viewport-fit .rs-viewport-shell {
   position: relative;
   flex-shrink: 0;
   overflow: hidden;
+  width: 100%;
+  max-width: 100%;
 }
 
 .rs-viewport-stage {

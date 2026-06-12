@@ -45,8 +45,8 @@
   function computeFitScale(w, h, content) {
     const scaleW = w / DESIGN_W;
     if (isDashboardRoot(content)) {
-      const scaleH = h / DESIGN_H;
-      return Math.max(MIN_SCALE, Math.min(scaleW, scaleH, 1));
+      // Width-fill: always edge-to-edge, no side letterboxing
+      return Math.max(MIN_SCALE, Math.min(scaleW, 1));
     }
     if (scaleW >= 1) return 1;
     return Math.max(MIN_SCALE, scaleW);
@@ -62,9 +62,9 @@
     if (!shell || !stage || !scaler) return;
 
     const designH = getDesignHeight(content);
-    const scaledW = DESIGN_W * scale;
 
-    scaler.style.width = scaledW + 'px';
+    scaler.style.width = '100%';
+    scaler.style.maxWidth = '100%';
     scaler.style.overflow = 'hidden';
     scaler.style.flexShrink = '0';
     scaler.style.position = 'relative';
