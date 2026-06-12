@@ -278,7 +278,7 @@ html.theme-dark #view-home .hv-kpi-icon {
 }
 
 #view-home .hv-kpi-val {
-  font-size: 2.125rem !important;
+  font-size: clamp(1.35rem, 1.2vw + 0.85rem, 2.125rem) !important;
   font-weight: 800 !important;
   letter-spacing: -0.05em !important;
   color: #ffffff !important;

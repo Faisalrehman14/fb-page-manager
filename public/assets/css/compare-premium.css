@@ -461,9 +461,76 @@ body.light #landingPage .cmp-premium__cta-btn i {
   .cmp-premium__stats {
     grid-template-columns: repeat(2, 1fr);
   }
-  .cmp-premium__table-wrap {
-    min-width: 720px;
+}
+
+@media (max-width: 768px) {
+  .cmp-premium__scroll {
+    overflow-x: visible;
   }
+
+  .cmp-premium__table-wrap {
+    min-width: 0;
+  }
+
+  .cmp-premium__col-highlight {
+    display: none;
+  }
+
+  .cmp-premium__table,
+  .cmp-premium__table thead,
+  .cmp-premium__table tbody,
+  .cmp-premium__table tr {
+    display: block;
+    width: 100%;
+  }
+
+  .cmp-premium__table thead {
+    display: none;
+  }
+
+  .cmp-premium__table tbody tr {
+    margin-bottom: 12px;
+    padding: 16px;
+    border-radius: 14px;
+    border: 1px solid var(--cmp-border);
+    background: var(--cmp-card);
+    box-shadow: var(--cmp-shadow);
+  }
+
+  .cmp-premium__table tbody tr td,
+  .cmp-premium__table tbody tr th.cmp-premium__td--cap {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 0;
+    border: none;
+    text-align: right;
+  }
+
+  .cmp-premium__table tbody tr th.cmp-premium__td--cap {
+    font-weight: 800;
+    font-size: 14px;
+    justify-content: flex-start;
+    padding-bottom: 12px;
+    margin-bottom: 4px;
+    border-bottom: 1px solid var(--cmp-border);
+    text-align: left;
+  }
+
+  .cmp-premium__table tbody tr td:not(.cmp-premium__td--cap)::before {
+    font-weight: 700;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--cmp-text-3);
+    flex-shrink: 0;
+    text-align: left;
+  }
+
+  .cmp-premium__table tbody tr td:nth-child(2)::before { content: "FBCast Pro"; }
+  .cmp-premium__table tbody tr td:nth-child(3)::before { content: "Email"; }
+  .cmp-premium__table tbody tr td:nth-child(4)::before { content: "Organic Posts"; }
 }
 
 @media (max-width: 480px) {

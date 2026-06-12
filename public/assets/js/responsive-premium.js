@@ -114,6 +114,21 @@
     });
   }
 
+  function syncMessengerLayout() {
+    const panel = document.getElementById('msngContactPanel');
+    if (!panel) return;
+    if (window.innerWidth <= 1200) {
+      panel.classList.remove('is-open');
+      panel.setAttribute('aria-hidden', 'true');
+      const toggle = document.getElementById('msngContactToggleBtn');
+      if (toggle) toggle.setAttribute('aria-expanded', 'false');
+    }
+    const convs = document.getElementById('msngConvsCol');
+    if (convs && window.innerWidth > 640) {
+      convs.classList.remove('slide-out');
+    }
+  }
+
   function initResizeHandler() {
     let timer;
     window.addEventListener('resize', () => {
@@ -121,6 +136,7 @@
       timer = setTimeout(() => {
         if (!isMobile()) closePagesDrawer();
         closeTopbarOverflow();
+        syncMessengerLayout();
       }, 120);
     }, { passive: true });
   }

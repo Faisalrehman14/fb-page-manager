@@ -533,7 +533,10 @@ html.theme-dark #view-home .hv-hero {
 
 /* ─── Main content grid ─── */
 #view-home .hv-main-grid {
-  grid-template-columns: minmax(0, 1fr) 380px;
+  display: grid;
+  width: 100%;
+  min-width: 0;
+  grid-template-columns: minmax(0, 1fr) minmax(0, min(380px, 100%));
   gap: 20px;
   align-items: start;
 }

@@ -382,7 +382,31 @@ body.app-dashboard-active #view-home .hv-qa-card:hover {
 }
 
 #view-home .hv-bottom-grid {
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)) !important;
+  display: grid;
+  width: 100%;
+  min-width: 0;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: 14px;
+}
+
+@media (max-width: 900px) {
+  #view-home .hv-bottom-grid {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+}
+
+#view-home .hv-dual-row {
+  display: grid;
+  width: 100%;
+  min-width: 0;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+@media (max-width: 768px) {
+  #view-home .hv-dual-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 /* Landing */
@@ -840,6 +864,211 @@ body.light .saas-topbar__pages-btn {
   color: #334155;
   background: rgba(99, 102, 241, 0.06);
   border-color: rgba(99, 102, 241, 0.16);
+}
+
+/* ─── 15. Full-site view scrolling & shrink guards ─── */
+body.app-dashboard-active #appPage {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100vh;
+  height: 100dvh;
+}
+
+body.app-dashboard-active #appPage > .app-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+}
+
+#view-home,
+#view-messenger,
+#view-broadcast,
+#view-scheduling.broadcast-subview.is-active,
+#view-analytics.pro-view.is-active,
+#view-settings.pro-view.is-active,
+#view-help.pro-view.is-active {
+  overflow-x: clip;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  min-height: 0;
+}
+
+#view-broadcast,
+#view-messenger {
+  width: 100%;
+  max-width: 100%;
+}
+
+.pro-view__scroll,
+.analytics-panel,
+#view-settings .settings-layout,
+#view-help .help-layout {
+  min-width: 0;
+  max-width: 100%;
+}
+
+/* Tables & wide content — scroll inside container, not page */
+.table-wrap,
+.cmp-premium__scroll,
+.intel-table-wrap,
+.analytics-table-wrap,
+.sv2-table-wrap {
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Settings segmented controls */
+.settings-segmented {
+  display: flex;
+  flex-wrap: wrap;
+  max-width: 100%;
+}
+
+.settings-segmented .seg-opt {
+  flex: 1 1 auto;
+  min-width: 0;
+  justify-content: center;
+}
+
+/* Broadcast toolbar */
+.bcast-toolbar {
+  flex-wrap: wrap;
+  row-gap: 8px;
+}
+
+.bcast-toolbar__group {
+  flex-wrap: wrap;
+}
+
+/* ─── 16. Broadcast grid — laptop / split-screen reflow ─── */
+@media (max-width: 1280px) {
+  body.shell-broadcast #appPage > .app-body {
+    grid-template-columns:
+      var(--bcast-nav-active)
+      var(--bcast-sidebar-w, 200px)
+      minmax(0, 1fr)
+      var(--bcast-control-w, 280px)
+      minmax(0, 1fr) !important;
+  }
+}
+
+@media (max-width: 1100px) {
+  body.shell-broadcast {
+    --bcast-control-w: 240px;
+    --bcast-sidebar-w: 180px;
+  }
+}
+
+/* ─── 17. Messenger — flexible columns before mobile drawer ─── */
+@media (max-width: 1200px) and (min-width: 901px) {
+  .msng-layout-pro .msng-pages {
+    width: min(180px, 20vw) !important;
+    min-width: 0 !important;
+    max-width: 180px !important;
+  }
+
+  .msng-layout-pro .msng-convs {
+    width: min(260px, 28vw) !important;
+    min-width: 0 !important;
+    max-width: 260px !important;
+  }
+}
+
+@media (max-width: 900px) {
+  .msng-layout-pro .msng-convs {
+    min-width: 0 !important;
+  }
+
+  .msng-layout-pro .msng-convs.slide-out {
+    transform: translateX(-100%);
+  }
+
+  .msng-layout-pro .msng-convs:not(.slide-out) {
+    transform: none;
+  }
+}
+
+/* ─── 18. Landing — section width guards ─── */
+#landingPage.landing-enterprise,
+#landingPage.landing-enterprise #landingMain,
+#landingPage .hero-enterprise,
+#landingPage .cmp-premium,
+#landingPage .pricing-section,
+#landingPage .features-wrap,
+#landingPage .footer {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+#landingPage .btn-hero,
+#landingPage .btn-hero:disabled,
+#landingPage .btn-hero.loading {
+  width: auto;
+  min-width: 0;
+  max-width: 100%;
+}
+
+#landingPage.landing-enterprise .nav {
+  padding-left: clamp(12px, 3vw, 32px);
+  padding-right: clamp(12px, 3vw, 32px);
+}
+
+/* ─── 19. Topbar — progressive compression (1024–900) ─── */
+@media (max-width: 1024px) and (min-width: 901px) {
+  .saas-topbar {
+    gap: 8px;
+    padding: 0 14px;
+  }
+
+  .saas-topbar .topbar-announcement {
+    display: none;
+  }
+
+  .saas-topbar .quota-widget {
+    gap: 6px;
+    padding: 4px 8px;
+  }
+
+  .saas-topbar #planBadge.saas-topbar__plan-btn {
+    padding: 6px 10px;
+    font-size: 10px;
+  }
+}
+
+@media (max-width: 900px) {
+  .saas-topbar {
+    flex-wrap: wrap;
+    overflow: visible;
+    row-gap: 4px;
+  }
+
+  .saas-topbar__right {
+    flex-wrap: nowrap;
+    flex-shrink: 0;
+  }
+}
+
+@media (max-width: 1280px) {
+  #view-analytics.analytics-dash .analytics-kpi-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (max-width: 960px) {
+  #view-scheduling .sv2-body {
+    grid-template-columns: 1fr !important;
+    overflow-y: auto !important;
+  }
+
+  #view-scheduling .sv2-compose {
+    max-height: none;
+    border-right: none !important;
+  }
 }
 
 /* ─── 15. Reduced motion ─── */
