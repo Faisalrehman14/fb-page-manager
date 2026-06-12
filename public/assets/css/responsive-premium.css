@@ -1618,47 +1618,124 @@ html.rs-viewport-fit {
   --rs-design-h: 900px;
 }
 
-html.rs-viewport-fit .nav-sidebar,
 html.rs-viewport-fit #appPage .nav-sidebar {
   display: flex !important;
-}
-
-html.rs-viewport-fit #appPage .nav-sidebar,
-html.rs-viewport-fit #appPage .nav-sidebar:hover {
-  flex: 0 0 var(--ds-nav-width, 72px) !important;
-  width: var(--ds-nav-width, 72px) !important;
-  min-width: var(--ds-nav-width, 72px) !important;
-  max-width: var(--ds-nav-width-expanded, 200px) !important;
+  overflow: hidden !important;
   position: relative !important;
   z-index: 30 !important;
   pointer-events: auto !important;
 }
 
+/* Collapsed — icons only, no partial label bleed */
+html.rs-viewport-fit #appPage .nav-sidebar:not(:hover):not(.nav-sidebar--locked) {
+  flex: 0 0 var(--ds-nav-width, 72px) !important;
+  width: var(--ds-nav-width, 72px) !important;
+  min-width: var(--ds-nav-width, 72px) !important;
+  max-width: var(--ds-nav-width, 72px) !important;
+}
+
+html.rs-viewport-fit #appPage .nav-sidebar.nav-sidebar--locked {
+  flex: 0 0 var(--ds-nav-width, 72px) !important;
+  width: var(--ds-nav-width, 72px) !important;
+  min-width: var(--ds-nav-width, 72px) !important;
+  max-width: var(--ds-nav-width, 72px) !important;
+}
+
+html.rs-viewport-fit #appPage .nav-sidebar:not(:hover) .nav-side-item span,
+html.rs-viewport-fit #appPage .nav-sidebar:not(:hover) .nav-sidebar-hdr span,
+html.rs-viewport-fit #appPage .nav-sidebar:not(:hover) .nav-user-details,
+html.rs-viewport-fit #appPage .nav-sidebar:not(:hover) .nav-ai-label,
+html.rs-viewport-fit #appPage .nav-sidebar:not(:hover) .nav-contact-label,
+html.rs-viewport-fit #appPage .nav-sidebar:not(:hover) .nav-ai-tag,
+html.rs-viewport-fit #appPage .nav-sidebar:not(:hover) .nav-contact-tag,
+html.rs-viewport-fit #appPage .nav-sidebar.nav-sidebar--locked .nav-side-item span,
+html.rs-viewport-fit #appPage .nav-sidebar.nav-sidebar--locked .nav-sidebar-hdr span,
+html.rs-viewport-fit #appPage .nav-sidebar.nav-sidebar--locked .nav-user-details,
+html.rs-viewport-fit #appPage .nav-sidebar.nav-sidebar--locked .nav-ai-label,
+html.rs-viewport-fit #appPage .nav-sidebar.nav-sidebar--locked .nav-contact-label,
+html.rs-viewport-fit #appPage .nav-sidebar.nav-sidebar--locked .nav-ai-tag,
+html.rs-viewport-fit #appPage .nav-sidebar.nav-sidebar--locked .nav-contact-tag {
+  opacity: 0 !important;
+  max-width: 0 !important;
+  width: 0 !important;
+  min-width: 0 !important;
+  overflow: hidden !important;
+  visibility: hidden !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  clip-path: inset(50%) !important;
+  white-space: nowrap !important;
+}
+
+html.rs-viewport-fit #appPage .nav-sidebar:not(:hover) .nav-side-item,
+html.rs-viewport-fit #appPage .nav-sidebar:not(:hover) .nav-ai-btn,
+html.rs-viewport-fit #appPage .nav-sidebar:not(:hover) .nav-contact-btn,
+html.rs-viewport-fit #appPage .nav-sidebar.nav-sidebar--locked .nav-side-item,
+html.rs-viewport-fit #appPage .nav-sidebar.nav-sidebar--locked .nav-ai-btn,
+html.rs-viewport-fit #appPage .nav-sidebar.nav-sidebar--locked .nav-contact-btn {
+  justify-content: center !important;
+  gap: 0 !important;
+  padding-left: 11px !important;
+  padding-right: 11px !important;
+}
+
+html.rs-viewport-fit #appPage .nav-sidebar:not(:hover) .nav-sidebar-hdr,
+html.rs-viewport-fit #appPage .nav-sidebar.nav-sidebar--locked .nav-sidebar-hdr {
+  justify-content: center !important;
+  padding-left: 10px !important;
+  padding-right: 10px !important;
+}
+
+html.rs-viewport-fit #appPage .nav-sidebar:not(:hover) .nav-user-info,
+html.rs-viewport-fit #appPage .nav-sidebar.nav-sidebar--locked .nav-user-info {
+  justify-content: center !important;
+}
+
+/* Expanded on hover — full labels */
 html.rs-viewport-fit #appPage .nav-sidebar:hover {
   flex: 0 0 var(--ds-nav-width-expanded, 200px) !important;
   width: var(--ds-nav-width-expanded, 200px) !important;
   min-width: var(--ds-nav-width-expanded, 200px) !important;
+  max-width: var(--ds-nav-width-expanded, 200px) !important;
+}
+
+html.rs-viewport-fit #appPage .nav-sidebar:hover .nav-side-item span,
+html.rs-viewport-fit #appPage .nav-sidebar:hover .nav-sidebar-hdr span,
+html.rs-viewport-fit #appPage .nav-sidebar:hover .nav-user-details,
+html.rs-viewport-fit #appPage .nav-sidebar:hover .nav-ai-label,
+html.rs-viewport-fit #appPage .nav-sidebar:hover .nav-contact-label {
+  opacity: 1 !important;
+  max-width: 140px !important;
+  width: auto !important;
+  visibility: visible !important;
+  clip-path: none !important;
+}
+
+html.rs-viewport-fit #appPage .nav-sidebar:hover .nav-ai-tag,
+html.rs-viewport-fit #appPage .nav-sidebar:hover .nav-contact-tag {
+  opacity: 1 !important;
+  max-width: 48px !important;
+  visibility: visible !important;
+  clip-path: none !important;
+}
+
+html.rs-viewport-fit #appPage .nav-sidebar:hover .nav-sidebar-hdr {
+  justify-content: flex-start !important;
+  padding: 16px 14px !important;
+}
+
+html.rs-viewport-fit #appPage .nav-sidebar:hover .nav-side-item,
+html.rs-viewport-fit #appPage .nav-sidebar:hover .nav-ai-btn,
+html.rs-viewport-fit #appPage .nav-sidebar:hover .nav-contact-btn {
+  justify-content: flex-start !important;
+  gap: 10px !important;
+  padding: 11px 12px !important;
 }
 
 html.rs-viewport-fit #appPage .nav-side-item,
 html.rs-viewport-fit #appPage .nav-sidebar-contact button,
 html.rs-viewport-fit #appPage .nav-sidebar-footer {
   pointer-events: auto !important;
-}
-
-html.rs-viewport-fit #appPage .nav-sidebar .nav-side-item span,
-html.rs-viewport-fit #appPage .nav-sidebar .nav-sidebar-hdr span,
-html.rs-viewport-fit #appPage .nav-sidebar:hover .nav-side-item span,
-html.rs-viewport-fit #appPage .nav-sidebar:hover .nav-sidebar-hdr span,
-html.rs-viewport-fit #appPage .nav-sidebar .nav-user-details,
-html.rs-viewport-fit #appPage .nav-sidebar:hover .nav-user-details,
-html.rs-viewport-fit #appPage .nav-sidebar .nav-ai-label,
-html.rs-viewport-fit #appPage .nav-sidebar .nav-contact-label,
-html.rs-viewport-fit #appPage .nav-sidebar:hover .nav-ai-label,
-html.rs-viewport-fit #appPage .nav-sidebar:hover .nav-contact-label {
-  opacity: unset !important;
-  max-width: unset !important;
-  overflow: unset !important;
 }
 
 html.rs-viewport-fit .app-mobile-nav,
@@ -1736,6 +1813,15 @@ html.rs-viewport-fit body.shell-broadcast #appPage > .app-body {
   padding: 0 !important;
   overflow: hidden !important;
   align-items: stretch !important;
+}
+
+html.rs-viewport-fit body.shell-broadcast #appPage > .app-body:not(:has(.nav-sidebar:hover)) {
+  --bcast-nav-active: var(--ds-nav-width, 72px) !important;
+}
+
+html.rs-viewport-fit body.shell-scheduling #appPage > .app-body:not(:has(.nav-sidebar:hover)),
+html.rs-viewport-fit body.shell-sidebar-layout #appPage > .app-body:not(:has(.nav-sidebar:hover)) {
+  --bcast-nav-active: var(--ds-nav-width, 72px) !important;
 }
 
 html.rs-viewport-fit body.shell-broadcast #appPage > .app-body:has(.nav-sidebar:hover) {
