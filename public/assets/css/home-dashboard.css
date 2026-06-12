@@ -373,17 +373,25 @@ html.theme-dark #view-home .hv-hero {
 /* ─── KPI metrics row ─── */
 #view-home .hv-kpi-row {
   display: grid;
+  width: 100%;
+  min-width: 0;
   grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 14px;
 }
 
-@media (max-width: 1100px) {
+@media (max-width: 1280px) {
   #view-home .hv-kpi-row {
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
 
-@media (max-width: 960px) {
+@media (max-width: 900px) {
+  #view-home .hv-kpi-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 1100px) {
   #view-home .hv-hero-content {
     flex-direction: column !important;
     align-items: stretch !important;
@@ -402,12 +410,13 @@ html.theme-dark #view-home .hv-hero {
 
   #view-home .hv-hero-sched-card {
     max-width: none;
+    width: 100%;
   }
 }
 
 @media (max-width: 640px) {
   #view-home .hv-kpi-row {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: minmax(0, 1fr);
   }
 
   #view-home {
@@ -434,6 +443,9 @@ html.theme-dark #view-home .hv-hero {
   flex-direction: column;
   align-items: flex-start;
   gap: 14px;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
   padding: 22px 20px !important;
   background: var(--hd-glass) !important;
   backdrop-filter: blur(14px);

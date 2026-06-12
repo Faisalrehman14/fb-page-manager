@@ -276,17 +276,105 @@ body.app-dashboard-active #view-home .hv-qa-card:hover {
   min-width: 220px;
 }
 
-/* Responsive dashboard grids */
+/* Responsive dashboard grids — explicit columns (auto-fit caused KPI overlap) */
+#view-home {
+  overflow-x: clip;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
 #view-home .hv-kpi-row {
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 130px), 1fr)) !important;
+  display: grid !important;
+  width: 100%;
+  min-width: 0;
+  grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+  gap: 14px;
+}
+
+#view-home .hv-kpi {
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+#view-home .hv-kpi-body,
+#view-home .hv-kpi-val,
+#view-home .hv-kpi-lbl {
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+#view-home .hv-kpi-val {
+  font-size: clamp(1.35rem, 1.2vw + 0.85rem, 2.125rem) !important;
+}
+
+#view-home .hv-kpi-lbl {
+  line-height: 1.35;
+}
+
+@media (max-width: 1280px) {
+  #view-home .hv-kpi-row {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (max-width: 900px) {
+  #view-home .hv-kpi-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
 }
 
 #view-home .hv-qa-grid {
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr)) !important;
+  display: grid;
+  width: 100%;
+  min-width: 0;
+  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+}
+
+@media (max-width: 1100px) {
+  #view-home .hv-qa-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
 }
 
 #view-home .hv-metrics-grid {
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 140px), 1fr)) !important;
+  display: grid;
+  width: 100%;
+  min-width: 0;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+}
+
+@media (max-width: 900px) {
+  #view-home .hv-metrics-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+
+/* Hero: stack welcome + schedules before they collide */
+@media (max-width: 1100px) {
+  #view-home .hv-hero-content {
+    flex-direction: column !important;
+    align-items: stretch !important;
+  }
+
+  #view-home .hv-hero-left,
+  #view-home .hv-hero-right {
+    flex: 1 1 auto;
+    width: 100%;
+    max-width: none;
+  }
+
+  #view-home .hv-hero-right {
+    justify-content: stretch;
+  }
+
+  #view-home .hv-hero-sched-card {
+    max-width: none;
+    width: 100%;
+  }
 }
 
 #view-home .hv-main-grid {
@@ -338,6 +426,10 @@ body.app-dashboard-active #view-home .hv-qa-card:hover {
 
   #view-home .hv-main-grid {
     grid-template-columns: minmax(0, 1fr) minmax(0, min(340px, 100%)) !important;
+  }
+
+  #view-home {
+    padding: 24px 20px 32px !important;
   }
 }
 
@@ -666,7 +758,7 @@ body.app-dashboard-active #view-home .hv-qa-card:hover {
   #view-home .hv-kpi-row,
   #view-home .hv-qa-grid,
   #view-home .hv-metrics-grid {
-    grid-template-columns: 1fr !important;
+    grid-template-columns: minmax(0, 1fr) !important;
   }
 
   #landingPage .nav-cta {

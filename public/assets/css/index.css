@@ -2734,7 +2734,7 @@ body.annual .price-billing-annual{display:block}
   position: relative; z-index: 1;
   display: flex; align-items: center;
   justify-content: space-between; gap: 28px;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
 }
 .hv-hero-left { flex: 1; min-width: 0; }
 
