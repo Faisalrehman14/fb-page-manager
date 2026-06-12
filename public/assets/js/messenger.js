@@ -1815,7 +1815,7 @@
     updateBlockedComposerState();
     updateContactPanel();
     const panel = $('msngContactPanel');
-    if (panel && window.innerWidth > 1200) {
+    if (panel && !document.documentElement.classList.contains('rs-viewport-fit') && window.innerWidth > 1200) {
       panel.classList.add('is-open');
       panel.setAttribute('aria-hidden', 'false');
       updateContactPanel();
@@ -3037,7 +3037,9 @@
 
     $('msngMsgTextarea')?.focus();
     updateLikeBtnVisibility();
-    if (window.innerWidth <= 640) $('msngConvsCol')?.classList.add('slide-out');
+    if (!document.documentElement.classList.contains('rs-viewport-fit') && window.innerWidth <= 640) {
+      $('msngConvsCol')?.classList.add('slide-out');
+    }
   }
 
   // ══════════════════════════════════════════════════════════

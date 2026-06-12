@@ -903,7 +903,7 @@ body:not(.light) .msng-layout-pro .msng-filter-chip:hover:not(.active) {
     max-width: none !important;
   }
 
-  .msng-contact.is-open {
+  html:not(.rs-viewport-fit) .msng-contact.is-open {
     display: flex !important;
     width: min(100%, 320px);
   }

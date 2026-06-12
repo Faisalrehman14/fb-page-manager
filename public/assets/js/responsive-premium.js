@@ -113,6 +113,7 @@
     document.documentElement.style.removeProperty('--rs-viewport-scale');
     document.body.style.removeProperty('min-height');
     applyBodyOverflowForFit(false);
+    syncMessengerLayout();
     lastFitScale = 1;
   }
 
@@ -147,6 +148,7 @@
     stage.style.transformOrigin = 'top left';
     stage.style.transform = 'scale(' + scale.toFixed(4) + ')';
     applyBodyOverflowForFit(true);
+    syncMessengerLayout();
 
     bindShellResizeObserver(shell, stage);
 
@@ -266,8 +268,14 @@
   }
 
   function syncMessengerLayout() {
-    if (isFitMode()) return;
+    const convs = document.getElementById('msngConvsCol');
     const panel = document.getElementById('msngContactPanel');
+
+    if (isFitMode()) {
+      convs?.classList.remove('slide-out');
+      return;
+    }
+
     if (!panel) return;
     if (window.innerWidth <= 1200) {
       panel.classList.remove('is-open');
@@ -275,7 +283,6 @@
       const toggle = document.getElementById('msngContactToggleBtn');
       if (toggle) toggle.setAttribute('aria-expanded', 'false');
     }
-    const convs = document.getElementById('msngConvsCol');
     if (convs && window.innerWidth > 640) {
       convs.classList.remove('slide-out');
     }

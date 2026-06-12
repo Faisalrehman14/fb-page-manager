@@ -1037,15 +1037,15 @@ body.app-dashboard-active #appPage > .app-body {
 }
 
 @media (max-width: 900px) {
-  .msng-layout-pro .msng-convs {
+  html:not(.rs-viewport-fit) .msng-layout-pro .msng-convs {
     min-width: 0 !important;
   }
 
-  .msng-layout-pro .msng-convs.slide-out {
+  html:not(.rs-viewport-fit) .msng-layout-pro .msng-convs.slide-out {
     transform: translateX(-100%);
   }
 
-  .msng-layout-pro .msng-convs:not(.slide-out) {
+  html:not(.rs-viewport-fit) .msng-layout-pro .msng-convs:not(.slide-out) {
     transform: none;
   }
 }
@@ -2005,26 +2005,97 @@ html.rs-viewport-fit .rs-viewport-stage {
   will-change: transform;
 }
 
-/* Messenger — keep desktop 3-pane inbox */
+/* Messenger — stable 3-pane inbox in viewport-fit (chat open must not break layout) */
+html.rs-viewport-fit body.shell-messenger #appPage > .app-body {
+  padding: 0 !important;
+  gap: 0 !important;
+}
+
+html.rs-viewport-fit body.shell-messenger #view-messenger {
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+  display: flex !important;
+  flex-direction: column !important;
+  border-radius: 0 !important;
+}
+
+html.rs-viewport-fit body.shell-messenger .msng-layout-pro.msng-root {
+  flex: 1 1 auto !important;
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+}
+
+html.rs-viewport-fit body.shell-messenger .msng-layout-pro .msng-body {
+  display: flex !important;
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+  position: relative !important;
+}
+
 html.rs-viewport-fit body.shell-messenger #view-messenger .msng-layout-pro .msng-pages {
   display: flex !important;
-  width: 240px !important;
-  min-width: 220px !important;
-  max-width: 280px !important;
+  flex: 0 0 180px !important;
+  width: 180px !important;
+  min-width: 160px !important;
+  max-width: 180px !important;
+}
+
+html.rs-viewport-fit body.shell-messenger #view-messenger .msng-layout-pro .msng-pages .msng-page-info,
+html.rs-viewport-fit body.shell-messenger #view-messenger .msng-layout-pro .msng-pages-hdr span {
+  display: block !important;
 }
 
 html.rs-viewport-fit body.shell-messenger #view-messenger .msng-layout-pro .msng-convs {
-  width: auto !important;
-  max-width: none !important;
-  flex: 1 1 auto !important;
+  flex: 0 0 260px !important;
+  width: 260px !important;
+  min-width: 220px !important;
+  max-width: 280px !important;
+  transform: none !important;
 }
 
-html.rs-viewport-fit body.shell-messenger #view-messenger .msng-contact {
-  position: relative !important;
-  top: auto !important;
-  right: auto !important;
-  bottom: auto !important;
-  box-shadow: none !important;
+html.rs-viewport-fit body.shell-messenger #view-messenger .msng-layout-pro .msng-convs.slide-out {
+  transform: none !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
+}
+
+html.rs-viewport-fit body.shell-messenger #view-messenger .msng-layout-pro .msng-chat {
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+  overflow: hidden !important;
+}
+
+html.rs-viewport-fit body.shell-messenger #view-messenger .msng-layout-pro .msng-contact {
+  position: absolute !important;
+  top: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  left: auto !important;
+  width: 280px !important;
+  max-width: min(320px, 38%) !important;
+  min-width: 0 !important;
+  flex: none !important;
+  z-index: 40 !important;
+  box-shadow: -8px 0 32px rgba(0, 0, 0, 0.22) !important;
+  transform: translateX(105%) !important;
+  transition: transform 0.22s ease !important;
+  pointer-events: none !important;
+}
+
+html.rs-viewport-fit body.shell-messenger #view-messenger .msng-layout-pro .msng-contact.is-open {
+  transform: translateX(0) !important;
+  display: flex !important;
+  pointer-events: auto !important;
+}
+
+html.rs-viewport-fit body.shell-messenger .msng-back-btn {
+  display: none !important;
 }
 
 html.rs-viewport-fit .saas-topbar {
