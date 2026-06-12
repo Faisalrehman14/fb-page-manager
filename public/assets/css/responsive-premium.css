@@ -1472,11 +1472,13 @@ html.rs-viewport-fit body.app-dashboard-active {
   margin: 0;
   padding: 0;
   position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: flex-start;
+  display: block;
   background: var(--sched-bg, var(--bg, #030812));
+}
+
+html.rs-viewport-fit.rs-viewport-fit--app .rs-viewport-shell {
+  width: 100vw;
+  max-width: 100vw;
 }
 
 html[data-theme='light'].rs-viewport-fit .rs-viewport-shell,
@@ -1491,6 +1493,12 @@ body.light.rs-viewport-fit .rs-viewport-shell {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
+}
+
+html.rs-viewport-fit.rs-viewport-fit--app .rs-viewport-scaler {
+  width: 100% !important;
+  height: 100dvh !important;
+  max-width: 100vw !important;
 }
 
 .rs-viewport-stage {

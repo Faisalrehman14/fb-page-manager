@@ -3,8 +3,8 @@
  *
  * Viewport fit (Meta-style):
  *   • Fixed design canvas 1280×900
- *   • Uniform scale = min(vw/1280, vh/900) — full UI always visible
- *   • Centered in viewport, gutter color matches dashboard (--sched-bg)
+ *   • Dashboard: scaleX = vw/1280, scaleY = vh/900 — fills viewport edge-to-edge
+ *   • No center letterboxing, no side white/empty columns
  *   • html.rs-viewport-fit disables mobile @media layout breaks
  */
 (function (global) {
@@ -54,30 +54,46 @@
     return vw < DESIGN.w;
   }
 
-  /** Uniform contain-scale — entire 1280×900 canvas fits in viewport */
+  function computeDashboardScales(vw, vh) {
+    return {
+      scaleX: Math.max(MIN_SCALE, vw / DESIGN.w),
+      scaleY: Math.max(MIN_SCALE, vh / DESIGN.h),
+    };
+  }
+
   function computeScale(vw, vh, el) {
     const sw = vw / DESIGN.w;
     if (isDashboardRoot(el)) {
-      const sh = vh / DESIGN.h;
-      return Math.max(MIN_SCALE, Math.min(sw, sh));
+      const { scaleX, scaleY } = computeDashboardScales(vw, vh);
+      return Math.min(scaleX, scaleY);
     }
     if (sw >= 1) return 1;
     return Math.max(MIN_SCALE, sw);
   }
 
-  function setFitTokens(scale, el) {
+  function setFitTokens(scale, el, vw, vh) {
     const html = document.documentElement;
     const designH = isDashboardRoot(el) ? DESIGN.h : measureLandingHeight(el);
     html.style.setProperty('--rs-fit-scale', scale.toFixed(4));
     html.style.setProperty('--rs-design-w', DESIGN.w + 'px');
     html.style.setProperty('--rs-design-h', designH + 'px');
-    html.style.setProperty('--rs-fit-w', (DESIGN.w * scale).toFixed(2) + 'px');
-    html.style.setProperty('--rs-fit-h', (designH * scale).toFixed(2) + 'px');
+    if (isDashboardRoot(el)) {
+      const { scaleX, scaleY } = computeDashboardScales(vw, vh);
+      html.style.setProperty('--rs-fit-scale-x', scaleX.toFixed(4));
+      html.style.setProperty('--rs-fit-scale-y', scaleY.toFixed(4));
+      html.style.setProperty('--rs-fit-w', vw.toFixed(2) + 'px');
+      html.style.setProperty('--rs-fit-h', vh.toFixed(2) + 'px');
+    } else {
+      html.style.removeProperty('--rs-fit-scale-x');
+      html.style.removeProperty('--rs-fit-scale-y');
+      html.style.setProperty('--rs-fit-w', (DESIGN.w * scale).toFixed(2) + 'px');
+      html.style.setProperty('--rs-fit-h', (designH * scale).toFixed(2) + 'px');
+    }
   }
 
   function clearFitTokens() {
     const html = document.documentElement;
-    ['--rs-fit-scale', '--rs-design-w', '--rs-design-h', '--rs-fit-w', '--rs-fit-h', '--rs-viewport-scale']
+    ['--rs-fit-scale', '--rs-design-w', '--rs-design-h', '--rs-fit-w', '--rs-fit-h', '--rs-viewport-scale', '--rs-fit-scale-x', '--rs-fit-scale-y']
       .forEach((k) => html.style.removeProperty(k));
   }
 
@@ -119,28 +135,33 @@
     const stage = shell.querySelector('.rs-viewport-stage');
     if (!clip || !stage) return 1;
 
-    const scale = computeScale(vw, vh, el);
     const designH = isDashboardRoot(el) ? DESIGN.h : measureLandingHeight(el);
-    const fitW = DESIGN.w * scale;
-    const fitH = designH * scale;
 
-    clip.style.width = fitW + 'px';
-    clip.style.height = fitH + 'px';
     clip.style.maxWidth = '100%';
     clip.style.overflow = 'hidden';
-    clip.style.margin = '0 auto';
+    clip.style.margin = '0';
+    clip.style.padding = '0';
 
     stage.style.width = DESIGN.w + 'px';
     stage.style.height = designH + 'px';
-    stage.style.transform = 'scale(' + scale.toFixed(4) + ')';
     stage.style.transformOrigin = 'top left';
 
-    shell.style.display = 'flex';
-    shell.style.flexDirection = 'column';
-    shell.style.alignItems = 'center';
-    shell.style.justifyContent = 'flex-start';
-    shell.style.overflow = isDashboardRoot(el) ? 'hidden' : 'auto';
+    if (isDashboardRoot(el)) {
+      const { scaleX, scaleY } = computeDashboardScales(vw, vh);
+      clip.style.width = '100%';
+      clip.style.height = '100%';
+      stage.style.transform = 'scale(' + scaleX.toFixed(4) + ', ' + scaleY.toFixed(4) + ')';
+      shell.style.display = 'block';
+      shell.style.overflow = 'hidden';
+      return Math.min(scaleX, scaleY);
+    }
 
+    const scale = computeScale(vw, vh, el);
+    clip.style.width = (DESIGN.w * scale) + 'px';
+    clip.style.height = (designH * scale) + 'px';
+    stage.style.transform = 'scale(' + scale.toFixed(4) + ')';
+    shell.style.display = 'block';
+    shell.style.overflow = 'auto';
     return scale;
   }
 
@@ -224,7 +245,7 @@
 
     document.documentElement.classList.add('rs-viewport-fit');
     setFitModeClasses(el, true);
-    setFitTokens(scale, el);
+    setFitTokens(scale, el, vw, vh);
     applyBodyScrollLock(true);
     syncMessengerLayout();
 
@@ -236,8 +257,10 @@
         shellResizeObs = new ResizeObserver(() => {
           clearTimeout(timer);
           timer = setTimeout(() => {
-            const s = layoutShell(shell, el, window.innerWidth, window.innerHeight);
-            setFitTokens(s, el);
+            const vw2 = window.innerWidth;
+            const vh2 = window.innerHeight;
+            const s = layoutShell(shell, el, vw2, vh2);
+            setFitTokens(s, el, vw2, vh2);
           }, 80);
         });
         shellResizeObs.observe(stage);
