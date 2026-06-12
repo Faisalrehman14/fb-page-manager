@@ -1,15 +1,20 @@
 /**
- * Responsive shell — Meta-style viewport fit (scale entire UI to window, no page scroll)
+ * Responsive shell — viewport fit engine + mobile drawer utilities
+ *
+ * Viewport fit (Meta-style):
+ *   • Fixed design canvas 1280×900
+ *   • Uniform scale = min(vw/1280, vh/900) — no distortion
+ *   • Centered in viewport, shell background matches app
+ *   • html.rs-viewport-fit disables mobile @media layout breaks
  */
 (function (global) {
   'use strict';
 
   const MOBILE_BP = 900;
-  const DESIGN_W = 1280;
-  const DESIGN_H = 900;
-  const LANDING_FIT_H = 900;
-  const MIN_SCALE = 0.18;
   const TOPBAR_COMPACT_W = 960;
+
+  const DESIGN = Object.freeze({ w: 1280, h: 900, landingMinH: 900 });
+  const MIN_SCALE = 0.25;
 
   let backdrop = null;
   let topbarQuotaInited = false;
@@ -19,17 +24,14 @@
   let wrappedRoot = null;
   let shellResizeObs = null;
 
+  /* ─── Viewport fit engine ─── */
+
   function isFitMode() {
     return document.documentElement.classList.contains('rs-viewport-fit');
   }
 
-  function isMobile() {
-    if (isFitMode()) return false;
-    return window.matchMedia('(max-width: ' + MOBILE_BP + 'px)').matches;
-  }
-
-  function isDashboardRoot(content) {
-    return !!(content && content.id === 'appPage');
+  function isDashboardRoot(el) {
+    return !!(el && el.id === 'appPage');
   }
 
   function getActiveRoot() {
@@ -42,69 +44,41 @@
     return document.getElementById('appPage') || landing;
   }
 
-  function needsViewportFit(w, h, content) {
-    if (isDashboardRoot(content)) {
-      return w < DESIGN_W || h < DESIGN_H;
+  function measureLandingHeight(el) {
+    const h = Math.ceil(el.scrollHeight || el.offsetHeight || 0);
+    return Math.max(DESIGN.landingMinH, h);
+  }
+
+  function needsFit(vw, vh, el) {
+    if (isDashboardRoot(el)) return vw < DESIGN.w || vh < DESIGN.h;
+    return vw < DESIGN.w;
+  }
+
+  /** Uniform scale — preserves aspect ratio (professional, no stretch) */
+  function computeScale(vw, vh, el) {
+    const sw = vw / DESIGN.w;
+    if (isDashboardRoot(el)) {
+      const sh = vh / DESIGN.h;
+      return Math.max(MIN_SCALE, Math.min(sw, sh, 1));
     }
-    return w < DESIGN_W;
+    if (sw >= 1) return 1;
+    return Math.max(MIN_SCALE, sw);
   }
 
-  function getDashboardScales(w, h) {
-    return {
-      scaleX: Math.max(MIN_SCALE, w / DESIGN_W),
-      scaleY: Math.max(MIN_SCALE, h / DESIGN_H),
-    };
+  function setFitTokens(scale, el) {
+    const html = document.documentElement;
+    const designH = isDashboardRoot(el) ? DESIGN.h : measureLandingHeight(el);
+    html.style.setProperty('--rs-fit-scale', scale.toFixed(4));
+    html.style.setProperty('--rs-design-w', DESIGN.w + 'px');
+    html.style.setProperty('--rs-design-h', designH + 'px');
+    html.style.setProperty('--rs-fit-w', (DESIGN.w * scale).toFixed(2) + 'px');
+    html.style.setProperty('--rs-fit-h', (designH * scale).toFixed(2) + 'px');
   }
 
-  function computeFitScale(w, h, content) {
-    if (isDashboardRoot(content)) {
-      const { scaleX, scaleY } = getDashboardScales(w, h);
-      return Math.min(scaleX, scaleY);
-    }
-    const scaleW = w / DESIGN_W;
-    if (scaleW >= 1) return 1;
-    return Math.max(MIN_SCALE, scaleW);
-  }
-
-  function getDesignHeight(content) {
-    if (isDashboardRoot(content)) return DESIGN_H;
-    const measured = Math.ceil(content.scrollHeight || content.offsetHeight || 0);
-    return Math.max(LANDING_FIT_H, measured);
-  }
-
-  function applyStageLayout(shell, stage, scaler, scale, content, viewportW, viewportH) {
-    if (!shell || !stage || !scaler) return;
-
-    const w = viewportW || window.innerWidth;
-    const h = viewportH || window.innerHeight;
-    const designH = getDesignHeight(content);
-
-    scaler.style.overflow = 'hidden';
-    scaler.style.flexShrink = '0';
-    scaler.style.position = 'relative';
-
-    stage.style.width = DESIGN_W + 'px';
-    stage.style.height = designH + 'px';
-    stage.style.transformOrigin = 'top left';
-    stage.style.margin = '0';
-
-    if (isDashboardRoot(content)) {
-      const { scaleX, scaleY } = getDashboardScales(w, h);
-      scaler.style.width = w + 'px';
-      scaler.style.height = h + 'px';
-      scaler.style.maxWidth = '100%';
-      stage.style.transform = 'scale(' + scaleX.toFixed(4) + ', ' + scaleY.toFixed(4) + ')';
-    } else {
-      const scaleW = Math.max(MIN_SCALE, Math.min(w / DESIGN_W, 1));
-      scaler.style.width = '100%';
-      scaler.style.maxWidth = '100%';
-      scaler.style.height = (designH * scaleW) + 'px';
-      stage.style.transform = 'scale(' + scaleW.toFixed(4) + ')';
-    }
-
-    shell.style.height = '100dvh';
-    shell.style.maxHeight = '100dvh';
-    shell.style.overflow = isDashboardRoot(content) ? 'hidden' : 'auto';
+  function clearFitTokens() {
+    const html = document.documentElement;
+    ['--rs-fit-scale', '--rs-design-w', '--rs-design-h', '--rs-fit-w', '--rs-fit-h', '--rs-viewport-scale']
+      .forEach((k) => html.style.removeProperty(k));
   }
 
   function unwrapAllShells() {
@@ -113,57 +87,66 @@
       const inner = stage && stage.firstElementChild;
       if (inner && shell.parentNode) {
         shell.parentNode.insertBefore(inner, shell);
-        shell.remove();
       }
+      shell.remove();
     });
   }
 
-  function ensureScaleShell(content) {
-    if (!content) return null;
-    const existing = content.closest('.rs-viewport-shell');
+  function ensureShell(el) {
+    if (!el) return null;
+    const existing = el.closest('.rs-viewport-shell');
     if (existing) return existing;
 
     const shell = document.createElement('div');
     shell.className = 'rs-viewport-shell';
-    const scaler = document.createElement('div');
-    scaler.className = 'rs-viewport-scaler';
+    shell.setAttribute('data-rs-viewport', '');
+
+    const clip = document.createElement('div');
+    clip.className = 'rs-viewport-scaler';
+
     const stage = document.createElement('div');
     stage.className = 'rs-viewport-stage';
 
-    content.parentNode.insertBefore(shell, content);
-    stage.appendChild(content);
-    scaler.appendChild(stage);
-    shell.appendChild(scaler);
+    el.parentNode.insertBefore(shell, el);
+    stage.appendChild(el);
+    clip.appendChild(stage);
+    shell.appendChild(clip);
     return shell;
   }
 
-  function getCurrentScale() {
-    const raw = document.documentElement.style.getPropertyValue('--rs-fit-scale')
-      || getComputedStyle(document.documentElement).getPropertyValue('--rs-fit-scale');
-    const parsed = parseFloat(String(raw).trim());
-    return Number.isFinite(parsed) && parsed > 0 ? parsed : lastFitScale;
+  function layoutShell(shell, el, vw, vh) {
+    const clip = shell.querySelector('.rs-viewport-scaler');
+    const stage = shell.querySelector('.rs-viewport-stage');
+    if (!clip || !stage) return 1;
+
+    const scale = computeScale(vw, vh, el);
+    const designH = isDashboardRoot(el) ? DESIGN.h : measureLandingHeight(el);
+    const fitW = DESIGN.w * scale;
+    const fitH = designH * scale;
+
+    clip.style.width = fitW + 'px';
+    clip.style.height = fitH + 'px';
+    clip.style.overflow = 'hidden';
+
+    stage.style.width = DESIGN.w + 'px';
+    stage.style.height = designH + 'px';
+    stage.style.transform = 'scale(' + scale.toFixed(4) + ')';
+    stage.style.transformOrigin = 'top left';
+
+    shell.style.overflow = isDashboardRoot(el) ? 'hidden' : 'auto';
+
+    return scale;
   }
 
-  function updateShellLayout(shell, stage, scale, content) {
-    const scaler = shell && shell.querySelector('.rs-viewport-scaler');
-    applyStageLayout(shell, stage, scaler, scale || getCurrentScale(), content);
-  }
-
-  function bindShellResizeObserver(shell, stage, content) {
-    if (typeof ResizeObserver === 'undefined' || !shell || !stage) return;
-    if (shellResizeObs) shellResizeObs.disconnect();
-    let timer;
-    shellResizeObs = new ResizeObserver(() => {
-      clearTimeout(timer);
-      timer = setTimeout(() => updateShellLayout(shell, stage, getCurrentScale(), content), 50);
-    });
-    shellResizeObs.observe(stage);
-    if (!isDashboardRoot(content)) shellResizeObs.observe(stage.firstElementChild || stage);
-  }
-
-  function applyBodyOverflowForFit(active) {
+  function setFitModeClasses(el, on) {
     const html = document.documentElement;
-    if (active) {
+    html.classList.toggle('rs-viewport-fit--app', on && isDashboardRoot(el));
+    html.classList.toggle('rs-viewport-fit--landing', on && el && el.id === 'landingPage');
+  }
+
+  function applyBodyScrollLock(on) {
+    const html = document.documentElement;
+    if (on) {
       if (document.body.dataset.rsOverflow == null) {
         document.body.dataset.rsOverflow = document.body.style.overflow || '';
       }
@@ -184,12 +167,6 @@
     }
   }
 
-  function setFitModeClasses(content, on) {
-    const html = document.documentElement;
-    html.classList.toggle('rs-viewport-fit--app', on && isDashboardRoot(content));
-    html.classList.toggle('rs-viewport-fit--landing', on && content && content.id === 'landingPage');
-  }
-
   function clearViewportFit() {
     unwrapAllShells();
     wrappedRoot = null;
@@ -199,11 +176,9 @@
     }
     document.documentElement.classList.remove('rs-viewport-fit', 'rs-viewport-scaled');
     setFitModeClasses(null, false);
-    document.documentElement.style.removeProperty('--rs-fit-scale');
-    document.documentElement.style.removeProperty('--rs-design-h');
-    document.documentElement.style.removeProperty('--rs-viewport-scale');
+    clearFitTokens();
     document.body.style.removeProperty('min-height');
-    applyBodyOverflowForFit(false);
+    applyBodyScrollLock(false);
     syncMessengerLayout();
     lastFitScale = 1;
   }
@@ -217,49 +192,69 @@
 
   function applyViewportFit() {
     fitRaf = 0;
-    const w = window.innerWidth;
-    const h = window.innerHeight;
-    const content = getActiveRoot();
-    if (!content) return;
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    const el = getActiveRoot();
+    if (!el) return;
 
-    const scale = computeFitScale(w, h, content);
-
-    if (!needsViewportFit(w, h, content)) {
+    if (!needsFit(vw, vh, el)) {
       clearViewportFit();
       return;
     }
 
-    if (wrappedRoot && wrappedRoot !== content) {
+    if (wrappedRoot && wrappedRoot !== el) {
       unwrapAllShells();
       wrappedRoot = null;
     }
 
-    const shell = ensureScaleShell(content);
-    const scaler = shell && shell.querySelector('.rs-viewport-scaler');
-    const stage = shell && shell.querySelector('.rs-viewport-stage');
-    if (!shell || !scaler || !stage) return;
+    const shell = ensureShell(el);
+    if (!shell) return;
 
-    wrappedRoot = content;
-    lastFitScale = scale;
-
+    wrappedRoot = el;
     ensureFabInAppPage();
 
+    const scale = layoutShell(shell, el, vw, vh);
+    lastFitScale = scale;
+
     document.documentElement.classList.add('rs-viewport-fit');
-    setFitModeClasses(content, true);
-    document.documentElement.style.setProperty('--rs-fit-scale', scale.toFixed(4));
-    document.documentElement.style.setProperty('--rs-design-h', getDesignHeight(content) + 'px');
-
-    applyBodyOverflowForFit(true);
-    applyStageLayout(shell, stage, scaler, scale, content, w, h);
+    setFitModeClasses(el, true);
+    setFitTokens(scale, el);
+    applyBodyScrollLock(true);
     syncMessengerLayout();
-    bindShellResizeObserver(shell, stage, content);
 
-    requestAnimationFrame(() => applyStageLayout(shell, stage, scaler, scale, content, w, h));
+    if (shellResizeObs) shellResizeObs.disconnect();
+    if (typeof ResizeObserver !== 'undefined') {
+      const stage = shell.querySelector('.rs-viewport-stage');
+      if (stage) {
+        let timer;
+        shellResizeObs = new ResizeObserver(() => {
+          clearTimeout(timer);
+          timer = setTimeout(() => {
+            const s = layoutShell(shell, el, window.innerWidth, window.innerHeight);
+            setFitTokens(s, el);
+          }, 80);
+        });
+        shellResizeObs.observe(stage);
+      }
+    }
   }
 
   function scheduleViewportFit() {
     if (fitRaf) return;
     fitRaf = requestAnimationFrame(applyViewportFit);
+  }
+
+  function getCurrentScale() {
+    const raw = document.documentElement.style.getPropertyValue('--rs-fit-scale');
+    const parsed = parseFloat(String(raw).trim());
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : lastFitScale;
+  }
+
+  /* ─── Mobile drawer (native breakpoint only, not in fit mode) ─── */
+
+  function isMobile() {
+    if (isFitMode()) return false;
+    return window.matchMedia('(max-width: ' + MOBILE_BP + 'px)').matches;
   }
 
   function ensureBackdrop() {
@@ -344,9 +339,8 @@
     if (themeItem) {
       themeItem.addEventListener('click', () => {
         const toggle = document.getElementById('themeToggle');
-        if (toggle) {
-          toggle.click();
-        } else if (typeof global.applyTheme === 'function') {
+        if (toggle) toggle.click();
+        else if (typeof global.applyTheme === 'function') {
           const isLight = document.documentElement.getAttribute('data-theme') === 'light';
           global.applyTheme(isLight ? 'dark' : 'light');
         }
@@ -466,16 +460,18 @@
     obs.observe(document.body, { attributes: true, attributeFilter: ['class'] });
 
     ['appPage', 'landingPage'].forEach((id) => {
-      const el = document.getElementById(id);
-      if (!el) return;
-      const pageObs = new MutationObserver(() => scheduleViewportFit());
-      pageObs.observe(el, { attributes: true, attributeFilter: ['style', 'class'] });
+      const node = document.getElementById(id);
+      if (!node) return;
+      new MutationObserver(() => scheduleViewportFit()).observe(node, {
+        attributes: true,
+        attributeFilter: ['style', 'class'],
+      });
     });
   }
 
   function initResizeHandler() {
     let timer;
-    window.addEventListener('resize', () => {
+    const onResize = () => {
       scheduleViewportFit();
       clearTimeout(timer);
       timer = setTimeout(() => {
@@ -484,8 +480,12 @@
         syncMessengerLayout();
         syncTopbarQuotaDisplay();
       }, 120);
-    }, { passive: true });
-    window.addEventListener('orientationchange', scheduleViewportFit, { passive: true });
+    };
+    window.addEventListener('resize', onResize, { passive: true });
+    window.addEventListener('orientationchange', onResize, { passive: true });
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', onResize, { passive: true });
+    }
   }
 
   function initEscape() {
@@ -512,7 +512,6 @@
     window.addEventListener('load', scheduleViewportFit, { passive: true });
     watchDashboardActivation();
     hookViewSwitch();
-
     initPagesToggle();
     initPageCardClose();
     initTopbarOverflow();

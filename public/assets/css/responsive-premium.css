@@ -1464,8 +1464,8 @@ html.rs-viewport-fit body.app-dashboard-active {
   margin: 0;
   position: relative;
   display: flex;
-  justify-content: flex-start;
-  align-items: flex-start;
+  justify-content: center;
+  align-items: center;
   background: var(--bg, #030812);
 }
 
@@ -1478,13 +1478,13 @@ body.light.rs-viewport-fit .rs-viewport-shell {
   position: relative;
   flex-shrink: 0;
   overflow: hidden;
-  width: 100%;
-  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .rs-viewport-stage {
   flex-shrink: 0;
   will-change: transform;
+  box-sizing: border-box;
 }
 
 html.rs-viewport-fit #appPage,
@@ -1664,25 +1664,27 @@ html.rs-viewport-fit .saas-topbar #statusBar.sb-info {
   flex-shrink: 0;
 }
 
-/* ─── 23. Viewport-fit desktop lock — overrides ALL narrow-viewport media rules ─── */
+/* ─── 23. Viewport-fit — keep desktop shell, disable mobile overrides only ─── */
 html.rs-viewport-fit #appPage .nav-sidebar {
   display: flex !important;
-  flex-direction: column !important;
-  flex: 0 0 var(--ds-nav-width-expanded, 200px) !important;
-  width: var(--ds-nav-width-expanded, 200px) !important;
-  min-width: var(--ds-nav-width-expanded, 200px) !important;
-  max-width: var(--ds-nav-width-expanded, 200px) !important;
-  overflow-x: hidden !important;
-  overflow-y: auto !important;
   position: relative !important;
   z-index: 30 !important;
-  pointer-events: auto !important;
   align-self: stretch !important;
   min-height: 0 !important;
   height: auto !important;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  flex-shrink: 0 !important;
 }
 
-html.rs-viewport-fit #appPage .nav-sidebar.nav-sidebar--locked,
+html.rs-viewport-fit #appPage .nav-sidebar:not(:hover):not(.nav-sidebar--locked) {
+  flex: 0 0 var(--ds-nav-width, 72px) !important;
+  width: var(--ds-nav-width, 72px) !important;
+  min-width: var(--ds-nav-width, 72px) !important;
+  max-width: var(--ds-nav-width, 72px) !important;
+}
+
+html.rs-viewport-fit #appPage .nav-sidebar:hover,
 html.rs-viewport-fit #appPage .nav-sidebar.nav-sidebar--locked:hover {
   flex: 0 0 var(--ds-nav-width-expanded, 200px) !important;
   width: var(--ds-nav-width-expanded, 200px) !important;
@@ -1690,51 +1692,47 @@ html.rs-viewport-fit #appPage .nav-sidebar.nav-sidebar--locked:hover {
   max-width: var(--ds-nav-width-expanded, 200px) !important;
 }
 
-html.rs-viewport-fit #appPage .nav-sidebar .nav-side-item span,
-html.rs-viewport-fit #appPage .nav-sidebar .nav-sidebar-hdr span,
-html.rs-viewport-fit #appPage .nav-sidebar .nav-user-details,
-html.rs-viewport-fit #appPage .nav-sidebar .nav-ai-label,
-html.rs-viewport-fit #appPage .nav-sidebar .nav-contact-label,
-html.rs-viewport-fit #appPage .nav-sidebar .nav-ai-tag,
-html.rs-viewport-fit #appPage .nav-sidebar .nav-contact-tag {
+html.rs-viewport-fit #appPage .nav-sidebar.nav-sidebar--locked:not(:hover) {
+  flex: 0 0 var(--ds-nav-width, 72px) !important;
+  width: var(--ds-nav-width, 72px) !important;
+  min-width: var(--ds-nav-width, 72px) !important;
+  max-width: var(--ds-nav-width, 72px) !important;
+}
+
+html.rs-viewport-fit #appPage .nav-sidebar:not(:hover):not(.nav-sidebar--locked) .nav-side-item span,
+html.rs-viewport-fit #appPage .nav-sidebar:not(:hover):not(.nav-sidebar--locked) .nav-sidebar-hdr span,
+html.rs-viewport-fit #appPage .nav-sidebar:not(:hover):not(.nav-sidebar--locked) .nav-user-details,
+html.rs-viewport-fit #appPage .nav-sidebar:not(:hover):not(.nav-sidebar--locked) .nav-ai-label,
+html.rs-viewport-fit #appPage .nav-sidebar:not(:hover):not(.nav-sidebar--locked) .nav-contact-label,
+html.rs-viewport-fit #appPage .nav-sidebar.nav-sidebar--locked:not(:hover) .nav-side-item span,
+html.rs-viewport-fit #appPage .nav-sidebar.nav-sidebar--locked:not(:hover) .nav-sidebar-hdr span,
+html.rs-viewport-fit #appPage .nav-sidebar.nav-sidebar--locked:not(:hover) .nav-user-details,
+html.rs-viewport-fit #appPage .nav-sidebar.nav-sidebar--locked:not(:hover) .nav-ai-label,
+html.rs-viewport-fit #appPage .nav-sidebar.nav-sidebar--locked:not(:hover) .nav-contact-label {
+  opacity: 0 !important;
+  max-width: 0 !important;
+  width: 0 !important;
+  overflow: hidden !important;
+  visibility: hidden !important;
+}
+
+html.rs-viewport-fit #appPage .nav-sidebar:hover .nav-side-item span,
+html.rs-viewport-fit #appPage .nav-sidebar:hover .nav-sidebar-hdr span,
+html.rs-viewport-fit #appPage .nav-sidebar:hover .nav-user-details,
+html.rs-viewport-fit #appPage .nav-sidebar:hover .nav-ai-label,
+html.rs-viewport-fit #appPage .nav-sidebar:hover .nav-contact-label,
+html.rs-viewport-fit #appPage .nav-sidebar:hover .nav-ai-tag,
+html.rs-viewport-fit #appPage .nav-sidebar:hover .nav-contact-tag {
   opacity: 1 !important;
   max-width: 140px !important;
   width: auto !important;
-  min-width: 0 !important;
-  overflow: hidden !important;
   visibility: visible !important;
-  padding: revert !important;
-  margin: revert !important;
   clip-path: none !important;
-  white-space: nowrap !important;
-}
-
-html.rs-viewport-fit #appPage .nav-sidebar .nav-side-item,
-html.rs-viewport-fit #appPage .nav-sidebar .nav-ai-btn,
-html.rs-viewport-fit #appPage .nav-sidebar .nav-contact-btn {
-  justify-content: flex-start !important;
-  gap: 10px !important;
-  padding: 11px 12px !important;
-}
-
-html.rs-viewport-fit #appPage .nav-sidebar .nav-sidebar-hdr {
-  justify-content: flex-start !important;
-  padding: 16px 14px !important;
-}
-
-html.rs-viewport-fit #appPage .nav-sidebar .nav-user-info {
-  justify-content: flex-start !important;
-}
-
-html.rs-viewport-fit #appPage .nav-side-item,
-html.rs-viewport-fit #appPage .nav-sidebar-contact button,
-html.rs-viewport-fit #appPage .nav-sidebar-footer {
-  pointer-events: auto !important;
-  flex-shrink: 0;
 }
 
 html.rs-viewport-fit #appPage .nav-sidebar-footer {
   margin-top: auto !important;
+  flex-shrink: 0;
 }
 
 html.rs-viewport-fit .app-mobile-nav,
@@ -1751,7 +1749,7 @@ html.rs-viewport-fit #appPage .sidebar {
   min-width: var(--sidebar-w, 220px) !important;
   max-width: var(--sidebar-w, 220px) !important;
   margin: 0 !important;
-  border-radius: var(--rs-radius-lg, 16px) !important;
+  border-radius: 0 !important;
   box-shadow: none !important;
   flex-direction: column !important;
   z-index: 20 !important;
@@ -1761,6 +1759,7 @@ html.rs-viewport-fit #appPage .sidebar {
   height: auto !important;
   overflow-x: hidden !important;
   overflow-y: auto !important;
+  display: flex !important;
 }
 
 html.rs-viewport-fit .saas-topbar__overflow-wrap,
@@ -1803,7 +1802,7 @@ html.rs-viewport-fit body.shell-broadcast {
 }
 
 html.rs-viewport-fit body.shell-broadcast #appPage > .app-body {
-  --bcast-nav-active: var(--ds-nav-width-expanded, 200px) !important;
+  --bcast-nav-active: var(--ds-nav-width, 72px) !important;
   display: grid !important;
   grid-template-columns:
     var(--bcast-nav-active)
@@ -1825,11 +1824,11 @@ html.rs-viewport-fit body.shell-broadcast #appPage > .app-body:has(.nav-sidebar:
 
 html.rs-viewport-fit body.shell-scheduling #appPage > .app-body:not(:has(.nav-sidebar:hover)),
 html.rs-viewport-fit body.shell-sidebar-layout #appPage > .app-body:not(:has(.nav-sidebar:hover)) {
-  --bcast-nav-active: var(--ds-nav-width-expanded, 200px) !important;
+  --bcast-nav-active: var(--ds-nav-width, 72px) !important;
 }
 
 html.rs-viewport-fit body.shell-broadcast #appPage > .app-body:not(:has(.nav-sidebar:hover)) {
-  --bcast-nav-active: var(--ds-nav-width-expanded, 200px) !important;
+  --bcast-nav-active: var(--ds-nav-width, 72px) !important;
 }
 
 html.rs-viewport-fit body.shell-broadcast #appPage .nav-sidebar {
@@ -1896,7 +1895,7 @@ html.rs-viewport-fit body.shell-sidebar-layout {
 
 html.rs-viewport-fit body.shell-scheduling #appPage > .app-body,
 html.rs-viewport-fit body.shell-sidebar-layout #appPage > .app-body {
-  --bcast-nav-active: var(--ds-nav-width-expanded, 200px) !important;
+  --bcast-nav-active: var(--ds-nav-width, 72px) !important;
   display: grid !important;
   grid-template-columns:
     var(--bcast-nav-active)
