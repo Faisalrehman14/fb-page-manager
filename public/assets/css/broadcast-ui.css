@@ -765,9 +765,13 @@ body.shell-broadcast #appPage .stats-panel {
 @media (max-width: 900px) {
   body.shell-broadcast #appPage > .app-body {
     --bcast-nav-active: 0px;
-    grid-template-columns: minmax(0, 1fr) !important;
     display: flex !important;
     flex-direction: column !important;
+    grid-template-columns: none !important;
+  }
+
+  body.shell-broadcast #appPage > .app-body:has(.nav-sidebar:hover) {
+    --bcast-nav-active: 0px !important;
   }
 
   body.shell-broadcast #view-broadcast {
@@ -775,12 +779,13 @@ body.shell-broadcast #appPage .stats-panel {
     flex: 1 1 auto;
     min-height: 0;
     flex-direction: column !important;
+    overflow-y: auto;
   }
 
   body.shell-broadcast #view-broadcast .compose,
   body.shell-broadcast #view-broadcast .compose-col {
     flex: 1 1 auto !important;
-    min-height: 200px !important;
+    min-height: 180px !important;
     border-right: none !important;
     border-bottom: 1px solid var(--border, rgba(148, 163, 184, 0.12)) !important;
   }
@@ -792,8 +797,6 @@ body.shell-broadcast #appPage .stats-panel {
     width: 100% !important;
     min-width: 0 !important;
     max-width: none !important;
-    max-height: 42vh;
-    overflow-y: auto;
   }
 }
 

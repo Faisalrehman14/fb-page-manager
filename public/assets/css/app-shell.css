@@ -481,6 +481,12 @@ body.shell-multi-broadcast .page-card.multi-selected .page-indicator::after {
   margin: 8px 0 0;
 }
 
+@media (min-width: 901px) and (max-width: 1024px) {
+  body.shell-broadcast #appPage > .app-body:has(.nav-sidebar:hover) {
+    --bcast-nav-active: var(--ds-nav-width, 72px) !important;
+  }
+}
+
 @media (min-width: 901px) {
   body.shell-messenger .nav-sidebar { display: flex !important; }
 }

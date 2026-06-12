@@ -1,35 +1,71 @@
 /* ═══════════════════════════════════════════════════════════════
-   Responsive Premium Layer — layout fixes + polished UI
-   Loads last. Breakpoints: 1100 · 900 · 768 · 640
+   FBCast Pro — Responsive Design System (loads last)
+   Breakpoints: 1440 · 1280 · 1024 · 900 · 768 · 640 · 375 · 320
 ═══════════════════════════════════════════════════════════════ */
 
+/* ─── 1. Design tokens ─── */
 :root {
-  --rp-radius: 16px;
-  --rp-radius-lg: 20px;
-  --rp-shadow: 0 8px 32px rgba(15, 23, 42, 0.08);
-  --rp-shadow-lg: 0 20px 60px rgba(15, 23, 42, 0.12);
-  --rp-ease: cubic-bezier(0.22, 1, 0.36, 1);
-  --rp-duration: 0.28s;
+  --rs-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --rs-duration: 0.28s;
+  --rs-radius-sm: 8px;
+  --rs-radius: 12px;
+  --rs-radius-lg: 16px;
+  --rs-radius-xl: 20px;
+  --rs-space-1: clamp(4px, 0.5vw, 6px);
+  --rs-space-2: clamp(8px, 1vw, 12px);
+  --rs-space-3: clamp(12px, 1.5vw, 16px);
+  --rs-space-4: clamp(16px, 2vw, 24px);
+  --rs-space-5: clamp(20px, 2.5vw, 32px);
+  --rs-text-xs: clamp(10px, 0.65rem + 0.1vw, 11px);
+  --rs-text-sm: clamp(11px, 0.72rem + 0.15vw, 13px);
+  --rs-text-base: clamp(13px, 0.8rem + 0.2vw, 14px);
+  --rs-text-lg: clamp(15px, 0.9rem + 0.35vw, 18px);
+  --rs-text-xl: clamp(18px, 1rem + 0.6vw, 24px);
+  --rs-text-2xl: clamp(22px, 1.2rem + 1vw, 32px);
+  --rs-shadow-sm: 0 2px 8px rgba(15, 23, 42, 0.06);
+  --rs-shadow: 0 8px 32px rgba(15, 23, 42, 0.08);
+  --rs-shadow-lg: 0 20px 60px rgba(15, 23, 42, 0.12);
+  --rs-focus: 0 0 0 2px var(--ds-brand, #2563eb);
 }
 
 html[data-theme='dark'] #appPage,
 html:not([data-theme='light']) #appPage,
 body:not(.light) #appPage {
-  --rp-surface: rgba(14, 22, 48, 0.92);
-  --rp-border: rgba(139, 156, 255, 0.14);
-  --rp-glow: rgba(99, 102, 241, 0.08);
+  --rs-bg: #030812;
+  --rs-surface: rgba(14, 22, 48, 0.94);
+  --rs-surface-2: rgba(20, 31, 69, 0.96);
+  --rs-border: rgba(139, 156, 255, 0.14);
+  --rs-text: #f1f5f9;
+  --rs-text-muted: #94a3b8;
+  --rs-glow: rgba(99, 102, 241, 0.1);
 }
 
 html[data-theme='light'] #appPage,
 body.light #appPage {
-  --rp-surface: #ffffff;
-  --rp-border: rgba(99, 102, 241, 0.12);
-  --rp-shadow: 0 8px 32px rgba(15, 23, 42, 0.06);
-  --rp-glow: rgba(99, 102, 241, 0.05);
+  --rs-bg: #f1f5f9;
+  --rs-surface: #ffffff;
+  --rs-surface-2: #f8fafc;
+  --rs-border: rgba(99, 102, 241, 0.12);
+  --rs-text: #0f172a;
+  --rs-text-muted: #64748b;
+  --rs-glow: rgba(99, 102, 241, 0.06);
+  --rs-shadow: 0 8px 32px rgba(15, 23, 42, 0.06);
 }
 
-/* ─── Global overflow guard ─── */
+html[data-theme='light'] #landingPage,
+body.light #landingPage {
+  --rs-landing-bg: #f8fafc;
+}
+
+/* ─── 2. Global overflow & box model guards ─── */
 html {
+  overflow-x: clip;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+body {
+  min-width: 0;
   overflow-x: clip;
 }
 
@@ -41,51 +77,136 @@ body.app-dashboard-active {
 #landingPage,
 #appPage {
   max-width: 100%;
+  min-width: 0;
   overflow-x: clip;
 }
 
-/* ─── Landing: premium nav + sections ─── */
-#landingPage.landing-enterprise .nav {
-  transition: background var(--rp-duration) var(--rp-ease),
-    box-shadow var(--rp-duration) var(--rp-ease),
-    border-color var(--rp-duration) var(--rp-ease);
-}
-
-#landingPage.landing-enterprise .nav.scrolled {
-  backdrop-filter: blur(16px) saturate(160%);
-}
-
-#landingPage .btn-hero {
-  min-width: 0;
+img,
+video,
+svg,
+canvas {
   max-width: 100%;
+  height: auto;
 }
 
-#landingPage .pricing-grid--6,
-#landingPage .features-grid,
-#landingPage .testimonials-grid {
+/* Flex/grid children must shrink */
+#appPage > .app-body,
+#appPage > .app-body > *,
+.saas-topbar,
+.saas-topbar__left,
+.saas-topbar__right,
+#view-home,
+#view-broadcast,
+#view-messenger,
+#view-scheduling,
+.compose,
+.compose-col,
+.stats-panel,
+.hv-main-grid,
+.hv-left-col,
+.hv-right-col {
+  min-width: 0;
+}
+
+/* ─── 3. Accessibility: focus states ─── */
+:focus-visible {
+  outline: 2px solid var(--ds-brand, #2563eb);
+  outline-offset: 2px;
+}
+
+.saas-topbar__pages-btn:focus-visible,
+.saas-topbar__overflow-trigger:focus-visible,
+.app-mobile-nav__item:focus-visible,
+.nav-side-item:focus-visible {
+  outline: 2px solid var(--ds-brand, #2563eb);
+  outline-offset: 2px;
+}
+
+/* ─── 4. Topbar overflow menu ─── */
+.saas-topbar__overflow-wrap {
+  position: relative;
+  display: none;
+  flex-shrink: 0;
+}
+
+.saas-topbar__overflow-trigger {
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.saas-topbar__overflow-panel {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  min-width: 180px;
+  padding: 6px;
+  border-radius: var(--rs-radius-lg);
+  background: var(--rs-surface, rgba(14, 22, 48, 0.98));
+  border: 1px solid var(--rs-border);
+  box-shadow: var(--rs-shadow-lg);
+  z-index: 200;
+  animation: rsMenuIn 0.2s var(--rs-ease);
+}
+
+.saas-topbar__overflow-panel[hidden] {
+  display: none !important;
+}
+
+@keyframes rsMenuIn {
+  from { opacity: 0; transform: translateY(-6px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.saas-topbar__overflow-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
   width: 100%;
+  padding: 10px 12px;
+  border: none;
+  border-radius: var(--rs-radius);
+  background: transparent;
+  color: var(--rs-text, var(--text));
+  font-family: inherit;
+  font-size: var(--rs-text-sm);
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+  transition: background var(--rs-duration) var(--rs-ease);
 }
 
-#landingPage .trust-strip {
-  scrollbar-width: thin;
+.saas-topbar__overflow-item:hover,
+.saas-topbar__overflow-item:focus-visible {
+  background: var(--rs-glow);
+  outline: none;
 }
 
-/* ─── App topbar: mobile pages toggle ─── */
+.saas-topbar__overflow-item i {
+  width: 16px;
+  color: var(--primary-light, #60a5fa);
+  text-align: center;
+}
+
+/* Pages toggle */
 .saas-topbar__pages-btn {
   display: none;
   align-items: center;
   gap: 7px;
   padding: 8px 12px;
-  border-radius: 10px;
-  border: 1px solid var(--rp-border, rgba(139, 156, 255, 0.2));
-  background: var(--rp-glow, rgba(99, 102, 241, 0.08));
-  color: var(--text, #e2e8f0);
+  border-radius: var(--rs-radius);
+  border: 1px solid var(--rs-border);
+  background: var(--rs-glow);
+  color: var(--rs-text, var(--text));
   font-family: inherit;
-  font-size: 12px;
+  font-size: var(--rs-text-sm);
   font-weight: 700;
   cursor: pointer;
-  transition: background var(--rp-duration) var(--rp-ease),
-    border-color var(--rp-duration) var(--rp-ease),
+  transition: background var(--rs-duration) var(--rs-ease),
+    border-color var(--rs-duration) var(--rs-ease),
     transform 0.15s ease;
   flex-shrink: 0;
 }
@@ -100,18 +221,7 @@ body.app-dashboard-active {
   border-color: rgba(139, 156, 255, 0.32);
 }
 
-.saas-topbar__pages-btn:active {
-  transform: scale(0.97);
-}
-
-html[data-theme='light'] .saas-topbar__pages-btn,
-body.light .saas-topbar__pages-btn {
-  color: #334155;
-  background: rgba(99, 102, 241, 0.06);
-  border-color: rgba(99, 102, 241, 0.16);
-}
-
-/* Sidebar mobile drawer backdrop */
+/* Sidebar drawer backdrop */
 .sidebar-backdrop {
   display: none;
   position: fixed;
@@ -121,7 +231,7 @@ body.light .saas-topbar__pages-btn {
   backdrop-filter: blur(3px);
   opacity: 0;
   pointer-events: none;
-  transition: opacity var(--rp-duration) var(--rp-ease);
+  transition: opacity var(--rs-duration) var(--rs-ease);
 }
 
 body.pages-drawer-open .sidebar-backdrop {
@@ -130,18 +240,7 @@ body.pages-drawer-open .sidebar-backdrop {
   pointer-events: auto;
 }
 
-/* ─── App body: flex reflow ─── */
-#appPage > .app-body {
-  min-width: 0;
-  width: 100%;
-}
-
-#appPage .sidebar {
-  width: 220px;
-  min-width: 220px;
-}
-
-/* ─── Premium card polish (dashboard) ─── */
+/* ─── 5. Premium surfaces (app) ─── */
 body.app-dashboard-active #view-home .hv-kpi,
 body.app-dashboard-active #view-home .hv-panel,
 body.app-dashboard-active #view-home .hv-qa-card,
@@ -150,9 +249,9 @@ body.app-dashboard-active #view-home .hv-lifetime-card,
 body.app-dashboard-active .sidebar,
 body.app-dashboard-active #view-broadcast .compose,
 body.app-dashboard-active .stats-panel {
-  transition: border-color var(--rp-duration) var(--rp-ease),
-    box-shadow var(--rp-duration) var(--rp-ease),
-    transform var(--rp-duration) var(--rp-ease);
+  transition: border-color var(--rs-duration) var(--rs-ease),
+    box-shadow var(--rs-duration) var(--rs-ease),
+    transform var(--rs-duration) var(--rs-ease);
 }
 
 body.app-dashboard-active #view-home .hv-kpi:hover,
@@ -160,21 +259,129 @@ body.app-dashboard-active #view-home .hv-qa-card:hover {
   transform: translateY(-2px);
 }
 
-/* Compose textarea — flexible height on smaller screens */
 #messageText {
   min-height: 160px;
   max-height: min(420px, 40vh);
   resize: vertical;
+  width: 100%;
+  max-width: 100%;
 }
 
-/* Stats panel scroll on narrow desktop */
 .stats-panel {
-  min-width: 0;
   overflow: hidden;
 }
 
-/* ─── Tablet (≤1100px) ─── */
-@media (max-width: 1100px) {
+#appPage .sidebar {
+  width: 220px;
+  min-width: 220px;
+}
+
+/* Responsive dashboard grids */
+#view-home .hv-kpi-row {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 130px), 1fr)) !important;
+}
+
+#view-home .hv-qa-grid {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr)) !important;
+}
+
+#view-home .hv-metrics-grid {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 140px), 1fr)) !important;
+}
+
+#view-home .hv-main-grid {
+  grid-template-columns: minmax(0, 1fr) minmax(0, min(380px, 100%)) !important;
+}
+
+#view-home .hv-bottom-grid {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)) !important;
+}
+
+/* Landing */
+#landingPage.landing-enterprise .nav {
+  transition: background var(--rs-duration) var(--rs-ease),
+    box-shadow var(--rs-duration) var(--rs-ease);
+}
+
+#landingPage .btn-hero {
+  min-width: 0;
+  max-width: 100%;
+}
+
+#landingPage .pricing-grid--6,
+#landingPage .features-grid,
+#landingPage .testimonials-grid,
+#landingPage .cmp-premium__inner {
+  width: 100%;
+  max-width: 100%;
+}
+
+#landingPage .trust-strip {
+  scrollbar-width: thin;
+  max-width: 100%;
+}
+
+/* ─── 6. Desktop large (≤1440px) ─── */
+@media (max-width: 1440px) {
+  body.shell-broadcast {
+    --bcast-control-w: 320px;
+    --bcast-sidebar-w: 210px;
+  }
+}
+
+/* ─── 7. Laptop (≤1280px) ─── */
+@media (max-width: 1280px) {
+  body.shell-broadcast {
+    --bcast-control-w: 280px;
+    --bcast-sidebar-w: 200px;
+  }
+
+  #view-home .hv-main-grid {
+    grid-template-columns: minmax(0, 1fr) minmax(0, min(340px, 100%)) !important;
+  }
+}
+
+/* ─── 8. Tablet landscape (≤1024px) — icon-only nav rail ─── */
+@media (max-width: 1024px) {
+  #appPage .nav-sidebar,
+  #appPage .nav-sidebar:hover {
+    width: var(--ds-nav-width, 72px) !important;
+    min-width: var(--ds-nav-width, 72px) !important;
+    max-width: var(--ds-nav-width, 72px) !important;
+  }
+
+  #appPage .nav-sidebar .nav-side-item span,
+  #appPage .nav-sidebar .nav-sidebar-hdr span,
+  #appPage .nav-sidebar:hover .nav-side-item span,
+  #appPage .nav-sidebar:hover .nav-sidebar-hdr span,
+  #appPage .nav-sidebar .nav-user-details,
+  #appPage .nav-sidebar:hover .nav-user-details,
+  #appPage .nav-sidebar .nav-ai-label,
+  #appPage .nav-sidebar .nav-contact-label,
+  #appPage .nav-sidebar:hover .nav-ai-label,
+  #appPage .nav-sidebar:hover .nav-contact-label {
+    opacity: 0 !important;
+    max-width: 0 !important;
+    overflow: hidden !important;
+  }
+
+  body.shell-broadcast #appPage > .app-body:has(.nav-sidebar:hover) {
+    --bcast-nav-active: var(--ds-nav-width, 72px) !important;
+  }
+
+  #appPage .sidebar {
+    width: 200px;
+    min-width: 200px;
+  }
+
+  .saas-topbar .topbar-title p {
+    display: none;
+  }
+
+  .saas-topbar__breadcrumb span:first-child {
+    display: none;
+  }
+
   #view-home .hv-main-grid {
     grid-template-columns: 1fr !important;
   }
@@ -183,16 +390,53 @@ body.app-dashboard-active #view-home .hv-qa-card:hover {
     position: static;
   }
 
-  body.shell-scheduling #view-scheduling,
-  body.shell-broadcast #view-broadcast {
-    min-width: 0;
+  #landingPage.landing-enterprise .hero-enterprise-grid {
+    gap: clamp(24px, 4vw, 48px);
   }
 }
 
-/* ─── Mobile app (≤900px) ─── */
+/* ─── 9. Tablet portrait / small laptop (≤900px) ─── */
 @media (max-width: 900px) {
+  .saas-topbar {
+    padding: 0 var(--rs-space-3);
+    gap: var(--rs-space-2);
+    flex-wrap: nowrap;
+    overflow: hidden;
+  }
+
+  .saas-topbar__left {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  .saas-topbar__right {
+    flex: 0 1 auto;
+    min-width: 0;
+    gap: 6px;
+  }
+
+  .saas-topbar__sep-v,
+  .saas-topbar__breadcrumb,
+  .saas-topbar .topbar-announcement,
+  .saas-topbar #loginStatus,
+  .saas-topbar__actions .saas-topbar__icon-btn[title="Help"],
+  .saas-topbar__actions .saas-topbar__icon-btn[title="Settings"] {
+    display: none !important;
+  }
+
+  .saas-topbar__overflow-wrap {
+    display: block;
+  }
+
   .saas-topbar__pages-btn {
     display: inline-flex;
+  }
+
+  body.shell-home .saas-topbar__pages-btn,
+  body.shell-messenger .saas-topbar__pages-btn,
+  body.in-messenger .saas-topbar__pages-btn {
+    display: none !important;
   }
 
   body.app-dashboard-active.shell-broadcast .saas-topbar__pages-btn,
@@ -201,9 +445,21 @@ body.app-dashboard-active #view-home .hv-qa-card:hover {
     display: inline-flex;
   }
 
-  body.shell-home .saas-topbar__pages-btn,
-  body.shell-messenger .saas-topbar__pages-btn,
-  body.in-messenger .saas-topbar__pages-btn {
+  .saas-topbar .quota-widget {
+    gap: 8px;
+    padding: 4px 6px;
+  }
+
+  .saas-topbar #planBadge.saas-topbar__plan-btn {
+    padding: 6px 10px;
+    font-size: 10px;
+  }
+
+  .saas-topbar .topbar-user-name {
+    display: none;
+  }
+
+  .nav-sidebar {
     display: none !important;
   }
 
@@ -217,7 +473,7 @@ body.app-dashboard-active #view-home .hv-qa-card:hover {
     overflow: hidden !important;
   }
 
-  /* Pages sidebar — slide-over drawer */
+  /* Pages drawer */
   #appPage .sidebar {
     position: fixed !important;
     top: 0;
@@ -228,11 +484,10 @@ body.app-dashboard-active #view-home .hv-qa-card:hover {
     min-width: 0 !important;
     max-width: 88vw !important;
     margin: 0 !important;
-    border-radius: 0 16px 16px 0 !important;
-    border-left: none !important;
+    border-radius: 0 var(--rs-radius-lg) var(--rs-radius-lg) 0 !important;
     transform: translateX(-105%);
-    transition: transform var(--rp-duration) var(--rp-ease),
-      box-shadow var(--rp-duration) var(--rp-ease);
+    transition: transform var(--rs-duration) var(--rs-ease),
+      box-shadow var(--rs-duration) var(--rs-ease);
     box-shadow: none;
   }
 
@@ -246,7 +501,6 @@ body.app-dashboard-active #view-home .hv-qa-card:hover {
     display: flex !important;
   }
 
-  /* Main view fills width */
   #view-home,
   #view-messenger,
   #view-broadcast,
@@ -260,26 +514,44 @@ body.app-dashboard-active #view-home .hv-qa-card:hover {
     max-width: 100% !important;
   }
 
-  body.shell-messenger #appPage > .app-body {
+  body.shell-broadcast #appPage > .app-body {
+    --bcast-nav-active: 0px;
     display: flex !important;
+    flex-direction: column !important;
   }
 
-  body.shell-messenger #view-messenger {
-    flex: 1 1 auto;
-    min-width: 0;
-  }
-
-  /* Broadcast: stack compose + control */
   body.shell-broadcast #view-broadcast {
+    grid-column: auto;
+    flex: 1 1 auto;
+    min-height: 0;
+    flex-direction: column !important;
     overflow-y: auto !important;
     -webkit-overflow-scrolling: touch;
+  }
+
+  body.shell-broadcast #view-broadcast .compose,
+  body.shell-broadcast #view-broadcast .compose-col {
+    flex: 1 1 auto !important;
+    min-height: 180px !important;
+    border-right: none !important;
+    border-bottom: 1px solid var(--border) !important;
+  }
+
+  body.shell-broadcast #view-broadcast .broadcast-col,
+  body.shell-broadcast #view-broadcast .broadcast-col.bcast-panel-v2 {
+    display: flex !important;
+    flex: 0 0 auto !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    max-height: 45vh;
+    overflow-y: auto;
   }
 
   body.shell-broadcast #appPage .stats-panel {
     display: none !important;
   }
 
-  /* Home dashboard padding */
   #view-home {
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
@@ -287,11 +559,10 @@ body.app-dashboard-active #view-home .hv-qa-card:hover {
 
   #view-home .hv-hero,
   #view-home .hv-main-grid {
-    padding-left: 14px;
-    padding-right: 14px;
+    padding-left: var(--rs-space-3);
+    padding-right: var(--rs-space-3);
   }
 
-  /* Scheduling / pro views */
   #view-scheduling.broadcast-subview.is-active,
   #view-analytics.pro-view.is-active,
   #view-settings.pro-view.is-active {
@@ -299,22 +570,40 @@ body.app-dashboard-active #view-home .hv-qa-card:hover {
     -webkit-overflow-scrolling: touch;
   }
 
-  /* Landing nav */
-  #landingPage.landing-enterprise .nav-links {
+  #landingPage.landing-enterprise .nav-links,
+  #landingPage.landing-enterprise .le-nav-badge {
     display: none;
   }
 
   #landingPage.landing-enterprise .nav-hamburger {
     display: flex;
   }
-
-  #landingPage.landing-enterprise .le-nav-badge {
-    display: none;
-  }
 }
 
-/* ─── Small tablet / large phone (≤768px) ─── */
+/* ─── 10. Tablet portrait (≤768px) ─── */
 @media (max-width: 768px) {
+  .saas-topbar .topbar-title h1 {
+    font-size: var(--rs-text-base);
+  }
+
+  .saas-topbar .topbar-mark {
+    width: 32px;
+    height: 32px;
+  }
+
+  .saas-topbar__quota-values .quota-num {
+    font-size: 16px;
+  }
+
+  .saas-topbar__quota-values .quota-total-num,
+  .saas-topbar__quota-sep {
+    display: none;
+  }
+
+  .saas-topbar__trial-days {
+    display: none;
+  }
+
   #landingPage .hero-enterprise-metrics,
   #landingPage .hero-enterprise-badges {
     justify-content: center;
@@ -328,21 +617,18 @@ body.app-dashboard-active #view-home .hv-qa-card:hover {
     grid-template-columns: repeat(2, 1fr);
   }
 
-  .saas-topbar .topbar-title h1 {
-    font-size: 15px;
-  }
-
-  #view-home .hv-kpi-row,
-  #view-home .hv-metrics-grid {
-    grid-template-columns: repeat(2, 1fr) !important;
-  }
-
   .compose-tpl-acc .quick-tpls--compact {
     grid-template-columns: 1fr;
   }
+
+  .settings-card,
+  .pro-view__scroll {
+    padding-left: var(--rs-space-3);
+    padding-right: var(--rs-space-3);
+  }
 }
 
-/* ─── Phone (≤640px) ─── */
+/* ─── 11. Mobile (≤640px) ─── */
 @media (max-width: 640px) {
   #landingPage.landing-enterprise .nav-link-login {
     display: none;
@@ -350,11 +636,6 @@ body.app-dashboard-active #view-home .hv-qa-card:hover {
 
   #landingPage .cmp-premium__stats {
     grid-template-columns: 1fr;
-  }
-
-  #view-home .hv-kpi-row,
-  #view-home .hv-metrics-grid {
-    grid-template-columns: 1fr !important;
   }
 
   .saas-topbar__pages-btn span {
@@ -365,36 +646,119 @@ body.app-dashboard-active #view-home .hv-qa-card:hover {
     padding: 8px 10px;
   }
 
+  .saas-topbar .btn-upgrade span {
+    display: none;
+  }
+
+  .saas-topbar .btn-upgrade {
+    padding: 7px 10px;
+  }
+
   #messageText {
-    min-height: 140px;
+    min-height: 130px;
   }
 
   body.shell-broadcast #view-broadcast .broadcast-col,
   body.shell-broadcast #view-broadcast .broadcast-col.bcast-panel-v2 {
     max-height: none;
   }
+
+  #view-home .hv-kpi-row,
+  #view-home .hv-qa-grid,
+  #view-home .hv-metrics-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  #landingPage .nav-cta {
+    display: none;
+  }
 }
 
-/* ─── Light mode landing polish ─── */
+/* ─── 12. Small mobile (≤375px) ─── */
+@media (max-width: 375px) {
+  .saas-topbar {
+    padding: 0 10px;
+  }
+
+  .saas-topbar #planBadge.saas-topbar__plan-btn {
+    padding: 5px 8px;
+    font-size: 9px;
+  }
+
+  .saas-topbar__quota-values .quota-num {
+    font-size: 14px;
+  }
+
+  .app-mobile-nav__item {
+    font-size: 9px;
+  }
+
+  #landingPage.landing-enterprise .nav-brand-name {
+    font-size: 14px;
+  }
+}
+
+/* ─── 13. Extra small (≤320px) ─── */
+@media (max-width: 320px) {
+  .saas-topbar .topbar-title {
+    display: none;
+  }
+
+  .saas-topbar__brand-link {
+    padding: 4px;
+  }
+
+  .saas-topbar #planBadge.saas-topbar__plan-btn {
+    display: none;
+  }
+
+  .app-mobile-nav {
+    grid-template-columns: repeat(5, 1fr);
+    padding: 4px 4px calc(4px + env(safe-area-inset-bottom));
+  }
+
+  .app-mobile-nav__item {
+    font-size: 8px;
+    min-height: 44px;
+  }
+}
+
+/* ─── 14. Light theme polish ─── */
 html[data-theme='light'] #landingPage.landing-enterprise,
 body.light #landingPage.landing-enterprise {
-  background: #f8fafc;
+  background: var(--rs-landing-bg, #f8fafc);
 }
 
 html[data-theme='light'] #landingPage .feat,
 html[data-theme='light'] #landingPage .price-card,
 body.light #landingPage .feat,
 body.light #landingPage .price-card {
-  box-shadow: var(--rp-shadow);
+  box-shadow: var(--rs-shadow);
 }
 
-/* ─── Reduced motion ─── */
+html[data-theme='light'] .saas-topbar__overflow-panel,
+body.light .saas-topbar__overflow-panel {
+  background: #ffffff;
+  border-color: rgba(99, 102, 241, 0.14);
+  box-shadow: 0 16px 48px rgba(15, 23, 42, 0.12);
+}
+
+html[data-theme='light'] .saas-topbar__pages-btn,
+body.light .saas-topbar__pages-btn {
+  color: #334155;
+  background: rgba(99, 102, 241, 0.06);
+  border-color: rgba(99, 102, 241, 0.16);
+}
+
+/* ─── 15. Reduced motion ─── */
 @media (prefers-reduced-motion: reduce) {
   #appPage .sidebar,
   .sidebar-backdrop,
+  .saas-topbar__overflow-panel,
   body.app-dashboard-active #view-home .hv-kpi,
   body.app-dashboard-active #view-home .hv-qa-card {
     transition: none !important;
     transform: none !important;
+    animation: none !important;
   }
 }

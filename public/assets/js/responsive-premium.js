@@ -1,5 +1,5 @@
 /**
- * Responsive shell — mobile pages drawer + resize cleanup
+ * Responsive shell — pages drawer, topbar overflow menu, resize cleanup
  */
 (function (global) {
   'use strict';
@@ -43,10 +43,6 @@
     else openPagesDrawer();
   }
 
-  function onPageSelected() {
-    if (isMobile()) closePagesDrawer();
-  }
-
   function initPagesToggle() {
     const btn = document.getElementById('mobilePagesToggle');
     if (!btn) return;
@@ -59,7 +55,62 @@
   function initPageCardClose() {
     document.addEventListener('click', (e) => {
       const card = e.target.closest('.page-card');
-      if (card && isMobile()) onPageSelected();
+      if (card && isMobile()) closePagesDrawer();
+    });
+  }
+
+  function closeTopbarOverflow() {
+    const panel = document.getElementById('topbarOverflowPanel');
+    const btn = document.getElementById('topbarOverflowBtn');
+    if (panel) panel.hidden = true;
+    if (btn) btn.setAttribute('aria-expanded', 'false');
+  }
+
+  function toggleTopbarOverflow() {
+    const panel = document.getElementById('topbarOverflowPanel');
+    const btn = document.getElementById('topbarOverflowBtn');
+    if (!panel || !btn) return;
+    const open = panel.hidden;
+    panel.hidden = !open;
+    btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+  }
+
+  function initTopbarOverflow() {
+    const btn = document.getElementById('topbarOverflowBtn');
+    const panel = document.getElementById('topbarOverflowPanel');
+    if (!btn || !panel) return;
+
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      toggleTopbarOverflow();
+    });
+
+    panel.querySelectorAll('.saas-topbar__overflow-item').forEach((item) => {
+      item.addEventListener('click', () => closeTopbarOverflow());
+    });
+
+    const themeItem = document.getElementById('topbarOverflowTheme');
+    if (themeItem) {
+      themeItem.addEventListener('click', () => {
+        const toggle = document.getElementById('themeToggle');
+        if (toggle) {
+          toggle.click();
+        } else if (typeof global.applyTheme === 'function') {
+          const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+          global.applyTheme(isLight ? 'dark' : 'light');
+        }
+        closeTopbarOverflow();
+      });
+    }
+
+    document.addEventListener('click', (e) => {
+      if (!panel.hidden && !panel.contains(e.target) && e.target !== btn && !btn.contains(e.target)) {
+        closeTopbarOverflow();
+      }
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') closeTopbarOverflow();
     });
   }
 
@@ -69,6 +120,7 @@
       clearTimeout(timer);
       timer = setTimeout(() => {
         if (!isMobile()) closePagesDrawer();
+        closeTopbarOverflow();
       }, 120);
     }, { passive: true });
   }
@@ -83,6 +135,7 @@
     if (!document.getElementById('appPage')) return;
     initPagesToggle();
     initPageCardClose();
+    initTopbarOverflow();
     initResizeHandler();
     initEscape();
   }

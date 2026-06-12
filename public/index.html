@@ -1131,6 +1131,22 @@ window.getCsrfToken = async (forceRefresh = false) => {
             <span class="tt-thumb"></span>
           </span>
         </label>
+        <div class="saas-topbar__overflow-wrap" id="topbarOverflowWrap">
+          <button type="button" class="saas-topbar__icon-btn saas-topbar__overflow-trigger" id="topbarOverflowBtn" aria-expanded="false" aria-controls="topbarOverflowPanel" aria-label="More options">
+            <i class="fa-solid fa-ellipsis-vertical" aria-hidden="true"></i>
+          </button>
+          <div class="saas-topbar__overflow-panel" id="topbarOverflowPanel" hidden role="menu" aria-label="More actions">
+            <button type="button" class="saas-topbar__overflow-item" role="menuitem" onclick="if(typeof switchDashboardView==='function')switchDashboardView('help')">
+              <i class="fa-solid fa-circle-question"></i> Help
+            </button>
+            <button type="button" class="saas-topbar__overflow-item" role="menuitem" onclick="if(typeof switchDashboardView==='function')switchDashboardView('settings')">
+              <i class="fa-solid fa-gear"></i> Settings
+            </button>
+            <button type="button" class="saas-topbar__overflow-item" id="topbarOverflowTheme" role="menuitem">
+              <i class="fa-solid fa-circle-half-stroke"></i> Toggle theme
+            </button>
+          </div>
+        </div>
       </div>
 
       <div class="saas-topbar__user-cluster" id="topbarUserCluster">
