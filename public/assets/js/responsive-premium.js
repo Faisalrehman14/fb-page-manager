@@ -1,18 +1,111 @@
 /**
- * Responsive shell — pages drawer, topbar overflow, resize cleanup
+ * Responsive shell — proportional viewport fit, pages drawer, topbar overflow
  */
 (function (global) {
   'use strict';
 
   const MOBILE_BP = 900;
+  const DESIGN_W = 1280;
+  const MIN_SCALE = 0.32;
   const TOPBAR_COMPACT_W = 960;
 
   let backdrop = null;
   let topbarQuotaInited = false;
   let quotaSyncLock = false;
+  let fitRaf = 0;
+  let lastFitScale = 1;
+
+  function isFitMode() {
+    return document.documentElement.classList.contains('rs-viewport-fit');
+  }
 
   function isMobile() {
+    if (isFitMode()) return false;
     return window.matchMedia('(max-width: ' + MOBILE_BP + 'px)').matches;
+  }
+
+  function getActiveRoot() {
+    if (document.body.classList.contains('app-dashboard-active')) {
+      const app = document.getElementById('appPage');
+      if (app && app.style.display !== 'none') return app;
+    }
+    const landing = document.getElementById('landingPage');
+    if (landing && landing.style.display !== 'none') return landing;
+    return document.getElementById('appPage') || landing;
+  }
+
+  function unwrapAllShells() {
+    document.querySelectorAll('.rs-viewport-shell').forEach((shell) => {
+      const stage = shell.querySelector('.rs-viewport-stage');
+      const inner = stage && stage.firstElementChild;
+      if (inner && shell.parentNode) {
+        shell.parentNode.insertBefore(inner, shell);
+        shell.remove();
+      }
+    });
+  }
+
+  function ensureScaleShell(content) {
+    if (!content) return null;
+    const existing = content.closest('.rs-viewport-shell');
+    if (existing) return existing;
+
+    const shell = document.createElement('div');
+    shell.className = 'rs-viewport-shell';
+    const stage = document.createElement('div');
+    stage.className = 'rs-viewport-stage';
+
+    content.parentNode.insertBefore(shell, content);
+    stage.appendChild(content);
+    shell.appendChild(stage);
+    return shell;
+  }
+
+  function updateShellHeight(shell, stage, scale) {
+    if (!shell || !stage) return;
+    const naturalH = stage.offsetHeight;
+    shell.style.height = Math.ceil(naturalH * scale) + 'px';
+  }
+
+  function applyViewportFit() {
+    fitRaf = 0;
+    const w = window.innerWidth;
+    const scale = w >= DESIGN_W ? 1 : Math.max(MIN_SCALE, w / DESIGN_W);
+
+    unwrapAllShells();
+    document.documentElement.classList.remove('rs-viewport-fit', 'rs-viewport-scaled');
+    document.documentElement.style.removeProperty('--rs-fit-scale');
+    document.documentElement.style.removeProperty('--rs-viewport-scale');
+    document.body.style.removeProperty('min-height');
+
+    if (scale >= 1) {
+      lastFitScale = 1;
+      return;
+    }
+
+    const content = getActiveRoot();
+    if (!content) return;
+
+    const shell = ensureScaleShell(content);
+    const stage = shell && shell.querySelector('.rs-viewport-stage');
+    if (!shell || !stage) return;
+
+    if (Math.abs(scale - lastFitScale) > 0.0001) {
+      lastFitScale = scale;
+    }
+
+    document.documentElement.classList.add('rs-viewport-fit');
+    document.documentElement.style.setProperty('--rs-fit-scale', scale.toFixed(4));
+
+    requestAnimationFrame(() => {
+      updateShellHeight(shell, stage, scale);
+      requestAnimationFrame(() => updateShellHeight(shell, stage, scale));
+    });
+  }
+
+  function scheduleViewportFit() {
+    if (fitRaf) return;
+    fitRaf = requestAnimationFrame(applyViewportFit);
   }
 
   function ensureBackdrop() {
@@ -119,6 +212,7 @@
   }
 
   function syncMessengerLayout() {
+    if (isFitMode()) return;
     const panel = document.getElementById('msngContactPanel');
     if (!panel) return;
     if (window.innerWidth <= 1200) {
@@ -162,7 +256,7 @@
     const totEl = document.getElementById('quotaTotal');
     if (!topbar || !valEl || topbar.offsetParent === null) return;
 
-    const compact = topbar.offsetWidth < TOPBAR_COMPACT_W;
+    const compact = !isFitMode() && topbar.offsetWidth < TOPBAR_COMPACT_W;
     const fullRem = parseInt(valEl.dataset.fullValue || String(parseQuotaNum(valEl)), 10);
     const fullTot = totEl
       ? parseInt(totEl.dataset.fullValue || String(parseQuotaNum(totEl)), 10)
@@ -202,19 +296,13 @@
     syncTopbarQuotaDisplay();
   }
 
-  function clearLegacyScale() {
-    document.documentElement.classList.remove('rs-viewport-scaled');
-    document.documentElement.style.removeProperty('--rs-viewport-scale');
-    document.body.style.removeProperty('min-height');
-  }
-
   function watchDashboardActivation() {
     if (typeof MutationObserver === 'undefined') return;
     const obs = new MutationObserver(() => {
-      clearLegacyScale();
       if (document.body.classList.contains('app-dashboard-active')) {
         initTopbarQuotaObserver();
       }
+      scheduleViewportFit();
     });
     obs.observe(document.body, { attributes: true, attributeFilter: ['class'] });
   }
@@ -222,9 +310,9 @@
   function initResizeHandler() {
     let timer;
     window.addEventListener('resize', () => {
+      scheduleViewportFit();
       clearTimeout(timer);
       timer = setTimeout(() => {
-        clearLegacyScale();
         if (!isMobile()) closePagesDrawer();
         closeTopbarOverflow();
         syncMessengerLayout();
@@ -240,10 +328,10 @@
   }
 
   function init() {
-    clearLegacyScale();
+    scheduleViewportFit();
+    window.addEventListener('load', scheduleViewportFit, { passive: true });
     watchDashboardActivation();
 
-    if (!document.getElementById('appPage')) return;
     initPagesToggle();
     initPageCardClose();
     initTopbarOverflow();
@@ -256,6 +344,7 @@
   global.closePagesDrawer = closePagesDrawer;
   global.togglePagesDrawer = togglePagesDrawer;
   global.syncTopbarQuotaDisplay = syncTopbarQuotaDisplay;
+  global.scheduleViewportFit = scheduleViewportFit;
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);

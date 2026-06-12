@@ -1354,24 +1354,6 @@ body.app-dashboard-active #appPage > .app-body {
   }
 }
 
-/* AI hint + in-view banners scale with narrow content */
-.pp-ai-hint {
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.pp-ai-hint span,
-.pp-ai-hint #ppAiHintText {
-  flex: 1 1 160px;
-  min-width: 0;
-  line-height: 1.45;
-}
-
-.pp-ai-hint button {
-  margin-left: 0;
-  flex-shrink: 0;
-}
-
 #view-home {
   container-type: inline-size;
   container-name: home-view;
@@ -1411,27 +1393,27 @@ body.shell-home .sidebar {
 
 /* Split-screen: use full width for content, bottom nav instead of side rail */
 @media (max-width: 1100px) {
-  body.app-dashboard-active #appPage > .app-body {
+  html:not(.rs-viewport-fit) body.app-dashboard-active #appPage > .app-body {
     padding: 0 !important;
     padding-bottom: calc(60px + env(safe-area-inset-bottom, 0px)) !important;
     gap: 0 !important;
   }
 
-  body.app-dashboard-active #appPage .nav-sidebar {
+  html:not(.rs-viewport-fit) body.app-dashboard-active #appPage .nav-sidebar {
     display: none !important;
   }
 
-  body.app-dashboard-active .app-mobile-nav {
+  html:not(.rs-viewport-fit) body.app-dashboard-active .app-mobile-nav {
     display: grid !important;
   }
 
-  #view-home,
-  #view-messenger,
-  #view-broadcast,
-  #view-scheduling.broadcast-subview.is-active,
-  #view-analytics.pro-view.is-active,
-  #view-settings.pro-view.is-active,
-  #view-help.pro-view.is-active {
+  html:not(.rs-viewport-fit) #view-home,
+  html:not(.rs-viewport-fit) #view-messenger,
+  html:not(.rs-viewport-fit) #view-broadcast,
+  html:not(.rs-viewport-fit) #view-scheduling.broadcast-subview.is-active,
+  html:not(.rs-viewport-fit) #view-analytics.pro-view.is-active,
+  html:not(.rs-viewport-fit) #view-settings.pro-view.is-active,
+  html:not(.rs-viewport-fit) #view-help.pro-view.is-active {
     width: 100% !important;
     max-width: 100% !important;
     min-width: 0 !important;
@@ -1447,6 +1429,186 @@ body.shell-home .sidebar {
   box-sizing: border-box;
 }
 
+/* ─── 22. Proportional viewport fit — full desktop UI, no crop ─── */
+:root {
+  --rs-design-w: 1280px;
+  --rs-fit-scale: 1;
+}
+
+html.rs-viewport-fit {
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+html.rs-viewport-fit body {
+  overflow-x: hidden;
+  width: 100%;
+  min-width: 0;
+}
+
+html.rs-viewport-fit body.app-dashboard-active {
+  overflow-x: hidden;
+  overflow-y: auto;
+  height: auto;
+  min-height: 100vh;
+}
+
+.rs-viewport-shell {
+  width: 100vw;
+  max-width: 100%;
+  overflow: hidden;
+  margin: 0 auto;
+  position: relative;
+}
+
+.rs-viewport-stage {
+  width: var(--rs-design-w);
+  transform: scale(var(--rs-fit-scale));
+  transform-origin: top left;
+}
+
+html.rs-viewport-fit #appPage,
+html.rs-viewport-fit #landingPage {
+  width: var(--rs-design-w) !important;
+  max-width: var(--rs-design-w) !important;
+  min-width: var(--rs-design-w) !important;
+  margin: 0 !important;
+  overflow-x: clip;
+  box-sizing: border-box;
+}
+
+html.rs-viewport-fit #appPage {
+  height: 100vh;
+  height: 100dvh;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+html.rs-viewport-fit .app-mobile-nav {
+  display: none !important;
+}
+
+html.rs-viewport-fit body.app-dashboard-active #appPage .nav-sidebar {
+  display: flex !important;
+}
+
+html.rs-viewport-fit body.app-dashboard-active #appPage > .app-body {
+  padding: 12px !important;
+  padding-bottom: 12px !important;
+  gap: 12px !important;
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+}
+
+html.rs-viewport-fit .saas-topbar {
+  height: 60px !important;
+  min-height: 60px !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
+  padding: 0 20px !important;
+}
+
+html.rs-viewport-fit .saas-topbar__left {
+  order: 0 !important;
+  padding-right: 0 !important;
+  width: auto !important;
+  flex: 1 1 auto !important;
+}
+
+html.rs-viewport-fit .saas-topbar__right {
+  order: 0 !important;
+  width: auto !important;
+  flex: 0 1 auto !important;
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+}
+
+html.rs-viewport-fit .saas-topbar__actions,
+html.rs-viewport-fit .saas-topbar__user-cluster {
+  position: static !important;
+}
+
+html.rs-viewport-fit .saas-topbar .quota-widget {
+  flex: 0 1 auto !important;
+  width: auto !important;
+  max-width: none !important;
+}
+
+html.rs-viewport-fit #view-home .hv-kpi-row {
+  grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+}
+
+html.rs-viewport-fit #view-home .hv-hero-content {
+  flex-direction: row !important;
+  align-items: center !important;
+}
+
+html.rs-viewport-fit #view-home .hv-main-grid {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 380px) !important;
+}
+
+html.rs-viewport-fit #landingPage.landing-enterprise .nav-links,
+html.rs-viewport-fit #landingPage.landing-enterprise .nav-link-login,
+html.rs-viewport-fit #landingPage.landing-enterprise .nav-cta {
+  display: inline-flex !important;
+}
+
+html.rs-viewport-fit #landingPage.landing-enterprise .nav-hamburger {
+  display: none !important;
+}
+
+html.rs-viewport-fit #landingPage.landing-enterprise .hero-enterprise-grid {
+  grid-template-columns: 1.05fr 0.95fr !important;
+  text-align: left !important;
+}
+
+html.rs-viewport-fit #landingPage.landing-enterprise .hero-h1,
+html.rs-viewport-fit #landingPage.landing-enterprise .hero-sub {
+  text-align: left !important;
+}
+
+/* Status toast + AI hint — prevent overlap */
+.saas-topbar #statusBar.sb-success,
+.saas-topbar #statusBar.sb-error,
+.saas-topbar #statusBar.sb-warning,
+.saas-topbar #statusBar.sb-info {
+  position: fixed !important;
+  top: calc(var(--tb-h, 60px) + 6px) !important;
+  left: 50% !important;
+  transform: translateX(-50%) !important;
+  z-index: 120 !important;
+  pointer-events: none;
+  max-width: min(520px, calc(100vw - 24px));
+}
+
+#appPage:has(#statusBar.sb-success) #ppAiHint.is-visible,
+#appPage:has(#statusBar.sb-error) #ppAiHint.is-visible,
+#appPage:has(#statusBar.sb-warning) #ppAiHint.is-visible,
+#appPage:has(#statusBar.sb-info) #ppAiHint.is-visible {
+  margin-top: 48px;
+}
+
+.pp-ai-hint {
+  flex-wrap: wrap;
+  gap: 8px;
+  position: relative;
+  z-index: 1;
+}
+
+.pp-ai-hint span,
+.pp-ai-hint #ppAiHintText {
+  flex: 1 1 180px;
+  min-width: 0;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.pp-ai-hint button {
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
 /* ─── 15. Reduced motion ─── */
 @media (prefers-reduced-motion: reduce) {
   #appPage .sidebar,
@@ -1455,7 +1617,11 @@ body.shell-home .sidebar {
   body.app-dashboard-active #view-home .hv-kpi,
   body.app-dashboard-active #view-home .hv-qa-card {
     transition: none !important;
-    transform: none !important;
     animation: none !important;
+  }
+
+  html:not(.rs-viewport-fit) body.app-dashboard-active #view-home .hv-kpi,
+  html:not(.rs-viewport-fit) body.app-dashboard-active #view-home .hv-qa-card {
+    transform: none !important;
   }
 }
